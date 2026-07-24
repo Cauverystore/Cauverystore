@@ -2,7 +2,7 @@ services:
   - type: web
     name: cauvery-store-backend
     env: docker
-    repo: https://github.com/Cauverystore/cauverystore
+    repo: https://github.com/Cauverystore/Cauverystore
     branch: main
     dockerfilePath: ./backend-java/Dockerfile
     envVars:
