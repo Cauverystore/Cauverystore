@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: cauvery-store-backend
+    env: docker
+    repo: https://github.com/LuvMitr/Noyyal-Store
+    branch: main
+    dockerfilePath: ./backend-java/Dockerfile
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: dev
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: cauvery-store-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: cauvery-store-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: cauvery-store-db
+          property: password
+      - key: JWT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://cauverystore.in,https://www.cauverystore.in,https://frontend-1vkqh4fra-cauvery-store.vercel.app
+      - key: SPRING_CACHE_TYPE
+        value: simple
+
+databases:
+  - name: cauvery-store-db
+    plan: free
+    databaseName: cauverystore
+    ipAllowList: []
