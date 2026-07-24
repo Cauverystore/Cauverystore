@@ -8,18 +8,12 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: dev
-      - key: DATABASE_URL
-        fromDatabase:
-          name: cauvery-store-db
-          property: connectionString
+      - key: SPRING_DATASOURCE_URL
+        sync: false
       - key: SPRING_DATASOURCE_USERNAME
-        fromDatabase:
-          name: cauvery-store-db
-          property: user
+        sync: false
       - key: SPRING_DATASOURCE_PASSWORD
-        fromDatabase:
-          name: cauvery-store-db
-          property: password
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: RESEND_API_KEY
@@ -33,8 +27,4 @@ services:
       - key: SPRING_CACHE_TYPE
         value: simple
 
-databases:
-  - name: cauvery-store-db
-    plan: free
-    databaseName: cauverystore
-    ipAllowList: []
+# Database will be created manually from Render dashboard
