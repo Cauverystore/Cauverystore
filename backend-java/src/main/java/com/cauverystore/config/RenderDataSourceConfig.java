@@ -17,8 +17,8 @@ public class RenderDataSourceConfig {
         if (url == null || url.isBlank()) {
             url = "jdbc:postgresql://localhost:5432/cauverystore";
         }
-        if (url.startsWith("postgres://")) {
-            url = url.replaceFirst("^postgres://", "jdbc:postgresql://");
+        if (!url.startsWith("jdbc:")) {
+            url = "jdbc:" + url;
         }
 
         String username = System.getenv("SPRING_DATASOURCE_USERNAME");
