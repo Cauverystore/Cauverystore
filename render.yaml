@@ -4,7 +4,7 @@ services:
     env: docker
     repo: https://github.com/Cauverystore/Cauverystore
     branch: main
-    dockerfilePath: ./backend-java/Dockerfile
+    dockerfilePath: backend-java/Dockerfile
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: dev
