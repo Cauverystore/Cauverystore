@@ -8,5 +8,7 @@ RUN mvn package -Dmaven.test.skip=true -f backend-java/pom.xml
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/backend-java/target/*.jar app.jar
+COPY backend-java/entrypoint.sh .
+RUN chmod +x entrypoint.sh
 EXPOSE 9091
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["./entrypoint.sh"]
