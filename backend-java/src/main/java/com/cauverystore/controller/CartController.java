@@ -21,13 +21,13 @@ public class CartController {
     private final CartService cartService;
 
     @GetMapping
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> getCartWithDetails(@RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(cartService.getCartWithDetails(authHeader));
     }
 
     @PostMapping("/add")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<CartItem> addItem(@RequestParam Long productId,
                                              @RequestParam(defaultValue = "1") int quantity,
                                              @RequestHeader("Authorization") String authHeader) {
@@ -35,7 +35,7 @@ public class CartController {
     }
 
     @DeleteMapping("/remove/{itemId}")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<Void> removeItem(@PathVariable Long itemId,
                                             @RequestHeader("Authorization") String authHeader) {
         cartService.removeItem(authHeader, itemId);
@@ -43,34 +43,34 @@ public class CartController {
     }
 
     @DeleteMapping("/clear")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<Void> clearCart(@RequestHeader("Authorization") String authHeader) {
         cartService.clearCart(authHeader);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/save-for-later/{itemId}")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<CartItem> saveForLater(@PathVariable Long itemId,
                                                    @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(cartService.saveForLater(authHeader, itemId));
     }
 
     @PostMapping("/move-to-cart/{itemId}")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<CartItem> moveToCart(@PathVariable Long itemId,
                                                 @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(cartService.moveToCart(authHeader, itemId));
     }
 
     @GetMapping("/frequently-bought")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<List<Product>> getFrequentlyBought(@RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(cartService.getFrequentlyBought(authHeader));
     }
 
     @PostMapping("/update-quantity/{itemId}")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<CartItem> updateQuantity(@PathVariable Long itemId,
                                                     @RequestParam int quantity,
                                                     @RequestHeader("Authorization") String authHeader) {
