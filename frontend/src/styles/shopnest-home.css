@@ -59,11 +59,15 @@
 .sn-cat-item { background: none; border: none; color: var(--text-aquamarine); opacity: 0.85; padding: 10px 14px; font-size: 13px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 2px; font-weight: 500; }
 .sn-cat-item:hover { color: var(--text-aquamarine); opacity: 1; outline: 1px solid var(--text-aquamarine); }
 .sn-cat-arrow {
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   opacity: 0.6;
   cursor: pointer;
+  font-size: clamp(10px, 1.5vw, 14px);
+  line-height: 1;
   transition: opacity 0.3s ease;
 }
 .sn-cat-arrow:hover {

@@ -1144,8 +1144,6 @@
   position: absolute;
   bottom: 120px;
   right: -12px;
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1153,9 +1151,11 @@
   border: none;
   color: var(--color-accent-gold, #C8A24B);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: clamp(0.85rem, 2vw, 1.25rem);
+  line-height: 1;
+  padding: 6px;
   z-index: 101;
-  opacity: 0.5;
+  opacity: 0.6;
   transition: opacity 0.3s ease;
 }
 
