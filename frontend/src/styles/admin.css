@@ -1049,6 +1049,29 @@
   margin-bottom: var(--spacing-4);
 }
 
+/* ─── Alert ─── */
+.admin-alert {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+.admin-alert.error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.admin-alert.success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+.admin-alert.info {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 1023px) {
   .admin-sidebar {
