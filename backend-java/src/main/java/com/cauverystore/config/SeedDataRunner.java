@@ -13,12 +13,18 @@ public class SeedDataRunner implements CommandLineRunner {
     private final ProductRepository productRepo;
     private final ProductImageRepository imageRepo;
     private final DiscountRepository discountRepo;
+    private final PermissionRepository permissionRepo;
+    private final RolePermissionRepository rolePermissionRepo;
     private final PasswordEncoder passwordEncoder;
 
     public SeedDataRunner(UserRepository ur, CategoryRepository cr, ProductRepository pr,
-                          ProductImageRepository pir, DiscountRepository dr, PasswordEncoder pe) {
+                          ProductImageRepository pir, DiscountRepository dr,
+                          PermissionRepository perms, RolePermissionRepository rp,
+                          PasswordEncoder pe) {
         this.userRepo = ur; this.categoryRepo = cr; this.productRepo = pr;
-        this.imageRepo = pir; this.discountRepo = dr; this.passwordEncoder = pe;
+        this.imageRepo = pir; this.discountRepo = dr;
+        this.permissionRepo = perms; this.rolePermissionRepo = rp;
+        this.passwordEncoder = pe;
     }
 
     @Override
@@ -64,6 +70,66 @@ public class SeedDataRunner implements CommandLineRunner {
                 d.setProduct(product); d.setType("PERCENTAGE"); d.setValue((Double)p[7]);
                 d.setStartDate(java.time.LocalDate.now()); d.setEndDate(java.time.LocalDate.now().plusMonths(3));
                 d.setActive(true); discountRepo.save(d);
+            }
+        }
+        if (permissionRepo.count() == 0) {
+            String[][] permDefs = {
+                {"user.create", "Create users", "USER", "CREATE"},
+                {"user.read", "View users", "USER", "READ"},
+                {"user.update", "Edit users", "USER", "UPDATE"},
+                {"user.delete", "Delete users", "USER", "DELETE"},
+                {"product.create", "Create products", "PRODUCT", "CREATE"},
+                {"product.read", "View products", "PRODUCT", "READ"},
+                {"product.update", "Edit products", "PRODUCT", "UPDATE"},
+                {"product.delete", "Delete products", "PRODUCT", "DELETE"},
+                {"order.create", "Create orders", "ORDER", "CREATE"},
+                {"order.read", "View orders", "ORDER", "READ"},
+                {"order.update", "Edit orders", "ORDER", "UPDATE"},
+                {"order.delete", "Delete orders", "ORDER", "DELETE"},
+                {"category.create", "Create categories", "CATEGORY", "CREATE"},
+                {"category.read", "View categories", "CATEGORY", "READ"},
+                {"category.update", "Edit categories", "CATEGORY", "UPDATE"},
+                {"category.delete", "Delete categories", "CATEGORY", "DELETE"},
+                {"settings.read", "View settings", "SETTINGS", "READ"},
+                {"settings.update", "Edit settings", "SETTINGS", "UPDATE"},
+                {"permissions.read", "View permissions", "PERMISSION", "READ"},
+                {"permissions.update", "Edit permissions", "PERMISSION", "UPDATE"},
+                {"impersonate", "Impersonate users", "IMPERSONATION", "EXECUTE"},
+                {"cart.read", "View cart", "CART", "READ"},
+                {"cart.create", "Add to cart", "CART", "CREATE"},
+                {"cart.delete", "Remove from cart", "CART", "DELETE"},
+                {"payment.read", "View payments", "PAYMENT", "READ"},
+                {"payment.create", "Process payments", "PAYMENT", "CREATE"},
+                {"report.read", "View reports", "REPORT", "READ"},
+                {"inventory.read", "View inventory", "INVENTORY", "READ"},
+                {"inventory.update", "Update inventory", "INVENTORY", "UPDATE"},
+            };
+            for (String[] p : permDefs) {
+                Permission perm = new Permission();
+                perm.setName(p[0]); perm.setDescription(p[1]);
+                perm.setResource(p[2]); perm.setAction(p[3]);
+                permissionRepo.save(perm);
+            }
+            // Assign permissions to roles
+            String[][] rolePermAssign = {
+                {"SUPER_ADMIN", "user.create,user.read,user.update,user.delete,product.create,product.read,product.update,product.delete,order.create,order.read,order.update,order.delete,category.create,category.read,category.update,category.delete,settings.read,settings.update,permissions.read,permissions.update,impersonate,cart.read,cart.create,cart.delete,payment.read,payment.create,report.read,inventory.read,inventory.update"},
+                {"ADMIN", "user.read,user.update,product.read,product.update,order.read,order.update,category.read,category.update,report.read,inventory.read,inventory.update,settings.read"},
+                {"SELLER", "product.create,product.read,product.update,product.delete,order.read,order.update,category.read,inventory.read,inventory.update"},
+                {"EXECUTIVE", "product.read,product.update,order.read,order.update,report.read,inventory.read,inventory.update,category.read"},
+                {"CUSTOMER", "cart.read,cart.create,cart.delete,order.create,order.read,payment.create,product.read,category.read"},
+            };
+            for (String[] assign : rolePermAssign) {
+                String role = assign[0];
+                String[] permNames = assign[1].split(",");
+                for (String pName : permNames) {
+                    Permission perm = permissionRepo.findByName(pName.trim()).orElse(null);
+                    if (perm != null) {
+                        RolePermission rp = new RolePermission();
+                        rp.setRole(role);
+                        rp.setPermission(perm);
+                        rolePermissionRepo.save(rp);
+                    }
+                }
             }
         }
         System.out.println("=== Seed data loaded successfully ===");
