@@ -10,7 +10,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/products/bulk")
 @CrossOrigin("*")
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PRODUCT_MANAGER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'EXECUTIVE')")
 public class BulkOperationController {
     private final BulkOperationService bulkService;
     public BulkOperationController(BulkOperationService bulkService) { this.bulkService = bulkService; }

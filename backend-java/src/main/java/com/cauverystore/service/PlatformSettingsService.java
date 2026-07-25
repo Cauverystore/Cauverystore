@@ -27,6 +27,12 @@ public class PlatformSettingsService {
                 .orElseGet(() -> {
                     PlatformSetting s = new PlatformSetting();
                     s.setSettingKey(key);
+                    if (key.contains(".")) {
+                        String cat = key.substring(0, key.indexOf('.')).toUpperCase();
+                        s.setCategory(cat);
+                    } else {
+                        s.setCategory("GENERAL");
+                    }
                     return s;
                 });
         setting.setSettingValue(value);

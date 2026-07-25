@@ -2,10 +2,12 @@ package com.cauverystore.controller;
 
 import com.cauverystore.entities.AuditLog;
 import com.cauverystore.service.AuditService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/audit-logs")
@@ -16,5 +18,15 @@ public class AdminAuditController {
     public AdminAuditController(AuditService auditService) { this.auditService = auditService; }
 
     @GetMapping
-    public ResponseEntity<List<AuditLog>> getAll() { return ResponseEntity.ok(auditService.getAll()); }
+    public ResponseEntity<Map<String, Object>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        Page<AuditLog> logsPage = auditService.getPage(PageRequest.of(page, size));
+        return ResponseEntity.ok(Map.of(
+                "content", logsPage.getContent(),
+                "totalElements", logsPage.getTotalElements(),
+                "totalPages", logsPage.getTotalPages(),
+                "currentPage", logsPage.getNumber()
+        ));
+    }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/axios';
+import api from '../../api/axios';
 import { useToast } from '../../admin/context/ToastContext';
 
 const TABS = [

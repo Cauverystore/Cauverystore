@@ -1,0 +1,22 @@
+SCSS:
+.category-products-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.category-header {
+  margin-bottom: 1.5rem;
+}
+
+.category-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-bottom: 0.25rem;
+}
+
+.category-count {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}

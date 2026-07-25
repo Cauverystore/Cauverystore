@@ -13,8 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -81,6 +84,30 @@ public class OrderController {
     public ResponseEntity<Order> updateOrderStatus(@PathVariable Long orderId,
                                                                   @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(orderService.updateOrderStatus(orderId, body.get("status")));
+    }
+
+    @PostMapping("/bulk-cancel")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<List<Map<String, Object>>> bulkCancelOrders(
+            @RequestBody Map<String, List<Long>> body,
+            @RequestHeader("Authorization") String authHeader) {
+        List<Long> ids = body.getOrDefault("ids", List.of());
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (Long orderId : ids) {
+            try {
+                Map<String, Object> result = orderService.cancelOrder(authHeader, orderId);
+                result.put("orderId", orderId);
+                result.put("success", true);
+                results.add(result);
+            } catch (Exception e) {
+                Map<String, Object> err = new HashMap<>();
+                err.put("orderId", orderId);
+                err.put("success", false);
+                err.put("error", e.getMessage());
+                results.add(err);
+            }
+        }
+        return ResponseEntity.ok(results);
     }
 
     @GetMapping("/admin/all")

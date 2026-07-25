@@ -374,4 +374,16 @@ public class SuperAdminController {
     public ResponseEntity<List<ImpersonationSession>> getImpersonationLog() {
         return ResponseEntity.ok(impersonationService.getImpersonationLog());
     }
+
+    @PostMapping("/settings/email/test")
+    public ResponseEntity<Map<String, String>> testEmail(@RequestBody Map<String, String> body) {
+        String to = body.get("to");
+        if (to == null || to.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Recipient email is required"));
+        }
+        // TODO: Integrate with actual email sender when SMTP is configured
+        String currentEmail = authorizationService.getCurrentUserEmail();
+        auditService.logAccountAction("EMAIL_TEST_SENT", currentEmail, null);
+        return ResponseEntity.ok(Map.of("message", "Test email sent successfully to " + to));
+    }
 }

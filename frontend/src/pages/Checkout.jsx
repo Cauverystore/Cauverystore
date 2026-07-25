@@ -67,7 +67,9 @@ const Checkout = () => {
     : 0;
   const delivery = subtotal >= 500 ? 0 : 40;
   const giftCharge = giftWrap ? 49 : 0;
-  const total = Math.max(subtotal - discount + delivery + giftCharge, 0);
+  const taxableAmount = subtotal - discount;
+  const tax = Math.round(Math.max(taxableAmount, 0) * 0.12 * 100) / 100;
+  const total = Math.max(subtotal - discount + delivery + giftCharge + tax, 0);
 
   const validateStep = () => {
     if (step === 0) {
@@ -435,6 +437,14 @@ const Checkout = () => {
                 <span style={{ color: "#16a34a" }}>-&#8377;{discount.toFixed(2)}</span>
               </div>
             )}
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
+              <span style={{ color: "var(--color-text-secondary)" }}>Subtotal after discount</span>
+              <span>&#8377;{(subtotal - discount).toFixed(2)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
+              <span style={{ color: "var(--color-text-secondary)" }}>Tax (12%)</span>
+              <span>&#8377;{tax.toFixed(2)}</span>
+            </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
               <span style={{ color: "var(--color-text-secondary)" }}>Delivery</span>
               <span>{delivery === 0 ? <span style={{ color: "#16a34a" }}>FREE</span> : `\u20B9${delivery}`}</span>

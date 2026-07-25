@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 @RestController
 @RequestMapping("/api/admin/product-dashboard")
 @CrossOrigin("*")
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PRODUCT_MANAGER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'EXECUTIVE')")
 public class ProductDashboardController {
     private final ProductRepository productRepo;
     public ProductDashboardController(ProductRepository productRepo) { this.productRepo = productRepo; }

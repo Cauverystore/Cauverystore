@@ -3,6 +3,8 @@ package com.cauverystore.service;
 import com.cauverystore.entities.AuditLog;
 import com.cauverystore.entities.Role;
 import com.cauverystore.repository.AuditLogRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -79,5 +81,9 @@ public class AuditService {
 
     public List<AuditLog> getByDateRange(LocalDateTime from, LocalDateTime to) {
         return auditRepo.findByTimestampBetweenOrderByTimestampDesc(from, to);
+    }
+
+    public Page<AuditLog> getPage(Pageable pageable) {
+        return auditRepo.findAll(pageable);
     }
 }

@@ -36,6 +36,7 @@ public class OrderService {
     private final AddressRepository addressRepo;
     private final JwtUtil jwtUtil;
     private final InvoicePdfService invoicePdfService;
+    private final AuditService auditService;
 
     public OrderService(OrderRepository orderRepo, OrderItemRepository orderItemRepo,
                         CartRepository cartRepo, ProductRepository productRepo,
@@ -43,7 +44,8 @@ public class OrderService {
                         CartService cartService, InventoryService inventoryService,
                         NotificationService notificationService, RefundRepository refundRepo,
                         AddressRepository addressRepo, JwtUtil jwtUtil,
-                        InvoicePdfService invoicePdfService) {
+                        InvoicePdfService invoicePdfService,
+                        AuditService auditService) {
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -57,6 +59,7 @@ public class OrderService {
         this.addressRepo = addressRepo;
         this.jwtUtil = jwtUtil;
         this.invoicePdfService = invoicePdfService;
+        this.auditService = auditService;
     }
 
     private User extractUserFromHeader(String authHeader) {
@@ -150,6 +153,10 @@ public class OrderService {
         cart.setTotalItems(0);
         cart.setTotalPrice(0.0);
         cartRepo.save(cart);
+
+        auditService.log(user.getId(), user.getEmail(), "ORDER_PLACED",
+                "Order", savedOrder.getId(),
+                "Order #" + savedOrder.getId() + " placed for " + totalAmount, null);
 
         notificationService.sendOrderPlaced(user.getEmail(), savedOrder.getId().toString());
         notificationService.createNotification(user.getId(), "ORDER", "Order Placed",
@@ -277,6 +284,10 @@ public class OrderService {
 
         Order saved = orderRepo.save(order);
 
+        auditService.log(order.getUser().getId(), order.getUser().getEmail(),
+                "ORDER_STATUS_" + status, "Order", orderId,
+                "Order #" + orderId + " status updated to " + status, null);
+
         switch (status) {
             case "DELIVERED":
                 notificationService.sendOrderDelivered(order.getUser().getEmail(), orderId.toString());
@@ -395,6 +406,9 @@ public class OrderService {
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
         verifyOrderOwnership(order, user.getId());
         Order o = cancelOrder(orderId);
+        auditService.log(user.getId(), user.getEmail(), "ORDER_CANCELLED",
+                "Order", o.getId(),
+                "Order #" + o.getId() + " cancelled by customer", null);
         return Map.of("id", o.getId(), "status", o.getStatus());
     }
 
@@ -413,6 +427,11 @@ public class OrderService {
         order.getTimeline().add(timeline);
 
         Order saved = orderRepo.save(order);
+
+        auditService.log(order.getUser().getId(), order.getUser().getEmail(),
+                "ORDER_SHIPPED", "Order", orderId,
+                "Order #" + orderId + " has been shipped", null);
+
         notificationService.sendOrderShipped(order.getUser().getEmail(), orderId.toString());
         notificationService.createNotification(order.getUser().getId(), "ORDER",
                 "Order Shipped", "Your order #" + orderId + " has been shipped.");
@@ -434,6 +453,11 @@ public class OrderService {
         order.getTimeline().add(timeline);
 
         Order saved = orderRepo.save(order);
+
+        auditService.log(order.getUser().getId(), order.getUser().getEmail(),
+                "ORDER_DELIVERED", "Order", orderId,
+                "Order #" + orderId + " has been delivered", null);
+
         notificationService.sendOrderDelivered(order.getUser().getEmail(), orderId.toString());
         notificationService.createNotification(order.getUser().getId(), "ORDER",
                 "Order Delivered", "Your order #" + orderId + " has been delivered.");
@@ -462,6 +486,11 @@ public class OrderService {
         }
 
         Order saved = orderRepo.save(order);
+
+        auditService.log(order.getUser().getId(), order.getUser().getEmail(),
+                "ORDER_ADMIN_CANCELLED", "Order", orderId,
+                "Order #" + orderId + " cancelled by admin", null);
+
         notificationService.sendOrderCancelled(order.getUser().getEmail(), orderId.toString());
         notificationService.createNotification(order.getUser().getId(), "ORDER",
                 "Order Cancelled", "Your order #" + orderId + " has been cancelled by admin.");

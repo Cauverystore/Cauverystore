@@ -1,0 +1,16 @@
+SCSS:
+.admin-layout {
+  display: flex;
+}
+
+.admin-main {
+  margin-left: 260px;
+  flex: 1;
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+.admin-content {
+  padding: 1.5rem;
+  padding-top: 5rem;
+}

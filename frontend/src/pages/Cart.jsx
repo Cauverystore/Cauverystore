@@ -293,13 +293,12 @@ const Cart = () => {
                 {savedItems.map((item) => {
                   const product = safeProduct(item);
                   const itemId = safeId(item);
-                  const image = product.image || product.images?.[0] || PLACEHOLDER;
+                  const image = product.image || product.images?.[0] || "";
                   const price = product.price || item.price || 0;
                   return (
                     <div key={itemId} className="save-later-item">
                       <div className="save-later-item-image">
-                        <img loading="lazy" width="100" height="100" src={image} alt={product.name || ""}
-                          onError={(e) => { e.target.src = PLACEHOLDER; }} />
+                        <CartItemImage src={image} name={product.name} width={100} height={100} className="cart-item-img" />
                       </div>
                       <div className="save-later-item-body">
                         <div className="save-later-item-title">{product.name || "Product"}</div>
@@ -322,12 +321,11 @@ const Cart = () => {
               <div className="save-later-grid">
                 {freqItems.slice(0, 6).map((prod) => {
                   const pid = prod.id || prod._id;
-                  const image = prod.image || prod.images?.[0] || PLACEHOLDER;
+                  const image = prod.image || prod.images?.[0] || "";
                   return (
                     <div key={pid} className="save-later-item">
                       <div className="save-later-item-image">
-                        <img loading="lazy" width="100" height="100" src={image} alt={prod.name || ""}
-                          onError={(e) => { e.target.src = PLACEHOLDER; }} />
+                        <CartItemImage src={image} name={prod.name} width={100} height={100} className="cart-item-img" />
                       </div>
                       <div className="save-later-item-body">
                         <div className="save-later-item-title">{prod.name}</div>

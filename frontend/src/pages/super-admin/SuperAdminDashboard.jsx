@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/axios';
+import api from '../../api/axios';
 
 const statCards = [
   { key: 'totalRevenue', label: 'Total Revenue', icon: '💰', color: '#16a34a', prefix: '₹' },

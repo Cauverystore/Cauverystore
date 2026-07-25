@@ -1,0 +1,78 @@
+SCSS:
+.bulk-upload-container {
+  padding: 1.5rem;
+}
+
+.bulk-upload-container h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.upload-area {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition-default);
+  margin-bottom: 1.5rem;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light, #f0fdf4);
+}
+
+.upload-area p {
+  color: var(--color-text-secondary);
+  margin-top: 0.5rem;
+}
+
+.upload-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+}
+
+.upload-preview-table th,
+.upload-preview-table td {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.upload-preview-table th {
+  background: var(--color-bg-secondary);
+  font-weight: 600;
+}
+
+.upload-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.upload-actions button {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-upload-confirm {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-upload-cancel {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.error-row {
+  background: #fef2f2;
+}

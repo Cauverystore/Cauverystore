@@ -11,7 +11,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/suppliers")
 @CrossOrigin("*")
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'INVENTORY_MANAGER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'EXECUTIVE')")
 public class SupplierController {
     private final SupplierService supplierService;
     public SupplierController(SupplierService supplierService) { this.supplierService = supplierService; }

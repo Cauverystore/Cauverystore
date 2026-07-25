@@ -11,7 +11,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/purchase-orders")
 @CrossOrigin("*")
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'INVENTORY_MANAGER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'EXECUTIVE')")
 public class PurchaseOrderController {
     private final PurchaseOrderService poService;
     public PurchaseOrderController(PurchaseOrderService poService) { this.poService = poService; }

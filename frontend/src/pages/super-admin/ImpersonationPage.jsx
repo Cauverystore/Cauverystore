@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../utils/axios';
+import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../admin/context/ToastContext';
 
