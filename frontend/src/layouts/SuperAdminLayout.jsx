@@ -202,24 +202,8 @@ const SuperAdminLayout = () => {
         </div>
 
         <button
+          className="sa-sidebar-arrow"
           onClick={() => setCollapsed(!collapsed)}
-          style={{
-            position: 'absolute',
-            bottom: '120px',
-            right: '-12px',
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            background: NAV_COLOR,
-            border: '1px solid #334155',
-            color: ACCENT,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.75rem',
-            zIndex: 101,
-          }}
         >
           {collapsed ? '→' : '←'}
         </button>
