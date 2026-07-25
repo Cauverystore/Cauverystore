@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/axios';
+import { useToast } from '../../admin/context/ToastContext';
 
 const ROLES = ['CUSTOMER', 'SELLER', 'EXECUTIVE', 'ADMIN', 'SUPER_ADMIN'];
 const STATUSES = ['ACTIVE', 'SUSPENDED'];
@@ -7,6 +8,7 @@ const STATUSES = ['ACTIVE', 'SUSPENDED'];
 const initialForm = { fullName: '', email: '', password: '', role: 'ADMIN' };
 
 const UserManagement = () => {
+  const { showToast } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -102,7 +104,7 @@ const UserManagement = () => {
       setConfirmAction(null);
       fetchUsers(page);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to change role');
+      showToast(err.response?.data?.message || 'Failed to change role', 'error');
       setConfirmAction(null);
     }
   };
@@ -114,7 +116,7 @@ const UserManagement = () => {
       await api.put(`/api/super-admin/users/${user._id || user.id}/status`, { status: newStatus });
       fetchUsers(page);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to toggle user status');
+      showToast(err.response?.data?.message || 'Failed to toggle user status', 'error');
     }
   };
 
@@ -122,9 +124,9 @@ const UserManagement = () => {
     if (!window.confirm(`Reset password for ${user.fullName || user.name || user.email}?`)) return;
     try {
       await api.post(`/api/super-admin/users/${user._id || user.id}/reset-password`, {});
-      alert('Password reset email sent');
+      showToast('Password reset email sent', 'success');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to reset password');
+      showToast(err.response?.data?.message || 'Failed to reset password', 'error');
     }
   };
 

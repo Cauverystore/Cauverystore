@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import api from "../../utils/axios";
+import { useToast } from "../../admin/context/ToastContext";
 
 const ROLE_LIST = ["CUSTOMER", "SELLER", "EXECUTIVE", "ADMIN", "SUPER_ADMIN"];
 
 const PermissionsManager = () => {
+  const { showToast } = useToast();
   const [permissions, setPermissions] = useState([]);
   const [rolePerms, setRolePerms] = useState({});
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,10 @@ const PermissionsManager = () => {
         role: selectedRole,
         permissionIds: Array.from(rolePerms)
       });
-    } catch {}
+      showToast(`${selectedRole} permissions saved`, 'success');
+    } catch {
+      showToast('Failed to save permissions', 'error');
+    }
     setSaving(false);
   };
 

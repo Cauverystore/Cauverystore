@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/axios';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../admin/context/ToastContext';
 
 const ImpersonationPage = () => {
   const { startImpersonation, stopImpersonation, isImpersonating, impersonatedUser, impersonationSession } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [activeSessions, setActiveSessions] = useState([]);
@@ -82,7 +84,9 @@ const ImpersonationPage = () => {
       fetchActiveSessions();
       fetchLog();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to start impersonation');
+      const msg = err.response?.data?.message || 'Failed to start impersonation';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setStartLoading(false);
     }
@@ -94,7 +98,7 @@ const ImpersonationPage = () => {
       fetchActiveSessions();
       fetchLog();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to stop impersonation');
+      showToast(err.response?.data?.message || 'Failed to stop impersonation', 'error');
     }
   };
 
