@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Key } from "lucide-react";
 import api from "../../utils/axios";
 import { useToast } from "../../admin/context/ToastContext";
 
@@ -75,7 +76,7 @@ const PermissionsManager = () => {
           </thead>
           <tbody>
             {permissions.length === 0 ? (
-              <tr><td colSpan={4}><div className="admin-empty-state"><div className="admin-empty-state-icon">🔑</div><div className="admin-empty-state-text">No permissions defined</div></div></td></tr>
+              <tr><td colSpan={4}><div className="admin-empty-state"><div className="admin-empty-state-icon"><Key size={32} /></div><div className="admin-empty-state-text">No permissions defined</div></div></td></tr>
             ) : permissions.map(p => (
               <tr key={p.id} style={{background:rolePerms.has(p.id)?"#f0fdf4":"transparent"}}>
                 <td><input type="checkbox" className="admin-table-checkbox" checked={rolePerms.has(p.id)} onChange={() => toggle(p.id)} /></td>

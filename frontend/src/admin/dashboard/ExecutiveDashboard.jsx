@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
+import {
+  ShoppingCart, Package, Users, Store, Hourglass, CreditCard,
+  DollarSign, Calendar, TrendingDown, RefreshCw, AlertTriangle,
+  XCircle, TrendingUp, Clock, CheckCircle, Heart, Star, Bell,
+} from "lucide-react";
 import api from "../../api/axios";
 
 const f = (n) => n != null ? "\u20B9" + Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "\u20B90.00";
@@ -152,7 +157,7 @@ const ExecutiveDashboard = () => {
           <button onClick={() => setAutoRefresh(!autoRefresh)} style={{ padding: "6px 14px", borderRadius: "6px", border: "1px solid #e2e8f0", background: autoRefresh ? "#d1fae5" : "#f1f5f9", color: autoRefresh ? "#065f46" : "#64748b", fontSize: "0.78rem", cursor: "pointer", fontWeight: 600 }}>{autoRefresh ? "Auto ON" : "Auto OFF"}</button>
           <div style={{ position: "relative" }}>
             <button onClick={() => setNotifOpen(!notifOpen)} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: "1.1rem", position: "relative" }}>
-              {"\uD83D\uDD14"}
+              <Bell size={20} />
               {refreshNotifCount > 0 && <span style={{ position: "absolute", top: "-4px", right: "-4px", background: "#dc2626", color: "#fff", borderRadius: "50%", width: "18px", height: "18px", fontSize: "0.65rem", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{refreshNotifCount}</span>}
             </button>
             {notifOpen && (
@@ -161,10 +166,10 @@ const ExecutiveDashboard = () => {
                 {notifications.length === 0 ? <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: "0.85rem" }}>No alerts</div> :
                   notifications.map((n, i) => {
                     const sc = n.severity === "critical" ? "#dc2626" : n.severity === "warning" ? "#d97706" : "#2563eb";
-                    const icons = { LOW_STOCK: "\uD83D\uDCE6", PENDING_APPROVAL: "\u23F3", NEGATIVE_RATINGS: "\u2B50", HIGH_REFUND_RATE: "\uD83D\uDCB0", OUT_OF_STOCK: "\u274C" };
+                    const icons = { LOW_STOCK: <Package size={18} />, PENDING_APPROVAL: <Hourglass size={18} />, NEGATIVE_RATINGS: <Star size={18} />, HIGH_REFUND_RATE: <DollarSign size={18} />, OUT_OF_STOCK: <XCircle size={18} /> };
                     return (
                       <div key={i} style={{ padding: "12px 16px", borderBottom: "1px solid #f1f5f9", display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                        <span style={{ fontSize: "1.1rem" }}>{icons[n.type] || "\uD83D\uDD14"}</span>
+                        <span style={{ display: "flex" }}>{icons[n.type] || <Bell size={18} />}</span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: "0.82rem", color: "#333", lineHeight: 1.4 }}>{n.message}</div>
                           <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
@@ -182,12 +187,12 @@ const ExecutiveDashboard = () => {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
         {dashboard && <>
-          {card("Total Revenue", f(dashboard.totalRevenue), "#059669", "\uD83D\uDCB0")}
-          {card("Total Orders", dashboard.totalOrders || 0, "#2563eb", "\uD83D\uDCE6")}
-          {card("Active Products", dashboard.activeProducts || 0, "#7c3aed", "\uD83D\uDCC6")}
-          {card("Total Customers", dashboard.totalCustomers || 0, "#ea580c", "\uD83D\uDC65")}
-          {card("Active Sellers", dashboard.totalSellers || 0, "#0d9488", "\uD83C\uDFED")}
-          {card("Pending Approvals", dashboard.pendingApprovals || 0, "#dc2626", "\u23F3")}
+          {card("Total Revenue", f(dashboard.totalRevenue), "#059669", <DollarSign size={24} />)}
+          {card("Total Orders", dashboard.totalOrders || 0, "#2563eb", <ShoppingCart size={24} />)}
+          {card("Active Products", dashboard.activeProducts || 0, "#7c3aed", <Package size={24} />)}
+          {card("Total Customers", dashboard.totalCustomers || 0, "#ea580c", <Users size={24} />)}
+          {card("Active Sellers", dashboard.totalSellers || 0, "#0d9488", <Store size={24} />)}
+          {card("Pending Approvals", dashboard.pendingApprovals || 0, "#dc2626", <Hourglass size={24} />)}
         </>}
       </div>
 
@@ -208,10 +213,10 @@ const ExecutiveDashboard = () => {
 const SalesTab = ({ sales, topProducts, sellerBreakdown }) => (
   <div>
     {sales && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-      {card("Daily Sales", f(sales.dailySales), "#059669", "\uD83D\uDCC5")}
-      {card("Weekly Sales", f(sales.weeklySales), "#2563eb", "\uD83D\uDCC5")}
-      {card("Monthly Sales", f(sales.monthlySales), "#7c3aed", "\uD83D\uDCC5")}
-      {card("Total Revenue", f(sales.totalRevenue), "#ea580c", "\uD83D\uDCB0")}
+      {card("Daily Sales", f(sales.dailySales), "#059669", <Calendar size={24} />)}
+      {card("Weekly Sales", f(sales.weeklySales), "#2563eb", <Calendar size={24} />)}
+      {card("Monthly Sales", f(sales.monthlySales), "#7c3aed", <Calendar size={24} />)}
+      {card("Total Revenue", f(sales.totalRevenue), "#ea580c", <DollarSign size={24} />)}
     </div>}
     {sales && sales.revenueTrends && sales.revenueTrends.length > 0 && <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "20px", marginBottom: "24px" }}>
       <h3 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: 600 }}>Revenue Trends (Last 30 Days)</h3>
@@ -253,10 +258,10 @@ const SalesTab = ({ sales, topProducts, sellerBreakdown }) => (
 const OrdersTab = ({ inProgress, completed, returnStats, pendingApprovals }) => (
   <div>
     {returnStats && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-      {card("Total Refunds", returnStats.totalRefunds || 0, "#dc2626", "\uD83D\uDCB0")}
-      {card("Refund Amount", f(returnStats.totalRefundAmount), "#ea580c", "\uD83D\uDCB8")}
-      {card("Replacements", returnStats.replacements || 0, "#2563eb", "\uD83D\uDD04")}
-      {card("Pending Approvals", pendingApprovals.length, "#d97706", "\u23F3")}
+      {card("Total Refunds", returnStats.totalRefunds || 0, "#dc2626", <CreditCard size={24} />)}
+      {card("Refund Amount", f(returnStats.totalRefundAmount), "#ea580c", <TrendingDown size={24} />)}
+      {card("Replacements", returnStats.replacements || 0, "#2563eb", <RefreshCw size={24} />)}
+      {card("Pending Approvals", pendingApprovals.length, "#d97706", <Clock size={24} />)}
     </div>}
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "20px" }}>
@@ -303,10 +308,10 @@ const OrdersTab = ({ inProgress, completed, returnStats, pendingApprovals }) => 
 const InventoryTab = ({ inventory, warehouses }) => (
   <div>
     {inventory && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-      {card("Low Stock", inventory.lowStockCount || 0, "#d97706", "\u26A0\uFE0F")}
-      {card("Out of Stock", inventory.outOfStockCount || 0, "#dc2626", "\u274C")}
-      {card("Fast Moving", (inventory.fastMoving || []).length, "#059669", "\uD83D\uDE80")}
-      {card("Slow Moving", (inventory.slowMoving || []).length, "#6b7280", "\uD83D\uDC22")}
+      {card("Low Stock", inventory.lowStockCount || 0, "#d97706", <AlertTriangle size={24} />)}
+      {card("Out of Stock", inventory.outOfStockCount || 0, "#dc2626", <XCircle size={24} />)}
+      {card("Fast Moving", (inventory.fastMoving || []).length, "#059669", <TrendingUp size={24} />)}
+      {card("Slow Moving", (inventory.slowMoving || []).length, "#6b7280", <Clock size={24} />)}
     </div>}
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "20px" }}>
@@ -351,9 +356,9 @@ const SellersTab = ({ sellers }) => {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-        {card("Total Sellers", sellers.length, "#0d9488", "\uD83C\uDFED")}
-        {card("Total Products", totalProducts, "#7c3aed", "\uD83D\uDCC6")}
-        {card("Total Sales", f(totalSales), "#059669", "\uD83D\uDCB0")}
+        {card("Total Sellers", sellers.length, "#0d9488", <Store size={24} />)}
+        {card("Total Products", totalProducts, "#7c3aed", <Package size={24} />)}
+        {card("Total Sales", f(totalSales), "#059669", <DollarSign size={24} />)}
       </div>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "20px" }}>
         <h3 style={{ margin: "0 0 14px 0", fontSize: "1rem", fontWeight: 600 }}>Seller Performance</h3>
@@ -379,10 +384,10 @@ const SellersTab = ({ sellers }) => {
 const CustomersTab = ({ activity, sentiment }) => (
   <div>
     {activity && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-      {card("Total Customers", activity.totalCustomers || 0, "#ea580c", "\uD83D\uDC65")}
-      {card("Orders Placed", activity.totalOrdersPlaced || 0, "#2563eb", "\uD83D\uDCE6")}
-      {card("Delivered", activity.deliveredOrders || 0, "#059669", "\u2714\uFE0F")}
-      {card("Wishlist Items", activity.wishlistItems || 0, "#7c3aed", "\u2764\uFE0F")}
+      {card("Total Customers", activity.totalCustomers || 0, "#ea580c", <Users size={24} />)}
+      {card("Orders Placed", activity.totalOrdersPlaced || 0, "#2563eb", <ShoppingCart size={24} />)}
+      {card("Delivered", activity.deliveredOrders || 0, "#059669", <CheckCircle size={24} />)}
+      {card("Wishlist Items", activity.wishlistItems || 0, "#7c3aed", <Heart size={24} />)}
     </div>}
     {sentiment && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "20px" }}>
@@ -390,7 +395,7 @@ const CustomersTab = ({ activity, sentiment }) => (
         <div style={{ textAlign: "center", marginBottom: "16px" }}>
           <div style={{ fontSize: "2.5rem", fontWeight: 800, color: sentiment.averageRating >= 4 ? "#059669" : sentiment.averageRating >= 3 ? "#d97706" : "#dc2626" }}>{sentiment.averageRating}</div>
           <div style={{ fontSize: "1.2rem", color: "#f59e0b", marginTop: "4px" }}>
-            {"\u2B50".repeat(Math.round(sentiment.averageRating))}{"\u2606".repeat(5 - Math.round(sentiment.averageRating))}
+            {"\u2605".repeat(Math.round(sentiment.averageRating))}{"\u2606".repeat(5 - Math.round(sentiment.averageRating))}
           </div>
           <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "4px" }}>Average Rating</div>
         </div>
@@ -402,7 +407,7 @@ const CustomersTab = ({ activity, sentiment }) => (
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "20px" }}>
         <h3 style={{ margin: "0 0 14px 0", fontSize: "1rem", fontWeight: 600 }}>Rating Distribution</h3>
         <Table headers={["Rating", "Count"]} rows={sentiment?.ratingDistribution || []} renderRow={(r) => <>
-          <td style={tdStyle}><span style={{ color: "#f59e0b" }}>{"\u2B50".repeat(r.rating)}{"\u2606".repeat(5 - r.rating)}</span></td>
+          <td style={tdStyle}><span style={{ color: "#f59e0b" }}>{"\u2605".repeat(r.rating)}{"\u2606".repeat(5 - r.rating)}</span></td>
           <td style={{ ...tdStyle, fontWeight: 600 }}>{r.count || 0}</td>
         </>} />
       </div>

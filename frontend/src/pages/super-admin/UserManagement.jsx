@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Users, AlertTriangle, Edit, RefreshCw, CheckCircle, Ban, Key } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../admin/context/ToastContext';
 
@@ -153,7 +154,7 @@ const UserManagement = () => {
           <tr>
             <td colSpan={6}>
               <div className="admin-empty-state">
-                <div className="admin-empty-state-icon">👥</div>
+                <div className="admin-empty-state-icon"><Users size={32} /></div>
                 <div className="admin-empty-state-text">No users found</div>
               </div>
             </td>
@@ -185,15 +186,15 @@ const UserManagement = () => {
               </td>
               <td>
                 <div className="admin-table-actions-cell">
-                  <button className="admin-table-action-btn edit" onClick={() => openEdit(u)} title="Edit">✏️</button>
+                  <button className="admin-table-action-btn edit" onClick={() => openEdit(u)} title="Edit"><Edit size={16} /></button>
                   <button className="admin-table-action-btn view" onClick={() => {
                     setNewRoleValue(u.role);
                     setConfirmAction({ user: u, action: 'changeRole', message: `Change role of ${u.fullName || u.name || u.email} from ${u.role}?` });
-                  }} title="Change Role">🔄</button>
+                  }} title="Change Role"><RefreshCw size={16} /></button>
                   <button className="admin-table-action-btn" onClick={() => handleToggleStatus(u)} title={isSuspended(u) ? 'Activate' : 'Suspend'} style={{ color: isSuspended(u) ? '#16a34a' : '#dc2626' }}>
-                    {isSuspended(u) ? '✅' : '⛔'}
+                    {isSuspended(u) ? <CheckCircle size={16} /> : <Ban size={16} />}
                   </button>
-                  <button className="admin-table-action-btn" onClick={() => handleResetPassword(u)} title="Reset Password">🔑</button>
+                  <button className="admin-table-action-btn" onClick={() => handleResetPassword(u)} title="Reset Password"><Key size={16} /></button>
                 </div>
               </td>
             </tr>
@@ -347,7 +348,7 @@ const UserManagement = () => {
         <div className="admin-modal-overlay" onClick={() => setConfirmAction(null)}>
           <div className="admin-modal admin-modal-sm" onClick={e => e.stopPropagation()}>
             <div className="admin-modal-body" style={{ textAlign: 'center' }}>
-              <div className="admin-confirm-icon warning">⚠️</div>
+              <div className="admin-confirm-icon warning"><AlertTriangle size={32} /></div>
               <div className="admin-confirm-text">
                 <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>Confirm Action</h3>
                 <p>{confirmAction.message}</p>

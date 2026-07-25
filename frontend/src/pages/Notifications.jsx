@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Bell } from "lucide-react";
 import userService from "../services/userService";
 import "../styles/notifications.css";
 
@@ -19,7 +20,7 @@ const Notifications = () => {
       <h1>Notifications</h1>
       {notifications.length === 0 ? <div style={{ textAlign: "center", color: "#475569" }}>No notifications</div> : notifications.map((n) => (
         <div key={n.id || n._id} className={`notification-item${n.read ? "" : " unread"}`} onClick={() => !n.read && markRead(n.id || n._id)}>
-          <div className="notification-icon">{n.read ? "??" : "??"}</div>
+          <div className="notification-icon"><Bell size={20} /></div>
           <div className="notification-content">
             <div className="notification-title">{n.title || n.type}</div>
             <div className="notification-message">{n.message}</div>

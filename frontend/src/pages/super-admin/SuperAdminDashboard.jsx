@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { DollarSign, ClipboardList, Users, Store, Package, Clock, CreditCard, XCircle, Mail } from 'lucide-react';
 import api from '../../api/axios';
 
 const statCards = [
-  { key: 'totalRevenue', label: 'Total Revenue', icon: '💰', color: '#16a34a', prefix: '₹' },
-  { key: 'totalOrders', label: 'Total Orders', icon: '📋', color: '#2563eb' },
-  { key: 'totalCustomers', label: 'Total Customers', icon: '👥', color: '#7c3aed' },
-  { key: 'totalSellers', label: 'Total Sellers', icon: '🏪', color: '#0891b2' },
-  { key: 'activeProducts', label: 'Active Products', icon: '📦', color: '#d97706' },
-  { key: 'pendingApprovals', label: 'Pending Approvals', icon: '⏳', color: '#ea580c' },
-  { key: 'totalRefunds', label: 'Refunds', icon: '💳', color: '#dc2626' },
-  { key: 'failedPayments', label: 'Failed Payments', icon: '❌', color: '#4f46e5' },
+  { key: 'totalRevenue', label: 'Total Revenue', icon: <DollarSign size={22} />, color: '#16a34a', prefix: '₹' },
+  { key: 'totalOrders', label: 'Total Orders', icon: <ClipboardList size={22} />, color: '#2563eb' },
+  { key: 'totalCustomers', label: 'Total Customers', icon: <Users size={22} />, color: '#7c3aed' },
+  { key: 'totalSellers', label: 'Total Sellers', icon: <Store size={22} />, color: '#0891b2' },
+  { key: 'activeProducts', label: 'Active Products', icon: <Package size={22} />, color: '#d97706' },
+  { key: 'pendingApprovals', label: 'Pending Approvals', icon: <Clock size={22} />, color: '#ea580c' },
+  { key: 'totalRefunds', label: 'Refunds', icon: <CreditCard size={22} />, color: '#dc2626' },
+  { key: 'failedPayments', label: 'Failed Payments', icon: <XCircle size={22} />, color: '#4f46e5' },
 ];
 
 const barData = [
@@ -132,7 +133,7 @@ const SuperAdminDashboard = () => {
         </div>
         {activities.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">📭</div>
+            <div className="empty-state-icon"><Mail size={32} /></div>
             <div className="empty-state-text">No recent activity</div>
           </div>
         ) : (

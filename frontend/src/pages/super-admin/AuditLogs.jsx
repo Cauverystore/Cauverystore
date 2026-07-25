@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FileText } from 'lucide-react';
 import api from '../../api/axios';
 
 const ACTION_TYPES = [
@@ -98,7 +99,7 @@ const AuditLogs = () => {
           </div>
         ) : logs.length === 0 ? (
           <div className="admin-empty-state">
-            <div className="admin-empty-state-icon">📝</div>
+            <div className="admin-empty-state-icon"><FileText size={32} /></div>
             <div className="admin-empty-state-text">No audit logs found matching your filters</div>
           </div>
         ) : (

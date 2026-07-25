@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { Store, Lock, CreditCard, Mail, Receipt } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../admin/context/ToastContext';
 
 const TABS = [
-  { id: 'store', label: 'Store Settings', icon: '🏪' },
-  { id: 'security', label: 'Security', icon: '🔒' },
-  { id: 'payment', label: 'Payment', icon: '💳' },
-  { id: 'email', label: 'Email', icon: '📧' },
-  { id: 'tax', label: 'Tax / GST', icon: '🧾' },
+  { id: 'store', label: 'Store Settings', icon: <Store size={18} /> },
+  { id: 'security', label: 'Security', icon: <Lock size={18} /> },
+  { id: 'payment', label: 'Payment', icon: <CreditCard size={18} /> },
+  { id: 'email', label: 'Email', icon: <Mail size={18} /> },
+  { id: 'tax', label: 'Tax / GST', icon: <Receipt size={18} /> },
 ];
 
 const initialSettings = {

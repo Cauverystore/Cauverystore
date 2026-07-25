@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Users, Key, Settings, Eye, FileText, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/admin.css';
 import { ToastProvider } from '../admin/context/ToastContext';
 
 const NAV_COLOR = '#0f172a';
 const ACCENT = '#f59e0b';
-const ACCENT_LIGHT = '#fef3c7';
-
 const menuItems = [
-  { to: '/super-admin/dashboard', label: 'Dashboard', icon: '📊', end: true },
-  { to: '/super-admin/users', label: 'User Management', icon: '👥' },
-  { to: '/super-admin/permissions', label: 'Permissions', icon: '🔑' },
-  { to: '/super-admin/settings', label: 'Platform Settings', icon: '⚙️' },
-  { to: '/super-admin/impersonate', label: 'Impersonation', icon: '👁️' },
-  { to: '/super-admin/audit-logs', label: 'Audit Logs', icon: '📝' },
+  { to: '/super-admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/super-admin/users', label: 'User Management', icon: Users },
+  { to: '/super-admin/permissions', label: 'Permissions', icon: Key },
+  { to: '/super-admin/settings', label: 'Platform Settings', icon: Settings },
+  { to: '/super-admin/impersonate', label: 'Impersonation', icon: Eye },
+  { to: '/super-admin/audit-logs', label: 'Audit Logs', icon: FileText },
 ];
 
 const bottomItems = [
-  { to: '/', label: 'Back to Store', icon: '←' },
+  { to: '/', label: 'Back to Store', icon: ArrowLeft },
 ];
 
 const SuperAdminLayout = () => {
@@ -109,7 +108,7 @@ const SuperAdminLayout = () => {
               style={linkStyle}
               title={collapsed ? item.label : undefined}
             >
-              <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span>
+              <item.icon size={20} />
               {!collapsed && <span>{item.label}</span>}
             </NavLink>
           ))}
@@ -122,7 +121,7 @@ const SuperAdminLayout = () => {
                 style={linkStyle}
                 title={collapsed ? item.label : undefined}
               >
-                <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span>
+                <item.icon size={20} />
                 {!collapsed && <span>{item.label}</span>}
               </NavLink>
             ))}

@@ -2,41 +2,48 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { canAccessModule } from "../utils/rolePermissions";
+import {
+  LayoutDashboard, BarChart3, Package, Tags, Building2, LayoutList,
+  TrendingDown, Warehouse, Truck, FileText, Undo2, Zap,
+  ShoppingCart, CreditCard, Users, ClipboardList, Ticket, Ship,
+  Star, HelpCircle, FileEdit, Bell, FileSpreadsheet, FolderArchive,
+  Image, Mail, Trophy, ArrowUpDown, ShieldCheck, Settings, Shield,
+} from "lucide-react";
 
 const allLinks = [
-  { to: "/admin", label: "Dashboard", icon: "??", end: true, module: null },
-  { to: "/admin/analytics", label: "Analytics", icon: "??", module: "analytics" },
-  { to: "/admin/products", label: "Products", icon: "??", module: "products" },
-  { to: "/admin/categories", label: "Categories", icon: "???", module: "categories" },
-  { to: "/admin/brands", label: "Brands", icon: "??", module: "brands" },
-  { to: "/admin/product-dashboard", label: "Product Dashboard", icon: "??", module: "productDashboard" },
-  { to: "/admin/inventory-dashboard", label: "Inventory Dashboard", icon: "??", module: "inventoryDashboard" },
-  { to: "/admin/warehouses", label: "Warehouses", icon: "??", module: "warehouses" },
-  { to: "/admin/suppliers", label: "Suppliers", icon: "??", module: "suppliers" },
-  { to: "/admin/purchase-orders", label: "Purchase Orders", icon: "??", module: "purchaseOrders" },
-  { to: "/admin/returns", label: "Returns", icon: "??", module: "returns" },
-  { to: "/admin/bulk-operations", label: "Bulk Operations", icon: "?", module: "bulkOperations" },
-  { to: "/admin/orders", label: "Orders", icon: "??", module: "orders" },
-  { to: "/admin/refunds", label: "Refunds", icon: "??", module: "refunds" },
-  { to: "/admin/customers", label: "Customers", icon: "??", module: "customers" },
-  { to: "/admin/inventory", label: "Inventory", icon: "??", module: "inventory" },
-  { to: "/admin/coupons", label: "Coupons", icon: "??", module: "coupons" },
-  { to: "/admin/shipping", label: "Shipping", icon: "??", module: "shipping" },
-  { to: "/admin/reviews", label: "Reviews", icon: "?", module: "reviews" },
-  { to: "/admin/qna", label: "Q&A", icon: "?", module: "qna" },
-  { to: "/admin/content", label: "Content", icon: "??", module: "content" },
-  { to: "/admin/notifications", label: "Notifications", icon: "??", module: "notifications" },
-  { to: "/admin/reports", label: "Reports", icon: "??", module: "reports" },
-  { to: "/admin/audit", label: "Audit Logs", icon: "??", module: "audit" },
-  { to: "/admin/banners", label: "Banners", icon: "??", module: "banners" },
-  { to: "/admin/faq", label: "FAQs", icon: "?", module: "faq" },
-  { to: "/admin/support-tickets", label: "Support Tickets", icon: "?", module: "support" },
-  { to: "/admin/newsletter", label: "Newsletter", icon: "??", module: "newsletter" },
-  { to: "/admin/loyalty", label: "Loyalty", icon: "?", module: "loyalty" },
-  { to: "/admin/stock-movements", label: "Stock Movements", icon: "?", module: "stockMovements" },
-  { to: "/admin/executive-dashboard", label: "Executive Panel", icon: "??", module: "executiveDashboard" },
-  { to: "/admin/settings", label: "Settings", icon: "??", module: "settings" },
-  { to: "/super-admin", label: "Super Admin", icon: "???", module: "superAdmin" },
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true, module: null },
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart3, module: "analytics" },
+  { to: "/admin/products", label: "Products", icon: Package, module: "products" },
+  { to: "/admin/categories", label: "Categories", icon: Tags, module: "categories" },
+  { to: "/admin/brands", label: "Brands", icon: Building2, module: "brands" },
+  { to: "/admin/product-dashboard", label: "Product Dashboard", icon: LayoutList, module: "productDashboard" },
+  { to: "/admin/inventory-dashboard", label: "Inventory Dashboard", icon: TrendingDown, module: "inventoryDashboard" },
+  { to: "/admin/warehouses", label: "Warehouses", icon: Warehouse, module: "warehouses" },
+  { to: "/admin/suppliers", label: "Suppliers", icon: Truck, module: "suppliers" },
+  { to: "/admin/purchase-orders", label: "Purchase Orders", icon: FileText, module: "purchaseOrders" },
+  { to: "/admin/returns", label: "Returns", icon: Undo2, module: "returns" },
+  { to: "/admin/bulk-operations", label: "Bulk Operations", icon: Zap, module: "bulkOperations" },
+  { to: "/admin/orders", label: "Orders", icon: ShoppingCart, module: "orders" },
+  { to: "/admin/refunds", label: "Refunds", icon: CreditCard, module: "refunds" },
+  { to: "/admin/customers", label: "Customers", icon: Users, module: "customers" },
+  { to: "/admin/inventory", label: "Inventory", icon: ClipboardList, module: "inventory" },
+  { to: "/admin/coupons", label: "Coupons", icon: Ticket, module: "coupons" },
+  { to: "/admin/shipping", label: "Shipping", icon: Ship, module: "shipping" },
+  { to: "/admin/reviews", label: "Reviews", icon: Star, module: "reviews" },
+  { to: "/admin/qna", label: "Q&A", icon: HelpCircle, module: "qna" },
+  { to: "/admin/content", label: "Content", icon: FileEdit, module: "content" },
+  { to: "/admin/notifications", label: "Notifications", icon: Bell, module: "notifications" },
+  { to: "/admin/reports", label: "Reports", icon: FileSpreadsheet, module: "reports" },
+  { to: "/admin/audit", label: "Audit Logs", icon: FolderArchive, module: "audit" },
+  { to: "/admin/banners", label: "Banners", icon: Image, module: "banners" },
+  { to: "/admin/faq", label: "FAQs", icon: HelpCircle, module: "faq" },
+  { to: "/admin/support-tickets", label: "Support Tickets", icon: Ticket, module: "support" },
+  { to: "/admin/newsletter", label: "Newsletter", icon: Mail, module: "newsletter" },
+  { to: "/admin/loyalty", label: "Loyalty", icon: Trophy, module: "loyalty" },
+  { to: "/admin/stock-movements", label: "Stock Movements", icon: ArrowUpDown, module: "stockMovements" },
+  { to: "/admin/executive-dashboard", label: "Executive Panel", icon: ShieldCheck, module: "executiveDashboard" },
+  { to: "/admin/settings", label: "Settings", icon: Settings, module: "settings" },
+  { to: "/super-admin", label: "Super Admin", icon: Shield, module: "superAdmin" },
 ];
 
 const AdminSidebar = () => {
@@ -63,7 +70,7 @@ const AdminSidebar = () => {
             transition: "all 0.15s",
           })}
         >
-          <span style={{ fontSize: "1.1rem" }}>{l.icon}</span>
+          <l.icon size={18} />
           <span>{l.label}</span>
         </NavLink>
       ))}

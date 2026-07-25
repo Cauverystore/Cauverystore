@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Package, Users, Key, ClipboardList, CreditCard, Tags, BarChart3, HelpCircle, PlusCircle, ShieldCheck } from "lucide-react";
 import api from "../../api/axios";
 import "../../styles/adminDashboard.css";
 
 const quickActions = [
-  { to: "/admin/products", label: "Product Management", icon: "📦", desc: "Add, edit, manage products", color: "#2563eb" },
-  { to: "/admin/users", label: "User Management", icon: "👥", desc: "View and manage all users", color: "#7c3aed" },
-  { to: "/admin/users", label: "Access Control", icon: "🔑", desc: "Manage roles & permissions", color: "#dc2626" },
-  { to: "/admin/orders", label: "Order Management", icon: "📋", desc: "View and process orders", color: "#d97706" },
-  { to: "/admin/refunds", label: "Refunds", icon: "💳", desc: "Handle refund requests", color: "#0891b2" },
-  { to: "/admin/categories", label: "Categories", icon: "🏷️", desc: "Organize product categories", color: "#059669" },
-  { to: "/admin/inventory", label: "Inventory", icon: "📊", desc: "Stock and inventory tracking", color: "#4f46e5" },
-  { to: "/admin/qna", label: "Q&A Management", icon: "❓", desc: "Customer questions", color: "#ea580c" },
-  { to: "/admin/products/add", label: "Add Product", icon: "➕", desc: "Create a new product", color: "#16a34a" },
-  { to: "/admin/executive-dashboard", label: "Executive Panel", icon: "🔐", desc: "Executive operations", color: "#334155" },
+  { to: "/admin/products", label: "Product Management", icon: Package, desc: "Add, edit, manage products", color: "#2563eb" },
+  { to: "/admin/users", label: "User Management", icon: Users, desc: "View and manage all users", color: "#7c3aed" },
+  { to: "/admin/users", label: "Access Control", icon: Key, desc: "Manage roles & permissions", color: "#dc2626" },
+  { to: "/admin/orders", label: "Order Management", icon: ClipboardList, desc: "View and process orders", color: "#d97706" },
+  { to: "/admin/refunds", label: "Refunds", icon: CreditCard, desc: "Handle refund requests", color: "#0891b2" },
+  { to: "/admin/categories", label: "Categories", icon: Tags, desc: "Organize product categories", color: "#059669" },
+  { to: "/admin/inventory", label: "Inventory", icon: BarChart3, desc: "Stock and inventory tracking", color: "#4f46e5" },
+  { to: "/admin/qna", label: "Q&A Management", icon: HelpCircle, desc: "Customer questions", color: "#ea580c" },
+  { to: "/admin/products/add", label: "Add Product", icon: PlusCircle, desc: "Create a new product", color: "#16a34a" },
+  { to: "/admin/executive-dashboard", label: "Executive Panel", icon: ShieldCheck, desc: "Executive operations", color: "#334155" },
 ];
 
 const AdminDashboard = () => {
@@ -73,7 +74,7 @@ const AdminDashboard = () => {
       <div className="action-grid">
         {quickActions.map(a => (
           <div key={a.to + a.label} className="action-card" onClick={() => navigate(a.to)}>
-            <div className="action-icon" style={{ background: a.color + "15", color: a.color }}>{a.icon}</div>
+            <div className="action-icon" style={{ background: a.color + "15", color: a.color }}><a.icon size={20} /></div>
             <div><div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{a.label}</div><div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "2px" }}>{a.desc}</div></div>
           </div>
         ))}

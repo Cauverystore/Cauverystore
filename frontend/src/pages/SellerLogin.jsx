@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/auth.css";
 
@@ -31,6 +31,9 @@ const SellerLogin = () => {
           <div className="auth-field"><label>Password</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className="auth-input" required /></div>
           <button type="submit" className="auth-btn" disabled={loading}>{loading?"Logging in...":"Login"}</button>
         </form>
+        <div style={{ textAlign:"center", marginTop:"1rem", fontSize:"0.85rem", color:"#64748b" }}>
+          New seller? <Link to="/seller/register" style={{ color:"var(--color-primary)", fontWeight:600 }}>Register here</Link>
+        </div>
       </div>
     </div>
   );

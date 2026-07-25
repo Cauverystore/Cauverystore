@@ -1,0 +1,390 @@
+/* ===== Seller Registration — Multi-step Wizard ===== */
+
+.seller-reg-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+.seller-reg-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.seller-reg-header h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.35rem;
+}
+.seller-reg-header p {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ─── Progress Steps ─── */
+.seller-reg-steps {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 2.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.seller-reg-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  position: relative;
+  min-width: 70px;
+}
+.seller-reg-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: calc(50% + 18px);
+  width: calc(100% - 36px);
+  height: 2px;
+  background: #e2e8f0;
+}
+.seller-reg-step.completed:not(:last-child)::after {
+  background: #0E5C5C;
+}
+.seller-reg-step.active:not(:last-child)::after {
+  background: linear-gradient(to right, #0E5C5C 50%, #e2e8f0 50%);
+}
+.reg-step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #94a3b8;
+  border: 2px solid transparent;
+  transition: all 0.25s;
+  z-index: 1;
+}
+.seller-reg-step.completed .reg-step-number {
+  background: #0E5C5C;
+  color: #fff;
+  border-color: #0E5C5C;
+}
+.seller-reg-step.active .reg-step-number {
+  background: #fff;
+  color: #0E5C5C;
+  border-color: #0E5C5C;
+}
+.reg-step-label {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+}
+.seller-reg-step.completed .reg-step-label,
+.seller-reg-step.active .reg-step-label {
+  color: #0E5C5C;
+  font-weight: 600;
+}
+
+/* ─── Form Card ─── */
+.reg-form-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+.reg-form-card h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.25rem;
+}
+.reg-form-card .reg-form-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 1.5rem;
+}
+
+/* ─── Form Grid ─── */
+.reg-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.reg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.reg-field.full { grid-column: 1 / -1; }
+.reg-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+.reg-field label .required { color: #dc2626; margin-left: 2px; }
+.reg-field input,
+.reg-field select,
+.reg-field textarea {
+  padding: 0.65rem 0.75rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #fff;
+}
+.reg-field input:focus,
+.reg-field select:focus,
+.reg-field textarea:focus {
+  border-color: #0E5C5C;
+}
+
+/* ─── Tooltip ─── */
+.reg-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #64748b;
+  cursor: help;
+  position: relative;
+}
+.reg-tooltip:hover .reg-tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+.reg-tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  white-space: normal;
+  width: 240px;
+  text-align: center;
+  line-height: 1.4;
+  transition: opacity 0.2s;
+  z-index: 10;
+  pointer-events: none;
+}
+.reg-tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1e293b;
+}
+
+/* ─── Document Upload ─── */
+.reg-doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.reg-doc-card {
+  border: 2px dashed #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+.reg-doc-card:hover { border-color: #0E5C5C; background: #f8fafc; }
+.reg-doc-card.uploaded { border-style: solid; border-color: #bbf7d0; background: #f0fdf4; }
+.reg-doc-card.rejected { border-style: solid; border-color: #fecaca; background: #fef2f2; }
+.reg-doc-icon { margin-bottom: 0.5rem; color: #94a3b8; }
+.reg-doc-card.uploaded .reg-doc-icon { color: #16a34a; }
+.reg-doc-card h4 { font-size: 0.9rem; font-weight: 600; color: #0f172a; margin: 0 0 0.25rem; }
+.reg-doc-card p { font-size: 0.78rem; color: #64748b; margin: 0 0 0.5rem; }
+.reg-doc-status { font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; }
+.reg-doc-status.verified { background: #dcfce7; color: #166534; }
+.reg-doc-status.pending { background: #fef9c3; color: #854d0e; }
+.reg-doc-status.rejected { background: #fee2e2; color: #991b1b; }
+.reg-doc-file-input { display: none; }
+
+/* ─── Compliance Checklist ─── */
+.reg-compliance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+.reg-compliance-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.reg-compliance-item.completed { background: #f0fdf4; border-color: #bbf7d0; }
+.reg-compliance-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reg-compliance-icon.completed { background: #16a34a; color: #fff; }
+.reg-compliance-icon.pending { background: #e2e8f0; color: #94a3b8; }
+.reg-compliance-icon.mandatory { border: 2px solid #f59e0b; }
+.reg-compliance-info { flex: 1; }
+.reg-compliance-info h4 { font-size: 0.88rem; font-weight: 600; color: #0f172a; margin: 0; }
+.reg-compliance-info p { font-size: 0.78rem; color: #64748b; margin: 0; }
+
+/* ─── Agreements ─── */
+.reg-agreements {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.reg-agreement-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.reg-agreement-check input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: #0E5C5C;
+  width: 16px;
+  height: 16px;
+}
+.reg-agreement-check label {
+  font-size: 0.85rem;
+  color: #334155;
+  cursor: pointer;
+  line-height: 1.5;
+}
+.reg-agreement-check label strong { color: #0f172a; }
+
+/* ─── Buttons ─── */
+.reg-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.reg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1.75rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.reg-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+.reg-btn-primary { background: #0E5C5C; color: #fff; }
+.reg-btn-primary:hover:not(:disabled) { background: #0a4a4a; }
+.reg-btn-secondary { background: #f1f5f9; color: #334155; }
+.reg-btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
+.reg-btn-success { background: #16a34a; color: #fff; }
+.reg-btn-success:hover:not(:disabled) { background: #15803d; }
+.reg-btn-outline { background: transparent; color: #0E5C5C; border: 2px solid #0E5C5C; }
+.reg-btn-outline:hover:not(:disabled) { background: #0E5C5C; color: #fff; }
+
+/* ─── Review Card ─── */
+.reg-review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.reg-review-item {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.reg-review-item.full { grid-column: 1 / -1; }
+.reg-review-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0 0 2px;
+}
+.reg-review-value {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* ─── Success State ─── */
+.reg-success {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+.reg-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #f0fdf4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+.reg-success h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.5rem;
+}
+.reg-success p {
+  font-size: 0.9rem;
+  color: #64748b;
+  max-width: 480px;
+  margin: 0 auto 1.5rem;
+  line-height: 1.6;
+}
+.reg-status-badge {
+  display: inline-block;
+  padding: 0.3rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.reg-status-badge.draft  { background: #fef9c3; color: #854d0e; }
+.reg-status-badge.submitted { background: #dbeafe; color: #1e40af; }
+.reg-status-badge.approved { background: #dcfce7; color: #166534; }
+.reg-status-badge.rejected { background: #fee2e2; color: #991b1b; }
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .seller-reg-page { padding: 1.5rem 1rem 3rem; }
+  .seller-reg-steps { gap: 0; }
+  .seller-reg-step { min-width: 55px; }
+  .reg-step-label { font-size: 0.6rem; }
+  .reg-form-card { padding: 1.25rem; }
+  .reg-form-grid { grid-template-columns: 1fr; }
+  .reg-review-grid { grid-template-columns: 1fr; }
+  .reg-actions { flex-direction: column; }
+  .reg-btn { justify-content: center; }
+  .reg-doc-grid { grid-template-columns: 1fr; }
+}

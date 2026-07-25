@@ -27,6 +27,8 @@ const SearchResults = lazy(() => import("./pages/SearchResults"));
 const CategoryProducts = lazy(() => import("./pages/CategoryProducts"));
 const OffersPage = lazy(() => import("./pages/OffersPage"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
+const RefundPolicy = lazy(() => import("./pages/ReturnsandRefundPolicy"));
+
 const ContactUs = lazy(() => import("./pages/ContactUs"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Notifications = lazy(() => import("./pages/Notifications"));
@@ -40,6 +42,8 @@ const SellerInventory = lazy(() => import("./pages/SellerInventory"));
 const SellerStore = lazy(() => import("./pages/SellerStore"));
 const SellerPayouts = lazy(() => import("./pages/SellerPayouts"));
 const SellerAnalytics = lazy(() => import("./pages/SellerAnalytics"));
+const SellerRegistration = lazy(() => import("./pages/SellerRegistration"));
+const GstInvoices = lazy(() => import("./pages/GstInvoices"));
 const ExecutiveLogin = lazy(() => import("./pages/ExecutiveLogin"));
 const AdminLogin = lazy(() => import("./admin/auth/AdminLogin"));
 const AdminDashboard = lazy(() => import("./admin/dashboard/AdminDashboard"));
@@ -84,7 +88,9 @@ const ImpersonationPage = lazy(() => import("./pages/super-admin/ImpersonationPa
 const PermissionsManager = lazy(() => import("./pages/super-admin/PermissionsManager"));
 const AuditLogs = lazy(() => import("./pages/super-admin/AuditLogs"));
 const ReturnOrder = lazy(() => import("./pages/ReturnOrder"));
-const FAQ = lazy(() => import("./pages/FAQ"));
+const FAQ = lazy(() => import("./pages/HelpCenter"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const Policies = lazy(() => import("./pages/Policies"));
 const MyTickets = lazy(() => import("./pages/MyTickets"));
 const PaymentMethods = lazy(() => import("./pages/PaymentMethods"));
 const AdminBanners = lazy(() => import("./admin/banners/AdminBanners"));
@@ -129,6 +135,9 @@ function App() {
             <Route path="/offers" element={<OffersPage />} />
             <Route path="/offers/:offerId" element={<OffersPage />} />
             <Route path="/about" element={<AboutUs />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/policies" element={<Policies />} />
+            <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -151,6 +160,7 @@ function App() {
             <Route path="/faq" element={<FAQ />} />
             <Route path="/support-tickets" element={<ProtectedRoute><MyTickets /></ProtectedRoute>} />
             <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethods /></ProtectedRoute>} />
+            <Route path="/seller/register" element={<SellerRegistration />} />
             <Route path="/seller/dashboard" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerDashboard /></ProtectedRoute>} />
             <Route path="/seller/products" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerProducts /></ProtectedRoute>} />
             <Route path="/seller/products/add" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><AddProduct /></ProtectedRoute>} />
@@ -161,6 +171,7 @@ function App() {
             <Route path="/seller/store" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerStore /></ProtectedRoute>} />
             <Route path="/seller/payouts" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerPayouts /></ProtectedRoute>} />
             <Route path="/seller/analytics" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerAnalytics /></ProtectedRoute>} />
+            <Route path="/seller/gst-invoices" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><GstInvoices /></ProtectedRoute>} />
           </Route>
 
           <Route path="/admin/login" element={<AdminLogin />} />

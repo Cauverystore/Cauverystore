@@ -1,0 +1,390 @@
+/* ===== Static Layout — Unified hero, tabs, accordion, sections ===== */
+
+.static-page {
+  --hero-min-height: 200px;
+}
+
+/* ─── Hero ─── */
+.static-hero {
+  background: linear-gradient(135deg, #0E5C5C 0%, #1a7a7a 50%, #0E5C5C 100%);
+  min-height: var(--hero-min-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.static-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 80%, rgba(200, 162, 75, 0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+.static-hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+}
+.static-hero h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.static-hero p {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  line-height: 1.6;
+  max-width: 580px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.static-hero-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ─── Tab Navigation ─── */
+.static-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e2e8f0;
+  background: #fff;
+  position: sticky;
+  top: 60px;
+  z-index: 20;
+  padding: 0 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.static-tabs::-webkit-scrollbar { display: none; }
+.static-tab {
+  flex-shrink: 0;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+}
+.static-tab:hover { color: #0E5C5C; }
+.static-tab.active {
+  color: #0E5C5C;
+  border-bottom-color: #0E5C5C;
+  font-weight: 600;
+}
+
+/* ─── Content Container ─── */
+.static-content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+/* ─── Sections ─── */
+.static-section {
+  margin-bottom: 2.5rem;
+}
+.static-section:last-child { margin-bottom: 0; }
+.static-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #f1f5f9;
+}
+.static-section h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.5rem;
+}
+.static-section p,
+.static-section li {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #475569;
+  margin: 0 0 0.75rem;
+}
+.static-section ul,
+.static-section ol {
+  padding-left: 1.25rem;
+  margin: 0 0 1rem;
+}
+.static-section li { margin-bottom: 0.4rem; }
+.static-section a {
+  color: #0E5C5C;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.static-section a:hover { color: #C8A24B; }
+
+/* ─── Feature Cards Grid ─── */
+.static-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin: 1.25rem 0;
+}
+.static-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.static-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
+}
+.static-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(14, 92, 92, 0.1);
+  color: #0E5C5C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+.static-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 0.35rem;
+}
+.static-card p {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ─── Accordion (Static) ─── */
+.static-accordion {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+.static-accordion-item {
+  border-bottom: 1px solid #e2e8f0;
+}
+.static-accordion-item:last-child { border-bottom: none; }
+.static-accordion-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: left;
+  transition: background 0.2s;
+}
+.static-accordion-trigger:hover { background: #f8fafc; }
+.static-accordion-arrow {
+  flex-shrink: 0;
+  color: #94a3b8;
+  transition: transform 0.25s ease;
+}
+.static-accordion-arrow.open { transform: rotate(180deg); }
+.static-accordion-body {
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  max-height: 0;
+  padding: 0 1.25rem;
+}
+.static-accordion-body.open {
+  max-height: 2000px;
+  padding: 0 1.25rem 1.25rem;
+}
+.static-accordion-body p,
+.static-accordion-body li {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.7;
+  margin: 0 0 0.5rem;
+}
+.static-accordion-body ul,
+.static-accordion-body ol {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+/* ─── Timeline ─── */
+.static-timeline {
+  position: relative;
+  padding-left: 2rem;
+  margin: 1.5rem 0;
+}
+.static-timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: #d1d5db;
+}
+.static-timeline-step {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+.static-timeline-step:last-child { padding-bottom: 0; }
+.static-timeline-dot {
+  position: absolute;
+  left: -1.65rem;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0E5C5C;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #0E5C5C;
+}
+.static-timeline-step h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 0.25rem;
+}
+.static-timeline-step p {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ─── Info / Tip Boxes ─── */
+.static-info-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  color: #166534;
+  line-height: 1.6;
+}
+.static-warning-box {
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  color: #854d0e;
+  line-height: 1.6;
+}
+
+/* ─── CTA / Buttons ─── */
+.static-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  text-decoration: none;
+}
+.static-btn:hover { transform: translateY(-1px); }
+.static-btn-primary {
+  background: #C8A24B;
+  color: #fff;
+}
+.static-btn-primary:hover { background: #b8933e; }
+.static-btn-secondary {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.static-btn-secondary:hover { background: rgba(255,255,255,0.25); }
+.static-btn-outline {
+  background: transparent;
+  color: #0E5C5C;
+  border: 2px solid #0E5C5C;
+}
+.static-btn-outline:hover {
+  background: #0E5C5C;
+  color: #fff;
+}
+
+/* ─── FAQ Search ─── */
+.static-search {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+.static-search input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.static-search input:focus {
+  border-color: #0E5C5C;
+}
+.static-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .static-hero { padding: 2.5rem 1.25rem; min-height: auto; }
+  .static-hero h1 { font-size: 1.6rem; }
+  .static-hero p { font-size: 0.9rem; }
+  .static-content { padding: 1.5rem 1rem 3rem; }
+  .static-tabs {
+    top: 52px;
+    padding: 0 1rem;
+  }
+  .static-tab { padding: 0.7rem 1rem; font-size: 0.82rem; }
+  .static-section h2 { font-size: 1.25rem; }
+  .static-card-grid { grid-template-columns: 1fr; }
+  .static-timeline { padding-left: 1.5rem; }
+  .static-timeline-dot { left: -1.15rem; width: 14px; height: 14px; }
+}
+@media (max-width: 480px) {
+  .static-hero { padding: 2rem 1rem; }
+  .static-hero h1 { font-size: 1.35rem; }
+  .static-content { padding: 1.25rem 0.75rem 2.5rem; }
+  .static-accordion-trigger { padding: 0.75rem 1rem; font-size: 0.88rem; }
+  .static-accordion-body.open { padding: 0 1rem 1rem; }
+}

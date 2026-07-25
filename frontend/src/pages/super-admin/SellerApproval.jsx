@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Store } from "lucide-react";
 import api from "../../utils/axios";
 import { useToast } from "../../admin/context/ToastContext";
 
@@ -61,7 +62,7 @@ const SellerApproval = () => {
       <div className="admin-table-wrapper">
         {sellers.length === 0 ? (
           <div className="admin-empty-state">
-            <div className="admin-empty-state-icon">🏪</div>
+            <div className="admin-empty-state-icon"><Store size={32} /></div>
             <div className="admin-empty-state-text">No sellers found</div>
           </div>
         ) : (

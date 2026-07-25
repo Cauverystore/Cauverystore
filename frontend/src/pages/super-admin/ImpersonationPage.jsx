@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Lock, ClipboardList } from 'lucide-react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../admin/context/ToastContext';
@@ -111,7 +112,7 @@ const ImpersonationPage = () => {
       {isImpersonating && impersonatedUser && (
         <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '8px', padding: '12px 16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ fontSize: '0.9rem', color: '#92400e' }}>
-            <strong>🔒 Currently impersonating:</strong> {impersonatedUser?.fullName || impersonatedUser?.name || impersonatedUser?.email} ({impersonatedUser?.role})
+            <strong><Lock size={14} style={{ display: 'inline' }} /> Currently impersonating:</strong> {impersonatedUser?.fullName || impersonatedUser?.name || impersonatedUser?.email} ({impersonatedUser?.role})
             {impersonationSession?.reason && <span> — Reason: <em>{impersonationSession.reason}</em></span>}
           </span>
           <button
@@ -187,7 +188,7 @@ const ImpersonationPage = () => {
             <div className="admin-skeleton-table-row" />
           ) : activeSessions.length === 0 ? (
             <div className="admin-empty-state">
-              <div className="admin-empty-state-icon">🔒</div>
+              <div className="admin-empty-state-icon"><Lock size={32} /></div>
               <div className="admin-empty-state-text">No active impersonations</div>
             </div>
           ) : (
@@ -219,7 +220,7 @@ const ImpersonationPage = () => {
           </div>
         ) : impersonationLog.length === 0 ? (
           <div className="admin-empty-state">
-            <div className="admin-empty-state-icon">📋</div>
+            <div className="admin-empty-state-icon"><ClipboardList size={32} /></div>
             <div className="admin-empty-state-text">No impersonation history</div>
           </div>
         ) : (
@@ -261,7 +262,7 @@ const ImpersonationPage = () => {
         <div className="admin-modal-overlay" onClick={() => setShowConfirm(false)}>
           <div className="admin-modal admin-modal-sm" onClick={e => e.stopPropagation()}>
             <div className="admin-modal-body" style={{ textAlign: 'center' }}>
-              <div className="admin-confirm-icon warning">🔒</div>
+              <div className="admin-confirm-icon warning"><Lock size={32} /></div>
               <div className="admin-confirm-text">
                 <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>Confirm Impersonation</h3>
                 <p>You are about to impersonate <strong>{targetUser?.fullName || targetUser?.name}</strong> ({targetUser?.email}).</p>

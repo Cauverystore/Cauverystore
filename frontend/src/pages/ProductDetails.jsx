@@ -47,6 +47,13 @@ const ProductDetails = () => {
     } catch (err) { setCartMsg("Failed to add to cart"); setTimeout(() => setCartMsg(""), 2000); }
   };
 
+  const handleBuyNow = async () => {
+    try {
+      await addToCart(product.id || product._id, quantity);
+      navigate("/checkout");
+    } catch { setCartMsg("Failed to add to cart"); setTimeout(() => setCartMsg(""), 2000); }
+  };
+
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
   const categoryName = typeof product?.category === "object" ? product?.category?.name || "" : product?.category || "";
 
@@ -112,7 +119,7 @@ const ProductDetails = () => {
       </div>
       <div className="product-info-section">
         <h1>{product.name}</h1>
-        {product.rating && <div className="rating-row">{'?'.repeat(Math.round(product.rating))} {product.rating} ({product.reviewCount || 0} reviews)</div>}
+        {product.rating && <div className="rating-row">{'★'.repeat(Math.round(product.rating))} {product.rating} ({product.reviewCount || 0} reviews)</div>}
         <div className="price-block">
           <span className="deal-price">&#8377;{product.dealPrice || product.price}</span>
           {product.mrp > (product.dealPrice || product.price) && <><span className="mrp-price">&#8377;{product.mrp}</span><span className="discount-tag">{Math.round((1 - (product.dealPrice || product.price) / product.mrp) * 100)}% OFF</span></>}
@@ -138,7 +145,7 @@ const ProductDetails = () => {
         </div>
 
         <div className="action-buttons">
-          <button className="btn-buy-now">Buy Now</button>
+          <button className="btn-buy-now" onClick={handleBuyNow}>Buy Now</button>
           <button className="btn-add-cart" onClick={handleAddToCart}>Add to Cart</button>
         </div>
 
@@ -147,7 +154,7 @@ const ProductDetails = () => {
             <h3>Reviews</h3>
             {product.reviews.map((r, i) => (
               <div key={i} className="review-card">
-                <div className="review-header"><span className="review-user">{r.user || r.name || "Anonymous"}</span><span>{'?'.repeat(r.rating)}</span></div>
+                <div className="review-header"><span className="review-user">{r.user || r.name || "Anonymous"}</span><span>{'★'.repeat(r.rating)}</span></div>
                 <p className="review-text">{r.comment || r.review}</p>
               </div>
             ))}

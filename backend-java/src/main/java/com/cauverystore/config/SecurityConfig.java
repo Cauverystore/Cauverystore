@@ -78,6 +78,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/audit/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/admin/reports/**").hasAnyRole("ADMIN", "EXECUTIVE", "SUPER_ADMIN")
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "EXECUTIVE", "SUPER_ADMIN")
+                .requestMatchers("/api/gst/state-codes").permitAll()
+                .requestMatchers("/api/gst/**").hasAnyRole("SELLER", "ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/super-admin/**").hasAnyRole("SUPER_ADMIN")
                 .anyRequest().authenticated()
             )

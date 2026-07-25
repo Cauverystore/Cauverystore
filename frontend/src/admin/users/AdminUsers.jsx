@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Users } from "lucide-react";
 import api from "../../utils/axios";
 
 const ROLES = ['CUSTOMER', 'SELLER', 'EXECUTIVE', 'ADMIN'];
@@ -92,7 +93,7 @@ const AdminUsers = () => {
           </thead>
           <tbody>
             {users.length === 0 ? (
-              <tr><td colSpan={5}><div className="admin-empty-state"><div className="admin-empty-state-icon">👥</div><div className="admin-empty-state-text">No users found</div></div></td></tr>
+              <tr><td colSpan={5}><div className="admin-empty-state"><div className="admin-empty-state-icon"><Users size={32} /></div><div className="admin-empty-state-text">No users found</div></div></td></tr>
             ) : users.map(u => (
               <tr key={u.id || u._id}>
                 <td style={{ fontWeight: 500 }}>{u.fullName || u.name || u.username || '-'}</td>

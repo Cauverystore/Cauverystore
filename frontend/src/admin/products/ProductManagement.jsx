@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Download } from "lucide-react";
 import api from "../../api/axios";
 import { imgUrl } from "../../utils/images";
 import "../../styles/admin.css";
@@ -207,7 +208,7 @@ const ProductManagement = () => {
       {tab === "bulk" && (
         <div style={S.section}>
           <h3 style={S.sTitle}>Bulk Upload Products</h3>
-          <a href={isSeller?"http://localhost:9091/api/seller/template.xlsx":"http://localhost:9091/api/admin/template.xlsx"} download style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"8px 16px",background:"#EAF7EE",color:"#146C43",borderRadius:"6px",textDecoration:"none",fontWeight:600,fontSize:"0.85rem",marginBottom:"1rem",border:"1px solid #CFE8D6"}}>📥 Download Template</a>
+          <a href={isSeller?"http://localhost:9091/api/seller/template.xlsx":"http://localhost:9091/api/admin/template.xlsx"} download style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"8px 16px",background:"#EAF7EE",color:"#146C43",borderRadius:"6px",textDecoration:"none",fontWeight:600,fontSize:"0.85rem",marginBottom:"1rem",border:"1px solid #CFE8D6"}}><Download size={16} /> Download Template</a>
           <div style={{border:"2px dashed #CFE8D6",borderRadius:"8px",padding:"2rem",textAlign:"center",background:"#fafdfb",marginBottom:"1rem",cursor:"pointer"}} onClick={()=>document.getElementById("bfile")?.click()}>
             <input id="bfile" ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e=>setFile(e.target.files[0])} style={{display:"none"}} />
             {file ? <div><p style={{fontWeight:600}}>{file.name}</p><p style={{fontSize:"0.8rem",color:"#64748B"}}>{(file.size/1024).toFixed(1)} KB</p></div> : <div><p style={{color:"#64748B",fontSize:"0.9rem"}}>Click to select .xlsx file</p></div>}
@@ -323,7 +324,7 @@ const ProductManagement = () => {
         <div style={S.section}>
           <h3 style={S.sTitle}>Product Reports</h3>
           <p style={{color:"#64748B",marginBottom:"1rem",fontSize:"0.9rem"}}>Total Products: {products.length} | Total Stock: {products.reduce((s,p)=>s+(p.stock||0),0)}</p>
-          <button onClick={exportExcel} style={{padding:"10px 24px",background:"#2E9B57",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600,fontSize:"0.9rem"}}>📥 Export to Excel</button>
+          <button onClick={exportExcel} style={{padding:"10px 24px",background:"#2E9B57",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600,fontSize:"0.9rem"}}><Download size={16} /> Export to Excel</button>
         </div>
       )}
 
