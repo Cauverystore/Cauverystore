@@ -74,6 +74,40 @@ public class AdminUserController {
         return ResponseEntity.ok(updated);
     }
 
+    @PostMapping("/{id}/suspend")
+    public ResponseEntity<Map<String, Object>> suspendUser(@PathVariable Long id) {
+        Long currentUserId = authorizationService.getCurrentUserId();
+        String currentEmail = authorizationService.getCurrentUserEmail();
+        User target = userService.getUser(id);
+        if (target.getRole() == Role.SUPER_ADMIN || target.getRole() == Role.ADMIN) {
+            throw new AccessDeniedException("Cannot suspend ADMIN or SUPER_ADMIN accounts");
+        }
+        User updated = userService.suspendUser(id, currentUserId);
+        auditService.logSuspend(currentEmail, currentUserId, id,
+                target.getRole().name(), target.getEmail());
+        return ResponseEntity.ok(Map.of("message", "User suspended successfully",
+                "userId", id, "status", updated.getStatus(),
+                "suspendedBy", updated.getSuspendedBy(), "suspendedAt", updated.getSuspendedAt()));
+    }
+
+    @PostMapping("/{id}/revoke")
+    public ResponseEntity<Map<String, Object>> revokeUser(@PathVariable Long id) {
+        Long currentUserId = authorizationService.getCurrentUserId();
+        String currentEmail = authorizationService.getCurrentUserEmail();
+        User target = userService.getUser(id);
+        if (target.getRole() == Role.SUPER_ADMIN) {
+            throw new AccessDeniedException("Cannot modify SUPER_ADMIN account");
+        }
+        if (target.getStatus() == null || !target.getStatus().equals("SUSPENDED")) {
+            throw new RuntimeException("User is not currently suspended");
+        }
+        User updated = userService.revokeUser(id);
+        auditService.logRevoke(currentEmail, currentUserId, id,
+                target.getRole().name(), target.getEmail());
+        return ResponseEntity.ok(Map.of("message", "User suspension revoked successfully",
+                "userId", id, "status", updated.getStatus()));
+    }
+
     @PutMapping("/{id}/status")
     public ResponseEntity<User> changeStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String status = body.get("status");

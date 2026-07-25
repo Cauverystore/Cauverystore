@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, AlertTriangle, Edit, RefreshCw, CheckCircle, Ban, Key } from 'lucide-react';
+import { Users, AlertTriangle, Edit, RefreshCw, CheckCircle, Ban, Key, ShieldOff, Shield } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../admin/context/ToastContext';
 
 const ROLES = ['CUSTOMER', 'SELLER', 'EXECUTIVE', 'ADMIN', 'SUPER_ADMIN'];
-const STATUSES = ['ACTIVE', 'SUSPENDED'];
+const STATUSES = ['ACTIVE', 'SUSPENDED', 'BLOCKED', 'DELETED'];
 
 const initialForm = { fullName: '', email: '', password: '', role: 'ADMIN' };
 
@@ -110,14 +110,25 @@ const UserManagement = () => {
     }
   };
 
-  const handleToggleStatus = async (user) => {
+  const handleSuspend = async (user) => {
+    if (!window.confirm(`Suspend ${user.fullName || user.name || user.email} (${user.role})? They will lose all access until revoked.`)) return;
     try {
-      const isSuspended = user.status === 'SUSPENDED' || user.isBlocked;
-      const newStatus = isSuspended ? 'ACTIVE' : 'SUSPENDED';
-      await api.put(`/api/super-admin/users/${user._id || user.id}/status`, { status: newStatus });
+      await api.post(`/api/super-admin/users/${user._id || user.id}/suspend`);
+      showToast(`${user.fullName || user.email} suspended successfully`, 'success');
       fetchUsers(page);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to toggle user status', 'error');
+      showToast(err.response?.data?.message || 'Failed to suspend user', 'error');
+    }
+  };
+
+  const handleRevoke = async (user) => {
+    if (!window.confirm(`Revoke suspension for ${user.fullName || user.name || user.email}? They will regain full access.`)) return;
+    try {
+      await api.post(`/api/super-admin/users/${user._id || user.id}/revoke`);
+      showToast(`${user.fullName || user.email} restored successfully`, 'success');
+      fetchUsers(page);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to revoke suspension', 'error');
     }
   };
 
@@ -180,6 +191,11 @@ const UserManagement = () => {
                 <span className={`admin-badge ${isSuspended(u) ? 'inactive' : 'active'}`}>
                   {isSuspended(u) ? 'Suspended' : 'Active'}
                 </span>
+                {isSuspended(u) && (
+                  <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '2px' }}>
+                    {u.suspendedAt ? new Date(u.suspendedAt).toLocaleDateString() : ''}
+                  </div>
+                )}
               </td>
               <td style={{ fontSize: '0.8rem', color: '#6b7280' }}>
                 {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}
@@ -191,9 +207,15 @@ const UserManagement = () => {
                     setNewRoleValue(u.role);
                     setConfirmAction({ user: u, action: 'changeRole', message: `Change role of ${u.fullName || u.name || u.email} from ${u.role}?` });
                   }} title="Change Role"><RefreshCw size={16} /></button>
-                  <button className="admin-table-action-btn" onClick={() => handleToggleStatus(u)} title={isSuspended(u) ? 'Activate' : 'Suspend'} style={{ color: isSuspended(u) ? '#16a34a' : '#dc2626' }}>
-                    {isSuspended(u) ? <CheckCircle size={16} /> : <Ban size={16} />}
-                  </button>
+                  {isSuspended(u) ? (
+                    <button className="admin-table-action-btn" onClick={() => handleRevoke(u)} title="Revoke Suspension" style={{ color: '#16a34a' }}>
+                      <Shield size={16} />
+                    </button>
+                  ) : (
+                    <button className="admin-table-action-btn" onClick={() => handleSuspend(u)} title="Suspend User" style={{ color: '#dc2626' }}>
+                      <ShieldOff size={16} />
+                    </button>
+                  )}
                   <button className="admin-table-action-btn" onClick={() => handleResetPassword(u)} title="Reset Password"><Key size={16} /></button>
                 </div>
               </td>

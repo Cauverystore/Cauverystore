@@ -5,6 +5,7 @@ import com.cauverystore.exception.UserNotFoundException;
 import com.cauverystore.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -37,6 +38,25 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
     }
 
+    public User suspendUser(Long userId, Long suspendedByUserId) {
+        User user = getUserById(userId);
+        user.setActive(false);
+        user.setStatus("SUSPENDED");
+        user.setSuspendedBy(suspendedByUserId);
+        user.setSuspendedAt(LocalDateTime.now());
+        user.setRefreshToken(null);
+        return userRepo.save(user);
+    }
+
+    public User revokeUser(Long userId) {
+        User user = getUserById(userId);
+        user.setActive(true);
+        user.setStatus("ACTIVE");
+        user.setSuspendedBy(null);
+        user.setSuspendedAt(null);
+        return userRepo.save(user);
+    }
+
     public User blockUser(Long userId) {
         User user = getUserById(userId);
         user.setActive(false);
@@ -48,6 +68,8 @@ public class UserService {
         User user = getUserById(userId);
         user.setActive(true);
         user.setStatus("ACTIVE");
+        user.setSuspendedBy(null);
+        user.setSuspendedAt(null);
         return userRepo.save(user);
     }
 

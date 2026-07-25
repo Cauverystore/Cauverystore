@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users } from "lucide-react";
+import { Users, ShieldOff, Shield } from "lucide-react";
 import api from "../../utils/axios";
 
 const ROLES = ['CUSTOMER', 'SELLER', 'EXECUTIVE', 'ADMIN'];
@@ -35,13 +35,6 @@ const AdminUsers = () => {
 
   useEffect(() => { fetchUsers(page); }, [page, filterRole, search]);
 
-  const handleBlock = async (id, isBlocked) => {
-    try {
-      await api.put(`/api/admin/users/${id}/${isBlocked ? 'unblock' : 'block'}`);
-      fetchUsers(page);
-    } catch { alert('Failed to toggle user status'); }
-  };
-
   const handleRoleChange = async (id, role) => {
     try {
       await api.put(`/api/admin/users/${id}/role?role=${role}`);
@@ -56,6 +49,26 @@ const AdminUsers = () => {
       fetchUsers(page);
     } catch { alert('Failed to delete user'); }
   };
+
+  const handleSuspend = async (id, name) => {
+    if (!window.confirm(`Suspend ${name}? They will lose all access until revoked.`)) return;
+    try {
+      await api.post(`/api/admin/users/${id}/suspend`);
+      alert(`${name} suspended successfully`);
+      fetchUsers(page);
+    } catch (err) { alert(err.response?.data?.message || 'Failed to suspend user'); }
+  };
+
+  const handleRevoke = async (id, name) => {
+    if (!window.confirm(`Revoke suspension for ${name}? They will regain full access.`)) return;
+    try {
+      await api.post(`/api/admin/users/${id}/revoke`);
+      alert(`${name} restored successfully`);
+      fetchUsers(page);
+    } catch (err) { alert(err.response?.data?.message || 'Failed to revoke suspension'); }
+  };
+
+  const canManage = (u) => u.role !== 'SUPER_ADMIN' && u.role !== 'ADMIN';
 
   if (loading && users.length === 0) {
     return (
@@ -109,17 +122,34 @@ const AdminUsers = () => {
                   )}
                 </td>
                 <td>
-                  <span className={`admin-badge ${u.isBlocked || u.status === 'SUSPENDED' ? 'inactive' : 'active'}`}>
-                    {u.isBlocked || u.status === 'SUSPENDED' ? 'Blocked' : 'Active'}
+                  <span className={`admin-badge ${u.status === 'SUSPENDED' || u.isBlocked ? 'inactive' : 'active'}`}>
+                    {u.status === 'SUSPENDED' ? 'Suspended' : u.isBlocked ? 'Blocked' : 'Active'}
                   </span>
+                  {u.status === 'SUSPENDED' && u.suspendedAt && (
+                    <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '2px' }}>
+                      {new Date(u.suspendedAt).toLocaleDateString()}
+                    </div>
+                  )}
                 </td>
                 <td>
                   <div className="admin-table-actions-cell">
-                    <button className={`admin-btn admin-btn-sm ${u.isBlocked ? 'admin-btn-success' : 'admin-btn-secondary'}`}
-                      onClick={() => handleBlock(u.id || u._id, u.isBlocked)}>
-                      {u.isBlocked ? 'Unblock' : 'Block'}
-                    </button>
-                    <button className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => handleDelete(u.id || u._id)}>Delete</button>
+                    {canManage(u) && u.status === 'SUSPENDED' && (
+                      <button className="admin-btn admin-btn-sm" style={{ background: '#16a34a', color: '#fff', border: 'none', fontSize: '0.75rem' }}
+                        onClick={() => handleRevoke(u.id || u._id, u.fullName || u.email)}>
+                        Revoke
+                      </button>
+                    )}
+                    {canManage(u) && u.status !== 'SUSPENDED' && !u.isBlocked && (
+                      <button className="admin-btn admin-btn-sm" style={{ background: '#dc2626', color: '#fff', border: 'none', fontSize: '0.75rem' }}
+                        onClick={() => handleSuspend(u.id || u._id, u.fullName || u.email)}>
+                        Suspend
+                      </button>
+                    )}
+                    {u.role === 'SUPER_ADMIN' ? (
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Protected</span>
+                    ) : (
+                      <button className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => handleDelete(u.id || u._id)}>Delete</button>
+                    )}
                   </div>
                 </td>
               </tr>

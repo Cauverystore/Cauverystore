@@ -30,6 +30,8 @@ public class User extends BaseEntity {
     private Boolean mfaEnabled = false;
     private java.time.LocalDateTime lastLoginAt;
     private Integer failedLoginAttempts = 0;
+    private Long suspendedBy;
+    private java.time.LocalDateTime suspendedAt;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("user")
     private List<Address> addresses = new ArrayList<>();
@@ -108,6 +110,16 @@ public class User extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public Integer getFailedLoginAttempts() {
         return this.failedLoginAttempts;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public Long getSuspendedBy() {
+        return this.suspendedBy;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public java.time.LocalDateTime getSuspendedAt() {
+        return this.suspendedAt;
     }
 
     @java.lang.SuppressWarnings("all")
@@ -194,6 +206,16 @@ public class User extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setFailedLoginAttempts(final Integer failedLoginAttempts) {
         this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setSuspendedBy(final Long suspendedBy) {
+        this.suspendedBy = suspendedBy;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setSuspendedAt(final java.time.LocalDateTime suspendedAt) {
+        this.suspendedAt = suspendedAt;
     }
 
     @JsonIgnoreProperties("user")

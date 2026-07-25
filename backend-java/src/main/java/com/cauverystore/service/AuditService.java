@@ -51,6 +51,30 @@ public class AuditService {
         auditRepo.save(log);
     }
 
+    public void logSuspend(String performedBy, Long actorId, Long targetUserId, String targetRole, String targetEmail) {
+        AuditLog log = new AuditLog();
+        log.setUserId(actorId);
+        log.setUserEmail(performedBy);
+        log.setAction("USER_SUSPENDED");
+        log.setEntity("User");
+        log.setEntityId(targetUserId);
+        log.setDetails("User " + targetEmail + " (" + targetRole + ") suspended by " + performedBy);
+        log.setTimestamp(LocalDateTime.now());
+        auditRepo.save(log);
+    }
+
+    public void logRevoke(String performedBy, Long actorId, Long targetUserId, String targetRole, String targetEmail) {
+        AuditLog log = new AuditLog();
+        log.setUserId(actorId);
+        log.setUserEmail(performedBy);
+        log.setAction("USER_REVOKED");
+        log.setEntity("User");
+        log.setEntityId(targetUserId);
+        log.setDetails("User " + targetEmail + " (" + targetRole + ") suspension revoked by " + performedBy);
+        log.setTimestamp(LocalDateTime.now());
+        auditRepo.save(log);
+    }
+
     public void logRoleChange(String changedBy, Long targetUserId, Role oldRole, Role newRole) {
         AuditLog log = new AuditLog();
         log.setUserId(targetUserId);

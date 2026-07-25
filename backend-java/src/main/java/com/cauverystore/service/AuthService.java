@@ -81,6 +81,12 @@ public class AuthService {
 
         if (!"ACTIVE".equals(user.getStatus()) || !user.isActive()) {
             auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
+            if ("SUSPENDED".equals(user.getStatus()) && user.getSuspendedBy() != null) {
+                User suspendedByUser = userRepo.findById(user.getSuspendedBy()).orElse(null);
+                String by = suspendedByUser != null ? suspendedByUser.getEmail() : "unknown";
+                String at = user.getSuspendedAt() != null ? user.getSuspendedAt().toString() : "unknown";
+                throw new AuthenticationFailedException("Account has been suspended by " + by + " on " + at);
+            }
             throw new AuthenticationFailedException("Account is not active");
         }
 
