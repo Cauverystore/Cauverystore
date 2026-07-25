@@ -1,56 +1,112 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import promoService from "../services/promoService";
+import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
+import { addToCart } from "../services/cartService";
+import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
+import Pagination from "../components/Pagination";
+import "../styles/products.css";
+import "../styles/product-tray.css";
+
+const PAGE_SIZE = 12;
 
 const OffersPage = () => {
-  const { offerId } = useParams();
-  const [offers, setOffers] = useState([]);
-  const [offer, setOffer] = useState(null);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [cartMsg, setCartMsg] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetch = async () => {
+      setLoading(true);
       try {
-        if (offerId) { const res = await promoService.getOfferById(offerId); setOffer(res.data); }
-        else { const res = await promoService.getActiveOffers(); setOffers(res.data || []); }
-      } catch (err) {             void err; }
+        const res = await api.get("/api/products/search", {
+          params: { page: page - 1, size: PAGE_SIZE, sortBy: "id", direction: "desc" }
+        });
+        const all = res.data.content || [];
+        const withDiscount = all.filter(p => {
+          const ds = p.discounts;
+          return ds && ds.length > 0 && ds.some(d => d.active);
+        });
+        setProducts(withDiscount.length > 0 ? withDiscount : all);
+        setTotalPages(res.data.totalPages || 1);
+      } catch {
+        setProducts([]);
+      }
       setLoading(false);
     };
     fetch();
-  }, [offerId]);
+  }, [page]);
 
-  if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
+  const handleAddToCart = async (product) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) { navigate("/login"); return; }
+    try {
+      await addToCart(product.id || product._id, 1);
+      setCartMsg(`${product.name} added to cart!`);
+      setTimeout(() => setCartMsg(null), 2500);
+    } catch {
+      setCartMsg("Failed to add to cart");
+      setTimeout(() => setCartMsg(null), 2500);
+    }
+  };
 
-  if (offer) return (
-    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "1.5rem" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1rem" }}>{offer.title}</h1>
-      <div style={{ padding: "1.5rem", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff" }}>
-        <p style={{ fontSize: "1.2rem", color: "#16a34a", fontWeight: 600 }}>{offer.description}</p>
-        {offer.discountPercent && <p style={{ fontSize: "1.5rem", fontWeight: 700 }}>{offer.discountPercent}% OFF</p>}
-        <p style={{ color: "#475569" }}>Code: <strong>{offer.code}</strong></p>
-        <p style={{ color: "#94a3b8", fontSize: "0.85rem" }}>Valid till: {new Date(offer.validTill).toLocaleDateString()}</p>
-      </div>
-      <Link to="/products" style={{ display: "inline-block", marginTop: "1rem", color: "#16a34a" }}>&larr; Shop Now</Link>
-    </div>
-  );
+  const handleBuyNow = async (product) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) { navigate("/login"); return; }
+    try {
+      await addToCart(product.id || product._id, 1);
+      navigate("/checkout");
+    } catch {
+      setCartMsg("Failed to add to cart");
+      setTimeout(() => setCartMsg(null), 2500);
+    }
+  };
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "1.5rem" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem" }}>Active Offers</h1>
-      {offers.length === 0 ? <p style={{ color: "#475569" }}>No active offers at the moment.</p> : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem" }}>
-          {offers.map((o) => (
-            <Link key={o.id || o._id} to={`/offers/${o.id || o._id}`} style={{ textDecoration: "none" }}>
-              <div style={{ padding: "1.5rem", border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", transition: "box-shadow 0.2s" }}>
-                <h3 style={{ marginBottom: "0.5rem", color: "#0f172a" }}>{o.title}</h3>
-                <p style={{ color: "#16a34a", fontWeight: 600 }}>{o.description}</p>
-                <p style={{ color: "#475569", fontSize: "0.9rem" }}>Use Code: <strong>{o.code}</strong></p>
-              </div>
-            </Link>
-          ))}
+    <div className="products-page">
+      {cartMsg && <div className="pt-toast">{cartMsg}</div>}
+      <div className="section-header">
+        <h2 className="section-title">Deals of the Day</h2>
+        <span className="products-toolbar-count">{products.length} products</span>
+      </div>
+
+      {loading ? (
+        <div className="pt-grid">
+          {Array.from({ length: 8 }).map((_, i) => <LoadingSkeleton key={i} />)}
         </div>
+      ) : products.length === 0 ? (
+        <div className="products-empty">
+          <div className="products-empty-icon">&#128722;</div>
+          <h3 className="products-empty-title">No deals available right now</h3>
+          <p className="products-empty-text">Check back later for fresh deals.</p>
+          <button className="products-empty-action" onClick={() => navigate("/products")}>Browse All Products</button>
+        </div>
+      ) : (
+        <>
+          <div className="pt-grid">
+            {products.map((p) => (
+              <ProductTray key={p.id || p._id} product={p} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} onPage={setPage} />
+        </>
       )}
+
+      <style>{`
+        .section-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; padding: 0 1.5rem; }
+        .section-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; }
+        .products-toolbar-count { font-size: 0.85rem; color: #64748b; }
+        .pt-toast { position: fixed; top: 100px; right: 20px; z-index: 9999; padding: 12px 20px; border-radius: 8px; font-weight: 600; background: #16a34a; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .products-empty { text-align: center; padding: 3rem; }
+        .products-empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+        .products-empty-title { font-size: 1.2rem; font-weight: 600; color: #0f172a; margin-bottom: 0.5rem; }
+        .products-empty-text { color: #64748b; margin-bottom: 1rem; }
+        .products-empty-action { display: inline-block; padding: 0.6rem 1.5rem; background: var(--color-primary); color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+      `}</style>
     </div>
   );
 };
+
 export default OffersPage;
