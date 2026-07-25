@@ -29,14 +29,13 @@ public class SeedDataRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Remove old superadmin email if it exists (migrated to super@cauverystore.in)
-        User oldSuper = userRepo.findByEmail("superadmin@cauverystore.in");
+        User oldSuper = userRepo.findByEmail("super@cauverystore.in");
         if (oldSuper != null) userRepo.delete(oldSuper);
 
+        createOrUpdateUser("Super Admin", "superadmin", "superadmin@cauverystore.in", "super123", Role.SUPER_ADMIN);
         createOrUpdateUser("Test Customer", "customer", "customer@cauverystore.in", "admin123", Role.CUSTOMER);
         createOrUpdateUser("Admin", "admin", "admin@cauverystore.in", "admin123", Role.ADMIN);
         createOrUpdateUser("Seller", "seller", "seller@cauverystore.in", "seller123", Role.SELLER);
-        createOrUpdateUser("Super Admin", "superadmin", "super@cauverystore.in", "super123", Role.SUPER_ADMIN);
         createOrUpdateUser("Executive", "executive", "executive@cauverystore.in", "exec123", Role.EXECUTIVE);
 
         if (categoryRepo.count() == 0) {

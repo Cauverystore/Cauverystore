@@ -172,8 +172,8 @@ const UserManagement = () => {
               <td style={{ fontWeight: 500 }}>{u.fullName || u.name || 'N/A'}</td>
               <td>{u.email}</td>
               <td>
-                <span className={`admin-badge ${u.role === 'ADMIN' ? 'active' : 'pending'}`}>
-                  {u.role}
+                <span className={`admin-badge ${u.role === 'ADMIN' || u.role === 'SUPER_ADMIN' ? 'active' : 'pending'}`}>
+                  {u.role === 'SUPER_ADMIN' ? 'SUPER ADMIN' : u.role}
                 </span>
               </td>
               <td>

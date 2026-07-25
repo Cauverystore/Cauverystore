@@ -99,10 +99,14 @@ const AdminUsers = () => {
                 <td style={{ fontWeight: 500 }}>{u.fullName || u.name || u.username || '-'}</td>
                 <td>{u.email}</td>
                 <td>
-                  <select className="admin-filter-select" value={u.role} onChange={e => handleRoleChange(u.id || u._id, e.target.value)}
-                    style={{ padding: '2px 8px', fontSize: '0.8rem' }}>
-                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                  {u.role === 'SUPER_ADMIN' ? (
+                    <span className="admin-badge active" style={{ fontSize: '0.8rem', padding: '2px 8px' }}>SUPER ADMIN</span>
+                  ) : (
+                    <select className="admin-filter-select" value={u.role} onChange={e => handleRoleChange(u.id || u._id, e.target.value)}
+                      style={{ padding: '2px 8px', fontSize: '0.8rem' }}>
+                      {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  )}
                 </td>
                 <td>
                   <span className={`admin-badge ${u.isBlocked || u.status === 'SUSPENDED' ? 'inactive' : 'active'}`}>
