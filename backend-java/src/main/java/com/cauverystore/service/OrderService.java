@@ -377,13 +377,37 @@ public class OrderService {
         return result;
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> getOrdersByHeader(String authHeader) {
         User user = extractUserFromHeader(authHeader);
         return getOrders(user.getUsername()).stream().map(o -> {
             Map<String, Object> m = new HashMap<>();
             m.put("id", o.getId());
+            m.put("orderId", o.getId().toString());
             m.put("status", o.getStatus());
             m.put("totalAmount", o.getTotalAmount());
+            m.put("createdAt", o.getCreatedAt() != null ? o.getCreatedAt().toString() : null);
+            m.put("paymentMethod", o.getPaymentMethod());
+
+            List<Map<String, Object>> items = o.getItems().stream().map(item -> {
+                Map<String, Object> im = new HashMap<>();
+                im.put("id", item.getId());
+                im.put("quantity", item.getQuantity());
+                im.put("price", item.getPrice());
+                Product product = item.getProduct();
+                if (product != null) {
+                    im.put("productId", product.getId());
+                    im.put("productName", product.getName());
+                    String imageUrl = "";
+                    if (product.getImages() != null && !product.getImages().isEmpty()) {
+                        imageUrl = product.getImages().get(0).getUrl();
+                    }
+                    im.put("productImage", imageUrl);
+                }
+                return im;
+            }).collect(Collectors.toList());
+            m.put("items", items);
+
             return m;
         }).toList();
     }

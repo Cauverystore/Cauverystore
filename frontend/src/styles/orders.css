@@ -1,1 +1,5 @@
-/* orders.css - stub */
+.orders-page {
+  max-width: var(--container-wide, 1100px);
+  margin: 0 auto;
+  padding: var(--spacing-4, 1.5rem);
+}
