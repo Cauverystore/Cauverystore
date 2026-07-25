@@ -2,14 +2,18 @@ package com.cauverystore.controller;
 
 import com.cauverystore.entities.AuditLog;
 import com.cauverystore.entities.ImpersonationSession;
+import com.cauverystore.entities.Permission;
 import com.cauverystore.entities.PlatformSetting;
 import com.cauverystore.entities.Role;
+import com.cauverystore.entities.RolePermission;
 import com.cauverystore.entities.User;
 import com.cauverystore.exception.AccessDeniedException;
 import com.cauverystore.repository.AuditLogRepository;
 import com.cauverystore.repository.OrderRepository;
+import com.cauverystore.repository.PermissionRepository;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.RefundRepository;
+import com.cauverystore.repository.RolePermissionRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.AuditService;
 import com.cauverystore.service.AuthorizationService;
@@ -35,8 +39,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -57,6 +63,8 @@ public class SuperAdminController {
     private final AuditService auditService;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final PermissionRepository permissionRepo;
+    private final RolePermissionRepository rolePermissionRepo;
 
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboard() {
@@ -91,8 +99,44 @@ public class SuperAdminController {
     @GetMapping("/activity-log")
     public ResponseEntity<Map<String, Object>> getActivityLog(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
-        Page<AuditLog> logs = auditLogRepo.findAll(PageRequest.of(page, size));
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String performedBy,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
+        Page<AuditLog> logs;
+        if (action != null || performedBy != null || dateFrom != null || dateTo != null) {
+            List<AuditLog> all = auditLogRepo.findAllByOrderByTimestampDesc();
+            if (action != null && !action.isEmpty()) {
+                all = all.stream().filter(l -> action.equalsIgnoreCase(l.getAction())).collect(Collectors.toList());
+            }
+            if (performedBy != null && !performedBy.isEmpty()) {
+                String lower = performedBy.toLowerCase();
+                all = all.stream().filter(l -> l.getUserEmail() != null && l.getUserEmail().toLowerCase().contains(lower)).collect(Collectors.toList());
+            }
+            if (dateFrom != null && !dateFrom.isEmpty()) {
+                try {
+                    java.time.LocalDateTime from = java.time.LocalDate.parse(dateFrom).atStartOfDay();
+                    all = all.stream().filter(l -> l.getTimestamp() != null && !l.getTimestamp().isBefore(from)).collect(Collectors.toList());
+                } catch (Exception ignored) {}
+            }
+            if (dateTo != null && !dateTo.isEmpty()) {
+                try {
+                    java.time.LocalDateTime to = java.time.LocalDate.parse(dateTo).plusDays(1).atStartOfDay();
+                    all = all.stream().filter(l -> l.getTimestamp() != null && l.getTimestamp().isBefore(to)).collect(Collectors.toList());
+                } catch (Exception ignored) {}
+            }
+            int start = page * size;
+            int end = Math.min(start + size, all.size());
+            List<AuditLog> content = start < all.size() ? all.subList(start, end) : List.of();
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", content);
+            result.put("totalElements", (long) all.size());
+            result.put("totalPages", (int) Math.ceil((double) all.size() / size));
+            result.put("currentPage", page);
+            return ResponseEntity.ok(result);
+        }
+        logs = auditLogRepo.findAll(PageRequest.of(page, size));
         Map<String, Object> result = new HashMap<>();
         result.put("content", logs.getContent());
         result.put("totalElements", logs.getTotalElements());
@@ -239,6 +283,44 @@ public class SuperAdminController {
         String currentEmail = authorizationService.getCurrentUserEmail();
         auditService.logAccountAction("USER_DELETED_BY_SUPER_ADMIN", currentEmail, id);
         return ResponseEntity.ok(Map.of("message", "User soft-deleted successfully"));
+    }
+
+    @GetMapping("/permissions")
+    public ResponseEntity<List<Permission>> getAllPermissions() {
+        return ResponseEntity.ok(permissionRepo.findAll());
+    }
+
+    @GetMapping("/role-permissions")
+    public ResponseEntity<Map<String, Object>> getRolePermissions(@RequestParam String role) {
+        List<RolePermission> rps = rolePermissionRepo.findByRole(role);
+        Set<Long> assigned = rps.stream()
+                .map(rp -> rp.getPermission().getId())
+                .collect(Collectors.toSet());
+        Map<String, Object> result = new HashMap<>();
+        result.put("role", role);
+        result.put("permissionIds", assigned);
+        result.put("permissions", rps);
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/role-permissions")
+    public ResponseEntity<Map<String, Object>> updateRolePermissions(@RequestBody Map<String, Object> body) {
+        String role = (String) body.get("role");
+        List<Integer> permIds = (List<Integer>) body.get("permissionIds");
+        List<RolePermission> existing = rolePermissionRepo.findByRole(role);
+        rolePermissionRepo.deleteAll(existing);
+        for (Integer pid : permIds) {
+            Permission perm = permissionRepo.findById(pid.longValue())
+                    .orElseThrow(() -> new RuntimeException("Permission not found: " + pid));
+            RolePermission rp = new RolePermission();
+            rp.setRole(role);
+            rp.setPermission(perm);
+            rolePermissionRepo.save(rp);
+        }
+        String currentEmail = authorizationService.getCurrentUserEmail();
+        auditService.log(authorizationService.getCurrentUserId(), currentEmail, "PERMISSIONS_UPDATED",
+                "RolePermission", null, "Permissions updated for role: " + role, null);
+        return ResponseEntity.ok(Map.of("message", "Permissions updated successfully"));
     }
 
     @GetMapping("/settings")
