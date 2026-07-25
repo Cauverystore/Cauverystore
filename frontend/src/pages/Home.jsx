@@ -232,7 +232,7 @@ const Home = () => {
         <div className="sn-container">
           <div className="sn-quick-cats-grid">
             {QUICK_CATEGORIES.map(cat => (
-              <button key={cat.label} className="sn-quick-cat" onClick={() => navigate(`/category/${cat.slug}`)}>
+              <button key={cat.label} className="sn-quick-cat" onClick={() => navigate(`/products?category=${encodeURIComponent(cat.slug)}`)}>
                 <span className="sn-quick-cat-icon"><cat.icon size={28} /></span>
                 <span className="sn-quick-cat-label">{cat.label}</span>
               </button>
@@ -310,7 +310,7 @@ const Home = () => {
         <div className="sn-container">
           <div className="sn-section-top">
             <h2 className="sn-section-title"><Zap size={22} color="#fa8900" className="sn-section-icon" /> Trending Electronics</h2>
-            <button className="sn-view-all" onClick={() => navigate("/category/Electronics")}>View All {"\u2192"}</button>
+            <button className="sn-view-all" onClick={() => navigate("/products?category=Electronics")}>View All {"\u2192"}</button>
           </div>
           <div className="sn-product-scroll">
             {electronics.length > 0
@@ -325,7 +325,7 @@ const Home = () => {
           <h2 className="sn-section-title sn-mb"><Tags size={22} color="#2E9B57" className="sn-section-icon" /> Shop by Category</h2>
           <div className="sn-category-grid">
             {CATEGORY_DEALS.map((cat, i) => (
-              <div key={cat} className="sn-category-card" onClick={() => navigate(`/category/${cat === "Top Offers" ? "Electronics" : cat}`)}>
+              <div key={cat} className="sn-category-card" onClick={() => navigate(`/products?category=${encodeURIComponent(cat === "Top Offers" ? "Electronics" : cat)}`)}>
                 <div className="sn-category-card-visual" style={{ background: `hsl(${i * 36}, 60%, 92%)` }}>
                   <span className="sn-category-card-icon">{React.createElement(QUICK_CATEGORIES[i % QUICK_CATEGORIES.length]?.icon || ShoppingCart, { size: 32 })}</span>
                 </div>
@@ -340,7 +340,7 @@ const Home = () => {
         <div className="sn-container">
           <div className="sn-section-top">
             <h2 className="sn-section-title"><Shirt size={22} color="#2E9B57" className="sn-section-icon" /> Fashion Essentials</h2>
-            <button className="sn-view-all" onClick={() => navigate("/category/Fashion")}>View All {"\u2192"}</button>
+            <button className="sn-view-all" onClick={() => navigate("/products?category=Fashion")}>View All {"\u2192"}</button>
           </div>
           <div className="sn-product-scroll">
             {fashion.length > 0

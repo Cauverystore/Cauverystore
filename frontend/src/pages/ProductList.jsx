@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import Pagination from "../components/Pagination";
@@ -19,6 +19,12 @@ const ProductList = () => {
   const [cartMessage, setCartMessage] = useState(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const catParam = searchParams.get("category");
+    if (catParam) setCategory(catParam);
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -157,8 +163,16 @@ const ProductList = () => {
               {Array.from({ length: skeletonCount }).map((_, i) => <LoadingSkeleton key={i} />)}
             </div>
           ) : products.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
-              No products found
+            <div style={{ textAlign: "center", padding: "3rem" }}>
+              <div style={{ fontSize: "3rem", marginBottom: "0.75rem", opacity: 0.4 }}>&#128230;</div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "0.5rem", color: "#0f172a" }}>
+                {category ? `No products in "${category}"` : "No products found"}
+              </h3>
+              <p style={{ color: "#64748b", marginBottom: "1rem" }}>Try a different category or filter.</p>
+              {category && <button className="products-empty-action" onClick={() => { setCategory(""); setSearch(""); setSort(""); setPage(1); }}
+                style={{ padding: "0.5rem 1.25rem", background: "var(--color-primary)", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" }}>
+                Clear Filters
+              </button>}
             </div>
           ) : (
             <>
