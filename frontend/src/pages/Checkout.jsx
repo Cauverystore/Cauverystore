@@ -181,6 +181,20 @@ const Checkout = () => {
     return <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>Loading checkout...</div>;
   }
 
+  if (!loading && cartItems.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "3rem" }}>
+        <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>&#128722;</div>
+        <h2 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.5rem" }}>Your cart is empty</h2>
+        <p style={{ color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>Add some items before checking out.</p>
+        <button onClick={() => navigate("/")} style={{
+          padding: "0.75rem 2rem", border: "none", borderRadius: "var(--radius-sm)",
+          background: "var(--color-primary)", color: "#fff", cursor: "pointer", fontSize: "1rem", fontWeight: 600
+        }}>Continue Shopping</button>
+      </div>
+    );
+  }
+
   const renderStepIndicator = () => (
     <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
       {STEPS.map((label, i) => (

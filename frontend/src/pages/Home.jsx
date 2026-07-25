@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Heart, Zap, Shirt, Home as HomeIcon, BookOpen, Smartphone, Laptop, Tv,
@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
+import CartItemImage from "../components/CartItemImage";
 import "../styles/shopnest-home.css";
 
 const BANNERS = [
@@ -16,31 +17,6 @@ const BANNERS = [
   { id: 4, title: "Book Bonanza", subtitle: "Bestsellers at flat 40% off", cta: "Browse Books", bg: "#146C43", accent: "#2E9B57", color: "#7FFFD4" },
 ];
 const BANNER_ICONS = [Zap, Shirt, HomeIcon, BookOpen];
-
-const DEALS_OF_DAY = [
-  { id: "d1", name: "Wireless Earbuds Pro", price: 999, originalPrice: 4999, discount: 80, rating: 4.4, reviews: 8234, image: "https://images.unsplash.com/photo-1590658268037-6bf12f032f55?w=300", delivery: "Free Delivery", badge: "Hot Deal" },
-  { id: "d2", name: "Smart Watch Series 7", price: 2499, originalPrice: 8999, discount: 72, rating: 4.2, reviews: 5621, image: "https://images.unsplash.com/photo-1546868871-af0de0ae72be?w=300", delivery: "Free Delivery", badge: "Trending" },
-  { id: "d3", name: "Running Shoes Ultra", price: 1299, originalPrice: 3999, discount: 68, rating: 4.5, reviews: 12453, image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300", delivery: "Free Delivery", badge: "Best Value" },
-  { id: "d4", name: "Bluetooth Speaker Boom", price: 1799, originalPrice: 5499, discount: 67, rating: 4.3, reviews: 3892, image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300", delivery: "Free Delivery", badge: "Popular" },
-  { id: "d5", name: "Laptop Backpack 32L", price: 699, originalPrice: 2499, discount: 72, rating: 4.6, reviews: 9801, image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300", delivery: "Free Delivery" },
-  { id: "d6", name: "Power Bank 20000mAh", price: 899, originalPrice: 2999, discount: 70, rating: 4.1, reviews: 15432, image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=300", delivery: "Free Delivery" },
-];
-
-const TRENDING_ELECTRONICS = [
-  { id: "e1", name: "Noise Cancelling Headphones", price: 2999, originalPrice: 9999, discount: 70, rating: 4.5, reviews: 4521, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300", delivery: "Free Delivery" },
-  { id: "e2", name: "4K Action Camera", price: 3499, originalPrice: 7999, discount: 56, rating: 4.3, reviews: 2310, image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=300", delivery: "Free Delivery" },
-  { id: "e3", name: "Tablet 10.4 inch WiFi", price: 12999, originalPrice: 24999, discount: 48, rating: 4.4, reviews: 9876, image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=300", delivery: "Free Delivery" },
-  { id: "e4", name: "Wireless Mouse Ergonomic", price: 599, originalPrice: 1999, discount: 70, rating: 4.6, reviews: 12670, image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=300", delivery: "Free Delivery" },
-  { id: "e5", name: "USB-C Hub 7-in-1", price: 1499, originalPrice: 3499, discount: 57, rating: 4.2, reviews: 5432, image: "https://images.unsplash.com/photo-1625723044792-44de16ccb4e9?w=300", delivery: "Free Delivery" },
-  { id: "e6", name: "LED Monitor 24 inch", price: 8999, originalPrice: 14999, discount: 40, rating: 4.4, reviews: 3456, image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3ac3?w=300", delivery: "Free Delivery" },
-];
-
-const FASHION_ESSENTIALS = [
-  { id: "f1", name: "Cotton T-Shirt Pack of 3", price: 599, originalPrice: 1499, discount: 60, rating: 4.1, reviews: 8765, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300", delivery: "Free Delivery" },
-  { id: "f2", name: "Slim Fit Jeans", price: 999, originalPrice: 2999, discount: 67, rating: 4.3, reviews: 6543, image: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=300", delivery: "Free Delivery" },
-  { id: "f3", name: "Casual Sneakers White", price: 1499, originalPrice: 3999, discount: 63, rating: 4.5, reviews: 11234, image: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=300", delivery: "Free Delivery" },
-  { id: "f4", name: "Leather Wallet Genuine", price: 449, originalPrice: 1299, discount: 65, rating: 4.4, reviews: 5678, image: "https://images.unsplash.com/photo-1627123424574-724758594e93?w=300", delivery: "Free Delivery" },
-];
 
 const BRAND_STORES = [
   { name: "Samsung", icon: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=100", offer: "Up to 40% Off" },
@@ -67,7 +43,7 @@ const CATEGORY_DEALS = ["Top Offers", "Grocery", "Mobiles", "Fashion", "Electron
 
 function normalizeProduct(p) {
   if (!p) return null;
-  const img = p.images?.[0]?.url || p.image || "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300";
+  const img = p.images?.[0]?.url || p.image || "";
   const price = p.price || 0;
   const discount = p.discounts?.[0];
   let origPrice = price;
@@ -77,7 +53,7 @@ function normalizeProduct(p) {
     origPrice = Math.round(price / (1 - discPct / 100));
   }
   const rating = p.rating || (p.reviews?.length > 0 ? p.reviews.reduce((s,r)=>s+(r.rating||0),0)/p.reviews.length : 4.0);
-  const reviewCount = p.reviews?.length || 100;
+  const reviewCount = p.reviews?.length || 0;
   return { ...p, image: img, price, originalPrice: origPrice, discount: discPct, rating, reviews: reviewCount, delivery: "Free Delivery" };
 }
 
@@ -91,17 +67,17 @@ function Stars({ rating, reviews }) {
           {i < full ? "\u2605" : (i === full && half ? "\u2605" : "\u2606")}
         </span>
       ))}
-      {reviews != null && <span className="review-count">({reviews.toLocaleString()})</span>}
+      {reviews != null && reviews > 0 && <span className="review-count">({reviews.toLocaleString()})</span>}
     </span>
   );
 }
 
-function ProductCard({ product, onCart }) {
+function ProductCard({ product, onCart, adding }) {
   const navigate = useNavigate();
   return (
     <div className="sn-product-card" onClick={() => navigate(`/product/${product.id}`)}>
       <div className="sn-product-image-wrap">
-        <img src={product.image} alt={product.name} width="200" height="200" loading="lazy" />
+        <CartItemImage src={product.image} name={product.name} width={200} height={200} className="sn-product-img" />
         {product.badge && <span className="sn-product-badge">{product.badge}</span>}
         <button className="sn-wishlist-btn" onClick={e => { e.stopPropagation(); }} aria-label="Add to wishlist"><Heart size={16} /></button>
       </div>
@@ -115,8 +91,8 @@ function ProductCard({ product, onCart }) {
         </div>
         <span className="sn-delivery">{product.delivery || "Free Delivery"}</span>
       </div>
-      <button className="sn-add-cart-btn" onClick={e => { e.stopPropagation(); if (onCart) onCart(product); }}>
-        Add to Cart
+      <button className="sn-add-cart-btn" onClick={e => { e.stopPropagation(); if (onCart) onCart(product); }} disabled={adding}>
+        {adding ? "Adding..." : "Add to Cart"}
       </button>
     </div>
   );
@@ -161,12 +137,19 @@ function DealCountdown() {
   );
 }
 
+function getCategoryName(p) {
+  if (!p.category) return "";
+  return typeof p.category === "object" ? (p.category.name || "") : p.category;
+}
+
 const Home = () => {
   const navigate = useNavigate();
   const [allProducts, setAllProducts] = useState(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bannerIdx, setBannerIdx] = useState(0);
+  const [toast, setToast] = useState(null);
+  const [addingId, setAddingId] = useState(null);
 
   useEffect(() => {
     Promise.all([api.get("/api/products"), api.get("/api/categories")])
@@ -183,17 +166,41 @@ const Home = () => {
     return () => clearInterval(id);
   }, []);
 
-  const handleCart = useCallback((p) => {
-    const isLoggedIn = !!localStorage.getItem("accessToken");
-    if (!isLoggedIn) { navigate("/login"); return; }
-    addToCart(p.id, 1).then(() => {}).catch(() => {});
-  }, [navigate]);
+  useEffect(() => {
+    if (toast) {
+      const id = setTimeout(() => setToast(null), 2500);
+      return () => clearTimeout(id);
+    }
+  }, [toast]);
 
   const products = allProducts || [];
-  const displayProducts = (products.length > 0 ? products.slice(0, 12) : []).map(normalizeProduct).filter(Boolean);
+  const normalized = useMemo(() => products.map(normalizeProduct).filter(Boolean), [products]);
+
+  const productsWithDiscount = useMemo(() => normalized.filter(p => p.discount > 0).slice(0, 6), [normalized]);
+  const electronics = useMemo(() => normalized.filter(p => getCategoryName(p) === "Electronics").slice(0, 6), [normalized]);
+  const fashion = useMemo(() => normalized.filter(p => getCategoryName(p) === "Fashion").slice(0, 4), [normalized]);
+
+  const handleCart = useCallback(async (p) => {
+    const isLoggedIn = !!localStorage.getItem("accessToken");
+    if (!isLoggedIn) { navigate("/login"); return; }
+    setAddingId(p.id);
+    try {
+      await addToCart(p.id, 1);
+      setToast({ type: "success", text: `${p.name} added to cart!` });
+    } catch {
+      setToast({ type: "error", text: "Failed to add to cart" });
+    }
+    setAddingId(null);
+  }, [navigate]);
 
   return (
     <div className="sn-page">
+      {toast && (
+        <div className={`sn-toast sn-toast-${toast.type}`}>
+          {toast.text}
+        </div>
+      )}
+
       <section className="sn-hero">
         <div className="sn-container">
           <div className="sn-hero-carousel">
@@ -244,7 +251,9 @@ const Home = () => {
             <button className="sn-view-all" onClick={() => navigate("/offers")}>View All Deals {"\u2192"}</button>
           </div>
           <div className="sn-product-scroll">
-            {DEALS_OF_DAY.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} />)}
+            {productsWithDiscount.length > 0
+              ? productsWithDiscount.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} adding={addingId === p.id} />)
+              : (loading ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />) : null)}
           </div>
         </div>
       </section>
@@ -285,13 +294,13 @@ const Home = () => {
           </div>
           {loading ? (
             <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}</div>
-          ) : displayProducts.length > 0 ? (
+          ) : normalized.length > 0 ? (
             <div className="sn-product-scroll">
-              {displayProducts.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} />)}
+              {normalized.slice(0, 6).map(p => <ProductCard key={p.id} product={p} onCart={handleCart} adding={addingId === p.id} />)}
             </div>
           ) : (
             <div className="sn-product-scroll">
-              {TRENDING_ELECTRONICS.slice(0, 6).map(p => <ProductCard key={p.id} product={p} onCart={handleCart} />)}
+              {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
             </div>
           )}
         </div>
@@ -304,7 +313,9 @@ const Home = () => {
             <button className="sn-view-all" onClick={() => navigate("/category/Electronics")}>View All {"\u2192"}</button>
           </div>
           <div className="sn-product-scroll">
-            {TRENDING_ELECTRONICS.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} />)}
+            {electronics.length > 0
+              ? electronics.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} adding={addingId === p.id} />)
+              : (loading ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />) : null)}
           </div>
         </div>
       </section>
@@ -332,7 +343,9 @@ const Home = () => {
             <button className="sn-view-all" onClick={() => navigate("/category/Fashion")}>View All {"\u2192"}</button>
           </div>
           <div className="sn-product-scroll">
-            {FASHION_ESSENTIALS.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} />)}
+            {fashion.length > 0
+              ? fashion.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} adding={addingId === p.id} />)
+              : (loading ? [...Array(4)].map((_, i) => <SkeletonCard key={i} />) : null)}
           </div>
         </div>
       </section>
@@ -354,6 +367,25 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      <style>{`
+        .sn-toast {
+          position: fixed; top: 100px; right: 20px; z-index: 9999;
+          padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideInRight 0.3s ease-out;
+        }
+        .sn-toast-success { background: #16a34a; color: #fff; }
+        .sn-toast-error { background: #dc2626; color: #fff; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .sn-product-img { width: 200px; height: 200px; object-fit: cover; display: block; }
+        .sn-product-img.cart-item-img-placeholder {
+          display: flex; align-items: center; justify-content: center;
+          background: #f1f5f9; border: 1px dashed #d1d5db;
+          font-size: 0.7rem; color: #64748b; text-align: center; padding: 8px;
+          overflow: hidden; word-break: break-word; line-height: 1.3;
+        }
+        .sn-add-cart-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+      `}</style>
     </div>
   );
 };

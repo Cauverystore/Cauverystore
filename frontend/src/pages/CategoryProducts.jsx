@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { getProducts } from "../services/productService";
+import { searchProducts } from "../services/productService";
 import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Breadcrumb from "../components/Breadcrumb";
@@ -23,7 +23,7 @@ const CategoryProducts = () => {
       setLoading(true);
       setError("");
       try {
-        const res = await getProducts({ category, page: page - 1, size: 20 });
+        const res = await searchProducts({ category, page: page - 1, size: 20 });
         setProducts(res.data.content || res.data || []);
         setTotalPages(res.data.totalPages || 1);
       } catch (err) {
