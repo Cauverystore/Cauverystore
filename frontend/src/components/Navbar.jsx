@@ -7,6 +7,7 @@ const CATEGORIES = ["Electronics", "Fashion", "Home & Kitchen", "Grocery", "Beau
 const Navbar = () => {
   const navigate = useNavigate();
   const token = !!localStorage.getItem("accessToken");
+  const userRole = localStorage.getItem("role") || "";
   const [search, setSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -53,7 +54,11 @@ const Navbar = () => {
         </div>
         <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
           <Link to="/contact" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Customer Support</Link>
-          <Link to="/seller/dashboard" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Become a Seller</Link>
+          {["SELLER", "ADMIN", "SUPER_ADMIN"].includes(userRole) ? (
+            <Link to="/seller/dashboard" style={{ color: "#86efac", textDecoration: "none", opacity: 0.85 }}>Seller Dashboard</Link>
+          ) : (
+            <Link to="/seller/register" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Become a Seller</Link>
+          )}
           <Link to="/orders" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Orders</Link>
           {token ? (
             <>

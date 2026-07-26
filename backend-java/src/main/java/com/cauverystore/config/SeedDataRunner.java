@@ -15,15 +15,18 @@ public class SeedDataRunner implements CommandLineRunner {
     private final DiscountRepository discountRepo;
     private final PermissionRepository permissionRepo;
     private final RolePermissionRepository rolePermissionRepo;
+    private final SellerRegistrationRepository sellerRegRepo;
     private final PasswordEncoder passwordEncoder;
 
     public SeedDataRunner(UserRepository ur, CategoryRepository cr, ProductRepository pr,
                           ProductImageRepository pir, DiscountRepository dr,
                           PermissionRepository perms, RolePermissionRepository rp,
+                          SellerRegistrationRepository srr,
                           PasswordEncoder pe) {
         this.userRepo = ur; this.categoryRepo = cr; this.productRepo = pr;
         this.imageRepo = pir; this.discountRepo = dr;
         this.permissionRepo = perms; this.rolePermissionRepo = rp;
+        this.sellerRegRepo = srr;
         this.passwordEncoder = pe;
     }
 
@@ -71,6 +74,27 @@ public class SeedDataRunner implements CommandLineRunner {
                 d.setActive(true); discountRepo.save(d);
             }
         }
+        User sellerUser = userRepo.findByEmail("seller@cauverystore.in");
+        if (sellerUser != null && sellerRegRepo.findByUserId(sellerUser.getId()).isEmpty()) {
+            SellerRegistration reg = new SellerRegistration();
+            reg.setUser(sellerUser);
+            reg.setBusinessName("Cauvery Retail Store");
+            reg.setContactPerson("Seller");
+            reg.setBusinessEmail("seller@cauverystore.in");
+            reg.setBusinessPhone("9876543210");
+            reg.setBusinessAddress("42, Gandhi Nagar, Adyar, Chennai, Tamil Nadu 600020");
+            reg.setCity("Chennai");
+            reg.setState("Tamil Nadu");
+            reg.setPincode("600020");
+            reg.setBusinessType("Retail");
+            reg.setGstin("33ABCDE1234F1Z5");
+            reg.setPanNumber("ABCDE1234F");
+            reg.setStatus("APPROVED");
+            reg.setOnboardingStep(5);
+            sellerRegRepo.save(reg);
+            System.out.println("=== Created SellerRegistration for seller@cauverystore.in ===");
+        }
+
         if (permissionRepo.count() == 0) {
             String[][] permDefs = {
                 {"user.create", "Create users", "USER", "CREATE"},

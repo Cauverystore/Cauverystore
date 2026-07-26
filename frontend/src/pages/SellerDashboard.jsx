@@ -82,17 +82,34 @@ const SellerDashboard = () => {
       setLoading(true);
       setError("");
       try {
-        const [dashRes, notifRes, gstRes] = await Promise.all([
+        const [dashRes, notifRes] = await Promise.all([
           api.get("/api/seller/dashboard"),
           api.get("/api/seller/notifications"),
-          api.get("/api/seller/gst-info"),
         ]);
-        setData(dashRes.data);
+        const dashData = dashRes.data;
+        setData(dashData);
         setNotifications(notifRes.data.alerts || []);
-        setGstInfo(gstRes.data);
-        setGstForm(gstRes.data);
+        const gst = dashData.gstInfo || {};
+        setGstInfo(gst);
+        setGstForm({
+          gstin: gst.gstin || "",
+          panNumber: gst.panNumber || "",
+          businessName: gst.businessName || "",
+          businessAddress: gst.businessAddress || "",
+          licenses: gst.licenses || "",
+        });
       } catch (err) {
-        setError(err.response?.data?.error || "Failed to load dashboard");
+        const status = err.response?.status;
+        const msg = err.response?.data?.error || "";
+        if (status === 403) {
+          setError("Access denied. Your account may not have seller privileges. Please contact support@cauverystore.in if you believe this is an error.");
+        } else if (status === 401) {
+          setError("Your session has expired. Please log in again.");
+        } else if (msg) {
+          setError(msg);
+        } else {
+          setError("Failed to load seller dashboard. The server may be starting up. Please try again in a moment.");
+        }
       }
       setLoading(false);
     };
@@ -114,6 +131,8 @@ const SellerDashboard = () => {
     setGstSaving(false);
   };
 
+  const handleRetry = () => { window.location.reload(); };
+
   if (loading) {
     return (
       <div style={{ padding: "2rem", maxWidth: 1200, margin: "0 auto" }}>
@@ -131,7 +150,7 @@ const SellerDashboard = () => {
       <div style={{ padding: "2rem", maxWidth: 1200, margin: "0 auto", textAlign: "center" }}>
         <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>!</div>
         <p style={{ color: "#ef4444", marginBottom: "1rem" }}>{error}</p>
-        <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => window.location.reload()}>Retry</button>
+        <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={handleRetry}>Retry</button>
       </div>
     );
   }

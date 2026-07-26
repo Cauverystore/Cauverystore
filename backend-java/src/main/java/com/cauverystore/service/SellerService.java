@@ -5,6 +5,7 @@ import com.cauverystore.entities.Product;
 import com.cauverystore.entities.ProductAnalytics;
 import com.cauverystore.entities.ReturnRequest;
 import com.cauverystore.entities.Role;
+import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.entities.SellerStore;
 import com.cauverystore.entities.User;
 import com.cauverystore.repository.InventoryRepository;
@@ -13,6 +14,7 @@ import com.cauverystore.repository.ProductAnalyticsRepository;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.ProductReviewRepository;
 import com.cauverystore.repository.ReturnRequestRepository;
+import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.SellerStoreRepository;
 import com.cauverystore.repository.StockMovementRepository;
 import com.cauverystore.repository.UserRepository;
@@ -41,10 +43,11 @@ public class SellerService {
     private final StockMovementRepository stockMovementRepo;
     private final InventoryRepository inventoryRepo;
     private final SellerStoreRepository storeRepo;
+    private final SellerRegistrationRepository sellerRegRepo;
     private final AuditService auditService;
     private final ProductService productService;
 
-    public SellerService(ProductRepository productRepo, OrderRepository orderRepo, UserRepository userRepo, ReturnRequestRepository returnRepo, ProductAnalyticsRepository analyticsRepo, ProductReviewRepository reviewRepo, StockMovementRepository stockMovementRepo, InventoryRepository inventoryRepo, SellerStoreRepository storeRepo, AuditService auditService, ProductService productService) {
+    public SellerService(ProductRepository productRepo, OrderRepository orderRepo, UserRepository userRepo, ReturnRequestRepository returnRepo, ProductAnalyticsRepository analyticsRepo, ProductReviewRepository reviewRepo, StockMovementRepository stockMovementRepo, InventoryRepository inventoryRepo, SellerStoreRepository storeRepo, SellerRegistrationRepository sellerRegRepo, AuditService auditService, ProductService productService) {
         this.productRepo = productRepo;
         this.orderRepo = orderRepo;
         this.userRepo = userRepo;
@@ -54,6 +57,7 @@ public class SellerService {
         this.stockMovementRepo = stockMovementRepo;
         this.inventoryRepo = inventoryRepo;
         this.storeRepo = storeRepo;
+        this.sellerRegRepo = sellerRegRepo;
         this.auditService = auditService;
         this.productService = productService;
     }
@@ -106,6 +110,21 @@ public class SellerService {
         result.put("storeName", "");
         Optional<SellerStore> store = storeRepo.findBySellerId(sellerId);
         store.ifPresent(s -> result.put("storeName", s.getStoreName()));
+
+        Optional<SellerRegistration> reg = sellerRegRepo.findByUserId(sellerId);
+        if (reg.isPresent()) {
+            SellerRegistration r = reg.get();
+            Map<String, Object> gst = new LinkedHashMap<>();
+            gst.put("gstin", r.getGstin() != null ? r.getGstin() : "");
+            gst.put("panNumber", r.getPanNumber() != null ? r.getPanNumber() : "");
+            gst.put("businessName", r.getBusinessName() != null ? r.getBusinessName() : "");
+            gst.put("businessAddress", r.getBusinessAddress() != null ? r.getBusinessAddress() : "");
+            gst.put("licenses", r.getLicenses() != null ? r.getLicenses() : "");
+            gst.put("status", r.getStatus() != null ? r.getStatus() : "");
+            result.put("gstInfo", gst);
+        } else {
+            result.put("gstInfo", null);
+        }
         return result;
     }
 
