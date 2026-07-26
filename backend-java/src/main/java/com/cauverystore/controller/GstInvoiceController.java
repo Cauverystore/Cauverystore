@@ -39,6 +39,14 @@ public class GstInvoiceController {
         return user != null ? user.getId() : null;
     }
 
+    private String getCurrentUserRole() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return "CUSTOMER";
+        return auth.getAuthorities().stream()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .findFirst().orElse("CUSTOMER");
+    }
+
     @PostMapping("/invoice/generate")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> generateInvoice(@RequestBody Map<String, Object> body) {
@@ -59,16 +67,34 @@ public class GstInvoiceController {
     @GetMapping("/invoice/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getInvoice(@PathVariable Long id) {
-        return ResponseEntity.ok(gstService.getInvoiceById(id));
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        String role = getCurrentUserRole();
+        try {
+            return ResponseEntity.ok(gstService.getInvoiceById(id, userId, role));
+        } catch (RuntimeException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("Access denied")) {
+                return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to view this invoice"));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
+        }
     }
 
     @GetMapping("/invoice/by-order/{orderId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getInvoiceByOrder(@PathVariable Long orderId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        String role = getCurrentUserRole();
         try {
-            return ResponseEntity.ok(gstService.getInvoiceByOrder(orderId));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.ok(gstService.getInvoiceByOrder(orderId, userId, role));
+        } catch (RuntimeException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("Access denied")) {
+                return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to view this invoice"));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
         }
     }
 
@@ -91,12 +117,22 @@ public class GstInvoiceController {
     @GetMapping("/invoice/{id}/pdf")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> downloadInvoicePdf(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        String role = getCurrentUserRole();
         try {
+            gstService.getInvoiceById(id, userId, role);
             byte[] pdf = gstService.generateInvoicePdf(id);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
             headers.setContentDispositionFormData("attachment", "invoice-" + id + ".pdf");
             return ResponseEntity.ok().headers(headers).body(pdf);
+        } catch (RuntimeException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("Access denied")) {
+                return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to download this invoice"));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -133,12 +169,13 @@ public class GstInvoiceController {
     }
 
     @GetMapping("/invoices")
-    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> listInvoices(@RequestParam(defaultValue = "0") int page,
                                           @RequestParam(defaultValue = "20") int size) {
         Long userId = getCurrentUserId();
         if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
-        return ResponseEntity.ok(gstService.listInvoices(userId, page, size));
+        String role = getCurrentUserRole();
+        return ResponseEntity.ok(gstService.listInvoices(userId, role, page, size));
     }
 
     @GetMapping("/admin/invoices")

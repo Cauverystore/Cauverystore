@@ -28,6 +28,8 @@ public class GstInvoice {
 
     private Long sellerId;
 
+    private Long customerId;
+
     @Column(nullable = false)
     private String sellerGstin;
 
@@ -124,6 +126,8 @@ public class GstInvoice {
     public void setOrderId(Long orderId) { this.orderId = orderId; }
     public Long getSellerId() { return sellerId; }
     public void setSellerId(Long sellerId) { this.sellerId = sellerId; }
+    public Long getCustomerId() { return customerId; }
+    public void setCustomerId(Long customerId) { this.customerId = customerId; }
     public String getSellerGstin() { return sellerGstin; }
     public void setSellerGstin(String sellerGstin) { this.sellerGstin = sellerGstin; }
     public String getBuyerGstin() { return buyerGstin; }

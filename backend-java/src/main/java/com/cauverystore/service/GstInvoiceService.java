@@ -132,6 +132,7 @@ public class GstInvoiceService {
         GstInvoice inv = new GstInvoice();
         inv.setOrderId(orderId);
         inv.setSellerId(userId);
+        inv.setCustomerId(buyer != null ? buyer.getId() : null);
         inv.setSellerGstin(gstin);
         inv.setSellerLegalName(sellerLegalName);
         inv.setSellerAddress(sellerAddress);
@@ -248,24 +249,33 @@ public class GstInvoiceService {
         return Map.of("invoice", saved, "message", "Invoice generated successfully");
     }
 
-    public Map<String, Object> getInvoiceById(Long id) {
+    public Map<String, Object> getInvoiceById(Long id, Long userId, String userRole) {
         GstInvoice inv = invoiceRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Invoice not found"));
+        checkInvoiceOwnership(inv, userId, userRole);
         List<GstInvoiceItem> items = itemRepo.findByInvoiceId(id);
         inv.setItems(items);
         return Map.of("invoice", inv);
     }
 
-    public Map<String, Object> getInvoiceByOrder(Long orderId) {
+    public Map<String, Object> getInvoiceByOrder(Long orderId, Long userId, String userRole) {
         GstInvoice inv = invoiceRepo.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found for order: " + orderId));
+        checkInvoiceOwnership(inv, userId, userRole);
         List<GstInvoiceItem> items = itemRepo.findByInvoiceId(inv.getId());
         inv.setItems(items);
         return Map.of("invoice", inv);
     }
 
-    public Map<String, Object> listInvoices(Long sellerId, int page, int size) {
-        Page<GstInvoice> result = invoiceRepo.findBySellerIdOrderByCreatedAtDesc(sellerId, PageRequest.of(page, size));
+    public Map<String, Object> listInvoices(Long userId, String userRole, int page, int size) {
+        Page<GstInvoice> result;
+        if ("ADMIN".equals(userRole) || "SUPER_ADMIN".equals(userRole)) {
+            result = invoiceRepo.findAll(PageRequest.of(page, size));
+        } else if ("SELLER".equals(userRole)) {
+            result = invoiceRepo.findBySellerIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+        } else {
+            result = invoiceRepo.findByCustomerIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+        }
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("content", result.getContent());
         resp.put("totalPages", result.getTotalPages());
@@ -273,6 +283,15 @@ public class GstInvoiceService {
         resp.put("page", page);
         resp.put("size", size);
         return resp;
+    }
+
+    private void checkInvoiceOwnership(GstInvoice inv, Long userId, String userRole) {
+        if (userRole == null) userRole = "CUSTOMER";
+        String role = userRole.toUpperCase();
+        if ("ADMIN".equals(role) || "SUPER_ADMIN".equals(role)) return;
+        if ("SELLER".equals(role) && userId.equals(inv.getSellerId())) return;
+        if ("CUSTOMER".equals(role) && userId.equals(inv.getCustomerId())) return;
+        throw new RuntimeException("Access denied: you do not have permission to view this invoice");
     }
 
     public Map<String, Object> listAllInvoices(int page, int size) {

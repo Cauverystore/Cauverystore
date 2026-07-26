@@ -135,7 +135,10 @@ const CustomerInvoice = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch { setError("Failed to download PDF."); }
+    } catch (err) {
+      if (err.response?.status === 403) setError("Access denied: You do not have permission to download this invoice.");
+      else setError("Failed to download PDF.");
+    }
     setPdfLoading(false);
   };
 
@@ -145,9 +148,12 @@ const CustomerInvoice = () => {
         const res = await api.get(`/api/gst/my-order-invoice/${orderId}`);
         setInvoice(res.data.invoice);
       } catch (err) {
+        const status = err.response?.status;
         const data = err.response?.data;
         if (data?.notGenerated) {
           setNotGenerated(true);
+        } else if (status === 403) {
+          setError("Access denied: You do not have permission to view this invoice.");
         } else {
           setError(data?.error || "Failed to load invoice");
         }

@@ -135,7 +135,10 @@ const GstInvoiceView = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch { setError("Failed to download PDF."); }
+    } catch (err) {
+      if (err.response?.status === 403) setError("Access denied: You do not have permission to download this invoice.");
+      else setError("Failed to download PDF.");
+    }
     setPdfLoading(false);
   };
 
@@ -147,6 +150,7 @@ const GstInvoiceView = () => {
           api.get("/api/gst/configurations"),
         ]);
         if (invRes.status === "fulfilled") setInvoice(invRes.value.data);
+        else if (invRes.reason?.response?.status === 403) setError("Access denied: You do not have permission to view this invoice.");
         else setError("Failed to load invoice");
         if (cfgRes.status === "fulfilled") setConfigs(cfgRes.value.data.configurations || []);
       } catch { setError("Failed to load invoice"); }
