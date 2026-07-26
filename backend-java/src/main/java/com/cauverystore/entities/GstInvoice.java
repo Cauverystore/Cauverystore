@@ -30,6 +30,8 @@ public class GstInvoice {
 
     private Long customerId;
 
+    private String customerEmail;
+
     @Column(nullable = false)
     private String sellerGstin;
 
@@ -128,6 +130,8 @@ public class GstInvoice {
     public void setSellerId(Long sellerId) { this.sellerId = sellerId; }
     public Long getCustomerId() { return customerId; }
     public void setCustomerId(Long customerId) { this.customerId = customerId; }
+    public String getCustomerEmail() { return customerEmail; }
+    public void setCustomerEmail(String customerEmail) { this.customerEmail = customerEmail; }
     public String getSellerGstin() { return sellerGstin; }
     public void setSellerGstin(String sellerGstin) { this.sellerGstin = sellerGstin; }
     public String getBuyerGstin() { return buyerGstin; }

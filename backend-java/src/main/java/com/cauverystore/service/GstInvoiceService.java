@@ -133,6 +133,7 @@ public class GstInvoiceService {
         inv.setOrderId(orderId);
         inv.setSellerId(userId);
         inv.setCustomerId(buyer != null ? buyer.getId() : null);
+        inv.setCustomerEmail(buyer != null ? buyer.getEmail() : null);
         inv.setSellerGstin(gstin);
         inv.setSellerLegalName(sellerLegalName);
         inv.setSellerAddress(sellerAddress);
@@ -290,7 +291,13 @@ public class GstInvoiceService {
         String role = userRole.toUpperCase();
         if ("ADMIN".equals(role) || "SUPER_ADMIN".equals(role)) return;
         if ("SELLER".equals(role) && userId.equals(inv.getSellerId())) return;
-        if ("CUSTOMER".equals(role) && userId.equals(inv.getCustomerId())) return;
+        if ("CUSTOMER".equals(role)) {
+            if (userId.equals(inv.getCustomerId())) return;
+            if (inv.getCustomerEmail() != null) {
+                User user = userRepo.findById(userId).orElse(null);
+                if (user != null && inv.getCustomerEmail().equalsIgnoreCase(user.getEmail())) return;
+            }
+        }
         throw new RuntimeException("Access denied: you do not have permission to view this invoice");
     }
 
