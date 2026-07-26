@@ -578,7 +578,14 @@ public class GstInvoiceService {
     public Map<String, Object> getCustomerInvoiceForOrder(Long orderId, Long customerUserId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
-        if (order.getUser() == null || !order.getUser().getId().equals(customerUserId)) {
+        User orderUser = order.getUser();
+        boolean ownsOrder = orderUser != null && orderUser.getId().equals(customerUserId);
+        if (!ownsOrder && orderUser != null) {
+            User currentUser = userRepo.findById(customerUserId).orElse(null);
+            ownsOrder = currentUser != null && orderUser.getEmail() != null
+                    && orderUser.getEmail().equalsIgnoreCase(currentUser.getEmail());
+        }
+        if (!ownsOrder) {
             throw new RuntimeException("Invoice not available for this order");
         }
         GstInvoice inv = invoiceRepo.findByOrderId(orderId)
