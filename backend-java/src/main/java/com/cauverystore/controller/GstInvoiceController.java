@@ -1,9 +1,12 @@
 package com.cauverystore.controller;
 
 import com.cauverystore.entities.GstConfiguration;
+import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.GstInvoiceService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -82,6 +85,50 @@ public class GstInvoiceController {
                 return ResponseEntity.status(404).body(Map.of("error", msg, "notGenerated", true));
             }
             return ResponseEntity.badRequest().body(Map.of("error", msg));
+        }
+    }
+
+    @GetMapping("/invoice/{id}/pdf")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> downloadInvoicePdf(@PathVariable Long id) {
+        try {
+            byte[] pdf = gstService.generateInvoicePdf(id);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "invoice-" + id + ".pdf");
+            return ResponseEntity.ok().headers(headers).body(pdf);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/my-order-invoice/{orderId}/pdf")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> downloadMyOrderInvoicePdf(@PathVariable Long orderId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        try {
+            var result = gstService.getCustomerInvoiceForOrder(orderId, userId);
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> resultMap = (java.util.Map<String, Object>) result;
+            Object invObj = resultMap.get("invoice");
+            if (invObj instanceof GstInvoice) {
+                GstInvoice inv = (GstInvoice) invObj;
+                byte[] pdf = gstService.generateInvoicePdf(inv.getId());
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDispositionFormData("attachment", "invoice-" + inv.getInvoiceNumber() + ".pdf");
+                return ResponseEntity.ok().headers(headers).body(pdf);
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", "Invoice data not found"));
+        } catch (RuntimeException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("not yet generated")) {
+                return ResponseEntity.status(404).body(Map.of("error", msg, "notGenerated", true));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 

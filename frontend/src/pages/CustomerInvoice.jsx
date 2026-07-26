@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Printer, Download } from "lucide-react";
+import { ArrowLeft, Printer, Download, Loader } from "lucide-react";
 import api from "../api/axios";
 
 const GST_INVOICE_STYLES = `
@@ -120,6 +120,24 @@ const CustomerInvoice = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notGenerated, setNotGenerated] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    setPdfLoading(true);
+    try {
+      const res = await api.get(`/api/gst/my-order-invoice/${orderId}/pdf`, { responseType: "blob" });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-order-${orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch { setError("Failed to download PDF."); }
+    setPdfLoading(false);
+  };
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -168,6 +186,9 @@ const CustomerInvoice = () => {
         <div className="giv-toolbar">
           <button className="giv-back" onClick={() => navigate(`/orders/${orderId}`)}><ArrowLeft size={16} /> Back to Order</button>
           <button className="giv-btn giv-btn-primary" onClick={() => window.print()}><Printer size={16} /> Print</button>
+          <button className="giv-btn giv-btn-outline" onClick={handleDownloadPdf} disabled={pdfLoading}>
+            {pdfLoading ? <Loader size={16} /> : <Download size={16} />} {pdfLoading ? "Downloading..." : "Download PDF"}
+          </button>
         </div>
 
         <div className="giv-invoice" id="gst-invoice-print">

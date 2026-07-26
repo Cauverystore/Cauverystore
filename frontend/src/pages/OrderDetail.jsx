@@ -27,6 +27,7 @@ const OrderDetail = () => {
   const [cancelling, setCancelling] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [hasInvoice, setHasInvoice] = useState(false);
+  const [pdfDl, setPdfDl] = useState(false);
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -106,6 +107,23 @@ const OrderDetail = () => {
 
   const handleViewInvoice = () => {
     navigate(`/orders/${id}/invoice`);
+  };
+
+  const handleDownloadPdf = async () => {
+    setPdfDl(true);
+    try {
+      const res = await api.get(`/api/gst/my-order-invoice/${id}/pdf`, { responseType: "blob" });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-order-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch { setError("Failed to download invoice PDF."); }
+    setPdfDl(false);
   };
 
   const safeId = (item, idx) => item.id || item._id || idx;
@@ -431,6 +449,20 @@ const OrderDetail = () => {
         >
           {hasInvoice ? "View GST Invoice" : "Check Invoice"}
         </button>
+        {hasInvoice && (
+          <button
+            onClick={handleDownloadPdf}
+            disabled={pdfDl}
+            style={{
+              padding: "0.6rem 1.25rem", background: "transparent",
+              color: "var(--color-primary)", border: "1px solid var(--color-primary)",
+              borderRadius: "var(--radius-sm)", fontSize: "0.9rem", fontWeight: 600,
+              cursor: pdfDl ? "not-allowed" : "pointer", opacity: pdfDl ? 0.7 : 1
+            }}
+          >
+            {pdfDl ? "Downloading..." : "Download Invoice PDF"}
+          </button>
+        )}
         {canCancel && (
           <button
             onClick={handleCancel}

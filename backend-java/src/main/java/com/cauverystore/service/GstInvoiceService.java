@@ -19,6 +19,19 @@ import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.util.GstComplianceUtil;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import java.awt.Color;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -30,6 +43,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.Base64;
 import java.util.stream.Collectors;
@@ -546,5 +560,168 @@ public class GstInvoiceService {
         List<GstInvoiceItem> items = itemRepo.findByInvoiceId(inv.getId());
         inv.setItems(items);
         return Map.of("invoice", inv);
+    }
+
+    public byte[] generateInvoicePdf(Long invoiceId) throws DocumentException {
+        GstInvoice inv = invoiceRepo.findById(invoiceId)
+                .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
+        List<GstInvoiceItem> items = itemRepo.findByInvoiceId(invoiceId);
+        inv.setItems(items);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Document doc = new Document(PageSize.A4, 36, 36, 36, 36);
+        PdfWriter.getInstance(doc, baos);
+        doc.open();
+
+        Font bold14 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
+        Font bold11 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+        Font normal9 = FontFactory.getFont(FontFactory.HELVETICA, 9);
+        Font bold9 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+        Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
+
+        // Header
+        Paragraph title = new Paragraph("TAX INVOICE", bold14);
+        title.setAlignment(Element.ALIGN_CENTER);
+        doc.add(title);
+        doc.add(new Paragraph("Invoice: " + inv.getInvoiceNumber() + "  |  Date: " + inv.getInvoiceDate(), normal9));
+        doc.add(new Paragraph(" "));
+
+        // Seller / Buyer info
+        PdfPTable parties = new PdfPTable(2);
+        parties.setWidthPercentage(100);
+        parties.setWidths(new float[]{50, 50});
+
+        PdfPCell sellCell = new PdfPCell();
+        sellCell.addElement(new Paragraph("Seller (Supplier)", bold9));
+        sellCell.addElement(new Paragraph("Name: " + safeStr(inv.getSellerLegalName()), normal9));
+        sellCell.addElement(new Paragraph("GSTIN: " + safeStr(inv.getSellerGstin()), normal9));
+        sellCell.addElement(new Paragraph("Address: " + safeStr(inv.getSellerAddress()), normal9));
+        sellCell.setPadding(6);
+        parties.addCell(sellCell);
+
+        PdfPCell buyCell = new PdfPCell();
+        buyCell.addElement(new Paragraph("Buyer (Recipient)", bold9));
+        buyCell.addElement(new Paragraph("Name: " + safeStr(inv.getBuyerName()), normal9));
+        buyCell.addElement(new Paragraph("GSTIN: " + (inv.getBuyerGstin() != null ? inv.getBuyerGstin() : "URP"), normal9));
+        buyCell.addElement(new Paragraph("Address: " + safeStr(inv.getBuyerAddress()), normal9));
+        buyCell.setPadding(6);
+        parties.addCell(buyCell);
+        doc.add(parties);
+
+        doc.add(new Paragraph("Place of Supply: " + safeStr(inv.getPlaceOfSupply()) + "  |  Type: " + (Boolean.TRUE.equals(inv.getIsInterState()) ? "Inter-State (IGST)" : "Intra-State (CGST+SGST)") + "  |  " + safeStr(inv.getInvoiceType()), small8));
+        doc.add(new Paragraph(" "));
+
+        // Items table
+        PdfPTable table = new PdfPTable(8);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{4, 10, 28, 7, 10, 13, 13, 15});
+        String[] headers = {"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable", "CGST/SGST", "Total"};
+        for (String h : headers) {
+            PdfPCell hc = new PdfPCell(new Phrase(h, bold9));
+            hc.setBackgroundColor(new Color(14, 92, 92));
+            hc.setPadding(4);
+            table.addCell(hc);
+        }
+
+        int sn = 1;
+        for (GstInvoiceItem item : items) {
+            table.addCell(new Phrase(String.valueOf(sn++), normal9));
+            table.addCell(new Phrase(safeStr(item.getHsnCode()), small8));
+            table.addCell(new Phrase(safeStr(item.getProductName()), normal9));
+            table.addCell(new Phrase(String.valueOf(item.getQuantity()), normal9));
+            table.addCell(new Phrase("Rs." + String.format("%.2f", item.getUnitPrice() != null ? item.getUnitPrice() : 0), normal9));
+            table.addCell(new Phrase("Rs." + String.format("%.2f", item.getTaxableValue() != null ? item.getTaxableValue() : 0), normal9));
+
+            if (Boolean.TRUE.equals(inv.getIsInterState())) {
+                table.addCell(new Phrase("IGST " + (item.getIgstRate() != null ? item.getIgstRate() : 0) + "%", small8));
+            } else {
+                table.addCell(new Phrase("C " + (item.getCgstRate() != null ? item.getCgstRate() : 0) + "% S " + (item.getSgstRate() != null ? item.getSgstRate() : 0) + "%", small8));
+            }
+            table.addCell(new Phrase("Rs." + String.format("%.2f", item.getTotalAmount() != null ? item.getTotalAmount() : 0), bold9));
+        }
+        doc.add(table);
+        doc.add(new Paragraph(" "));
+
+        // Tax breakup summary
+        PdfPTable sumTable = new PdfPTable(2);
+        sumTable.setWidthPercentage(40);
+        sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        float tx = inv.getTaxableAmount() != null ? inv.getTaxableAmount().floatValue() : 0f;
+        double cgst = inv.getCgstAmount() != null ? inv.getCgstAmount() : 0;
+        double sgst = inv.getSgstAmount() != null ? inv.getSgstAmount() : 0;
+        double igst = inv.getIgstAmount() != null ? inv.getIgstAmount() : 0;
+        double ttax = inv.getTotalTax() != null ? inv.getTotalTax() : 0;
+        double tcs = inv.getTcsAmount() != null ? inv.getTcsAmount() : 0;
+        double total = inv.getTotalAmount() != null ? inv.getTotalAmount() : 0;
+
+        addSumRow(sumTable, "Taxable Amount", "Rs." + String.format("%.2f", tx), normal9);
+        if (Boolean.TRUE.equals(inv.getIsInterState())) {
+            addSumRow(sumTable, "IGST", "Rs." + String.format("%.2f", igst), normal9);
+        } else {
+            addSumRow(sumTable, "CGST", "Rs." + String.format("%.2f", cgst), normal9);
+            addSumRow(sumTable, "SGST", "Rs." + String.format("%.2f", sgst), normal9);
+        }
+        addSumRow(sumTable, "Total Tax", "Rs." + String.format("%.2f", ttax), normal9);
+        addSumRow(sumTable, "TCS", "Rs." + String.format("%.2f", tcs), normal9);
+        PdfPCell totalCell = new PdfPCell(new Phrase("Total Amount", bold11));
+        totalCell.setBorder(Rectangle.TOP);
+        sumTable.addCell(totalCell);
+        PdfPCell totalVal = new PdfPCell(new Phrase("Rs." + String.format("%.2f", total), bold11));
+        totalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        totalVal.setBorder(Rectangle.TOP);
+        sumTable.addCell(totalVal);
+        doc.add(sumTable);
+
+        doc.add(new Paragraph(" "));
+        doc.add(new Paragraph("Amount in Words: " + numberToWordsPdf(total), bold9));
+
+        if (inv.getIrn() != null) {
+            doc.add(new Paragraph("IRN: " + inv.getIrn(), small8));
+            if (inv.getEwayBillNumber() != null) {
+                doc.add(new Paragraph("E-Way Bill: " + inv.getEwayBillNumber() + (inv.getEwayBillExpiry() != null ? " (exp: " + inv.getEwayBillExpiry() + ")" : ""), small8));
+            }
+            if (inv.getAckNo() != null) doc.add(new Paragraph("Ack No: " + inv.getAckNo() + "  Date: " + safeStr(inv.getAckDate()), small8));
+        }
+
+        doc.add(new Paragraph(" "));
+        doc.add(new Paragraph("Declaration (Rule 46 CGST Rules, 2017): This invoice shows the actual price of the goods/services and all particulars are true and correct.", small8));
+
+        doc.close();
+        return baos.toByteArray();
+    }
+
+    private String safeStr(String s) {
+        return s != null ? s : "";
+    }
+
+    private void addSumRow(PdfPTable table, String label, String value, Font font) {
+        table.addCell(new Phrase(label, font));
+        Phrase v = new Phrase(value, font);
+        PdfPCell c = new PdfPCell(v);
+        c.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(c);
+    }
+
+    private String numberToWordsPdf(double num) {
+        if (num <= 0) return "Zero Rupees Only";
+        String[] a = {"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+                "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"};
+        String[] b = {"", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"};
+        java.util.function.Function<Long, String> fn = new java.util.function.Function<Long, String>() {
+            @Override
+            public String apply(Long n) {
+                if (n < 20) return a[n.intValue()];
+                if (n < 100) return b[n.intValue() / 10] + (n % 10 > 0 ? " " + a[n.intValue() % 10] : "");
+                if (n < 1000) return a[n.intValue() / 100] + " Hundred" + (n % 100 > 0 ? " " + apply(n % 100) : "");
+                if (n < 100000) return apply(n / 1000) + " Thousand" + (n % 1000 > 0 ? " " + apply(n % 1000) : "");
+                if (n < 10000000) return apply(n / 100000) + " Lakh" + (n % 100000 > 0 ? " " + apply(n % 100000) : "");
+                return apply(n / 10000000) + " Crore" + (n % 10000000 > 0 ? " " + apply(n % 10000000) : "");
+            }
+        };
+        long whole = (long) Math.floor(num);
+        long decimal = Math.round((num - whole) * 100);
+        String result = fn.apply(whole) + " Rupees";
+        if (decimal > 0) result += " and " + fn.apply(decimal) + " Paise";
+        return result + " Only";
     }
 }
