@@ -39,6 +39,7 @@ public class OrderService {
     private final AuditService auditService;
     private final GstInvoiceService gstInvoiceService;
     private final GstConfigurationRepository gstConfigRepo;
+    private final SellerRegistrationRepository sellerRegRepo;
 
     public OrderService(OrderRepository orderRepo, OrderItemRepository orderItemRepo,
                         CartRepository cartRepo, ProductRepository productRepo,
@@ -49,7 +50,8 @@ public class OrderService {
                         InvoicePdfService invoicePdfService,
                         AuditService auditService,
                         GstInvoiceService gstInvoiceService,
-                        GstConfigurationRepository gstConfigRepo) {
+                        GstConfigurationRepository gstConfigRepo,
+                        SellerRegistrationRepository sellerRegRepo) {
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -66,6 +68,7 @@ public class OrderService {
         this.auditService = auditService;
         this.gstInvoiceService = gstInvoiceService;
         this.gstConfigRepo = gstConfigRepo;
+        this.sellerRegRepo = sellerRegRepo;
     }
 
     private User extractUserFromHeader(String authHeader) {
@@ -169,13 +172,22 @@ public class OrderService {
             }
         }
 
-        // Auto-generate GST invoice if seller has GST configuration
+        // Auto-generate GST invoice if possible
         if (savedOrder.getSellerId() != null) {
             try {
+                String sellerGstin = null;
                 Optional<GstConfiguration> gstConfig = gstConfigRepo.findBySellerId(savedOrder.getSellerId());
                 if (gstConfig.isPresent()) {
+                    sellerGstin = gstConfig.get().getGstin();
+                } else {
+                    Optional<SellerRegistration> sellerReg = sellerRegRepo.findByUserId(savedOrder.getSellerId());
+                    if (sellerReg.isPresent() && sellerReg.get().getGstin() != null && !sellerReg.get().getGstin().isBlank()) {
+                        sellerGstin = sellerReg.get().getGstin();
+                    }
+                }
+                if (sellerGstin != null) {
                     gstInvoiceService.generateInvoiceFromOrder(savedOrder.getId(), savedOrder.getSellerId(),
-                            gstConfig.get().getGstin(), null);
+                            sellerGstin, null);
                 }
             } catch (Exception e) {
                 // Auto-generation is best-effort; seller can manually generate later
