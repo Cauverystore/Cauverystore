@@ -48,6 +48,8 @@ public class SeedDataRunner implements CommandLineRunner {
             }
         }
 
+        User sellerUser = userRepo.findByEmail("seller@cauverystore.in");
+
         if (productRepo.count() == 0) {
             Object[][] prods = {
                 {"iPhone 15 Pro","Apple",134990.0,50,"Apple iPhone 15 Pro, 256GB, Titanium Black","Electronics","https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400",10.0},
@@ -61,6 +63,7 @@ public class SeedDataRunner implements CommandLineRunner {
                 product.setPrice((Double)p[2]); product.setStock((Integer)p[3]);
                 product.setDescription((String)p[4]); product.setActive(true);
                 product.setProductStatus("published");
+                if (sellerUser != null) product.setSellerId(sellerUser.getId());
                 Category cat = categoryRepo.findByName((String)p[5]).orElse(null);
                 if (cat != null) product.setCategory(cat);
                 product = productRepo.save(product);
@@ -74,7 +77,6 @@ public class SeedDataRunner implements CommandLineRunner {
                 d.setActive(true); discountRepo.save(d);
             }
         }
-        User sellerUser = userRepo.findByEmail("seller@cauverystore.in");
         if (sellerUser != null && sellerRegRepo.findByUserId(sellerUser.getId()).isEmpty()) {
             SellerRegistration reg = new SellerRegistration();
             reg.setUser(sellerUser);
