@@ -5,6 +5,8 @@ import com.cauverystore.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class SeedDataRunner implements CommandLineRunner {
@@ -77,6 +79,19 @@ public class SeedDataRunner implements CommandLineRunner {
                 d.setActive(true); discountRepo.save(d);
             }
         }
+        // Fix existing products missing sellerId
+        if (sellerUser != null) {
+            List<Product> allProducts = productRepo.findAll();
+            List<Product> orphanProducts = allProducts.stream().filter(p -> p.getSellerId() == null).collect(Collectors.toList());
+            if (!orphanProducts.isEmpty()) {
+                for (Product p : orphanProducts) {
+                    p.setSellerId(sellerUser.getId());
+                    productRepo.save(p);
+                }
+                System.out.println("=== Updated " + orphanProducts.size() + " products with sellerId ===");
+            }
+        }
+
         if (sellerUser != null && sellerRegRepo.findByUserId(sellerUser.getId()).isEmpty()) {
             SellerRegistration reg = new SellerRegistration();
             reg.setUser(sellerUser);
