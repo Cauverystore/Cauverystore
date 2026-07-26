@@ -27,6 +27,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -302,7 +303,8 @@ public class SuperAdminController {
         ));
     }
 
-    @DeleteMapping("/users/{id}")
+    @PostMapping("/users/{id}/delete")
+    @Transactional
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
         User target = userService.getUser(id);
         if (target.getRole() == Role.SUPER_ADMIN) {
@@ -313,7 +315,7 @@ public class SuperAdminController {
         userRepo.save(target);
         String currentEmail = authorizationService.getCurrentUserEmail();
         auditService.logAccountAction("USER_DELETED_BY_SUPER_ADMIN", currentEmail, id);
-        return ResponseEntity.ok(Map.of("message", "User soft-deleted successfully"));
+        return ResponseEntity.ok(Map.of("success", "User deleted"));
     }
 
     @GetMapping("/permissions")

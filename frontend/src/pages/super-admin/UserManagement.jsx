@@ -21,7 +21,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState('ACTIVE');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -43,11 +43,13 @@ const UserManagement = () => {
       const params = { page: p, pageSize, role: activeTab, status: filterStatus !== 'ALL' ? filterStatus : undefined, search: search || undefined };
       const res = await api.get('/api/super-admin/users', { params });
       const data = res.data;
-      setUsers(Array.isArray(data) ? data : data.users || data.data || []);
+      let userList = Array.isArray(data) ? data : data.users || data.data || [];
+      userList = userList.filter(u => u.status !== 'DELETED' && !u.isDeleted);
+      setUsers(userList);
       setTotalPages(data.totalPages || data.pages || 1);
-      setTotal(data.total || (Array.isArray(data) ? data.length : 0));
+      setTotal(data.total || userList.length);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load users');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to load users');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -73,7 +75,7 @@ const UserManagement = () => {
       fetchUsers(1);
       setPage(1);
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to create user');
+      setFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to create user');
     } finally {
       setFormLoading(false);
     }
@@ -93,7 +95,7 @@ const UserManagement = () => {
       setForm(initialForm);
       fetchUsers(page);
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to update user');
+      setFormError(err.response?.data?.error || err.response?.data?.message || 'Failed to update user');
     } finally {
       setFormLoading(false);
     }
@@ -111,7 +113,7 @@ const UserManagement = () => {
       setConfirmAction(null);
       fetchUsers(page);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to change role', 'error');
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to change role', 'error');
       setConfirmAction(null);
     }
   };
@@ -123,7 +125,7 @@ const UserManagement = () => {
       showToast(`${user.fullName || user.email} suspended successfully`, 'success');
       fetchUsers(page);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to suspend user', 'error');
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to suspend user', 'error');
     }
   };
 
@@ -134,18 +136,19 @@ const UserManagement = () => {
       showToast(`${user.fullName || user.email} restored successfully`, 'success');
       fetchUsers(page);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to revoke suspension', 'error');
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to revoke suspension', 'error');
     }
   };
 
   const handleDelete = async (user) => {
-    if (!window.confirm(`Permanently delete ${user.fullName || user.name || user.email} (${user.role})? This action cannot be undone.`)) return;
+    const roleLabel = TABS.find(t => t.key === activeTab)?.label || 'user';
+    if (!window.confirm(`Are you sure you want to delete this ${roleLabel.toLowerCase()}?`)) return;
     try {
-      await api.delete(`/api/super-admin/users/${user._id || user.id}`);
+      await api.post(`/api/super-admin/users/${user._id || user.id}/delete`);
       showToast(`${user.fullName || user.email} deleted successfully`, 'success');
       fetchUsers(page);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to delete user', 'error');
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to delete user', 'error');
     }
   };
 
@@ -155,11 +158,20 @@ const UserManagement = () => {
       await api.post(`/api/super-admin/users/${user._id || user.id}/reset-password`, {});
       showToast('Password reset email sent', 'success');
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to reset password', 'error');
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to reset password', 'error');
     }
   };
 
-  const isSuspended = (u) => u.status === 'SUSPENDED' || u.isBlocked;
+  const statusLabel = (u) => {
+    if (u.status === 'DELETED' || u.isDeleted) return 'Deleted';
+    if (u.status === 'SUSPENDED' || u.isBlocked) return 'Suspended';
+    return 'Active';
+  };
+  const statusClass = (u) => {
+    if (u.status === 'DELETED' || u.isDeleted) return 'inactive';
+    if (u.status === 'SUSPENDED' || u.isBlocked) return 'inactive';
+    return 'active';
+  };
 
   const renderTable = () => {
     if (loading) {
@@ -201,10 +213,10 @@ const UserManagement = () => {
               <td style={{ fontWeight: 500 }}>{u.fullName || u.name || 'N/A'}</td>
               <td>{u.email}</td>
               <td>
-                <span className={`admin-badge ${isSuspended(u) ? 'inactive' : 'active'}`}>
-                  {isSuspended(u) ? 'Suspended' : 'Active'}
+                <span className={`admin-badge ${statusClass(u)}`}>
+                  {statusLabel(u)}
                 </span>
-                {isSuspended(u) && (
+                {(u.status === 'SUSPENDED' || u.isBlocked) && (
                   <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '2px' }}>
                     {u.suspendedAt ? new Date(u.suspendedAt).toLocaleDateString() : ''}
                   </div>
@@ -216,27 +228,24 @@ const UserManagement = () => {
               <td>
                 <div className="admin-table-actions-cell">
                   <button className="admin-table-action-btn edit" onClick={() => openEdit(u)} title="Edit"><Edit size={16} /></button>
-                  {activeTab !== 'SUPER_ADMIN' && (
-                    <>
-                      <button className="admin-table-action-btn view" onClick={() => {
-                        setNewRoleValue(u.role);
-                        setConfirmAction({ user: u, action: 'changeRole', message: `Change role of ${u.fullName || u.name || u.email} from ${u.role}?` });
-                      }} title="Change Role"><RefreshCw size={16} /></button>
-                      {isSuspended(u) ? (
-                        <button className="admin-table-action-btn" onClick={() => handleRevoke(u)} title="Revoke Suspension" style={{ color: '#16a34a' }}>
-                          <Shield size={16} />
-                        </button>
-                      ) : (
-                        <button className="admin-table-action-btn" onClick={() => handleSuspend(u)} title="Suspend User" style={{ color: '#dc2626' }}>
-                          <ShieldOff size={16} />
-                        </button>
-                      )}
-                      <button className="admin-table-action-btn" onClick={() => handleResetPassword(u)} title="Reset Password"><Key size={16} /></button>
-                      <button className="admin-table-action-btn" onClick={() => handleDelete(u)} title="Delete User" style={{ color: '#dc2626' }}><Trash2 size={16} /></button>
-                    </>
+                  <button className="admin-table-action-btn view" onClick={() => {
+                    setNewRoleValue(u.role);
+                    setConfirmAction({ user: u, action: 'changeRole', message: `Change role of ${u.fullName || u.name || u.email} from ${u.role}?` });
+                  }} title="Change Role"><RefreshCw size={16} /></button>
+                  {u.status === 'SUSPENDED' || u.isBlocked ? (
+                    <button className="admin-table-action-btn" onClick={() => handleRevoke(u)} title="Revoke Suspension" style={{ color: '#16a34a' }}>
+                      <Shield size={16} />
+                    </button>
+                  ) : u.status !== 'DELETED' && (
+                    <button className="admin-table-action-btn" onClick={() => handleSuspend(u)} title="Suspend User" style={{ color: '#dc2626' }}>
+                      <ShieldOff size={16} />
+                    </button>
                   )}
-                  {activeTab === 'SUPER_ADMIN' && (
+                  <button className="admin-table-action-btn" onClick={() => handleResetPassword(u)} title="Reset Password"><Key size={16} /></button>
+                  {u.role === 'SUPER_ADMIN' ? (
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', padding: '0 8px' }}>Protected</span>
+                  ) : (
+                    <button className="admin-table-action-btn" onClick={() => handleDelete(u)} title="Delete User" style={{ color: '#dc2626' }}><Trash2 size={16} /></button>
                   )}
                 </div>
               </td>
