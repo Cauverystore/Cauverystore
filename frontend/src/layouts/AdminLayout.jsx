@@ -4,6 +4,7 @@ import AdminSidebar from "./AdminSidebar";
 import AdminNavbar from "./AdminNavbar";
 import { ToastProvider } from "../admin/context/ToastContext";
 import "../styles/admin.css";
+import "../styles/design-system.css";
 
 const AdminLayout = () => (
   <ToastProvider>

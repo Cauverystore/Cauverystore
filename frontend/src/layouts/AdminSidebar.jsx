@@ -54,7 +54,7 @@ const AdminSidebar = () => {
   return (
   <aside style={{ position: "fixed", top: 0, left: 0, width: "240px", height: "100vh", background: "#0f172a", color: "#fff", display: "flex", flexDirection: "column", zIndex: 100 }}>
     <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #1e293b" }}>
-      <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#16a34a" }}>Cauvery Store</div>
+      <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
       <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "2px" }}>{labelText}</div>
     </div>
     <nav style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
@@ -66,7 +66,7 @@ const AdminSidebar = () => {
           style={({ isActive }) => ({
             display: "flex", alignItems: "center", gap: "12px", padding: "10px 20px",
             color: isActive ? "#fff" : "#94a3b8", textDecoration: "none", fontSize: "0.875rem",
-            background: isActive ? "#1e293b" : "transparent", borderLeft: isActive ? "3px solid #16a34a" : "3px solid transparent",
+            background: isActive ? "#1e293b" : "transparent", borderLeft: isActive ? "3px solid var(--color-primary, #0E5C5C)" : "3px solid transparent",
             transition: "all 0.15s",
           })}
         >

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Key, Settings, Eye, FileText, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Users, Key, Settings, Eye, FileText, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/admin.css';
+import '../styles/design-system.css';
 import { ToastProvider } from '../admin/context/ToastContext';
 
-const NAV_COLOR = '#0f172a';
-const ACCENT = '#f59e0b';
 const menuItems = [
   { to: '/super-admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/super-admin/users', label: 'User Management', icon: Users },
@@ -24,6 +23,7 @@ const SuperAdminLayout = () => {
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [hoveredToggle, setHoveredToggle] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -31,6 +31,7 @@ const SuperAdminLayout = () => {
   };
 
   const sidebarWidth = collapsed ? '64px' : '260px';
+  const accentColor = 'var(--color-primary, #0E5C5C)';
 
   const linkStyle = ({ isActive }) => ({
     display: 'flex',
@@ -41,7 +42,7 @@ const SuperAdminLayout = () => {
     textDecoration: 'none',
     fontSize: '0.875rem',
     background: isActive ? '#1e293b' : 'transparent',
-    borderLeft: isActive ? `3px solid ${ACCENT}` : '3px solid transparent',
+    borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
     transition: 'all 0.15s',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -57,7 +58,7 @@ const SuperAdminLayout = () => {
           left: 0,
           width: sidebarWidth,
           height: '100vh',
-          background: NAV_COLOR,
+          background: '#0f172a',
           color: '#fff',
           display: 'flex',
           flexDirection: 'column',
@@ -79,7 +80,7 @@ const SuperAdminLayout = () => {
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: ACCENT,
+              background: accentColor,
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
@@ -94,7 +95,7 @@ const SuperAdminLayout = () => {
           {!collapsed && (
             <div>
               <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>Cauvery Store</div>
-              <div style={{ fontSize: '0.7rem', color: ACCENT, marginTop: '1px' }}>Super Admin</div>
+              <div style={{ fontSize: '0.7rem', color: accentColor, marginTop: '1px' }}>Super Admin</div>
             </div>
           )}
         </div>
@@ -145,7 +146,7 @@ const SuperAdminLayout = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '0.85rem',
-                color: ACCENT,
+                color: accentColor,
                 margin: '0 auto',
               }}
             >
@@ -164,7 +165,7 @@ const SuperAdminLayout = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '0.85rem',
-                    color: ACCENT,
+                    color: accentColor,
                     fontWeight: 600,
                     flexShrink: 0,
                   }}
@@ -175,7 +176,7 @@ const SuperAdminLayout = () => {
                   <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {user?.fullName || user?.name || 'Super Admin'}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: ACCENT }}>{role}</div>
+                  <div style={{ fontSize: '0.7rem', color: accentColor }}>{role}</div>
                 </div>
               </div>
               <button
@@ -201,10 +202,33 @@ const SuperAdminLayout = () => {
         </div>
 
         <button
-          className="sa-sidebar-arrow"
+          className="sa-toggle-btn"
           onClick={() => setCollapsed(!collapsed)}
+          onMouseEnter={() => setHoveredToggle(true)}
+          onMouseLeave={() => setHoveredToggle(false)}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '-14px',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: hoveredToggle ? 'var(--color-primary-hover, #0a4a4a)' : 'var(--color-primary, #0E5C5C)',
+            color: '#fff',
+            border: '2px solid #1e293b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 101,
+            transition: 'all 0.2s',
+            boxShadow: hoveredToggle ? '0 0 12px rgba(14, 92, 92, 0.6)' : '0 2px 6px rgba(0,0,0,0.3)',
+            transform: hoveredToggle ? 'scale(1.1)' : 'scale(1)',
+          }}
         >
-          {collapsed ? '→' : '←'}
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </aside>
 
@@ -215,7 +239,7 @@ const SuperAdminLayout = () => {
             top: 0,
             zIndex: 99,
             background: '#fff',
-            borderBottom: `2px solid ${ACCENT}`,
+            borderBottom: `2px solid ${accentColor}`,
             padding: '12px 24px',
             display: 'flex',
             alignItems: 'center',
@@ -225,7 +249,7 @@ const SuperAdminLayout = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Super Admin Panel</span>
-            <span style={{ fontSize: '0.7rem', color: '#94a3b8', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.7rem', color: '#fff', background: accentColor, padding: '2px 8px', borderRadius: '4px' }}>
               {role}
             </span>
           </div>
