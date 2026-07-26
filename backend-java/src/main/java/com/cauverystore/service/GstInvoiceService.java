@@ -160,6 +160,7 @@ public class GstInvoiceService {
 
         inv.setInvoiceNumber(generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS"));
         inv.setStatus("PENDING_DISPATCH");
+        inv.setInvoiceStatus("PENDING");
 
         double taxableAmount = 0;
         double totalCgst = 0, totalSgst = 0, totalIgst = 0;
@@ -600,6 +601,9 @@ public class GstInvoiceService {
     public void updateInvoiceStatusByOrderId(Long orderId, String dispatchStatus) {
         invoiceRepo.findByOrderId(orderId).ifPresent(inv -> {
             inv.setStatus(dispatchStatus);
+            if ("DISPATCHED".equals(dispatchStatus) || "DELIVERED".equals(dispatchStatus)) {
+                inv.setInvoiceStatus("FINALIZED");
+            }
             invoiceRepo.save(inv);
         });
     }

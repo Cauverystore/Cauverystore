@@ -76,6 +76,8 @@ public class GstInvoice {
 
     private String status = "DRAFT";
 
+    private String invoiceStatus = "PENDING";
+
     @Column(columnDefinition = "TEXT")
     private String syncError;
 
@@ -176,6 +178,8 @@ public class GstInvoice {
     public void setEwayBillExpiry(LocalDate ewayBillExpiry) { this.ewayBillExpiry = ewayBillExpiry; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getInvoiceStatus() { return invoiceStatus; }
+    public void setInvoiceStatus(String invoiceStatus) { this.invoiceStatus = invoiceStatus; }
     public String getSyncError() { return syncError; }
     public void setSyncError(String syncError) { this.syncError = syncError; }
     public Integer getSyncAttempts() { return syncAttempts; }
