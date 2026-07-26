@@ -209,6 +209,9 @@ public class GstInvoiceService {
         inv.setCgstAmount(Math.round(totalCgst * 100.0) / 100.0);
         inv.setSgstAmount(Math.round(totalSgst * 100.0) / 100.0);
         inv.setIgstAmount(Math.round(totalIgst * 100.0) / 100.0);
+        double firstGst = !items.isEmpty() && items.get(0).getCgstRate() != null ? items.get(0).getCgstRate() : 0.0;
+        inv.setCgstRate(firstGst);
+        inv.setSgstRate(Boolean.TRUE.equals(inv.getIsInterState()) ? 0.0 : firstGst);
 
         Double annualTurnover = config != null ? config.getAnnualTurnover() : null;
         inv.setHsnDigits(GstComplianceUtil.determineHsnDigits(annualTurnover));
