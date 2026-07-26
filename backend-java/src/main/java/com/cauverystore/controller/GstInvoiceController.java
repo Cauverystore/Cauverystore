@@ -43,10 +43,11 @@ public class GstInvoiceController {
         if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
         Long orderId = body.get("orderId") != null ? ((Number) body.get("orderId")).longValue() : null;
         String gstin = (String) body.get("gstin");
+        String buyerGstin = (String) body.get("buyerGstin");
         if (orderId == null) return ResponseEntity.badRequest().body(Map.of("error", "orderId is required"));
         if (gstin == null) return ResponseEntity.badRequest().body(Map.of("error", "gstin is required"));
         try {
-            return ResponseEntity.ok(gstService.generateInvoiceFromOrder(orderId, userId, gstin));
+            return ResponseEntity.ok(gstService.generateInvoiceFromOrder(orderId, userId, gstin, buyerGstin));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -65,6 +66,22 @@ public class GstInvoiceController {
             return ResponseEntity.ok(gstService.getInvoiceByOrder(orderId));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/my-order-invoice/{orderId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getMyOrderInvoice(@PathVariable Long orderId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        try {
+            return ResponseEntity.ok(gstService.getCustomerInvoiceForOrder(orderId, userId));
+        } catch (RuntimeException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("not yet generated")) {
+                return ResponseEntity.status(404).body(Map.of("error", msg, "notGenerated", true));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
         }
     }
 

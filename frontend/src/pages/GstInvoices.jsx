@@ -83,6 +83,7 @@ const GstInvoices = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [orderId, setOrderId] = useState("");
   const [selectedGstin, setSelectedGstin] = useState("");
+  const [buyerGstin, setBuyerGstin] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genResult, setGenResult] = useState(null);
   const [expandedInvoice, setExpandedInvoice] = useState(null);
@@ -149,9 +150,12 @@ const GstInvoices = () => {
     if (!orderId || !selectedGstin) { setError("Order ID and GSTIN are required"); return; }
     setGenerating(true); setError(""); setGenResult(null);
     try {
-      const res = await api.post("/api/gst/invoice/generate", { orderId: parseInt(orderId), gstin: selectedGstin });
+      const payload = { orderId: parseInt(orderId), gstin: selectedGstin };
+      if (buyerGstin && buyerGstin.trim()) payload.buyerGstin = buyerGstin.trim();
+      const res = await api.post("/api/gst/invoice/generate", payload);
       setGenResult(res.data);
       setOrderId("");
+      setBuyerGstin("");
     } catch (err) {
       setError(err.response?.data?.error || "Failed to generate invoice");
     }
@@ -189,7 +193,10 @@ const GstInvoices = () => {
         {genResult && (
           <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "1rem", marginBottom: "1rem" }}>
             <div style={{ fontWeight: 600, color: "#166534", marginBottom: "0.25rem" }}>Invoice Generated!</div>
-            <div style={{ fontSize: "0.85rem", color: "#15803d" }}>#{genResult.invoice?.invoiceNumber} — {genResult.message}</div>
+            <div style={{ fontSize: "0.85rem", color: "#15803d" }}>
+              #{genResult.invoice?.invoiceNumber} — {genResult.message}
+              {genResult.invoice?.invoiceType && <span style={{ marginLeft: "0.5rem", padding: "1px 6px", background: "#bbf7d0", borderRadius: "4px", fontSize: "0.75rem" }}>{genResult.invoice.invoiceType}</span>}
+            </div>
           </div>
         )}
 
@@ -328,6 +335,10 @@ const GstInvoices = () => {
                   <option key={c.id} value={c.gstin}>{c.gstin} — {c.legalName} ({c.stateName})</option>
                 ))}
               </select>
+            </div>
+            <div className="gst-field">
+              <label>Buyer GSTIN <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional - for B2B invoices)</span></label>
+              <input type="text" value={buyerGstin} onChange={(e) => setBuyerGstin(e.target.value)} placeholder="Enter buyer GSTIN for B2B (or leave blank for B2C)" />
             </div>
             <button className="gst-btn gst-btn-primary" onClick={handleGenerate} disabled={generating}>
               {generating ? "Generating..." : <><FileText size={16} /> Generate Invoice</>}

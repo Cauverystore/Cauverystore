@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
 import "../styles/orderDetail.css";
 
@@ -26,6 +26,7 @@ const OrderDetail = () => {
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [hasInvoice, setHasInvoice] = useState(false);
 
   useEffect(() => {
     const fetchOrderData = async () => {
@@ -59,6 +60,10 @@ const OrderDetail = () => {
         void err;
         setError("Failed to load order details.");
       }
+      try {
+        const invRes = await api.get(`/api/gst/my-order-invoice/${id}`);
+        if (invRes.data?.invoice) setHasInvoice(true);
+      } catch (_) { void _; }
       setLoading(false);
     };
 
@@ -99,26 +104,8 @@ const OrderDetail = () => {
     setCancelling(false);
   };
 
-  const handleDownloadInvoice = async () => {
-    setDownloading(true);
-    try {
-      const res = await api.get(`/api/orders/${id}/invoice/pdf`, {
-        responseType: "blob"
-      });
-      const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `invoice-${id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      void err;
-      setError("Failed to download invoice.");
-    }
-    setDownloading(false);
+  const handleViewInvoice = () => {
+    navigate(`/orders/${id}/invoice`);
   };
 
   const safeId = (item, idx) => item.id || item._id || idx;
@@ -434,17 +421,15 @@ const OrderDetail = () => {
       {/* Action buttons */}
       <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
         <button
-          onClick={handleDownloadInvoice}
-          disabled={downloading}
+          onClick={handleViewInvoice}
           className="invoice-btn"
           style={{
             padding: "0.6rem 1.25rem", background: "var(--color-primary)", color: "#fff",
             border: "none", borderRadius: "var(--radius-sm)", fontSize: "0.9rem",
-            fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer",
-            opacity: downloading ? 0.7 : 1
+            fontWeight: 600, cursor: "pointer"
           }}
         >
-          {downloading ? "Downloading..." : "Download Invoice"}
+          {hasInvoice ? "View GST Invoice" : "Check Invoice"}
         </button>
         {canCancel && (
           <button

@@ -45,6 +45,7 @@ const SellerAnalytics = lazy(() => import("./pages/SellerAnalytics"));
 const SellerRegistration = lazy(() => import("./pages/SellerRegistration"));
 const GstInvoices = lazy(() => import("./pages/GstInvoices"));
 const GstInvoiceView = lazy(() => import("./pages/GstInvoiceView"));
+const CustomerInvoice = lazy(() => import("./pages/CustomerInvoice"));
 const ExecutiveLogin = lazy(() => import("./pages/ExecutiveLogin"));
 const AdminLogin = lazy(() => import("./admin/auth/AdminLogin"));
 const AdminDashboard = lazy(() => import("./admin/dashboard/AdminDashboard"));
@@ -155,6 +156,7 @@ function App() {
             <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
             <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
             <Route path="/orders/:id/return" element={<ProtectedRoute><ReturnOrder /></ProtectedRoute>} />
+            <Route path="/orders/:orderId/invoice" element={<ProtectedRoute><CustomerInvoice /></ProtectedRoute>} />
             <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/loyalty" element={<ProtectedRoute><Loyalty /></ProtectedRoute>} />

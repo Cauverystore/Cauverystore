@@ -24,10 +24,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Base64;
+import java.util.stream.Collectors;
 
 @Service
 public class GstInvoiceService {
@@ -82,6 +87,11 @@ public class GstInvoiceService {
 
     @Transactional
     public Map<String, Object> generateInvoiceFromOrder(Long orderId, Long userId, String gstin) {
+        return generateInvoiceFromOrder(orderId, userId, gstin, null);
+    }
+
+    @Transactional
+    public Map<String, Object> generateInvoiceFromOrder(Long orderId, Long userId, String gstin, String buyerGstin) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
@@ -91,9 +101,11 @@ public class GstInvoiceService {
         }
 
         GstComplianceUtil.validateGstin(gstin);
+        if (buyerGstin != null && !buyerGstin.isBlank()) {
+            GstComplianceUtil.validateGstin(buyerGstin);
+        }
 
         GstConfiguration config = configRepo.findByGstin(gstin).orElse(null);
-
         Optional<SellerRegistration> sellerReg = sellerRegRepo.findByUserId(userId);
 
         String sellerLegalName = config != null ? config.getLegalName()
@@ -101,7 +113,6 @@ public class GstInvoiceService {
         String sellerAddress = config != null ? config.getAddress()
                 : sellerReg.map(SellerRegistration::getBusinessAddress).orElse("");
 
-        User seller = userRepo.findById(userId).orElse(null);
         User buyer = order.getUser();
 
         GstInvoice inv = new GstInvoice();
@@ -112,8 +123,9 @@ public class GstInvoiceService {
         inv.setSellerAddress(sellerAddress);
         inv.setInvoiceDate(LocalDate.now());
 
-        inv.setBuyerGstin("URP");
-        inv.setInvoiceType("B2C");
+        boolean isB2b = buyerGstin != null && !buyerGstin.isBlank() && !"URP".equalsIgnoreCase(buyerGstin.trim());
+        inv.setBuyerGstin(isB2b ? buyerGstin.toUpperCase() : "URP");
+        inv.setInvoiceType(isB2b ? "B2B" : "B2C");
         inv.setBuyerName(buyer != null ? buyer.getFullName() : "Walk-in Customer");
         Address addr = order.getAddress();
         inv.setBuyerAddress(addr != null ? String.join(", ", 
@@ -182,10 +194,28 @@ public class GstInvoiceService {
         inv.setSgstAmount(Math.round(totalSgst * 100.0) / 100.0);
         inv.setIgstAmount(Math.round(totalIgst * 100.0) / 100.0);
 
-        inv.setHsnDigits(GstComplianceUtil.determineHsnDigits(config != null ? config.getAnnualTurnover() : null));
+        Double annualTurnover = config != null ? config.getAnnualTurnover() : null;
+        inv.setHsnDigits(GstComplianceUtil.determineHsnDigits(annualTurnover));
         inv.setReverseCharge(false);
         inv.setSupplyType("GOODS");
         inv.setInvoiceCopyType("ORIGINAL");
+
+        // Generate IRN and QR code if e-invoicing applies (turnover >= 5Cr)
+        boolean einvoicingApplicable = annualTurnover != null && annualTurnover >= 5_00_00_000;
+        if (einvoicingApplicable) {
+            String irn = generateIrn(gstin, orderId, inv.getInvoiceNumber());
+            inv.setIrn(irn);
+            inv.setQrCode(generateQrData(irn, gstin, inv.getInvoiceNumber(), taxableAmount));
+            // Simulate ack
+            inv.setAckNo("ACK-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + String.format("%06d", orderId % 1000000));
+            inv.setAckDate(LocalDate.now().toString());
+        }
+
+        // Generate e-way bill if taxable amount exceeds ₹50,000
+        if (taxableAmount > 50000) {
+            inv.setEwayBillNumber("EWB" + String.format("%012d", (orderId * 100 + 1) % 1000000000000L));
+            inv.setEwayBillExpiry(LocalDate.now().plusDays(15));
+        }
 
         double tcsRate = config != null ? config.getTcsRate() : 1.0;
         double tcsAmount = Math.round(taxableAmount * tcsRate / 100 * 100.0) / 100.0;
@@ -475,5 +505,46 @@ public class GstInvoiceService {
             if (e.getValue().equalsIgnoreCase(stateName.trim())) return e.getKey();
         }
         return "33";
+    }
+
+    private String generateIrn(String gstin, Long orderId, String invoiceNumber) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String input = gstin + "|" + orderId + "|" + invoiceNumber + "|" + LocalDate.now();
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (int i = 0; i < 16; i++) {
+                hex.append(String.format("%02x", hash[i]));
+            }
+            return "SIM" + hex.toString().toUpperCase();
+        } catch (NoSuchAlgorithmException e) {
+            return "SIM" + UUID.randomUUID().toString().replace("-", "").substring(0, 32).toUpperCase();
+        }
+    }
+
+    private String generateQrData(String irn, String gstin, String invoiceNumber, double amount) {
+        Map<String, String> qrPayload = new LinkedHashMap<>();
+        qrPayload.put("irn", irn);
+        qrPayload.put("gstin", gstin);
+        qrPayload.put("invNo", invoiceNumber);
+        qrPayload.put("amount", String.format("%.2f", amount));
+        qrPayload.put("date", LocalDate.now().toString());
+        String json = qrPayload.entrySet().stream()
+                .map(e -> "\"" + e.getKey() + "\":\"" + e.getValue() + "\"")
+                .collect(Collectors.joining(",", "{", "}"));
+        return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public Map<String, Object> getCustomerInvoiceForOrder(Long orderId, Long customerUserId) {
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+        if (order.getUser() == null || !order.getUser().getId().equals(customerUserId)) {
+            throw new RuntimeException("Invoice not available for this order");
+        }
+        GstInvoice inv = invoiceRepo.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Invoice not yet generated for this order"));
+        List<GstInvoiceItem> items = itemRepo.findByInvoiceId(inv.getId());
+        inv.setItems(items);
+        return Map.of("invoice", inv);
     }
 }
