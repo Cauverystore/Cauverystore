@@ -139,7 +139,7 @@ const Cart = () => {
 
   if (loading) {
     return (
-      <div className="cart-page" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
+      <div style={{ maxWidth: "var(--container-wide)", margin: "0 auto", padding: "var(--spacing-4)", display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
         <div className="cart-empty">
           <div style={{ color: "var(--color-text-secondary)" }}>Loading cart...</div>
         </div>
@@ -188,11 +188,23 @@ const Cart = () => {
 
   const freqItemsToShow = freqItems.slice(0, 3);
 
+  if (items.length === 0) {
+    return (
+      <div style={{ maxWidth: "var(--container-wide)", margin: "0 auto", padding: "var(--spacing-4)" }}>
+        <h1 className="cart-title">Shopping Cart</h1>
+        <div className="cart-empty">
+          <span className="cart-empty-icon">&#128722;</span>
+          <span className="cart-empty-text">Your cart is empty.</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="cart-page">
       <div className="cart-header" style={{ gridColumn: "1 / -1" }}>
         <h1 className="cart-title">Shopping Cart</h1>
-        {items.length > 0 && <span className="cart-count">{items.length} item{items.length > 1 ? "s" : ""}</span>}
+        <span className="cart-count">{items.length} item{items.length > 1 ? "s" : ""}</span>
       </div>
 
       {error && (
@@ -201,16 +213,6 @@ const Cart = () => {
           <button onClick={() => setError(null)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "1.1rem", fontWeight: 700 }}>&times;</button>
         </div>
       )}
-
-      {items.length === 0 ? (
-        <div style={{ gridColumn: "1 / -1" }} className="cart-empty">
-          <div className="cart-empty-icon">&#128722;</div>
-          <h2 className="cart-empty-title">Your Cart is Empty</h2>
-          <p className="cart-empty-text">Looks like you haven't added anything to your cart yet. Browse our products and find something you love!</p>
-          <Link to="/products" className="cart-empty-cta">&#8592; Continue Shopping</Link>
-        </div>
-      ) : (
-        <>
           {/* ─── LEFT COLUMN: Cart items → Checkout → Continue → Freq Bought ─── */}
           <div className="cart-left-col">
             {subtotal < 500 && (
@@ -439,8 +441,6 @@ const Cart = () => {
               <span>&#9829;</span> Cards &middot; UPI &middot; Net Banking &middot; COD
             </div>
           </aside>
-        </>
-      )}
 
 
     </div>

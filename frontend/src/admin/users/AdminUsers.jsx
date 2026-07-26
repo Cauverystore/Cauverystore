@@ -101,14 +101,15 @@ const AdminUsers = () => {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th>
+              <th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
-              <tr><td colSpan={5}><div className="admin-empty-state"><div className="admin-empty-state-icon"><Users size={32} /></div><div className="admin-empty-state-text">No users found</div></div></td></tr>
+              <tr><td colSpan={6}><div className="admin-empty-state"><div className="admin-empty-state-icon"><Users size={32} /></div><div className="admin-empty-state-text">No users found</div></div></td></tr>
             ) : users.map(u => (
               <tr key={u.id || u._id}>
+                <td style={{ color: '#6b7280', fontSize: '0.8rem', fontFamily: 'monospace' }}>{u.id || u._id}</td>
                 <td style={{ fontWeight: 500 }}>{u.fullName || u.name || u.username || '-'}</td>
                 <td>{u.email}</td>
                 <td>

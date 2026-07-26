@@ -13,8 +13,9 @@ const AdminLogin = () => {
   const handleLogin = async (e) => {
     e.preventDefault(); setError(""); setLoading(true);
     try {
-      await login(form.email, form.password, "admin");
-      navigate("/admin");
+      const data = await login(form.email, form.password, "");
+      if (data?.role === "SUPER_ADMIN") navigate("/super-admin");
+      else navigate("/admin");
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Invalid email or password");
     }

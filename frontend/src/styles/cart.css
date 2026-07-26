@@ -606,31 +606,24 @@
 /* ─── Empty Cart ─── */
 .cart-empty {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   padding: var(--spacing-16) var(--spacing-4);
-  text-align: center;
 }
 
 .cart-empty-icon {
-  font-size: 80px;
-  margin-bottom: var(--spacing-4);
+  font-size: 40px;
   color: var(--color-text-tertiary);
   opacity: 0.4;
-}
-
-.cart-empty-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  margin-bottom: var(--spacing-2);
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .cart-empty-text {
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-6);
-  max-width: 400px;
 }
 
 .cart-empty-cta {

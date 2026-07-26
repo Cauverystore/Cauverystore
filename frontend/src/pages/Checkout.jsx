@@ -22,7 +22,7 @@ const Checkout = () => {
   const [giftWrap, setGiftWrap] = useState(false);
 
   const [shipping, setShipping] = useState({
-    name: "", phone: "", street: "", city: "", state: "", pincode: ""
+    fullName: "", phone: "", street: "", city: "", state: "", pincode: ""
   });
 
   const [paymentMethod, setPaymentMethod] = useState("COD");
@@ -101,7 +101,7 @@ const Checkout = () => {
       setPromoError("");
     } catch (err) {
       setPromoApplied(null);
-      setPromoError(err.response?.data?.message || "Invalid or expired promo code");
+      setPromoError(err.response?.data?.message || err.response?.data?.error || "Invalid or expired promo code");
     }
   };
 
@@ -172,7 +172,7 @@ const Checkout = () => {
         rzp.open();
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to place order. Please try again.");
+      setError(err.response?.data?.error || err.response?.data?.message || "Failed to place order. Please try again.");
       setPlacing(false);
     }
   };
@@ -253,7 +253,7 @@ const Checkout = () => {
             {(savedAddresses.length === 0 || showNewAddr) && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                 {[
-                  { label: "Full Name", name: "name", placeholder: "Enter full name" },
+                  { label: "Full Name", name: "fullName", placeholder: "Enter full name" },
                   { label: "Phone Number", name: "phone", placeholder: "Enter 10-digit phone number" },
                   { label: "Address", name: "street", placeholder: "Street, area, landmark" },
                   { label: "City", name: "city", placeholder: "City" },
