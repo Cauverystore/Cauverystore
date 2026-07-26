@@ -79,7 +79,6 @@ public class OrderService {
         return user;
     }
 
-    @Transactional
     public Order placeOrder(String username, Address address) {
         User user = userRepo.findByUsername(username);
         if (user == null) {
