@@ -46,8 +46,9 @@ public class SellerService {
     private final SellerRegistrationRepository sellerRegRepo;
     private final AuditService auditService;
     private final ProductService productService;
+    private final GstInvoiceService gstInvoiceService;
 
-    public SellerService(ProductRepository productRepo, OrderRepository orderRepo, UserRepository userRepo, ReturnRequestRepository returnRepo, ProductAnalyticsRepository analyticsRepo, ProductReviewRepository reviewRepo, StockMovementRepository stockMovementRepo, InventoryRepository inventoryRepo, SellerStoreRepository storeRepo, SellerRegistrationRepository sellerRegRepo, AuditService auditService, ProductService productService) {
+    public SellerService(ProductRepository productRepo, OrderRepository orderRepo, UserRepository userRepo, ReturnRequestRepository returnRepo, ProductAnalyticsRepository analyticsRepo, ProductReviewRepository reviewRepo, StockMovementRepository stockMovementRepo, InventoryRepository inventoryRepo, SellerStoreRepository storeRepo, SellerRegistrationRepository sellerRegRepo, AuditService auditService, ProductService productService, GstInvoiceService gstInvoiceService) {
         this.productRepo = productRepo;
         this.orderRepo = orderRepo;
         this.userRepo = userRepo;
@@ -60,6 +61,7 @@ public class SellerService {
         this.sellerRegRepo = sellerRegRepo;
         this.auditService = auditService;
         this.productService = productService;
+        this.gstInvoiceService = gstInvoiceService;
     }
 
     public Map<String, Object> getDashboard(Long sellerId) {
@@ -170,6 +172,13 @@ public class SellerService {
         if (!sellerId.equals(order.getSellerId())) throw new RuntimeException("Not your order");
         order.setStatus(newStatus);
         Order saved = orderRepo.save(order);
+        if ("SHIPPED".equals(newStatus) || "DELIVERED".equals(newStatus)) {
+            try {
+                gstInvoiceService.updateInvoiceStatusByOrderId(orderId, newStatus.equals("SHIPPED") ? "DISPATCHED" : "DELIVERED");
+            } catch (Exception e) {
+                System.err.println("Invoice status update failed for order " + orderId + ": " + e.getMessage());
+            }
+        }
         auditService.log(null, "seller:" + sellerId, "ORDER_STATUS_UPDATE", "Order", orderId, "Status changed to " + newStatus, null);
         return saved;
     }
