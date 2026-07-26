@@ -73,7 +73,7 @@ const Checkout = () => {
 
   const validateStep = () => {
     if (step === 0) {
-      if (!shipping.name?.trim()) return "Full name is required";
+      if (!shipping.fullName?.trim()) return "Full name is required";
       if (!shipping.phone?.trim() || shipping.phone.length < 10) return "Valid phone number is required";
       if (!shipping.street?.trim()) return "Address is required";
       if (!shipping.city?.trim()) return "City is required";
@@ -141,7 +141,7 @@ const Checkout = () => {
           name: "Cauvery Store",
           description: "Order Payment",
           order_id: paymentData.razorpayOrderId || paymentData.orderId,
-          prefill: { name: shipping.name, contact: shipping.phone },
+          prefill: { name: shipping.fullName, contact: shipping.phone },
           handler: async function (response) {
             try {
               await api.post("/api/payment/verify", {
@@ -337,7 +337,7 @@ const Checkout = () => {
             <div style={{ marginBottom: "1rem" }}>
               <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Shipping To</h3>
               <div style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>
-                {shipping.name}, {shipping.phone}<br />
+                {shipping.fullName}, {shipping.phone}<br />
                 {shipping.street}, {shipping.city}, {shipping.state} - {shipping.pincode}
               </div>
             </div>

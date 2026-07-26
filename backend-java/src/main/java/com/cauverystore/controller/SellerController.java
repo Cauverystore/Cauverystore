@@ -1,5 +1,8 @@
 package com.cauverystore.controller;
 
+import com.cauverystore.entities.SellerRegistration;
+import com.cauverystore.repository.GstConfigurationRepository;
+import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.ProductService;
 import com.cauverystore.service.SellerService;
@@ -21,11 +24,17 @@ public class SellerController {
     private final SellerService sellerService;
     private final ProductService productService;
     private final UserRepository userRepo;
+    private final GstConfigurationRepository gstConfigRepo;
+    private final SellerRegistrationRepository sellerRegRepo;
 
-    public SellerController(SellerService sellerService, ProductService productService, UserRepository userRepo) {
+    public SellerController(SellerService sellerService, ProductService productService, UserRepository userRepo,
+                            GstConfigurationRepository gstConfigRepo,
+                            SellerRegistrationRepository sellerRegRepo) {
         this.sellerService = sellerService;
         this.productService = productService;
         this.userRepo = userRepo;
+        this.gstConfigRepo = gstConfigRepo;
+        this.sellerRegRepo = sellerRegRepo;
     }
 
     private Long getCurrentSellerId() {
@@ -61,6 +70,16 @@ public class SellerController {
     public ResponseEntity<?> createProduct(@RequestBody com.cauverystore.entities.Product product) {
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        boolean hasGstConfig = gstConfigRepo.findBySellerId(sellerId)
+                .map(c -> c.getGstin() != null && !c.getGstin().trim().isEmpty())
+                .orElse(false);
+        boolean hasRegGstin = sellerRegRepo.findByUserId(sellerId)
+                .map(r -> r.getGstin() != null && !r.getGstin().trim().isEmpty())
+                .orElse(false);
+        if (!hasGstConfig && !hasRegGstin) {
+            return ResponseEntity.badRequest().body(Map.of("error",
+                    "Cannot list products. Please configure your GSTIN first in GST Settings."));
+        }
         product.setSellerId(sellerId);
         product.setActive(true);
         if (product.getProductStatus() == null) product.setProductStatus("published");
@@ -191,7 +210,46 @@ public class SellerController {
     @GetMapping("/notifications")
     public ResponseEntity<?> getNotifications() {
         Long sellerId = getCurrentSellerId();
-        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
         return ResponseEntity.ok(sellerService.getNotifications(sellerId));
+    }
+
+    @GetMapping("/gst-info")
+    public ResponseEntity<?> getGstInfo() {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
+        SellerRegistration reg = sellerRegRepo.findByUserId(sellerId)
+                .orElse(null);
+        if (reg == null) return ResponseEntity.ok(Map.of("gstin", "", "panNumber", "", "businessName", "", "businessAddress", "", "licenses", ""));
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("gstin", reg.getGstin() != null ? reg.getGstin() : "");
+        info.put("panNumber", reg.getPanNumber() != null ? reg.getPanNumber() : "");
+        info.put("businessName", reg.getBusinessName() != null ? reg.getBusinessName() : "");
+        info.put("businessAddress", reg.getBusinessAddress() != null ? reg.getBusinessAddress() : "");
+        info.put("licenses", reg.getLicenses() != null ? reg.getLicenses() : "");
+        return ResponseEntity.ok(info);
+    }
+
+    @PutMapping("/gst-info")
+    public ResponseEntity<?> updateGstInfo(@RequestBody Map<String, Object> body) {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
+        SellerRegistration reg = sellerRegRepo.findByUserId(sellerId)
+                .orElse(null);
+        if (reg == null) return ResponseEntity.badRequest().body(Map.of("error", "Seller registration not found. Complete onboarding first."));
+        if (body.containsKey("gstin")) reg.setGstin((String) body.get("gstin"));
+        if (body.containsKey("panNumber")) reg.setPanNumber((String) body.get("panNumber"));
+        if (body.containsKey("businessName")) reg.setBusinessName((String) body.get("businessName"));
+        if (body.containsKey("businessAddress")) reg.setBusinessAddress((String) body.get("businessAddress"));
+        if (body.containsKey("licenses")) reg.setLicenses((String) body.get("licenses"));
+        sellerRegRepo.save(reg);
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("gstin", reg.getGstin() != null ? reg.getGstin() : "");
+        info.put("panNumber", reg.getPanNumber() != null ? reg.getPanNumber() : "");
+        info.put("businessName", reg.getBusinessName() != null ? reg.getBusinessName() : "");
+        info.put("businessAddress", reg.getBusinessAddress() != null ? reg.getBusinessAddress() : "");
+        info.put("licenses", reg.getLicenses() != null ? reg.getLicenses() : "");
+        info.put("message", "GST information updated successfully");
+        return ResponseEntity.ok(info);
     }
 }

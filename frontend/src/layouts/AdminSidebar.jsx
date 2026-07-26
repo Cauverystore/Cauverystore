@@ -54,8 +54,13 @@ const AdminSidebar = () => {
   return (
   <aside style={{ position: "fixed", top: 0, left: 0, width: "240px", height: "100vh", background: "#0f172a", color: "#fff", display: "flex", flexDirection: "column", zIndex: 100 }}>
     <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #1e293b" }}>
-      <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
-      <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "2px" }}>{labelText}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <img src="/images/logo.jpg" alt="" style={{ height: "1.15rem", width: "auto" }} />
+        <div>
+          <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
+          <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "1px" }}>{labelText}</div>
+        </div>
+      </div>
     </div>
     <nav style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
       {links.map(l => (

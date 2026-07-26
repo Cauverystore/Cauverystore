@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ChevronDown, ChevronUp, ExternalLink, Eye } from "lucide-react";
 import api from "../api/axios";
 
 const GST_DASHBOARD_STYLES = `
@@ -264,11 +265,16 @@ const GstInvoices = () => {
                             </span>
                           </td>
                           <td>
-                            {inv.status !== "SYNCED" && (
-                              <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={(e) => { e.stopPropagation(); handleSyncInvoice(inv.id); }}>
-                                <ExternalLink size={12} /> Sync
-                              </button>
-                            )}
+                            <div style={{ display: "flex", gap: "0.35rem", alignItems: "center" }}>
+                              <Link to={`/seller/gst-invoices/view/${inv.id}`} className="gst-btn gst-btn-outline gst-btn-sm" onClick={(e) => e.stopPropagation()} style={{ textDecoration: "none" }}>
+                                <Eye size={12} /> View
+                              </Link>
+                              {inv.status !== "SYNCED" && (
+                                <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={(e) => { e.stopPropagation(); handleSyncInvoice(inv.id); }}>
+                                  <ExternalLink size={12} /> Sync
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                         {expandedInvoice === inv.id && (

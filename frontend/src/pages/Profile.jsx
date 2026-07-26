@@ -153,7 +153,9 @@ const Profile = () => {
     return <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>Loading profile...</div>;
   }
 
-  const customerId = profile?.id || "";
+  const userId = profile?.id || "";
+  const userRole = profile?.role || "";
+  const userLabel = userRole === "SELLER" ? "Seller ID" : userRole === "CUSTOMER" ? "Customer ID" : "User ID";
   const profilePic = profile?.profilePicture || PLACEHOLDER;
 
   const renderNotification = () => (
@@ -180,7 +182,7 @@ const Profile = () => {
     <div className="profile-section-card">
       <div className="profile-card-header">
         <h3>Personal Information</h3>
-        {customerId && <span className="profile-customer-id">Customer ID: {customerId.toString().slice(-8).toUpperCase()}</span>}
+        {userId && <span className="profile-customer-id">{userLabel}: {userId.toString().slice(-8).toUpperCase()}</span>}
       </div>
       <div className="profile-avatar-section">
         <img src={profilePic} alt="" width="80" height="80" className="profile-avatar"

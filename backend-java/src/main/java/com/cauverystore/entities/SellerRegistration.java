@@ -63,6 +63,9 @@ public class SellerRegistration {
     private String registrationCertificateUrl;
     private Boolean registrationDocumentVerified = false;
 
+    @Column(columnDefinition = "TEXT")
+    private String licenses;
+
     private LocalDateTime submittedAt;
     private LocalDateTime approvedAt;
     private LocalDateTime rejectedAt;
@@ -145,6 +148,8 @@ public class SellerRegistration {
     public void setRejectedAt(LocalDateTime rejectedAt) { this.rejectedAt = rejectedAt; }
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+    public String getLicenses() { return licenses; }
+    public void setLicenses(String licenses) { this.licenses = licenses; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

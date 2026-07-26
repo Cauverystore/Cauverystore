@@ -78,6 +78,15 @@ public class GstInvoice {
     private Integer syncAttempts = 0;
     private LocalDateTime lastSyncAttempt;
 
+    private Boolean reverseCharge = false;
+    private String invoiceCopyType;
+    private String supplyType = "GOODS";
+    private String sellerLegalName;
+    @Column(columnDefinition = "TEXT")
+    private String sellerAddress;
+    private Integer hsnDigits = 4;
+    private String invoiceType = "B2C";
+
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("invoice")
     private List<GstInvoiceItem> items = new ArrayList<>();
@@ -171,4 +180,18 @@ public class GstInvoice {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Boolean getReverseCharge() { return reverseCharge; }
+    public void setReverseCharge(Boolean reverseCharge) { this.reverseCharge = reverseCharge; }
+    public String getInvoiceCopyType() { return invoiceCopyType; }
+    public void setInvoiceCopyType(String invoiceCopyType) { this.invoiceCopyType = invoiceCopyType; }
+    public String getSupplyType() { return supplyType; }
+    public void setSupplyType(String supplyType) { this.supplyType = supplyType; }
+    public String getSellerLegalName() { return sellerLegalName; }
+    public void setSellerLegalName(String sellerLegalName) { this.sellerLegalName = sellerLegalName; }
+    public String getSellerAddress() { return sellerAddress; }
+    public void setSellerAddress(String sellerAddress) { this.sellerAddress = sellerAddress; }
+    public Integer getHsnDigits() { return hsnDigits; }
+    public void setHsnDigits(Integer hsnDigits) { this.hsnDigits = hsnDigits; }
+    public String getInvoiceType() { return invoiceType; }
+    public void setInvoiceType(String invoiceType) { this.invoiceType = invoiceType; }
 }

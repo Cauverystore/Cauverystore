@@ -1,7 +1,24 @@
 package com.cauverystore.service;
 
-import com.cauverystore.entities.*;
-import com.cauverystore.repository.*;
+import com.cauverystore.entities.GstInvoice;
+import com.cauverystore.entities.GstInvoiceItem;
+import com.cauverystore.entities.GstSyncQueue;
+import com.cauverystore.entities.GstConfiguration;
+import com.cauverystore.entities.SellerRegistration;
+import com.cauverystore.entities.Order;
+import com.cauverystore.entities.OrderItem;
+import com.cauverystore.entities.Product;
+import com.cauverystore.entities.Address;
+import com.cauverystore.entities.User;
+import com.cauverystore.repository.GstInvoiceRepository;
+import com.cauverystore.repository.GstInvoiceItemRepository;
+import com.cauverystore.repository.GstSyncQueueRepository;
+import com.cauverystore.repository.GstConfigurationRepository;
+import com.cauverystore.repository.SellerRegistrationRepository;
+import com.cauverystore.repository.OrderRepository;
+import com.cauverystore.repository.ProductRepository;
+import com.cauverystore.repository.UserRepository;
+import com.cauverystore.util.GstComplianceUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -19,6 +36,7 @@ public class GstInvoiceService {
     private final GstInvoiceItemRepository itemRepo;
     private final GstSyncQueueRepository syncRepo;
     private final GstConfigurationRepository configRepo;
+    private final SellerRegistrationRepository sellerRegRepo;
     private final OrderRepository orderRepo;
     private final ProductRepository productRepo;
     private final UserRepository userRepo;
@@ -48,12 +66,14 @@ public class GstInvoiceService {
 
     public GstInvoiceService(GstInvoiceRepository invoiceRepo, GstInvoiceItemRepository itemRepo,
                              GstSyncQueueRepository syncRepo, GstConfigurationRepository configRepo,
+                             SellerRegistrationRepository sellerRegRepo,
                              OrderRepository orderRepo, ProductRepository productRepo,
                              UserRepository userRepo, AuditService auditService) {
         this.invoiceRepo = invoiceRepo;
         this.itemRepo = itemRepo;
         this.syncRepo = syncRepo;
         this.configRepo = configRepo;
+        this.sellerRegRepo = sellerRegRepo;
         this.orderRepo = orderRepo;
         this.productRepo = productRepo;
         this.userRepo = userRepo;
@@ -70,8 +90,16 @@ public class GstInvoiceService {
             return Map.of("invoice", existing.get(), "message", "Invoice already exists for this order");
         }
 
-        GstConfiguration config = configRepo.findByGstin(gstin)
-                .orElseThrow(() -> new RuntimeException("GSTIN configuration not found: " + gstin));
+        GstComplianceUtil.validateGstin(gstin);
+
+        GstConfiguration config = configRepo.findByGstin(gstin).orElse(null);
+
+        Optional<SellerRegistration> sellerReg = sellerRegRepo.findByUserId(userId);
+
+        String sellerLegalName = config != null ? config.getLegalName()
+                : sellerReg.map(SellerRegistration::getBusinessName).orElse("Seller");
+        String sellerAddress = config != null ? config.getAddress()
+                : sellerReg.map(SellerRegistration::getBusinessAddress).orElse("");
 
         User seller = userRepo.findById(userId).orElse(null);
         User buyer = order.getUser();
@@ -80,7 +108,12 @@ public class GstInvoiceService {
         inv.setOrderId(orderId);
         inv.setSellerId(userId);
         inv.setSellerGstin(gstin);
+        inv.setSellerLegalName(sellerLegalName);
+        inv.setSellerAddress(sellerAddress);
+        inv.setInvoiceDate(LocalDate.now());
+
         inv.setBuyerGstin("URP");
+        inv.setInvoiceType("B2C");
         inv.setBuyerName(buyer != null ? buyer.getFullName() : "Walk-in Customer");
         Address addr = order.getAddress();
         inv.setBuyerAddress(addr != null ? String.join(", ", 
@@ -89,15 +122,14 @@ public class GstInvoiceService {
             addr.getState() != null ? addr.getState() : "",
             addr.getPincode() != null ? addr.getPincode() : ""
         ).replaceAll("^,\\s*|,\\s*$", "").replaceAll(",\\s*,", ",") : "");
-        inv.setInvoiceDate(LocalDate.now());
 
         String buyerStateCode = order.getAddress() != null ? getStateCode(order.getAddress().getState()) : "33";
-        String sellerStateCode = config.getStateCode() != null ? config.getStateCode() : "33";
+        String sellerStateCode = config != null && config.getStateCode() != null ? config.getStateCode() : "33";
         inv.setBuyerStateCode(buyerStateCode);
         inv.setPlaceOfSupply(buyerStateCode + "-" + STATE_CODES.getOrDefault(buyerStateCode, "Other"));
         inv.setIsInterState(!buyerStateCode.equals(sellerStateCode));
 
-        inv.setInvoiceNumber(generateInvoiceNumber(config.getInvoicePrefix()));
+        inv.setInvoiceNumber(generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS"));
         inv.setStatus("GENERATED");
 
         double taxableAmount = 0;
@@ -150,9 +182,15 @@ public class GstInvoiceService {
         inv.setSgstAmount(Math.round(totalSgst * 100.0) / 100.0);
         inv.setIgstAmount(Math.round(totalIgst * 100.0) / 100.0);
 
-        double tcsAmount = Math.round(taxableAmount * config.getTcsRate() / 100 * 100.0) / 100.0;
+        inv.setHsnDigits(GstComplianceUtil.determineHsnDigits(config != null ? config.getAnnualTurnover() : null));
+        inv.setReverseCharge(false);
+        inv.setSupplyType("GOODS");
+        inv.setInvoiceCopyType("ORIGINAL");
+
+        double tcsRate = config != null ? config.getTcsRate() : 1.0;
+        double tcsAmount = Math.round(taxableAmount * tcsRate / 100 * 100.0) / 100.0;
         inv.setTcsAmount(tcsAmount);
-        inv.setTcsRate(config.getTcsRate());
+        inv.setTcsRate(tcsRate);
 
         inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax() + tcsAmount) * 100.0) / 100.0);
 
@@ -287,8 +325,10 @@ public class GstInvoiceService {
     }
 
     public Map<String, Object> getGstSummary(Long sellerId, LocalDate startDate, LocalDate endDate) {
+        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
+                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
         List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(
-                configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin).orElse(""),
+                sellerGstin,
                 startDate != null ? startDate : LocalDate.now().withDayOfMonth(1),
                 endDate != null ? endDate : LocalDate.now());
 
@@ -320,8 +360,10 @@ public class GstInvoiceService {
     }
 
     public List<Map<String, Object>> getGstr1Data(Long sellerId, LocalDate startDate, LocalDate endDate) {
+        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
+                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
         List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(
-                configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin).orElse(""),
+                sellerGstin,
                 startDate != null ? startDate : LocalDate.now().withDayOfMonth(1),
                 endDate != null ? endDate : LocalDate.now());
         List<Map<String, Object>> gstr1 = new ArrayList<>();
@@ -373,6 +415,8 @@ public class GstInvoiceService {
             m.put("isActive", c.getIsActive());
             m.put("tcsRate", c.getTcsRate());
             m.put("invoicePrefix", c.getInvoicePrefix());
+            m.put("annualTurnover", c.getAnnualTurnover());
+            m.put("address", c.getAddress());
             list.add(m);
         }
         return Map.of("configurations", list, "total", list.size());

@@ -93,9 +93,12 @@ const SuperAdminLayout = () => {
             S
           </div>
           {!collapsed && (
-            <div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>Cauvery Store</div>
-              <div style={{ fontSize: '0.7rem', color: accentColor, marginTop: '1px' }}>Super Admin</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <img src="/images/logo.jpg" alt="" style={{ height: "0.95rem", width: "auto" }} />
+              <div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>Cauvery Store</div>
+                <div style={{ fontSize: '0.7rem', color: accentColor, marginTop: '1px' }}>Super Admin</div>
+              </div>
             </div>
           )}
         </div>

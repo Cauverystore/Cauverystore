@@ -49,7 +49,6 @@ const Navbar = () => {
         alignItems: "center", position: "sticky", top: 0, zIndex: 101
       }}>
         <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
-          <span>&#128205; Deliver to: <strong>Mumbai 400001</strong></span>
           <span className="sn-lang">| &#127470;&#127475; EN</span>
         </div>
         <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
@@ -89,10 +88,10 @@ const Navbar = () => {
           </button>
 
           {/* Logo */}
-          <Link to="/" style={{
-            fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #16a34a)",
-            textDecoration: "none", whiteSpace: "nowrap", fontFamily: "var(--font-heading, Inter)"
-          }}>Cauvery Store</Link>
+          <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "8px" }}>
+            <img src="/images/logo.jpg" alt="" style={{ height: "2rem", width: "auto" }} />
+            <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #16a34a)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
+          </Link>
 
           {/* Search Bar */}
           <form onSubmit={handleSearch} style={{

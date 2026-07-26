@@ -89,7 +89,8 @@ const Register = () => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <div className="auth-logo">Cauvery Store</div>
+            <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
+            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #16a34a)" }}>Cauvery Store</div>
             <h1 className="auth-title">Create Account</h1>
             <p className="auth-subtitle">Join Cauvery Store today</p>
           </div>

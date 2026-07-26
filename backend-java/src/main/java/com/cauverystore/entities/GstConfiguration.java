@@ -49,6 +49,8 @@ public class GstConfiguration {
 
     private Long sellerId;
 
+    private Double annualTurnover;
+
     private String createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -102,6 +104,8 @@ public class GstConfiguration {
     public void setInvoicePrefix(String invoicePrefix) { this.invoicePrefix = invoicePrefix; }
     public Long getSellerId() { return sellerId; }
     public void setSellerId(Long sellerId) { this.sellerId = sellerId; }
+    public Double getAnnualTurnover() { return annualTurnover; }
+    public void setAnnualTurnover(Double annualTurnover) { this.annualTurnover = annualTurnover; }
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
     public LocalDateTime getCreatedAt() { return createdAt; }

@@ -62,6 +62,10 @@ const Footer = () => {
       }}>
         {/* Get to Know Us */}
         <div className="sn-footer-col">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "0.75rem" }}>
+            <img src="/images/logo.jpg" alt="" style={{ height: "1.1rem", width: "auto" }} />
+            <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff" }}>Cauvery Store</span>
+          </div>
           <h4 style={{ color: "#fff", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Get to Know Us
           </h4>
