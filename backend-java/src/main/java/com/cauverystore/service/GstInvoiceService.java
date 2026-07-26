@@ -159,7 +159,7 @@ public class GstInvoiceService {
         inv.setIsInterState(!buyerStateCode.equals(sellerStateCode));
 
         inv.setInvoiceNumber(generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS"));
-        inv.setStatus("GENERATED");
+        inv.setStatus("PENDING_DISPATCH");
 
         double taxableAmount = 0;
         double totalCgst = 0, totalSgst = 0, totalIgst = 0;
@@ -593,7 +593,15 @@ public class GstInvoiceService {
                 .orElseThrow(() -> new RuntimeException("Invoice not yet generated for this order"));
         List<GstInvoiceItem> items = itemRepo.findByInvoiceId(inv.getId());
         inv.setItems(items);
-        return Map.of("invoice", inv);
+        return Map.of("invoice", inv, "orderStatus", order.getStatus());
+    }
+
+    @Transactional
+    public void updateInvoiceStatusByOrderId(Long orderId, String dispatchStatus) {
+        invoiceRepo.findByOrderId(orderId).ifPresent(inv -> {
+            inv.setStatus(dispatchStatus);
+            invoiceRepo.save(inv);
+        });
     }
 
     public byte[] generateInvoicePdf(Long invoiceId) throws DocumentException {

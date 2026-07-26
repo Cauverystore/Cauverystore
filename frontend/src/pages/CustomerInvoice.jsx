@@ -121,6 +121,7 @@ const CustomerInvoice = () => {
   const [error, setError] = useState("");
   const [notGenerated, setNotGenerated] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [orderStatus, setOrderStatus] = useState("");
 
   const handleDownloadPdf = async () => {
     setPdfLoading(true);
@@ -147,6 +148,7 @@ const CustomerInvoice = () => {
       try {
         const res = await api.get(`/api/gst/my-order-invoice/${orderId}`);
         setInvoice(res.data.invoice);
+        setOrderStatus(res.data.orderStatus || "");
       } catch (err) {
         const status = err.response?.status;
         const data = err.response?.data;
@@ -183,7 +185,10 @@ const CustomerInvoice = () => {
   if (error) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#dc2626" }}>{error}</div>;
   if (!invoice) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>Invoice not found.</div>;
 
-  const statusClass = invoice.status === "SYNCED" ? "giv-status-synced" : invoice.status === "SYNC_FAILED" ? "giv-status-failed" : invoice.status === "GENERATED" ? "giv-status-generated" : "giv-status-draft";
+  const shippedStatuses = ["SHIPPED", "DELIVERED", "DISPATCHED"];
+  const isAwaitingDispatch = !shippedStatuses.includes(orderStatus) && !shippedStatuses.includes(invoice.status);
+
+  const statusClass = invoice.status === "SYNCED" ? "giv-status-synced" : invoice.status === "SYNC_FAILED" ? "giv-status-failed" : invoice.status === "GENERATED" || invoice.status === "PENDING_DISPATCH" ? "giv-status-generated" : "giv-status-draft";
 
   return (
     <>
@@ -196,6 +201,13 @@ const CustomerInvoice = () => {
             {pdfLoading ? <Loader size={16} /> : <Download size={16} />} {pdfLoading ? "Downloading..." : "Download PDF"}
           </button>
         </div>
+
+        {isAwaitingDispatch && (
+          <div style={{ padding: "0.75rem 1rem", marginBottom: "1rem", borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span style={{ fontSize: "1.1rem" }}>&#128666;</span>
+            <span><strong>Order in progress</strong> — invoice generated, awaiting dispatch</span>
+          </div>
+        )}
 
         <div className="giv-invoice" id="gst-invoice-print">
           <div className="giv-header">

@@ -332,9 +332,11 @@ public class OrderService {
         switch (status) {
             case "DELIVERED":
                 notificationService.sendOrderDelivered(order.getUser().getEmail(), orderId.toString());
+                try { gstInvoiceService.updateInvoiceStatusByOrderId(orderId, "DELIVERED"); } catch (Exception e) { System.err.println("Invoice status update skipped: " + e.getMessage()); }
                 break;
             case "SHIPPED":
                 notificationService.sendOrderShipped(order.getUser().getEmail(), orderId.toString());
+                try { gstInvoiceService.updateInvoiceStatusByOrderId(orderId, "DISPATCHED"); } catch (Exception e) { System.err.println("Invoice status update skipped: " + e.getMessage()); }
                 break;
             case "CANCELLED":
                 notificationService.sendOrderCancelled(order.getUser().getEmail(), orderId.toString());
@@ -493,6 +495,12 @@ public class OrderService {
 
         Order saved = orderRepo.save(order);
 
+        try {
+            gstInvoiceService.updateInvoiceStatusByOrderId(orderId, "DISPATCHED");
+        } catch (Exception e) {
+            System.err.println("Invoice status update skipped for order " + orderId + ": " + e.getMessage());
+        }
+
         auditService.log(order.getUser().getId(), order.getUser().getEmail(),
                 "ORDER_SHIPPED", "Order", orderId,
                 "Order #" + orderId + " has been shipped", null);
@@ -518,6 +526,12 @@ public class OrderService {
         order.getTimeline().add(timeline);
 
         Order saved = orderRepo.save(order);
+
+        try {
+            gstInvoiceService.updateInvoiceStatusByOrderId(orderId, "DELIVERED");
+        } catch (Exception e) {
+            System.err.println("Invoice status update skipped for order " + orderId + ": " + e.getMessage());
+        }
 
         auditService.log(order.getUser().getId(), order.getUser().getEmail(),
                 "ORDER_DELIVERED", "Order", orderId,
