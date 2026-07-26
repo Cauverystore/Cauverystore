@@ -621,16 +621,38 @@ public class GstInvoiceService {
         doc.open();
 
         Font bold14 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
-        Font bold11 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+        Font bold12 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+        Font bold10 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
         Font normal9 = FontFactory.getFont(FontFactory.HELVETICA, 9);
         Font bold9 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
 
         // Header
-        Paragraph title = new Paragraph("TAX INVOICE", bold14);
-        title.setAlignment(Element.ALIGN_CENTER);
-        doc.add(title);
-        doc.add(new Paragraph("Invoice: " + inv.getInvoiceNumber() + "  |  Date: " + inv.getInvoiceDate(), normal9));
+        PdfPTable headerTable = new PdfPTable(2);
+        headerTable.setWidthPercentage(100);
+        headerTable.setWidths(new float[]{60, 40});
+        PdfPCell leftCell = new PdfPCell();
+        leftCell.setBorder(Rectangle.NO_BORDER);
+        leftCell.addElement(new Paragraph("Tax Invoice", bold14));
+        leftCell.addElement(new Paragraph(
+                (inv.getInvoiceCopyType() != null && inv.getInvoiceCopyType().equals("ORIGINAL") ? "Original for Recipient" :
+                 "ORIGINAL".equals(inv.getInvoiceCopyType()) ? "Original for Recipient" :
+                 "DUPLICATE".equals(inv.getInvoiceCopyType()) ? "Duplicate for Transporter" :
+                 "TRIPLICATE".equals(inv.getInvoiceCopyType()) ? "Triplicate for Supplier" : "Original for Recipient")
+                + (inv.getSupplyType() != null && inv.getSupplyType().equals("GOODS") ? " (Goods)" : " (Services)")
+                + " | " + (Boolean.TRUE.equals(inv.getIsInterState()) ? "Inter-State" : "Intra-State"), small8));
+        PdfPCell rightCell = new PdfPCell();
+        rightCell.setBorder(Rectangle.NO_BORDER);
+        rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        rightCell.addElement(new Paragraph("Invoice No.", small8));
+        rightCell.addElement(new Paragraph(safeStr(inv.getInvoiceNumber()), bold12));
+        rightCell.addElement(new Paragraph("Invoice Date", small8));
+        rightCell.addElement(new Paragraph(inv.getInvoiceDate() != null ? inv.getInvoiceDate().toString() : "", normal9));
+        rightCell.addElement(new Paragraph("Status: " + inv.getStatus(), small8));
+        headerTable.addCell(leftCell);
+        headerTable.addCell(rightCell);
+        doc.add(headerTable);
+
         doc.add(new Paragraph(" "));
 
         // Seller / Buyer info
@@ -639,34 +661,66 @@ public class GstInvoiceService {
         parties.setWidths(new float[]{50, 50});
 
         PdfPCell sellCell = new PdfPCell();
-        sellCell.addElement(new Paragraph("Seller (Supplier)", bold9));
-        sellCell.addElement(new Paragraph("Name: " + safeStr(inv.getSellerLegalName()), normal9));
+        sellCell.setPadding(8);
+        sellCell.addElement(new Paragraph("Seller (Supplier)", bold10));
+        sellCell.addElement(new Paragraph(safeStr(inv.getSellerLegalName()), normal9));
         sellCell.addElement(new Paragraph("GSTIN: " + safeStr(inv.getSellerGstin()), normal9));
-        sellCell.addElement(new Paragraph("Address: " + safeStr(inv.getSellerAddress()), normal9));
-        sellCell.setPadding(6);
+        sellCell.addElement(new Paragraph("Address: " + safeStr(inv.getSellerAddress()), small8));
         parties.addCell(sellCell);
 
         PdfPCell buyCell = new PdfPCell();
-        buyCell.addElement(new Paragraph("Buyer (Recipient)", bold9));
-        buyCell.addElement(new Paragraph("Name: " + safeStr(inv.getBuyerName()), normal9));
-        buyCell.addElement(new Paragraph("GSTIN: " + (inv.getBuyerGstin() != null ? inv.getBuyerGstin() : "URP"), normal9));
-        buyCell.addElement(new Paragraph("Address: " + safeStr(inv.getBuyerAddress()), normal9));
-        buyCell.setPadding(6);
+        buyCell.setPadding(8);
+        buyCell.addElement(new Paragraph("Buyer / Recipient", bold10));
+        buyCell.addElement(new Paragraph(safeStr(inv.getBuyerName()), normal9));
+        buyCell.addElement(new Paragraph("GSTIN: " + (inv.getBuyerGstin() != null ? inv.getBuyerGstin() : "URP")
+                + (inv.getBuyerGstin() != null && !"URP".equals(inv.getBuyerGstin()) ? " (ITC Eligible: Yes - B2B)" : " (URP)"), normal9));
+        buyCell.addElement(new Paragraph("Address: " + safeStr(inv.getBuyerAddress()), small8));
         parties.addCell(buyCell);
         doc.add(parties);
 
-        doc.add(new Paragraph("Place of Supply: " + safeStr(inv.getPlaceOfSupply()) + "  |  Type: " + (Boolean.TRUE.equals(inv.getIsInterState()) ? "Inter-State (IGST)" : "Intra-State (CGST+SGST)") + "  |  " + safeStr(inv.getInvoiceType()), small8));
         doc.add(new Paragraph(" "));
 
-        // Items table
-        PdfPTable table = new PdfPTable(8);
+        // Identifiers section
+        PdfPTable idTable = new PdfPTable(3);
+        idTable.setWidthPercentage(100);
+        float[] idW = {33, 33, 34};
+        idTable.setWidths(idW);
+        String[][] idData = {
+            {"Place of Supply", safeStr(inv.getPlaceOfSupply())},
+            {"Supply Type", Boolean.TRUE.equals(inv.getIsInterState()) ? "Inter-State (IGST)" : "Intra-State (CGST+SGST)"},
+            {"Invoice Type", safeStr(inv.getInvoiceType())}
+        };
+        for (String[] row : idData) {
+            PdfPCell c = new PdfPCell();
+            c.setPadding(4);
+            c.addElement(new Paragraph(row[0], small8));
+            c.addElement(new Paragraph(row[1], bold9));
+            idTable.addCell(c);
+        }
+        doc.add(idTable);
+
+        doc.add(new Paragraph(" "));
+
+        // Items table - match web view columns (separate CGST/SGST)
+        int numColumns = Boolean.TRUE.equals(inv.getIsInterState()) ? 8 : 9;
+        PdfPTable table = new PdfPTable(numColumns);
         table.setWidthPercentage(100);
-        table.setWidths(new float[]{4, 10, 28, 7, 10, 13, 13, 15});
-        String[] headers = {"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable", "CGST/SGST", "Total"};
-        for (String h : headers) {
+        float[] colWidths = Boolean.TRUE.equals(inv.getIsInterState())
+            ? new float[]{4, 10, 26, 7, 10, 13, 13, 17}
+            : new float[]{4, 9, 22, 6, 9, 12, 11, 11, 16};
+        table.setWidths(colWidths);
+
+        String[] hdrs;
+        if (Boolean.TRUE.equals(inv.getIsInterState())) {
+            hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "IGST", "Total"};
+        } else {
+            hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "CGST", "SGST", "Total"};
+        }
+        for (String h : hdrs) {
             PdfPCell hc = new PdfPCell(new Phrase(h, bold9));
             hc.setBackgroundColor(new Color(14, 92, 92));
             hc.setPadding(4);
+            hc.setHorizontalAlignment(Element.ALIGN_CENTER);
             table.addCell(hc);
         }
 
@@ -676,23 +730,26 @@ public class GstInvoiceService {
             table.addCell(new Phrase(safeStr(item.getHsnCode()), small8));
             table.addCell(new Phrase(safeStr(item.getProductName()), normal9));
             table.addCell(new Phrase(String.valueOf(item.getQuantity()), normal9));
-            table.addCell(new Phrase("Rs." + String.format("%.2f", item.getUnitPrice() != null ? item.getUnitPrice() : 0), normal9));
-            table.addCell(new Phrase("Rs." + String.format("%.2f", item.getTaxableValue() != null ? item.getTaxableValue() : 0), normal9));
-
+            table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getUnitPrice() != null ? item.getUnitPrice() : 0), normal9));
+            table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getTaxableValue() != null ? item.getTaxableValue() : 0), normal9));
             if (Boolean.TRUE.equals(inv.getIsInterState())) {
-                table.addCell(new Phrase("IGST " + (item.getIgstRate() != null ? item.getIgstRate() : 0) + "%", small8));
+                table.addCell(new Phrase((item.getIgstRate() != null ? item.getIgstRate() : 0) + "% / \u20B9" + String.format("%.2f", item.getIgstAmount() != null ? item.getIgstAmount() : 0), small8));
             } else {
-                table.addCell(new Phrase("C " + (item.getCgstRate() != null ? item.getCgstRate() : 0) + "% S " + (item.getSgstRate() != null ? item.getSgstRate() : 0) + "%", small8));
+                table.addCell(new Phrase((item.getCgstRate() != null ? item.getCgstRate() : 0) + "% / \u20B9" + String.format("%.2f", item.getCgstAmount() != null ? item.getCgstAmount() : 0), small8));
+                table.addCell(new Phrase((item.getSgstRate() != null ? item.getSgstRate() : 0) + "% / \u20B9" + String.format("%.2f", item.getSgstAmount() != null ? item.getSgstAmount() : 0), small8));
             }
-            table.addCell(new Phrase("Rs." + String.format("%.2f", item.getTotalAmount() != null ? item.getTotalAmount() : 0), bold9));
+            table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getTotalAmount() != null ? item.getTotalAmount() : 0), bold9));
         }
         doc.add(table);
         doc.add(new Paragraph(" "));
 
-        // Tax breakup summary
-        PdfPTable sumTable = new PdfPTable(2);
-        sumTable.setWidthPercentage(40);
-        sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        // Tax Breakup section
+        PdfPTable breakupTable = new PdfPTable(4);
+        breakupTable.setWidthPercentage(65);
+        breakupTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        float[] bw = {25, 25, 25, 25};
+        breakupTable.setWidths(bw);
+
         float tx = inv.getTaxableAmount() != null ? inv.getTaxableAmount().floatValue() : 0f;
         double cgst = inv.getCgstAmount() != null ? inv.getCgstAmount() : 0;
         double sgst = inv.getSgstAmount() != null ? inv.getSgstAmount() : 0;
@@ -700,20 +757,50 @@ public class GstInvoiceService {
         double ttax = inv.getTotalTax() != null ? inv.getTotalTax() : 0;
         double tcs = inv.getTcsAmount() != null ? inv.getTcsAmount() : 0;
         double total = inv.getTotalAmount() != null ? inv.getTotalAmount() : 0;
+        double cgstRate = inv.getCgstRate() != null ? inv.getCgstRate() : 0;
+        double sgstRate = inv.getSgstRate() != null ? inv.getSgstRate() : 0;
+        double igstRate = !items.isEmpty() && items.get(0).getIgstRate() != null ? items.get(0).getIgstRate() : 0;
+        double tcsRate = inv.getTcsRate() != null ? inv.getTcsRate() : 1.0;
 
-        addSumRow(sumTable, "Taxable Amount", "Rs." + String.format("%.2f", tx), normal9);
+        // Header row
+        PdfPCell bh = new PdfPCell(new Phrase("Tax Breakup", bold10));
+        bh.setColspan(4);
+        bh.setBackgroundColor(new Color(14, 92, 92));
+        bh.setPadding(6);
+        bh.setHorizontalAlignment(Element.ALIGN_CENTER);
+        breakupTable.addCell(bh);
+
+        addBreakupCell(breakupTable, "Taxable Amount", "\u20B9" + String.format("%.2f", tx), normal9);
         if (Boolean.TRUE.equals(inv.getIsInterState())) {
-            addSumRow(sumTable, "IGST", "Rs." + String.format("%.2f", igst), normal9);
+            addBreakupCell(breakupTable, "IGST @ " + igstRate + "%", "\u20B9" + String.format("%.2f", igst), normal9);
         } else {
-            addSumRow(sumTable, "CGST", "Rs." + String.format("%.2f", cgst), normal9);
-            addSumRow(sumTable, "SGST", "Rs." + String.format("%.2f", sgst), normal9);
+            addBreakupCell(breakupTable, "CGST @ " + cgstRate + "%", "\u20B9" + String.format("%.2f", cgst), normal9);
+            addBreakupCell(breakupTable, "SGST @ " + sgstRate + "%", "\u20B9" + String.format("%.2f", sgst), normal9);
         }
-        addSumRow(sumTable, "Total Tax", "Rs." + String.format("%.2f", ttax), normal9);
-        addSumRow(sumTable, "TCS", "Rs." + String.format("%.2f", tcs), normal9);
-        PdfPCell totalCell = new PdfPCell(new Phrase("Total Amount", bold11));
+        addBreakupCell(breakupTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
+        addBreakupCell(breakupTable, "TCS @ " + tcsRate + "%", "\u20B9" + String.format("%.2f", tcs), normal9);
+        doc.add(breakupTable);
+
+        doc.add(new Paragraph(" "));
+
+        // Summary table
+        PdfPTable sumTable = new PdfPTable(2);
+        sumTable.setWidthPercentage(40);
+        sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+
+        addSumRow(sumTable, "Taxable Amount", "\u20B9" + String.format("%.2f", tx), normal9);
+        if (Boolean.TRUE.equals(inv.getIsInterState())) {
+            addSumRow(sumTable, "IGST", "\u20B9" + String.format("%.2f", igst), normal9);
+        } else {
+            addSumRow(sumTable, "CGST", "\u20B9" + String.format("%.2f", cgst), normal9);
+            addSumRow(sumTable, "SGST", "\u20B9" + String.format("%.2f", sgst), normal9);
+        }
+        addSumRow(sumTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
+        addSumRow(sumTable, "TCS @ " + tcsRate + "%", "\u20B9" + String.format("%.2f", tcs), normal9);
+        PdfPCell totalCell = new PdfPCell(new Phrase("Total Amount", bold12));
         totalCell.setBorder(Rectangle.TOP);
         sumTable.addCell(totalCell);
-        PdfPCell totalVal = new PdfPCell(new Phrase("Rs." + String.format("%.2f", total), bold11));
+        PdfPCell totalVal = new PdfPCell(new Phrase("\u20B9" + String.format("%.2f", total), bold12));
         totalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         totalVal.setBorder(Rectangle.TOP);
         sumTable.addCell(totalVal);
@@ -722,6 +809,7 @@ public class GstInvoiceService {
         doc.add(new Paragraph(" "));
         doc.add(new Paragraph("Amount in Words: " + numberToWordsPdf(total), bold9));
 
+        // IRN / QR section
         if (inv.getIrn() != null) {
             doc.add(new Paragraph("IRN: " + inv.getIrn(), small8));
             if (inv.getEwayBillNumber() != null) {
@@ -731,10 +819,23 @@ public class GstInvoiceService {
         }
 
         doc.add(new Paragraph(" "));
-        doc.add(new Paragraph("Declaration (Rule 46 CGST Rules, 2017): This invoice shows the actual price of the goods/services and all particulars are true and correct.", small8));
+        doc.add(new Paragraph("Declaration (Rule 46 CGST Rules, 2017): We declare that this invoice shows the actual price of the goods/services described and that all particulars are true and correct.", small8));
+        doc.add(new Paragraph("- This is a computer-generated " + (inv.getInvoiceCopyType() != null ? inv.getInvoiceCopyType().toLowerCase() : "original") + " invoice for " + (inv.getSupplyType() != null && inv.getSupplyType().equals("GOODS") ? "goods" : "services") + " as per Rule 46.", small8));
+        doc.add(new Paragraph("- " + (Boolean.TRUE.equals(inv.getIsInterState()) ? "IGST charged (inter-state supply)." : "CGST + SGST charged (intra-state supply)."), small8));
+        doc.add(new Paragraph("- HSN/SAC digits: " + (inv.getHsnDigits() != null ? inv.getHsnDigits() : 4) + ".", small8));
+        doc.add(new Paragraph("- This is a system-generated invoice and does not require a physical signature.", small8));
 
         doc.close();
         return baos.toByteArray();
+    }
+
+    private void addBreakupCell(PdfPTable table, String label, String value, Font font) {
+        PdfPCell c = new PdfPCell();
+        c.setPadding(4);
+        c.setHorizontalAlignment(Element.ALIGN_CENTER);
+        c.addElement(new Paragraph(label, new Font(Font.HELVETICA, 8)));
+        c.addElement(new Paragraph(value, font));
+        table.addCell(c);
     }
 
     private String safeStr(String s) {
