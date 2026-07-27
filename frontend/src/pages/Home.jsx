@@ -72,7 +72,7 @@ function Stars({ rating, reviews }) {
   );
 }
 
-function ProductCard({ product, onCart, adding }) {
+function ProductCard({ product, onCart, onBuyNow, adding }) {
   const navigate = useNavigate();
   return (
     <div className="sn-product-card" onClick={() => navigate(`/product/${product.id}`)}>
@@ -91,9 +91,14 @@ function ProductCard({ product, onCart, adding }) {
         </div>
         <span className="sn-delivery">{product.delivery || "Free Delivery"}</span>
       </div>
-      <button className="sn-add-cart-btn" onClick={e => { e.stopPropagation(); if (onCart) onCart(product); }} disabled={adding}>
-        {adding ? "Adding..." : "Add to Cart"}
-      </button>
+      <div className="sn-home-btns">
+        <button className="sn-add-cart-btn" onClick={e => { e.stopPropagation(); if (onCart) onCart(product); }} disabled={adding}>
+          {adding ? "Adding..." : "Add to Cart"}
+        </button>
+        <button className="sn-buy-now-btn" onClick={e => { e.stopPropagation(); if (onBuyNow) onBuyNow(product); }}>
+          Buy Now
+        </button>
+      </div>
     </div>
   );
 }
@@ -193,6 +198,17 @@ const Home = () => {
     setAddingId(null);
   }, [navigate]);
 
+  const handleBuyNow = useCallback(async (p) => {
+    const isLoggedIn = !!localStorage.getItem("accessToken");
+    if (!isLoggedIn) { navigate("/login"); return; }
+    try {
+      await addToCart(p.id, 1);
+      navigate("/checkout");
+    } catch {
+      setToast({ type: "error", text: "Failed to process Buy Now" });
+    }
+  }, [navigate]);
+
   return (
     <div className="sn-page">
       {toast && (
@@ -252,7 +268,7 @@ const Home = () => {
           </div>
           <div className="sn-product-scroll">
             {productsWithDiscount.length > 0
-              ? productsWithDiscount.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} adding={addingId === p.id} />)
+              ? productsWithDiscount.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)
               : (loading ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />) : null)}
           </div>
         </div>
@@ -296,7 +312,7 @@ const Home = () => {
             <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}</div>
           ) : normalized.length > 0 ? (
             <div className="sn-product-scroll">
-              {normalized.slice(0, 6).map(p => <ProductCard key={p.id} product={p} onCart={handleCart} adding={addingId === p.id} />)}
+              {normalized.slice(0, 6).map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)}
             </div>
           ) : (
             <div className="sn-product-scroll">
@@ -314,7 +330,7 @@ const Home = () => {
           </div>
           <div className="sn-product-scroll">
             {electronics.length > 0
-              ? electronics.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} adding={addingId === p.id} />)
+              ? electronics.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)
               : (loading ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />) : null)}
           </div>
         </div>
@@ -344,7 +360,7 @@ const Home = () => {
           </div>
           <div className="sn-product-scroll">
             {fashion.length > 0
-              ? fashion.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} adding={addingId === p.id} />)
+              ? fashion.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)
               : (loading ? [...Array(4)].map((_, i) => <SkeletonCard key={i} />) : null)}
           </div>
         </div>

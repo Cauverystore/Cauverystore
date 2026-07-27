@@ -302,6 +302,16 @@
   background: var(--color-primary-light);
 }
 
+.cart-item-action-btn.buy-now {
+  color: #fff;
+  background: var(--color-cta);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-1) var(--spacing-3);
+}
+.cart-item-action-btn.buy-now:hover {
+  background: #15803d;
+}
+
 .cart-item-mobile-price {
   display: none;
   font-size: var(--font-size-lg);

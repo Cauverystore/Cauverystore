@@ -294,6 +294,10 @@ const Cart = () => {
                           onClick={() => saveForLater(itemId)} disabled={isLoading(`save-${itemId}`)}>
                           {isLoading(`save-${itemId}`) ? "Saving..." : "Save for Later"}
                         </button>
+                        <button className="cart-item-action-btn buy-now"
+                          onClick={() => navigate("/checkout")}>
+                          Buy Now
+                        </button>
                       </div>
                     </div>
                     <div className="cart-item-desktop-price" style={{ fontSize: "1rem", fontWeight: 700, whiteSpace: "nowrap" }}>
