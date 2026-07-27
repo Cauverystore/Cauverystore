@@ -1,9 +1,8 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
+import CartItemImage from "../components/CartItemImage";
 import "../styles/orderDetail.css";
-
-const PLACEHOLDER = "/images/placeholder.svg";
 
 const STATUS_STEPS = [
   { key: "PLACED", label: "Placed" },
@@ -272,9 +271,9 @@ const OrderDetail = () => {
         marginBottom: "1.25rem"
       }}>
         <h3 style={{ fontWeight: 600, marginBottom: "1rem", fontSize: "1.05rem" }}>Order Items</h3>
-        {items.map((item, idx) => {
+        {useMemo(() => items.map((item, idx) => {
           const product = safeProduct(item);
-          const image = product.image || product.images?.[0] || item.image || PLACEHOLDER;
+          const imageSrc = product.image || product.images?.[0] || item.image || null;
           const name = product.name || item.productName || item.name || "Product";
           const price = item.price || product.price || 0;
           const qty = item.quantity || 1;
@@ -288,15 +287,9 @@ const OrderDetail = () => {
                 padding: "0.75rem 0", borderBottom: idx < items.length - 1 ? "1px solid var(--color-border-light)" : "none"
               }}
             >
-              <img
-                src={image}
-                alt={name}
-                style={{
-                  width: 72, height: 72, borderRadius: "var(--radius-sm)",
-                  objectFit: "cover", background: "var(--color-bg-secondary)"
-                }}
-                onError={(e) => { e.target.src = PLACEHOLDER; }}
-              />
+              <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--color-bg-secondary)" }}>
+                <CartItemImage src={imageSrc} name={name} width={72} height={72} />
+              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 500, fontSize: "0.95rem" }}>{name}</div>
                 {item.variantName && (
@@ -313,7 +306,7 @@ const OrderDetail = () => {
               </div>
             </div>
           );
-        })}
+        }), [items])}
       </div>
 
       {/* Order summary */}

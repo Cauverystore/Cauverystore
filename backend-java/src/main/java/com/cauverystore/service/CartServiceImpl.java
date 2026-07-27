@@ -185,6 +185,10 @@ public class CartServiceImpl implements CartService {
         product.put("name", p.getName());
         product.put("price", p.getPrice());
         product.put("brand", p.getBrand());
+        product.put("color", p.getColor());
+        product.put("size", p.getSize());
+        product.put("material", p.getMaterial());
+        product.put("weight", p.getWeight());
         product.put("stock", p.getStock());
         product.put("description", p.getDescription());
         product.put("image", (p.getImages() != null && !p.getImages().isEmpty())

@@ -180,7 +180,7 @@ export const AuthProvider = ({ children }) => {
       if (savedAccessToken && !isTokenExpired(savedAccessToken)) {
         setToken(savedAccessToken);
         setRefreshTokenValue(savedRefreshToken);
-        setUser(savedUser ? JSON.parse(savedUser) : null);
+        try { setUser(savedUser ? JSON.parse(savedUser) : null); } catch { setUser(null); }
         setRole(savedRole);
         setIsAuthenticated(true);
         setLastActivity(Date.now());
@@ -193,7 +193,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem(STORAGE_KEYS.refreshToken, newRefresh);
             setToken(newAccess);
             setRefreshTokenValue(newRefresh);
-            setUser(savedUser ? JSON.parse(savedUser) : null);
+            try { setUser(savedUser ? JSON.parse(savedUser) : null); } catch { setUser(null); }
             setRole(savedRole);
             setIsAuthenticated(true);
             setLastActivity(Date.now());

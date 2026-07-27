@@ -118,6 +118,16 @@ const Cart = () => {
     setAction(key, false);
   };
 
+  const buyNowFreq = async (productId) => {
+    try {
+      await api.post(`/api/cart/add?productId=${productId}&quantity=1`);
+      navigate("/checkout");
+    } catch (err) {
+                void err;
+      setError("Failed to process Buy Now. Please try again.");
+    }
+  };
+
   const applyCoupon = async () => {
     if (!promoCode.trim()) return;
     setPromoMsg(null);
@@ -177,7 +187,7 @@ const Cart = () => {
 
   const renderStockStatus = (product) => {
     if (product.stockStatus) {
-      const color = product.stockStatus === "Out of Stock" ? "#dc2626"
+      const color = product.stockStatus === "Out of Stock" ? "#94a3b8"
         : product.stockStatus.includes("Only") ? "#d97706" : "#16a34a";
       return <span style={{ color, fontSize: "0.8rem", fontWeight: 500 }}>{product.stockStatus}</span>;
     }
@@ -208,9 +218,9 @@ const Cart = () => {
       </div>
 
       {error && (
-        <div className="cart-summary-coupon-applied" style={{ gridColumn: "1 / -1", background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca", justifyContent: "space-between" }}>
+        <div className="cart-summary-coupon-applied" style={{ gridColumn: "1 / -1", justifyContent: "space-between" }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "1.1rem", fontWeight: 700 }}>&times;</button>
+          <button onClick={() => setError(null)} className="cart-summary-coupon-remove">&times;</button>
         </div>
       )}
           {/* ─── LEFT COLUMN: Cart items → Checkout → Continue → Freq Bought ─── */}
@@ -254,6 +264,13 @@ const Cart = () => {
                     <div className="cart-item-info">
                       {product.brand && <div className="cart-item-brand">{product.brand}</div>}
                       <div className="cart-item-title">{product.name || "Product"}</div>
+                      <div className="cart-item-attrs">
+                        <div className="cart-item-attr"><span className="cart-item-attr-label">Brand</span><span className="cart-item-attr-value">{product.brand || "Not specified"}</span></div>
+                        <div className="cart-item-attr"><span className="cart-item-attr-label">Color</span><span className="cart-item-attr-value">{product.color || "Not specified"}</span></div>
+                        <div className="cart-item-attr"><span className="cart-item-attr-label">Size</span><span className="cart-item-attr-value">{product.size || "Not specified"}</span></div>
+                        <div className="cart-item-attr"><span className="cart-item-attr-label">Material</span><span className="cart-item-attr-value">{product.material || "Not specified"}</span></div>
+                        <div className="cart-item-attr"><span className="cart-item-attr-label">Weight</span><span className="cart-item-attr-value">{product.weight ? `${product.weight} g` : "Not specified"}</span></div>
+                      </div>
                       {item.variantName && <div className="cart-item-variant">{item.variantName}</div>}
                       <div>
                         <span className="cart-item-price">&#8377;{price.toFixed(2)}</span>
@@ -296,7 +313,7 @@ const Cart = () => {
             </button>
 
             <div style={{ marginTop: "0.75rem" }}>
-              <Link to="/products" className="cart-empty-cta" style={{ background: "transparent", color: "var(--color-primary)", padding: "0.5rem 0" }}>
+              <Link to="/products" className="cart-continue-link">
                 &larr; Continue Shopping
               </Link>
             </div>
@@ -348,10 +365,16 @@ const Cart = () => {
                         <div className="save-later-item-body">
                           <div className="save-later-item-title">{prod.name}</div>
                           <div className="save-later-item-price">&#8377;{(prod.price || prod.dealPrice || 0).toFixed(2)}</div>
-                          <button className="save-later-item-move" onClick={() => addFreqToCart(pid)}
-                            disabled={isLoading(`freq-${pid}`)}>
-                            {isLoading(`freq-${pid}`) ? "Adding..." : "Add to Cart"}
-                          </button>
+                          <div style={{ display: "flex", gap: "4px", marginTop: "0.5rem" }}>
+                            <button className="save-later-item-move" onClick={() => addFreqToCart(pid)}
+                              disabled={isLoading(`freq-${pid}`)} style={{ flex: 1, fontSize: "0.72rem" }}>
+                              {isLoading(`freq-${pid}`) ? "Adding..." : "Add to Cart"}
+                            </button>
+                            <button className="save-later-item-move" onClick={() => buyNowFreq(pid)}
+                              disabled={isLoading(`freq-${pid}`)} style={{ flex: 1, fontSize: "0.72rem" }}>
+                              Buy Now
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -410,11 +433,11 @@ const Cart = () => {
               {!appliedCoupon ? (
                 <button className="cart-summary-coupon-btn" onClick={applyCoupon}>Apply</button>
               ) : (
-                <button className="cart-summary-coupon-btn" onClick={removeCoupon} style={{ background: "#dc2626" }}>Remove</button>
+                <button className="cart-summary-coupon-btn cart-summary-coupon-remove" onClick={removeCoupon}>Remove</button>
               )}
             </div>
             {promoMsg && (
-              <div style={{ fontSize: "0.8rem", marginBottom: "0.75rem", color: promoMsg.type === "success" ? "#16a34a" : "#dc2626" }}>
+              <div style={{ fontSize: "0.8rem", marginBottom: "0.75rem", color: promoMsg.type === "success" ? "#16a34a" : "#92400e" }}>
                 {promoMsg.text}
               </div>
             )}

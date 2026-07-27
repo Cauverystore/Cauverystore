@@ -176,6 +176,27 @@
   color: var(--color-text-secondary);
 }
 
+.cart-item-attrs {
+  display: grid;
+  grid-template-columns: minmax(80px, auto) 1fr;
+  gap: 2px 12px;
+  font-size: 0.8rem;
+  margin: 4px 0;
+}
+
+.cart-item-attr {
+  display: contents;
+}
+
+.cart-item-attr-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.cart-item-attr-value {
+  color: #1e293b;
+}
+
 .cart-item-price {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
@@ -269,8 +290,11 @@
 }
 
 .cart-item-action-btn.delete:hover {
-  color: var(--color-error);
-  background: var(--color-error-light);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+.cart-item-action-btn:active {
+  opacity: 0.8;
 }
 
 .cart-item-action-btn.save:hover {
@@ -385,7 +409,7 @@
   width: 100%;
   padding: 0.9rem 1.5rem;
   background: var(--color-cta);
-  color: #fff;
+  color: var(--white);
   border: none;
   border-radius: var(--radius-lg);
   font-size: 1rem;
@@ -406,7 +430,9 @@
 }
 
 .cart-checkout-btn:active {
+  background: var(--color-cta);
   transform: translateY(0);
+  opacity: 0.9;
 }
 
 /* ─── Cart Summary Sidebar ─── */
@@ -522,6 +548,10 @@
 .cart-summary-coupon-btn:hover {
   background: var(--color-primary-hover);
 }
+.cart-summary-coupon-btn:active {
+  background: var(--color-primary);
+  opacity: 0.85;
+}
 
 .cart-summary-coupon-btn:disabled {
   opacity: 0.5;
@@ -542,18 +572,25 @@
 }
 
 .cart-summary-coupon-remove {
-  color: var(--color-error);
+  color: #16a34a !important;
   cursor: pointer;
-  border: none;
-  background: none;
+  border: none !important;
+  background: none !important;
   font-size: var(--font-size-base);
+  transition: opacity var(--transition-fast);
+}
+.cart-summary-coupon-remove:hover {
+  opacity: 0.75 !important;
+}
+.cart-summary-coupon-remove:active {
+  opacity: 0.6 !important;
 }
 
 .cart-summary-checkout {
   width: 100%;
   padding: var(--spacing-3);
   background: var(--color-cta);
-  color: #fff;
+  color: var(--white);
   border: none;
   border-radius: var(--radius-lg);
   font-size: var(--font-size-base);
@@ -573,7 +610,9 @@
 }
 
 .cart-summary-checkout:active {
+  background: var(--color-cta);
   transform: translateY(0);
+  opacity: 0.9;
 }
 
 .cart-summary-checkout:disabled {
@@ -643,6 +682,61 @@
 
 .cart-empty-cta:hover {
   background: var(--color-cta-hover);
+}
+
+/* ─── ENFORCED GREEN THEME for all cart buttons ─── */
+/* Uses explicit green hex values + !important to override any CSS var, inline, or legacy style */
+.cart-checkout-btn,
+.cart-summary-checkout,
+.cart-summary-coupon-btn,
+.cart-summary-coupon-remove,
+.cart-empty-cta,
+.cart-btn,
+.save-later-item-move,
+.cart-item-action-btn.delete:hover,
+.cart-item-action-btn.save:hover {
+  background: #16a34a !important;
+  color: #fff !important;
+  border-color: #16a34a !important;
+}
+.cart-checkout-btn:hover,
+.cart-summary-checkout:hover,
+.cart-summary-coupon-btn:hover,
+.cart-empty-cta:hover,
+.cart-btn:hover,
+.save-later-item-move:hover {
+  background: #15803d !important;
+  color: #fff !important;
+  border-color: #15803d !important;
+}
+.cart-checkout-btn:active,
+.cart-summary-checkout:active,
+.cart-summary-coupon-btn:active,
+.cart-empty-cta:active,
+.cart-btn:active,
+.save-later-item-move:active {
+  background: #166534 !important;
+  color: #fff !important;
+  border-color: #166534 !important;
+}
+
+.cart-continue-link {
+  background: none !important;
+  border: none !important;
+  color: var(--color-primary, #16a34a) !important;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: 0.5rem 0;
+  text-decoration: none;
+  display: inline-block;
+  transition: opacity var(--transition-fast);
+}
+.cart-continue-link:hover {
+  opacity: 0.75 !important;
+}
+.cart-continue-link:active {
+  opacity: 0.6 !important;
 }
 
 /* ─── Trust badges in cart summary ─── */

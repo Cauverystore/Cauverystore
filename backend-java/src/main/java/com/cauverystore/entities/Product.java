@@ -25,6 +25,9 @@ public class Product extends BaseEntity {
     private String manufacturer;
     private String modelNumber;
     private String barcode;
+    private String color;
+    private String size;
+    private String material;
     private String subCategory;
     private Long collectionId;
     @ElementCollection
@@ -160,6 +163,21 @@ public class Product extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public String getBarcode() {
         return this.barcode;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getColor() {
+        return this.color;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getSize() {
+        return this.size;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getMaterial() {
+        return this.material;
     }
 
     @java.lang.SuppressWarnings("all")
@@ -370,6 +388,21 @@ public class Product extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setBarcode(final String barcode) {
         this.barcode = barcode;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setColor(final String color) {
+        this.color = color;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setSize(final String size) {
+        this.size = size;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setMaterial(final String material) {
+        this.material = material;
     }
 
     @java.lang.SuppressWarnings("all")

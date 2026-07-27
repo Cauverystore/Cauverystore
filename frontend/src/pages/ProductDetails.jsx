@@ -107,17 +107,18 @@ const ProductDetails = () => {
         ...(categoryName ? [{ label: categoryName, to: `/category/${encodeURIComponent(categoryName)}` }] : []),
         { label: product.name }
       ]} />
-      <div className="product-image-section">
-        <img className="product-main-image" src={toUrl(product.images?.[selectedImage]) || product.image || "/images/placeholder.svg"} alt={product.name} width="400" height="400" />
-        {(product.images || []).length > 1 && (
-          <div className="product-thumbnails">
-            {product.images.map((img, i) => (
-              <img key={i} src={toUrl(img)} alt="" width="60" height="60" className={i === selectedImage ? "active" : ""} onClick={() => setSelectedImage(i)} />
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="product-info-section">
+      <div className="pd-main">
+        <div className="product-image-section">
+          <img className="product-main-image" src={toUrl(product.images?.[selectedImage]) || product.image || "/images/placeholder.svg"} alt={product.name} width="400" height="400" />
+          {(product.images || []).length > 1 && (
+            <div className="product-thumbnails">
+              {product.images.map((img, i) => (
+                <img key={i} src={toUrl(img)} alt="" width="60" height="60" className={i === selectedImage ? "active" : ""} onClick={() => setSelectedImage(i)} />
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="product-info-section">
         <h1>{product.name}</h1>
         {product.rating && <div className="rating-row">{'★'.repeat(Math.round(product.rating))} {product.rating} ({product.reviewCount || 0} reviews)</div>}
         <div className="price-block">
@@ -173,6 +174,8 @@ const ProductDetails = () => {
           </div>
         )}
       </div>
+
+      </div>{/* .pd-main */}
 
       {cartMsg && (
         <div style={{ position: "fixed", bottom: "2rem", right: "2rem", zIndex: 9999, background: "var(--color-primary, #16a34a)", color: "#fff", padding: "0.75rem 1.25rem", borderRadius: "10px", fontWeight: 600, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>

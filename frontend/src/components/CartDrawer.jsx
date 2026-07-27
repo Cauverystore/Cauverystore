@@ -83,6 +83,12 @@ const CartDrawer = ({ open, onClose }) => {
                   <div className="cart-drawer-item-info">
                     <p className="cart-drawer-item-name">{name}</p>
                     <p className="cart-drawer-item-price">{"\u20B9"}{(price * qty).toLocaleString()}</p>
+                    <div className="cd-attrs">
+                      {product.color && <span className="cd-attr">Color: {product.color}</span>}
+                      {product.size && <span className="cd-attr">Size: {product.size}</span>}
+                      {product.material && <span className="cd-attr">Material: {product.material}</span>}
+                      {product.weight && <span className="cd-attr">Weight: {product.weight}g</span>}
+                    </div>
                     <div className="cart-drawer-item-qty">
                       <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty - 1)} disabled={qty <= 1}><Minus size={14} /></button>
                       <span>{qty}</span>
@@ -110,6 +116,8 @@ const CartDrawer = ({ open, onClose }) => {
       </div>
 
       <style>{`
+        .cd-attrs { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
+        .cd-attr { font-size: 0.72rem; color: #64748b; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; }
         .cart-drawer-overlay {
           position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; opacity: 1; transition: opacity 0.2s;
         }
@@ -131,9 +139,11 @@ const CartDrawer = ({ open, onClose }) => {
         .cart-drawer-empty svg { margin-bottom: 1rem; }
         .cart-drawer-empty p { margin: 0 0 1rem; }
         .cart-drawer-shop-btn {
-          padding: 0.6rem 1.5rem; background: var(--color-primary, #16a34a); color: #fff; border: none;
+          padding: 0.6rem 1.5rem; background: #16a34a !important; color: #fff !important; border: none !important;
           border-radius: 8px; font-weight: 600; cursor: pointer;
         }
+        .cart-drawer-shop-btn:hover { background: #15803d !important; color: #fff !important; }
+        .cart-drawer-shop-btn:active { background: #166534 !important; color: #fff !important; }
         .cart-drawer-item { display: flex; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9; }
         .cart-drawer-item-img { border-radius: 8px; object-fit: cover; flex-shrink: 0; width: 60px; height: 60px; }
         .cart-drawer-item-img-placeholder {
@@ -154,8 +164,10 @@ const CartDrawer = ({ open, onClose }) => {
         .cart-drawer-qty-btn:hover:not(:disabled) { background: #f1f5f9; }
         .cart-drawer-item-qty span { font-size: 0.85rem; font-weight: 600; min-width: 20px; text-align: center; }
         .cart-drawer-remove-btn {
-          background: none; border: none; color: #ef4444; cursor: pointer; padding: 0.25rem; align-self: flex-start; flex-shrink: 0;
+          background: none; border: none; color: #16a34a !important; cursor: pointer; padding: 0.25rem; align-self: flex-start; flex-shrink: 0;
         }
+        .cart-drawer-remove-btn:hover { color: #15803d !important; background: #f0fdf4; border-radius: 4px; }
+        .cart-drawer-remove-btn:active { color: #166534 !important; background: #dcfce7; border-radius: 4px; }
         .cart-drawer-footer {
           border-top: 1px solid #e2e8f0; padding: 1rem 1.25rem; flex-shrink: 0;
         }
@@ -163,10 +175,10 @@ const CartDrawer = ({ open, onClose }) => {
           display: flex; justify-content: space-between; font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;
         }
         .cart-drawer-checkout-btn {
-          width: 100%; padding: 0.75rem; background: var(--color-primary, #16a34a); color: #fff; border: none;
-          border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+          width: 100%; padding: 0.75rem; background: #16a34a !important; color: #fff !important; border: none !important;
         }
-        .cart-drawer-checkout-btn:hover { opacity: 0.9; }
+        .cart-drawer-checkout-btn:hover { background: #15803d !important; color: #fff !important; opacity: 0.95; }
+        .cart-drawer-checkout-btn:active { background: #166534 !important; color: #fff !important; opacity: 0.9; }
         @media (max-width: 480px) {
           .cart-drawer { width: 100%; }
         }

@@ -29,9 +29,9 @@
   --color-primary-text: #ffffff;
 
   /* --- CTA (buttons / interactive) --- */
-  --color-cta: #D93A2A;
-  --color-cta-hover: #c23324;
-  --color-cta-active: #a82b1e;
+  --color-cta: #16a34a;
+  --color-cta-hover: #15803d;
+  --color-cta-active: #166534;
 
   /* --- Accent / Semantic --- */
   --color-accent-gold: #C8A24B;

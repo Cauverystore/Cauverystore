@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import api from "../api/axios";
 import Pagination from "../components/Pagination";
 import { useNavigate } from "react-router-dom";
@@ -65,6 +65,8 @@ const SellerProducts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [selected, setSelected] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const mountedRef = useRef(true);
+  const initialFetchDone = useRef(false);
 
   const [categories, setCategories] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -80,6 +82,11 @@ const SellerProducts = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -89,15 +96,27 @@ const SellerProducts = () => {
       if (stockStatusFilter) params.stockStatus = stockStatusFilter;
       if (dateAddedFilter) params.dateAdded = dateAddedFilter;
       const res = await api.get("/api/seller/products", { params });
-      setProducts(res.data.content || res.data || []);
-      setTotalPages(res.data.totalPages || 1);
+      if (!mountedRef.current) return;
+      const data = res.data;
+      setProducts(Array.isArray(data.content) ? data.content : Array.isArray(data) ? data : []);
+      setTotalPages(data.totalPages || 1);
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(err.response?.data?.error || "Failed to load products");
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   }, [page, categoryFilter, stockStatusFilter, dateAddedFilter]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  // Auto-refresh when page gains focus (bulk upload may have happened in another tab)
+  useEffect(() => {
+    const onFocus = () => { if (initialFetchDone.current) fetchProducts(); };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [fetchProducts]);
+
+  useEffect(() => { initialFetchDone.current = true; }, [products]);
 
   const toggleSelect = (id) => setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
@@ -180,8 +199,9 @@ const SellerProducts = () => {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.5rem" }}>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>My Products</h1>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <button style={{ ...btnBase, background: "#f3f4f6", color: "#374151" }} onClick={fetchProducts}>&#8635; Refresh</button>
           <a
-            href="http://localhost:9091/api/seller/template.xlsx"
+            href={`${api.defaults.baseURL || "http://localhost:9091"}/api/seller/template.xlsx`}
             style={{ ...btnBase, background: "#f3f4f6", color: "#374151", textDecoration: "none", fontSize: "0.8rem" }}
           >
             Upload Template
@@ -227,7 +247,7 @@ const SellerProducts = () => {
         </div>
       )}
 
-      {selected.length > 0 && (
+      {(!loading && products.length > 0 && selected.length > 0) && (
         <div style={{ marginBottom: "1rem" }}>
           <button
             style={{ ...btnBase, background: "#ef4444", color: "#fff" }}
@@ -239,7 +259,7 @@ const SellerProducts = () => {
         </div>
       )}
 
-      {products.length === 0 ? (
+      {!loading && products.length === 0 ? (
         <div style={{ textAlign: "center", padding: "3rem 1rem", background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
           <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>📦</div>
           <p style={{ color: "#6b7280", marginBottom: "1rem" }}>No products yet. Start by adding your first product.</p>

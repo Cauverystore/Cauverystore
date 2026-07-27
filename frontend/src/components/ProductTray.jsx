@@ -60,6 +60,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
   const navigate = useNavigate();
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const imgErrorFixed = React.useRef(false);
   const [wishlisted, setWishlisted] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -138,7 +139,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
           className={`pt-image ${imgLoaded ? "loaded" : ""}`}
           loading="lazy"
           onLoad={() => setImgLoaded(true)}
-          onError={(e) => { setImgError(true); e.target.src = PLACEHOLDER; }}
+          onError={(e) => { if (imgErrorFixed.current) return; imgErrorFixed.current = true; setImgError(true); e.target.src = PLACEHOLDER; }}
         />
         {badge && <span className="pt-badge">{badge}</span>}
         {discount > 0 && !badge && <span className="pt-badge pt-badge-discount">{discount}% OFF</span>}
