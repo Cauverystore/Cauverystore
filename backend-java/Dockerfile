@@ -8,7 +8,4 @@ RUN mvn package -Dmaven.test.skip=true
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
-EXPOSE 9091
-ENTRYPOINT ["./entrypoint.sh"]
+CMD ["java", "-jar", "app.jar"]
