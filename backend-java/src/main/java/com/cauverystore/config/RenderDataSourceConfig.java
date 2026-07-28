@@ -4,21 +4,37 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class RenderDataSourceConfig {
+    private static final Logger log = LoggerFactory.getLogger(RenderDataSourceConfig.class);
 
     @Bean
     @Primary
     public DataSource dataSource() {
-        System.out.println("=== RenderDataSourceConfig: Checking env vars ===");
-        System.out.println("PGHOST='"+ System.getenv("PGHOST") + "'");
-        System.out.println("DATABASE_URL='"+ System.getenv("DATABASE_URL") + "'");
-        System.out.println("PGPORT='"+ System.getenv("PGPORT") + "'");
+        log.info("=== RenderDataSourceConfig: Checking env vars ===");
+        log.info("PGHOST='{}'", System.getenv("PGHOST"));
+        log.info("DATABASE_URL='{}'", System.getenv("DATABASE_URL"));
+        log.info("PGPORT='{}'", System.getenv("PGPORT"));
+        log.info("SPRING_DATASOURCE_URL='{}'", System.getenv("SPRING_DATASOURCE_URL"));
+        log.info("PGDATABASE='{}'", System.getenv("PGDATABASE"));
+        log.info("PGUSER='{}'", System.getenv("PGUSER"));
+
+        log.info("=== All env vars with 'RAILWAY', 'POSTGRES', 'DATABASE', 'PG', 'SPRING' ===");
+        for (Map.Entry<String, String> e : System.getenv().entrySet()) {
+            String k = e.getKey().toUpperCase();
+            if (k.contains("RAILWAY") || k.contains("POSTGRES") || k.contains("DATABASE") || k.contains("PG") || k.contains("SPRING")) {
+                log.info("  {}={}", e.getKey(), e.getValue());
+            }
+        }
+
         String pghost = System.getenv("PGHOST");
         if (pghost != null && !pghost.isBlank()) {
             String pgport = System.getenv("PGPORT");
@@ -65,8 +81,7 @@ public class RenderDataSourceConfig {
             jdbcUrl = rawUrl.startsWith("jdbc:") ? rawUrl : "jdbc:" + rawUrl;
         }
 
-        System.out.println("=== RenderDataSourceConfig: Using JDBC URL = " + jdbcUrl);
-        System.out.println("=== RenderDataSourceConfig: Username = " + (username != null ? username : "postgres"));
+        log.info("=== RenderDataSourceConfig: Using JDBC URL = {} ===", jdbcUrl);
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(jdbcUrl);
         config.setUsername(username != null ? username : "postgres");
