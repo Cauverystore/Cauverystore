@@ -15,6 +15,20 @@ public class RenderDataSourceConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
+        String pghost = System.getenv("PGHOST");
+        if (pghost != null && !pghost.isBlank()) {
+            String pgport = System.getenv("PGPORT");
+            String pgdatabase = System.getenv("PGDATABASE");
+            String pguser = System.getenv("PGUSER");
+            String pgpassword = System.getenv("PGPASSWORD");
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl("jdbc:postgresql://" + pghost + ":" + (pgport != null ? pgport : "5432") + "/" + (pgdatabase != null ? pgdatabase : "cauverystore") + "?sslmode=require");
+            config.setUsername(pguser != null ? pguser : "postgres");
+            config.setPassword(pgpassword != null ? pgpassword : "admin123");
+            config.setDriverClassName("org.postgresql.Driver");
+            return new HikariDataSource(config);
+        }
+
         String rawUrl = System.getenv("SPRING_DATASOURCE_URL");
         if (rawUrl == null || rawUrl.isBlank()) {
             rawUrl = System.getenv("DATABASE_URL");
