@@ -17,6 +17,13 @@ public class DatabaseConfig {
             @Value("${spring.datasource.password:admin123}") String password) {
 
         String databaseUrl = System.getenv("DATABASE_URL");
+        String springDatasourceUrl = System.getenv("SPRING_DATASOURCE_URL");
+        if (springDatasourceUrl != null && !springDatasourceUrl.isEmpty()) {
+            return DataSourceBuilder.create()
+                .url(springDatasourceUrl)
+                .driverClassName("org.postgresql.Driver")
+                .build();
+        }
         if (databaseUrl != null && !databaseUrl.isEmpty()) {
             return DataSourceBuilder.create()
                 .url("jdbc:" + databaseUrl)
