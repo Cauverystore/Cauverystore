@@ -61,9 +61,10 @@ public class RenderDataSourceConfig {
         String password = System.getenv("SPRING_DATASOURCE_PASSWORD");
         String jdbcUrl;
 
-        if (rawUrl.startsWith("postgres") && !rawUrl.startsWith("jdbc:")) {
+        if (rawUrl.startsWith("postgres") || rawUrl.startsWith("jdbc:postgresql")) {
             try {
-                URI uri = new URI(rawUrl.startsWith("jdbc:") ? rawUrl.substring(5) : rawUrl);
+                String uriStr = rawUrl.startsWith("jdbc:") ? rawUrl.substring(5) : rawUrl;
+                URI uri = new URI(uriStr);
                 String host = uri.getHost();
                 int port = uri.getPort();
                 String path = uri.getPath();
@@ -75,7 +76,13 @@ public class RenderDataSourceConfig {
                 }
                 jdbcUrl = "jdbc:postgresql://" + host + (port > 0 ? ":" + port : ":5432") + "/" + db + "?sslmode=require";
             } catch (URISyntaxException e) {
-                jdbcUrl = "jdbc:postgresql://localhost:5432/cauverystore";
+                log.warn("Failed to parse URL '{}', using fallback", rawUrl, e);
+                String host = System.getenv("PGHOST") != null ? System.getenv("PGHOST") : "localhost";
+                String port = System.getenv("PGPORT") != null ? System.getenv("PGPORT") : "5432";
+                String db = System.getenv("PGDATABASE") != null ? System.getenv("PGDATABASE") : "cauverystore";
+                jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + db + "?sslmode=require";
+                if (username == null) username = System.getenv("PGUSER");
+                if (password == null) password = System.getenv("PGPASSWORD");
             }
         } else {
             jdbcUrl = rawUrl.startsWith("jdbc:") ? rawUrl : "jdbc:" + rawUrl;
@@ -85,7 +92,7 @@ public class RenderDataSourceConfig {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(jdbcUrl);
         config.setUsername(username != null ? username : "postgres");
-        config.setPassword(password != null ? password : "admin123");
+        config.setPassword(password != null ? password : "");
         config.setDriverClassName("org.postgresql.Driver");
         return new HikariDataSource(config);
     }
