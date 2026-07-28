@@ -15,6 +15,10 @@ public class RenderDataSourceConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
+        System.out.println("=== RenderDataSourceConfig: Checking env vars ===");
+        System.out.println("PGHOST='"+ System.getenv("PGHOST") + "'");
+        System.out.println("DATABASE_URL='"+ System.getenv("DATABASE_URL") + "'");
+        System.out.println("PGPORT='"+ System.getenv("PGPORT") + "'");
         String pghost = System.getenv("PGHOST");
         if (pghost != null && !pghost.isBlank()) {
             String pgport = System.getenv("PGPORT");
@@ -53,7 +57,7 @@ public class RenderDataSourceConfig {
                     username = parts[0];
                     if (parts.length > 1) password = parts[1];
                 }
-                jdbcUrl = "jdbc:postgresql://" + host + (port > 0 ? ":" + port : ":5432") + "/" + db;
+                jdbcUrl = "jdbc:postgresql://" + host + (port > 0 ? ":" + port : ":5432") + "/" + db + "?sslmode=require";
             } catch (URISyntaxException e) {
                 jdbcUrl = "jdbc:postgresql://localhost:5432/cauverystore";
             }
@@ -61,6 +65,8 @@ public class RenderDataSourceConfig {
             jdbcUrl = rawUrl.startsWith("jdbc:") ? rawUrl : "jdbc:" + rawUrl;
         }
 
+        System.out.println("=== RenderDataSourceConfig: Using JDBC URL = " + jdbcUrl);
+        System.out.println("=== RenderDataSourceConfig: Username = " + (username != null ? username : "postgres"));
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(jdbcUrl);
         config.setUsername(username != null ? username : "postgres");
