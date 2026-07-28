@@ -4,7 +4,7 @@
     "buildCommand": "cd backend-java && mvn clean package -DskipTests"
   },
   "deploy": {
-    "startCommand": "java -jar backend-java/target/backend-java-1.0.0.jar",
+    "startCommand": "java -jar app.jar",
     "healthcheckPath": "/"
   }
 }
