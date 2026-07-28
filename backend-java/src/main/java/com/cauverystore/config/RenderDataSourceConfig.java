@@ -17,6 +17,9 @@ public class RenderDataSourceConfig {
     public DataSource dataSource() {
         String rawUrl = System.getenv("SPRING_DATASOURCE_URL");
         if (rawUrl == null || rawUrl.isBlank()) {
+            rawUrl = System.getenv("DATABASE_URL");
+        }
+        if (rawUrl == null || rawUrl.isBlank()) {
             rawUrl = "postgresql://localhost:5432/cauverystore";
         }
 
