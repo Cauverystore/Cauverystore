@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/login").permitAll()
                 .requestMatchers("/api/super-admin/login").permitAll()
                 .requestMatchers("/api/executive/login").permitAll()
+                .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/otp/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()

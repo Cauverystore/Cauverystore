@@ -5,6 +5,6 @@
   },
   "deploy": {
     "startCommand": "java -jar app.jar",
-    "healthcheckPath": "/"
+    "healthcheckPath": "/api/health"
   }
 }
