@@ -154,28 +154,28 @@ SCSS:
   margin-bottom: 2rem;
 }
 
-.btn-buy-now {
-  flex: 1;
-  padding: 0.75rem;
-  background: var(--color-warning, #f97316);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
+.btn-buy-now,
 .btn-add-cart {
   flex: 1;
-  padding: 0.75rem;
-  background: var(--color-primary);
+  padding: 0.75rem 1.5rem;
+  background: #16a34a;
   color: #fff;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.btn-buy-now:hover,
+.btn-add-cart:hover {
+  background: #15803d;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.btn-buy-now:active,
+.btn-add-cart:active {
+  background: #166534;
+  transform: translateY(0);
 }
 
 .reviews-section, .qna-section {
