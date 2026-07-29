@@ -170,7 +170,7 @@
 .btn-add-cart {
   flex: 1;
   padding: 0.75rem 1.5rem;
-  background: #16a34a !important;
+  background: var(--color-cta) !important;
   color: #fff !important;
   border: none !important;
   border-radius: 10px;
@@ -181,13 +181,13 @@
 }
 .btn-buy-now:hover,
 .btn-add-cart:hover {
-  background: #15803d !important;
+  background: var(--color-cta-hover) !important;
   color: #fff !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 .btn-buy-now:active,
 .btn-add-cart:active {
-  background: #166534 !important;
+  background: var(--color-cta-active) !important;
   color: #fff !important;
   transform: translateY(0);
 }

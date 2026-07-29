@@ -158,7 +158,7 @@ SCSS:
 .btn-add-cart {
   flex: 1;
   padding: 0.75rem 1.5rem;
-  background: #16a34a;
+  background: var(--color-cta);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -169,12 +169,12 @@ SCSS:
 }
 .btn-buy-now:hover,
 .btn-add-cart:hover {
-  background: #15803d;
+  background: var(--color-cta-hover);
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 .btn-buy-now:active,
 .btn-add-cart:active {
-  background: #166534;
+  background: var(--color-cta-active);
   transform: translateY(0);
 }
 

@@ -138,7 +138,7 @@ SCSS:
 .add-to-cart-btn {
   width: 100%;
   padding: 0.5rem;
-  background: #16a34a;
+  background: var(--color-cta);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -149,7 +149,7 @@ SCSS:
 }
 
 .add-to-cart-btn:hover {
-  background: #15803d;
+  background: var(--color-cta-hover);
 }
 
 .add-to-cart-btn:disabled {
