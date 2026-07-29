@@ -370,7 +370,7 @@
 
 .pt-btn-cart:hover:not(:disabled) {
   background: var(--color-cta-hover);
-  box-shadow: 0 2px 8px rgba(217, 58, 42, 0.3);
+  box-shadow: 0 2px 8px rgba(14, 92, 92, 0.2);
 }
 
 .pt-btn-cart:active:not(:disabled) {
@@ -384,7 +384,7 @@
 
 .pt-btn-buy:hover:not(:disabled) {
   background: var(--color-cta-hover);
-  box-shadow: 0 2px 8px rgba(217, 58, 42, 0.3);
+  box-shadow: 0 2px 8px rgba(14, 92, 92, 0.2);
 }
 
 .pt-btn-buy:active:not(:disabled) {

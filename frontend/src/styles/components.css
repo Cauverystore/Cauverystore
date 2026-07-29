@@ -695,12 +695,12 @@
 }
 
 .btn-danger {
-  background: var(--color-error);
+  background: var(--color-primary);
   color: var(--white);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--color-primary-hover);
 }
 
 .btn-ghost {

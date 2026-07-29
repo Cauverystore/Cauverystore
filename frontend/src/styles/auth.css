@@ -387,9 +387,9 @@
 }
 
 .auth-alert.error {
-  background: var(--color-error-light);
-  color: var(--color-error);
-  border: 1px solid #fecaca;
+  background: var(--color-error-bg);
+  color: var(--color-primary);
+  border: 1px solid var(--color-error-light);
 }
 
 .auth-alert.success {

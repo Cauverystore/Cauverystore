@@ -90,8 +90,8 @@
 }
 
 .discount-tag {
-  background: #fef2f2;
-  color: var(--color-error);
+  background: var(--color-warning-bg);
+  color: var(--color-primary);
   padding: 0.15rem 0.5rem;
   border-radius: 6px;
   font-size: 0.8rem;

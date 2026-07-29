@@ -128,7 +128,7 @@
   font-weight: 600;
   color: #334155;
 }
-.reg-field label .required { color: #dc2626; margin-left: 2px; }
+.reg-field label .required { color: var(--color-primary); margin-left: 2px; }
 .reg-field input,
 .reg-field select,
 .reg-field textarea {
@@ -208,7 +208,7 @@
 }
 .reg-doc-card:hover { border-color: #0E5C5C; background: #f8fafc; }
 .reg-doc-card.uploaded { border-style: solid; border-color: #bbf7d0; background: #f0fdf4; }
-.reg-doc-card.rejected { border-style: solid; border-color: #fecaca; background: #fef2f2; }
+.reg-doc-card.rejected { border-style: solid; border-color: var(--color-error-light); background: var(--color-error-bg); }
 .reg-doc-icon { margin-bottom: 0.5rem; color: #94a3b8; }
 .reg-doc-card.uploaded .reg-doc-icon { color: #16a34a; }
 .reg-doc-card h4 { font-size: 0.9rem; font-weight: 600; color: #0f172a; margin: 0 0 0.25rem; }
@@ -216,7 +216,7 @@
 .reg-doc-status { font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; }
 .reg-doc-status.verified { background: #dcfce7; color: #166534; }
 .reg-doc-status.pending { background: #fef9c3; color: #854d0e; }
-.reg-doc-status.rejected { background: #fee2e2; color: #991b1b; }
+.reg-doc-status.rejected { background: var(--color-error-bg); color: var(--color-primary); }
 .reg-doc-file-input { display: none; }
 
 /* ─── Compliance Checklist ─── */
@@ -373,7 +373,7 @@
 .reg-status-badge.draft  { background: #fef9c3; color: #854d0e; }
 .reg-status-badge.submitted { background: #dbeafe; color: #1e40af; }
 .reg-status-badge.approved { background: #dcfce7; color: #166534; }
-.reg-status-badge.rejected { background: #fee2e2; color: #991b1b; }
+.reg-status-badge.rejected { background: var(--color-error-bg); color: var(--color-primary); }
 
 /* ─── Responsive ─── */
 @media (max-width: 768px) {

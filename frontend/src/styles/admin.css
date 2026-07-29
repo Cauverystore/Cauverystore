@@ -128,7 +128,7 @@
 }
 
 .admin-sidebar-link-badge.green { background: rgba(22, 163, 74, 0.2); color: var(--teal-400); }
-.admin-sidebar-link-badge.red { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+.admin-sidebar-link-badge.red { background: var(--color-warning-bg); color: var(--color-accent-gold); }
 .admin-sidebar-link-badge.gray { background: var(--gray-800); color: var(--gray-400); }
 
 .admin-sidebar-footer {
@@ -181,7 +181,7 @@
 }
 
 .admin-sidebar-logout:hover {
-  color: var(--color-error);
+  color: var(--color-primary);
 }
 
 /* Admin main content */
@@ -830,12 +830,12 @@
 }
 
 .admin-btn-danger {
-  background: var(--color-error);
+  background: var(--color-primary);
   color: var(--white);
 }
 
 .admin-btn-danger:hover {
-  background: #b91c1c;
+  background: var(--color-primary-hover);
 }
 
 .admin-btn-success {
@@ -1064,9 +1064,9 @@
   margin-bottom: 16px;
 }
 .admin-alert.error {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background: var(--color-warning-bg);
+  color: var(--color-primary);
+  border: 1px solid var(--color-error-light);
 }
 .admin-alert.success {
   background: #f0fdf4;
@@ -1592,13 +1592,13 @@
   border-color: var(--gray-400);
 }
 .btn-danger {
-  background: var(--color-error);
+  background: var(--color-primary);
   color: var(--white);
-  border-color: var(--color-error);
+  border-color: var(--color-primary);
 }
 .btn-danger:hover {
-  background: #c23324;
-  border-color: #c23324;
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 .btn-success {
   background: var(--color-success);

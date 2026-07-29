@@ -34,9 +34,9 @@
 }
 
 .profile-notification.error {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background: var(--color-error-bg);
+  color: var(--color-primary);
+  border: 1px solid var(--color-error-light);
 }
 
 .profile-notif-close {
@@ -275,8 +275,8 @@
 }
 
 .pf-btn-sm.pf-btn-danger {
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--color-error-bg);
+  color: var(--color-primary);
 }
 
 .pf-checkbox-group {

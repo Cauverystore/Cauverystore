@@ -1,1 +1,1 @@
-.admin-order-row td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f3f4f6}.paid-chip{padding:2px 8px;border-radius:10px;font-size:11px}.paid-yes{background:var(--teal-100);color:var(--color-primary)}.paid-no{background:#fef2f2;color:#dc2626}
+.admin-order-row td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f3f4f6}.paid-chip{padding:2px 8px;border-radius:10px;font-size:11px}.paid-yes{background:var(--teal-100);color:var(--color-primary)}.paid-no{background:var(--color-error-bg);color:var(--color-primary)}

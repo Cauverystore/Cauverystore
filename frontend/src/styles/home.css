@@ -400,7 +400,7 @@
 
 /* ─── Deal of the Day ─── */
 .deal-section {
-  background: linear-gradient(135deg, #fef2f2 0%, #fecdd3 50%, #fff1f2 100%);
+  background: linear-gradient(135deg, #fdf8ed 0%, #faf0d7 50%, #fff8ed 100%);
   border-radius: var(--radius-2xl);
   padding: var(--spacing-8);
   margin: var(--spacing-8) auto;
@@ -528,7 +528,7 @@
 }
 
 .deal-cta:hover {
-  background: #b91c1c;
+  background: #0a4a4a;
   transform: translateY(-1px);
   box-shadow: var(--shadow-lg);
 }
