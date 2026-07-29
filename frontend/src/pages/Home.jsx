@@ -197,6 +197,7 @@ const Home = () => {
   const [bannerIdx, setBannerIdx] = useState(0);
   const [toast, setToast] = useState(null);
   const [addingId, setAddingId] = useState(null);
+  const [brandStoresEnabled, setBrandStoresEnabled] = useState(false);
 
   useEffect(() => {
     Promise.all([api.get("/api/products"), api.get("/api/categories")])
@@ -206,6 +207,12 @@ const Home = () => {
       })
       .catch(() => { setAllProducts([]); setCategories([]); })
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    api.get("/api/settings/homepage")
+      .then(res => setBrandStoresEnabled(!!res.data?.brandStoresEnabled))
+      .catch(() => setBrandStoresEnabled(false));
   }, []);
 
   useEffect(() => {
@@ -392,23 +399,25 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="sn-section">
-        <div className="sn-container">
-          <div className="sn-section-top">
-            <h2 className="sn-section-title"><Store size={22} color="#2E9B57" className="sn-section-icon" /> Brand Stores</h2>
-            <button className="sn-view-all" onClick={() => navigate("/products")}>View All {"\u2192"}</button>
+      {brandStoresEnabled && (
+        <section className="sn-section">
+          <div className="sn-container">
+            <div className="sn-section-top">
+              <h2 className="sn-section-title"><Store size={22} color="#2E9B57" className="sn-section-icon" /> Brand Stores</h2>
+              <button className="sn-view-all" onClick={() => navigate("/products")}>View All {"\u2192"}</button>
+            </div>
+            <div className="sn-brand-scroll">
+              {BRAND_STORES.map(b => (
+                <div key={b.name} className="sn-brand-card">
+                  <img src={b.icon} alt={b.name} width="120" height="60" className="sn-brand-img" />
+                  <span className="sn-brand-name">{b.name}</span>
+                  <span className="sn-brand-offer">{b.offer}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="sn-brand-scroll">
-            {BRAND_STORES.map(b => (
-              <div key={b.name} className="sn-brand-card">
-                <img src={b.icon} alt={b.name} width="120" height="60" className="sn-brand-img" />
-                <span className="sn-brand-name">{b.name}</span>
-                <span className="sn-brand-offer">{b.offer}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <style>{`
         .sn-toast {

@@ -2,10 +2,12 @@ package com.cauverystore.controller;
 
 import com.cauverystore.entities.*;
 import com.cauverystore.service.ContentService;
+import com.cauverystore.service.PlatformSettingsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/content")
@@ -13,7 +15,25 @@ import java.util.List;
 @CrossOrigin("*")
 public class AdminContentController {
     private final ContentService contentService;
-    public AdminContentController(ContentService contentService) { this.contentService = contentService; }
+    private final PlatformSettingsService platformSettingsService;
+    public AdminContentController(ContentService contentService, PlatformSettingsService platformSettingsService) {
+        this.contentService = contentService;
+        this.platformSettingsService = platformSettingsService;
+    }
+
+    @GetMapping("/homepage-settings")
+    public ResponseEntity<Map<String, Boolean>> getHomepageSettings() {
+        var setting = platformSettingsService.getSetting("homepage.brandStoresEnabled");
+        boolean enabled = setting != null && Boolean.parseBoolean(setting.getSettingValue());
+        return ResponseEntity.ok(Map.of("brandStoresEnabled", enabled));
+    }
+
+    @PutMapping("/homepage-settings")
+    public ResponseEntity<Map<String, Boolean>> updateHomepageSettings(@RequestBody Map<String, Boolean> body) {
+        boolean enabled = Boolean.TRUE.equals(body.get("brandStoresEnabled"));
+        platformSettingsService.updateSetting("homepage.brandStoresEnabled", String.valueOf(enabled));
+        return ResponseEntity.ok(Map.of("brandStoresEnabled", enabled));
+    }
 
     @GetMapping("/banners")
     public ResponseEntity<List<Banner>> getBanners() { return ResponseEntity.ok(contentService.getAllBanners()); }

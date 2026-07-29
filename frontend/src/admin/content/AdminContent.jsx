@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
 
-const TABS = ["Banners", "Pages", "FAQ"];
+const TABS = ["Banners", "Pages", "FAQ", "Homepage Sections"];
 
 const AdminContent = () => {
   const [tab, setTab] = useState(0);
   const [banners, setBanners] = useState([]);
   const [pages, setPages] = useState([]);
   const [faqs, setFaqs] = useState([]);
+  const [homepageSettings, setHomepageSettings] = useState({ brandStoresEnabled: false });
+  const [savingHomepage, setSavingHomepage] = useState(false);
 
   const emptyBanner = { title:"", subtitle:"", imageUrl:"", link:"", position:"HOME_TOP", sortOrder:0, active:true };
   const emptyPage = { slug:"", title:"", content:"", type:"ABOUT", active:true, metaTitle:"", metaDescription:"" };
@@ -23,16 +25,28 @@ const AdminContent = () => {
 
   const fetchAll = async () => {
     try {
-      const [b, p, f] = await Promise.all([
+      const [b, p, f, h] = await Promise.all([
         api.get("/api/admin/content/banners"),
         api.get("/api/admin/content/pages"),
         api.get("/api/admin/content/faqs"),
+        api.get("/api/admin/content/homepage-settings"),
       ]);
       setBanners(b.data || []); setPages(p.data || []); setFaqs(f.data || []);
+      setHomepageSettings(h.data || { brandStoresEnabled: false });
     } catch {}
   };
 
   useEffect(() => { fetchAll(); }, []);
+
+  const handleToggleBrandStores = async () => {
+    const next = !homepageSettings.brandStoresEnabled;
+    setSavingHomepage(true);
+    try {
+      const res = await api.put("/api/admin/content/homepage-settings", { brandStoresEnabled: next });
+      setHomepageSettings(res.data);
+    } catch { alert("Failed to update setting"); }
+    setSavingHomepage(false);
+  };
 
   const handleBSubmit = async (e) => {
     e.preventDefault();
@@ -156,6 +170,30 @@ const AdminContent = () => {
                 <Actions onEdit={() => { setFForm(f); setEditing(f.id); setShowFForm(true); }} onDelete={() => handleDelete("faqs",f.id)} />]
             }))}
           />
+        </div>
+      )}
+      {tab === 3 && (
+        <div>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"1rem", background:"#fff", border:"1px solid #e5e7eb", borderRadius:10 }}>
+            <div>
+              <div style={{ fontWeight:600, fontSize:"0.95rem" }}>Brand Stores</div>
+              <div style={{ fontSize:"0.8rem", color:"#6b7280", marginTop:"2px" }}>Show the "Brand Stores" section on the homepage.</div>
+            </div>
+            <label style={{ position:"relative", display:"inline-block", width:44, height:24, cursor: savingHomepage ? "not-allowed" : "pointer", opacity: savingHomepage ? 0.6 : 1 }}>
+              <input type="checkbox" checked={homepageSettings.brandStoresEnabled} disabled={savingHomepage} onChange={handleToggleBrandStores} style={{ opacity:0, width:0, height:0 }} />
+              <span style={{
+                position:"absolute", inset:0, borderRadius:9999,
+                background: homepageSettings.brandStoresEnabled ? "#16a34a" : "#d1d5db",
+                transition:"background 0.15s"
+              }}>
+                <span style={{
+                  position:"absolute", top:3, left: homepageSettings.brandStoresEnabled ? 23 : 3,
+                  width:18, height:18, borderRadius:"50%", background:"#fff", transition:"left 0.15s",
+                  boxShadow:"0 1px 3px rgba(0,0,0,0.3)"
+                }} />
+              </span>
+            </label>
+          </div>
         </div>
       )}
     </div>

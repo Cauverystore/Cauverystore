@@ -58,6 +58,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/faqs/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/settings/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers("/api/admin/template.xlsx").permitAll()
                 .requestMatchers("/api/seller/template.xlsx").permitAll()
