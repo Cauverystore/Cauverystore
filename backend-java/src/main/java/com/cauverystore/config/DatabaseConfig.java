@@ -17,79 +17,82 @@ public class DatabaseConfig {
 
     @Bean
     public DataSource dataSource() {
+        log.info("DatabaseConfig.dataSource() initializing...");
+
         String host = env("PGHOST");
         String port = env("PGPORT");
         String db = env("PGDATABASE");
         String user = env("PGUSER");
         String pass = env("PGPASSWORD");
 
-        String url = null;
-
         if (host != null && port != null && db != null) {
-            url = "jdbc:postgresql://" + host + ":" + port + "/" + db;
-        } else {
-            url = env("SPRING_DATASOURCE_URL");
-            if (url != null && !url.isEmpty()) {
-                if (user == null) user = env("SPRING_DATASOURCE_USERNAME");
-                if (pass == null) pass = env("SPRING_DATASOURCE_PASSWORD");
-            } else {
-                String raw = env("DATABASE_URL");
-                if (raw != null && !raw.isEmpty()) {
-                    if (raw.startsWith("postgres://") || raw.startsWith("postgresql://")) {
-                        String prefix = raw.startsWith("postgresql://") ? "postgresql://" : "postgres://";
-                        String rest = raw.substring(prefix.length());
-                        int atIndex = rest.indexOf('@');
-                        if (atIndex > 0) {
-                            String userPass = rest.substring(0, atIndex);
-                            String hostPortDb = rest.substring(atIndex + 1);
-                            int colonIndex = userPass.indexOf(':');
-                            if (user == null) user = colonIndex < 0 ? userPass : userPass.substring(0, colonIndex);
-                            if (pass == null) pass = colonIndex < 0 ? null : userPass.substring(colonIndex + 1);
-                            url = "jdbc:postgresql://" + hostPortDb;
-                        } else {
-                            url = "jdbc:postgresql://" + rest;
-                        }
-                    }
+            String url = "jdbc:postgresql://" + host + ":" + port + "/" + db;
+            if (!url.contains("sslmode=")) {
+                url += "?sslmode=require";
+            }
+            log.info("Using PG* env vars: {}/{}/{}", host, port, db);
+            return buildDataSource(url, user, pass);
+        }
+
+        log.warn("PG* env vars not found (PGHOST={}, PGPORT={}, PGDATABASE={})", host, port, db);
+        log.warn("Check that Railway PostgreSQL is linked to this service.");
+
+        String springUrl = env("SPRING_DATASOURCE_URL");
+        if (springUrl != null && !springUrl.isEmpty()) {
+            if (springUrl.contains("localhost") || springUrl.contains("127.0.0.1")) {
+                throw new IllegalStateException(
+                    "SPRING_DATASOURCE_URL points to localhost (" + springUrl + "). " +
+                    "Railway PostgreSQL is not linked to this service. " +
+                    "Go to Railway dashboard -> Variables -> click 'Add Variable' -> reference Postgres plugin, " +
+                    "or delete SPRING_DATASOURCE_URL/USERNAME/PASSWORD and link the PostgreSQL plugin properly."
+                );
+            }
+            if (!springUrl.contains("sslmode=")) {
+                springUrl += springUrl.contains("?") ? "&sslmode=require" : "?sslmode=require";
+            }
+            String springUser = user != null ? user : env("SPRING_DATASOURCE_USERNAME");
+            String springPass = pass != null ? pass : env("SPRING_DATASOURCE_PASSWORD");
+            log.info("Using SPRING_DATASOURCE_URL: {}", springUrl.replaceAll("//[^@]*@", "//***@***").replaceAll("sslmode=[^&]*", "sslmode=..."));
+            return buildDataSource(springUrl, springUser, springPass);
+        }
+
+        String rawUrl = env("DATABASE_URL");
+        if (rawUrl != null && !rawUrl.isEmpty()) {
+            if (rawUrl.startsWith("postgres://") || rawUrl.startsWith("postgresql://")) {
+                String prefix = rawUrl.startsWith("postgresql://") ? "postgresql://" : "postgres://";
+                String rest = rawUrl.substring(prefix.length());
+                int atIndex = rest.indexOf('@');
+                if (atIndex > 0) {
+                    String userPass = rest.substring(0, atIndex);
+                    String hostPortDb = rest.substring(atIndex + 1);
+                    int colonIndex = userPass.indexOf(':');
+                    if (user == null) user = colonIndex < 0 ? userPass : userPass.substring(0, colonIndex);
+                    if (pass == null) pass = colonIndex < 0 ? null : userPass.substring(colonIndex + 1);
+                    rawUrl = "jdbc:postgresql://" + hostPortDb;
+                } else {
+                    rawUrl = "jdbc:postgresql://" + rest;
                 }
             }
+            if (!rawUrl.contains("sslmode=")) {
+                rawUrl += rawUrl.contains("?") ? "&sslmode=require" : "?sslmode=require";
+            }
+            log.info("Using DATABASE_URL");
+            return buildDataSource(rawUrl, user, pass);
         }
 
-        if (url == null || url.isEmpty()) {
-            throw new IllegalStateException(
-                "No database configuration found. Set PG* env vars (PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD) " +
-                "or SPRING_DATASOURCE_URL/USERNAME/PASSWORD or DATABASE_URL.");
-        }
+        throw new IllegalStateException(
+            "No database configuration found. Link Railway PostgreSQL to this service (auto-sets PG* vars), " +
+            "or set SPRING_DATASOURCE_URL/USERNAME/PASSWORD (host:port/db only, no embedded credentials)."
+        );
+    }
 
-        if (!url.contains("sslmode=")) {
-            url += url.contains("?") ? "&sslmode=require" : "?sslmode=require";
-        }
-
+    private static DataSource buildDataSource(String url, String username, String password) {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("org.postgresql.Driver");
         config.setJdbcUrl(url);
-        if (user != null) config.setUsername(user);
-        if (pass != null) config.setPassword(pass);
-
-        log.info("Connecting to database at {}:{}/{}", host != null ? host : extractHost(url), port != null ? port : "5432", db != null ? db : extractDb(url));
-
+        if (username != null) config.setUsername(username);
+        if (password != null) config.setPassword(password);
         return new HikariDataSource(config);
-    }
-
-    private static String extractHost(String jdbcUrl) {
-        String s = jdbcUrl.replace("jdbc:postgresql://", "");
-        int colon = s.indexOf(':');
-        int slash = s.indexOf('/');
-        int end = colon > 0 ? colon : (slash > 0 ? slash : s.length());
-        return s.substring(0, end);
-    }
-
-    private static String extractDb(String jdbcUrl) {
-        String s = jdbcUrl.replace("jdbc:postgresql://", "");
-        int slash = s.indexOf('/');
-        if (slash < 0) return "?";
-        String afterSlash = s.substring(slash + 1);
-        int qmark = afterSlash.indexOf('?');
-        return qmark > 0 ? afterSlash.substring(0, qmark) : afterSlash;
     }
 
     private static String env(String key) {
