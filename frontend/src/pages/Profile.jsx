@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import userService from "../services/userService";
-import { getCart } from "../services/cartService";
+import { getCart, moveToCart } from "../services/cartService";
+import { removeFromWishlist } from "../services/wishlistService";
+import { useWishlist } from "../context/WishlistContext";
 import "../styles/profile.css";
 
 const PLACEHOLDER = "/images/placeholder.svg";
@@ -9,6 +12,7 @@ const TABS = [
   { key: "personal", label: "Personal Info" },
   { key: "addresses", label: "Addresses" },
   { key: "payment", label: "Payment Methods" },
+  { key: "saved", label: "Saved Items" },
   { key: "preferences", label: "Preferences" },
   { key: "orders", label: "Orders" },
   { key: "reviews", label: "Reviews" },
@@ -45,6 +49,8 @@ const Profile = () => {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ type: "CARD", maskedNumber: "", cardholderName: "", expiry: "", upiId: "", bankName: "" });
 
+  const { refresh: refreshWishlistCtx } = useWishlist();
+
   const loadAll = useCallback(async () => {
     try {
       const [pRes, aRes, pmRes, prefRes, oRes, rRes, wRes, cRes] = await Promise.all([
@@ -78,6 +84,23 @@ const Profile = () => {
     if (type === "error") { setError(msg); setSuccess(""); }
     else { setSuccess(msg); setError(""); }
     setTimeout(() => { setError(""); setSuccess(""); }, 4000);
+  };
+
+  const handleRemoveWishlistItem = async (productId) => {
+    try {
+      await removeFromWishlist(productId);
+      setWishlist((prev) => prev.filter((i) => (i.product?.id || i.product?._id || i.productId) !== productId));
+      refreshWishlistCtx();
+      notify("Removed from wishlist");
+    } catch (err) { notify("Failed to remove item", "error"); }
+  };
+
+  const handleMoveSavedToCart = async (itemId) => {
+    try {
+      await moveToCart(itemId);
+      setSavedForLater((prev) => prev.filter((i) => (i.id || i._id) !== itemId));
+      notify("Moved to cart");
+    } catch (err) { notify("Failed to move item to cart", "error"); }
   };
 
   const handleProfileSave = async () => {
@@ -174,6 +197,7 @@ const Profile = () => {
       case "personal": return renderPersonal();
       case "addresses": return renderAddresses();
       case "payment": return renderPayment();
+      case "saved": return renderSavedItems();
       case "preferences": return renderPreferences();
       case "orders": return renderOrders();
       case "reviews": return renderReviews();
@@ -446,6 +470,61 @@ const Profile = () => {
     </div>
   );
 
+  const renderSavedItems = () => (
+    <div className="profile-section-card">
+      <div className="profile-card-header"><h3>Wishlist</h3></div>
+      {wishlist.length === 0 ? (
+        <div style={{ padding: "0.75rem 0", fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+          No items in wishlist. <Link to="/products">Browse products</Link>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
+          {wishlist.map((item) => {
+            const p = item.product || {};
+            const pid = p.id || p._id || item.productId;
+            return (
+              <div key={item.id || item._id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "0.6rem 0.9rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)"
+              }}>
+                <Link to={`/product/${pid}`} style={{ fontSize: "0.9rem", color: "var(--color-text-primary)", textDecoration: "none" }}>
+                  {p.name || item.productName || `Product #${pid}`}
+                </Link>
+                <button className="pf-btn-sm pf-btn-danger" onClick={() => handleRemoveWishlistItem(pid)}>Remove</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="profile-card-header"><h3>Saved for Later</h3></div>
+      {savedForLater.length === 0 ? (
+        <div style={{ padding: "0.75rem 0", fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+          No items saved for later. <Link to="/products">Browse products</Link>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {savedForLater.map((item) => {
+            const p = item.product || {};
+            const pid = p.id || p._id || item.productId;
+            const itemId = item.id || item._id;
+            return (
+              <div key={itemId} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "0.6rem 0.9rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)"
+              }}>
+                <Link to={`/product/${pid}`} style={{ fontSize: "0.9rem", color: "var(--color-text-primary)", textDecoration: "none" }}>
+                  {p.name || item.productName || `Product #${pid}`}
+                </Link>
+                <button className="pf-btn-sm pf-btn-primary" onClick={() => handleMoveSavedToCart(itemId)}>Move to Cart</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   const renderPreferences = () => (
     <div className="profile-section-card">
       <div className="profile-card-header"><h3>Shopping Preferences</h3></div>
@@ -463,44 +542,6 @@ const Profile = () => {
             placeholder="Apple, Samsung, Nike..." />
         </div>
       </div>
-
-      <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1rem 0 0.5rem" }}>Wishlist / Saved Items</h4>
-      {wishlist.length === 0 ? (
-        <div style={{ padding: "0.5rem 0", fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
-          No items in wishlist
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.5rem" }}>
-          {wishlist.slice(0, 5).map((item) => (
-            <div key={item.id || item._id} style={{
-              padding: "0.4rem 0.75rem", background: "var(--color-bg-secondary)",
-              borderRadius: "var(--radius-sm)", fontSize: "0.85rem"
-            }}>
-              {item.product?.name || item.productName || `Product #${item.productId || item.product?.id}`}
-            </div>
-          ))}
-          {wishlist.length > 5 && <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", alignSelf: "center" }}>+{wishlist.length - 5} more</div>}
-        </div>
-      )}
-
-      <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1rem 0 0.5rem" }}>Saved for Later</h4>
-      {savedForLater.length === 0 ? (
-        <div style={{ padding: "0.5rem 0", fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
-          No items saved for later
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.5rem" }}>
-          {savedForLater.slice(0, 5).map((item) => (
-            <div key={item.id || item._id} style={{
-              padding: "0.4rem 0.75rem", background: "var(--color-bg-secondary)",
-              borderRadius: "var(--radius-sm)", fontSize: "0.85rem"
-            }}>
-              {item.product?.name || item.productName || `Product #${item.productId || item.product?.id}`}
-            </div>
-          ))}
-          {savedForLater.length > 5 && <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", alignSelf: "center" }}>+{savedForLater.length - 5} more</div>}
-        </div>
-      )}
 
       <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1rem 0 0.5rem" }}>Subscriptions</h4>
       <div className="pf-group">
