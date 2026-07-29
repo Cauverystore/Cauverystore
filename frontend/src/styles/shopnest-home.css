@@ -166,8 +166,8 @@
 .sn-add-cart-btn { flex: 1; padding: 10px; background: #16a34a; color: #fff; border: none; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
 .sn-add-cart-btn:hover { background: #15803d; }
 .sn-home-btns { display: flex; gap: 4px; padding: 0 12px 12px; }
-.sn-buy-now-btn { flex: 1; padding: 10px; background: #0E5C5C; color: #fff; border: none; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-.sn-buy-now-btn:hover { background: #0a4a4a; }
+.sn-buy-now-btn { flex: 1; padding: 10px; background: #16a34a; color: #fff; border: none; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.sn-buy-now-btn:hover { background: #15803d; }
 
 /* ─── Skeleton ─── */
 .sn-skeleton .sn-skeleton-img { height: 200px; background: linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
