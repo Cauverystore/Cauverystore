@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getWishlist, removeFromWishlist } from "../services/wishlistService";
+import { useWishlist } from "../context/WishlistContext";
 import "../styles/account.css";
 import "../styles/product-card.css";
 
@@ -8,6 +9,7 @@ const Wishlist = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { refresh: refreshWishlistCtx } = useWishlist();
 
   useEffect(() => {
     const fetch = async () => {
@@ -26,6 +28,7 @@ const Wishlist = () => {
     try {
       await removeFromWishlist(productId);
       setItems((prev) => prev.filter((i) => (i.product?.id || i.product?._id || i.id || i._id) !== productId));
+      refreshWishlistCtx();
     } catch (err) {
       setError("Failed to remove item");
     }

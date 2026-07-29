@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { WishlistProvider } from "./context/WishlistContext";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CustomerLayout from "./layouts/CustomerLayout";
@@ -107,6 +108,7 @@ function App() {
     <HelmetProvider>
     <BrowserRouter>
       <AuthProvider>
+        <WishlistProvider>
         <Helmet>
           <title>Cauvery Store - Your One-Stop Shop</title>
           <meta name="description" content="Shop the best products at Cauvery Store. Electronics, fashion, home & kitchen, and more." />
@@ -239,6 +241,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        </WishlistProvider>
       </AuthProvider>
     </BrowserRouter>
     </HelmetProvider>

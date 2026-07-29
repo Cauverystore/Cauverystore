@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Heart, Trash2, Bookmark } from "lucide-react";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
-import { addToWishlist, removeFromWishlist } from "../services/wishlistService";
+import { useWishlist } from "../context/WishlistContext";
 import "../styles/cart.css";
 
 const Cart = () => {
@@ -16,7 +16,7 @@ const Cart = () => {
   const [promoMsg, setPromoMsg] = useState(null);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
-  const [wishlistedIds, setWishlistedIds] = useState(new Set());
+  const { ids: wishlistedIds, toggle: toggleWishlistCtx } = useWishlist();
   const navigate = useNavigate();
 
   const setAction = (id, loading) => setActionLoading(prev => ({ ...prev, [id]: loading }));
@@ -99,13 +99,7 @@ const Cart = () => {
     setAction(key, true);
     setError(null);
     try {
-      if (wishlistedIds.has(productId)) {
-        await removeFromWishlist(productId);
-        setWishlistedIds(prev => { const next = new Set(prev); next.delete(productId); return next; });
-      } else {
-        await addToWishlist(productId);
-        setWishlistedIds(prev => new Set(prev).add(productId));
-      }
+      await toggleWishlistCtx(productId);
     } catch (err) {
       void err;
       setError("Failed to update wishlist. Please try again.");

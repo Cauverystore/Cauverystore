@@ -8,6 +8,7 @@ import {
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import CartItemImage from "../components/CartItemImage";
+import { useWishlist } from "../context/WishlistContext";
 import "../styles/shopnest-home.css";
 
 const BANNERS = [
@@ -74,24 +75,16 @@ function Stars({ rating, reviews }) {
 
 function ProductCard({ product, onCart, onBuyNow, adding }) {
   const navigate = useNavigate();
-  const [wishlisted, setWishlisted] = useState(false);
+  const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
+  const wishlisted = wishlistIds.has(product.id);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const handleWishlist = async (e) => {
+  const handleWishlist = (e) => {
     e.stopPropagation();
     const isLoggedIn = !!localStorage.getItem("accessToken");
     if (!isLoggedIn) { navigate("/login"); return; }
-    try {
-      const { addToWishlist, removeFromWishlist } = await import("../services/wishlistService");
-      if (wishlisted) {
-        await removeFromWishlist(product.id);
-        setWishlisted(false);
-      } else {
-        await addToWishlist(product.id);
-        setWishlisted(true);
-      }
-    } catch { /* ignore */ }
+    toggleWishlist(product.id);
   };
 
   const handleSaveForLater = async (e) => {

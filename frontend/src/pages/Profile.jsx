@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import userService from "../services/userService";
+import { getCart } from "../services/cartService";
 import "../styles/profile.css";
 
 const PLACEHOLDER = "/images/placeholder.svg";
@@ -29,6 +30,7 @@ const Profile = () => {
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  const [savedForLater, setSavedForLater] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,7 +47,7 @@ const Profile = () => {
 
   const loadAll = useCallback(async () => {
     try {
-      const [pRes, aRes, pmRes, prefRes, oRes, rRes, wRes] = await Promise.all([
+      const [pRes, aRes, pmRes, prefRes, oRes, rRes, wRes, cRes] = await Promise.all([
         userService.getProfile().catch(e => { void e; return { data: null }; }),
         userService.getAddresses().catch(e => { void e; return { data: [] }; }),
         userService.getPaymentMethods().catch(e => { void e; return { data: [] }; }),
@@ -53,6 +55,7 @@ const Profile = () => {
         userService.getOrderHistory().catch(e => { void e; return { data: [] }; }),
         userService.getMyReviews().catch(e => { void e; return { data: [] }; }),
         userService.getWishlist().catch(e => { void e; return { data: [] }; }),
+        getCart().catch(e => { void e; return { data: null }; }),
       ]);
       setProfile(pRes.data);
       setProfileForm({ fullName: pRes.data?.fullName || "", email: pRes.data?.email || "", phone: pRes.data?.phone || "" });
@@ -62,6 +65,7 @@ const Profile = () => {
       setOrders(Array.isArray(oRes.data) ? oRes.data : []);
       setReviews(Array.isArray(rRes.data) ? rRes.data : []);
       setWishlist(Array.isArray(wRes.data) ? wRes.data : []);
+      setSavedForLater(Array.isArray(cRes.data?.savedForLater) ? cRes.data.savedForLater : []);
     } catch (err) {
       setError("Failed to load profile data");
     }
@@ -476,6 +480,25 @@ const Profile = () => {
             </div>
           ))}
           {wishlist.length > 5 && <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", alignSelf: "center" }}>+{wishlist.length - 5} more</div>}
+        </div>
+      )}
+
+      <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1rem 0 0.5rem" }}>Saved for Later</h4>
+      {savedForLater.length === 0 ? (
+        <div style={{ padding: "0.5rem 0", fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
+          No items saved for later
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.5rem" }}>
+          {savedForLater.slice(0, 5).map((item) => (
+            <div key={item.id || item._id} style={{
+              padding: "0.4rem 0.75rem", background: "var(--color-bg-secondary)",
+              borderRadius: "var(--radius-sm)", fontSize: "0.85rem"
+            }}>
+              {item.product?.name || item.productName || `Product #${item.productId || item.product?.id}`}
+            </div>
+          ))}
+          {savedForLater.length > 5 && <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", alignSelf: "center" }}>+{savedForLater.length - 5} more</div>}
         </div>
       )}
 

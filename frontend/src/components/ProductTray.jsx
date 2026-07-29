@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark } from "lucide-react";
 import api from "../api/axios";
+import { useWishlist } from "../context/WishlistContext";
 import "../styles/product-tray.css";
 
 const PLACEHOLDER = "/images/placeholder.svg";
@@ -62,7 +63,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const imgErrorFixed = React.useRef(false);
-  const [wishlisted, setWishlisted] = useState(false);
+  const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const [adding, setAdding] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -81,6 +82,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
   const images = product?.images || (product?.image ? [toUrl(product.image)] : []);
   const image = (images.length > 0 ? toUrl(images[0]) : null) || PLACEHOLDER;
   const badge = product?.badge || (discount > 50 ? "Best Seller" : discount > 30 ? "Popular" : "");
+  const wishlisted = wishlistIds.has(pid);
 
   const handleClick = () => navigate(`/product/${pid}`);
 
@@ -99,20 +101,11 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
     if (onBuyNow) onBuyNow(product);
   };
 
-  const handleWishlist = async (e) => {
+  const handleWishlist = (e) => {
     e.stopPropagation();
     const token = localStorage.getItem("accessToken");
-    if (!token) return;
-    try {
-      const { addToWishlist, removeFromWishlist } = await import("../services/wishlistService");
-      if (wishlisted) {
-        await removeFromWishlist(pid);
-        setWishlisted(false);
-      } else {
-        await addToWishlist(pid);
-        setWishlisted(true);
-      }
-    } catch { /* ignore */ }
+    if (!token) { navigate("/login"); return; }
+    toggleWishlist(pid);
   };
 
   const handleSaveForLater = async (e) => {
