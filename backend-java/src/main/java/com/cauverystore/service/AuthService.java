@@ -285,10 +285,6 @@ public class AuthService {
     }
 
     public String deriveUserEmail() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof String) {
-            return (String) auth.getPrincipal();
-        }
-        throw new RuntimeException("Unable to derive user email from security context");
+        return getUserById(deriveUserId()).getEmail();
     }
 }
