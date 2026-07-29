@@ -46,13 +46,13 @@ const allLinks = [
   { to: "/super-admin", label: "Super Admin", icon: Shield, module: "superAdmin" },
 ];
 
-const AdminSidebar = () => {
+const AdminSidebar = ({ open, onNavigate }) => {
   const { role } = useAuth();
   const links = allLinks.filter(l => !l.module || canAccessModule(role, l.module));
   const labelText = role === "EXECUTIVE" ? "Executive Panel" : role === "SUPER_ADMIN" ? "Super Admin" : "Admin Panel";
 
   return (
-  <aside style={{ position: "fixed", top: 0, left: 0, width: "240px", height: "100vh", background: "#0f172a", color: "#fff", display: "flex", flexDirection: "column", zIndex: 100 }}>
+  <aside className={`cd-admin-sidebar${open ? " cd-open" : ""}`} style={{ position: "fixed", top: 0, left: 0, width: "240px", height: "100vh", background: "#0f172a", color: "#fff", display: "flex", flexDirection: "column", zIndex: 100 }}>
     <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #1e293b" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <img src="/images/logo.jpg" alt="" style={{ height: "1.15rem", width: "auto" }} />
@@ -68,6 +68,7 @@ const AdminSidebar = () => {
           key={l.to}
           to={l.to}
           end={l.end}
+          onClick={onNavigate}
           style={({ isActive }) => ({
             display: "flex", alignItems: "center", gap: "12px", padding: "10px 20px",
             color: isActive ? "#fff" : "#94a3b8", textDecoration: "none", fontSize: "0.875rem",

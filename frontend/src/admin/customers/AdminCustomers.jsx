@@ -61,7 +61,7 @@ const AdminCustomers = () => {
         </div>
       </div>
 
-      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"hidden" }}>
+      <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflowX:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"0.85rem" }}>
           <thead><tr style={{ background:"#f9fafb" }}>
             {["Name","Email","Role","Orders","Status","Joined","Actions"].map(h => <th key={h} style={{ textAlign:"left", padding:"10px 12px", fontWeight:600, fontSize:"0.75rem", color:"#6b7280", textTransform:"uppercase" }}>{h}</th>)}

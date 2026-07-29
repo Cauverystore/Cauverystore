@@ -99,7 +99,7 @@ const ManageImages = () => {
   }
 
   return (
-    <div style={{ maxWidth: "860px", padding: "1.5rem" }}>
+    <div style={{ maxWidth: "860px", width: "100%", margin: "0 auto", padding: "1.5rem", boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <div>
           <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#0B3D2E", margin: 0 }}>Manage Images</h1>

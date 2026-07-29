@@ -53,7 +53,7 @@ const BulkUpload = () => {
   };
 
   return (
-    <div style={{ maxWidth: "720px", padding: "2rem" }}>
+    <div style={{ maxWidth: "720px", width: "100%", margin: "0 auto", padding: "2rem", boxSizing: "border-box" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "0.25rem" }}>
         Bulk Upload Products
       </h1>

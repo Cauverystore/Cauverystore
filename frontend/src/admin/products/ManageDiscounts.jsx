@@ -31,7 +31,7 @@ const ManageDiscounts = () => {
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
 
   return (
-    <div style={{ maxWidth: "700px" }}>
+    <div style={{ maxWidth: "700px", width: "100%", margin: "0 auto", padding: "0 1rem", boxSizing: "border-box" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem" }}>Manage Discounts</h1>
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <input placeholder="Discount %" type="number" value={form.percentage} onChange={(e) => setForm({ ...form, percentage: e.target.value })} style={inputStyle} />

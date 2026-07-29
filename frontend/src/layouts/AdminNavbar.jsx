@@ -1,5 +1,6 @@
 ﻿import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Menu } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const PAGE_TITLES = {
@@ -29,7 +30,7 @@ const PAGE_TITLES = {
   "/admin/seller-approvals": "Seller Approvals",
 };
 
-const AdminNavbar = () => {
+const AdminNavbar = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { logout, user, role } = useAuth();
@@ -45,6 +46,14 @@ const AdminNavbar = () => {
       borderBottom: "1px solid #e2e8f0", flexShrink: 0
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <button
+          className="cd-hamburger-btn"
+          onClick={onMenuClick}
+          aria-label="Toggle menu"
+          style={{ display: "none", background: "none", border: "none", cursor: "pointer", padding: "4px", color: "#1e293b" }}
+        >
+          <Menu size={22} />
+        </button>
         <span style={{ fontSize: "1rem", fontWeight: 600, color: "#1e293b" }}>{title}</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>

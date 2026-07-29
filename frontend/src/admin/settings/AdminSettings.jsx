@@ -12,7 +12,7 @@ const AdminSettings = () => {
   };
 
   return (
-    <div style={{ maxWidth: "600px" }}>
+    <div style={{ maxWidth: "600px", width: "100%", margin: "0 auto", padding: "0 1rem", boxSizing: "border-box" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem" }}>Settings</h1>
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div className="form-group"><label>Site Name</label><input name="siteName" value={settings.siteName} onChange={handleChange} style={inputStyle} /></div>

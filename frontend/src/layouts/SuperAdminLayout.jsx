@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Key, Settings, Eye, FileText, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, Key, Settings, Eye, FileText, ArrowLeft, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/admin.css';
 import '../styles/design-system.css';
@@ -24,6 +24,7 @@ const SuperAdminLayout = () => {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [hoveredToggle, setHoveredToggle] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -52,6 +53,7 @@ const SuperAdminLayout = () => {
     <ToastProvider>
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f1f5f9' }}>
       <aside
+        className={`cd-superadmin-sidebar${mobileOpen ? ' cd-open' : ''}`}
         style={{
           position: 'fixed',
           top: 0,
@@ -109,6 +111,7 @@ const SuperAdminLayout = () => {
               key={item.to}
               to={item.to}
               end={item.end}
+              onClick={() => setMobileOpen(false)}
               style={linkStyle}
               title={collapsed ? item.label : undefined}
             >
@@ -122,6 +125,7 @@ const SuperAdminLayout = () => {
               <NavLink
                 key={item.to}
                 to={item.to}
+                onClick={() => setMobileOpen(false)}
                 style={linkStyle}
                 title={collapsed ? item.label : undefined}
               >
@@ -205,7 +209,7 @@ const SuperAdminLayout = () => {
         </div>
 
         <button
-          className="sa-toggle-btn"
+          className="sa-toggle-btn cd-desktop-only"
           onClick={() => setCollapsed(!collapsed)}
           onMouseEnter={() => setHoveredToggle(true)}
           onMouseLeave={() => setHoveredToggle(false)}
@@ -235,7 +239,9 @@ const SuperAdminLayout = () => {
         </button>
       </aside>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: sidebarWidth, transition: 'margin-left 0.2s' }}>
+      {mobileOpen && <div className="cd-admin-overlay" onClick={() => setMobileOpen(false)} />}
+
+      <div className="cd-superadmin-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: sidebarWidth, transition: 'margin-left 0.2s' }}>
         <header
           style={{
             position: 'sticky',
@@ -251,6 +257,14 @@ const SuperAdminLayout = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              className="cd-hamburger-btn"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+              style={{ display: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#0f172a' }}
+            >
+              <Menu size={22} />
+            </button>
             <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Super Admin Panel</span>
             <span style={{ fontSize: '0.7rem', color: '#fff', background: accentColor, padding: '2px 8px', borderRadius: '4px' }}>
               {role}

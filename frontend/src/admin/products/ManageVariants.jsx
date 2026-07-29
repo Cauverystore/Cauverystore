@@ -31,7 +31,7 @@ const ManageVariants = () => {
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
 
   return (
-    <div style={{ maxWidth: "700px" }}>
+    <div style={{ maxWidth: "700px", width: "100%", margin: "0 auto", padding: "0 1rem", boxSizing: "border-box" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem" }}>Manage Variants</h1>
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <input placeholder="Variant Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />

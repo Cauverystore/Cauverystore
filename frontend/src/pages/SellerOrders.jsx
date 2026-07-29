@@ -64,7 +64,7 @@ const SellerOrders = () => {
     <div style={{ padding: "2rem" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1rem" }}>Orders & Returns</h1>
 
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", borderBottom: "2px solid #e5e7eb", paddingBottom: "0.5rem" }}>
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", borderBottom: "2px solid #e5e7eb", paddingBottom: "0.5rem", flexWrap: "wrap" }}>
         {["orders", "returns"].map(t => (
           <button key={t} onClick={() => { setTab(t); setStatusFilter("All"); setExpandedOrder(null); }}
             style={{ background: "none", border: "none", padding: "0.5rem 1rem", cursor: "pointer", fontWeight: tab === t ? 700 : 400, color: tab === t ? "#3b82f6" : "#6b7280", borderBottom: tab === t ? "2px solid #3b82f6" : "2px solid transparent", marginBottom: "-0.5rem", fontSize: "1rem" }}>
@@ -89,7 +89,8 @@ const SellerOrders = () => {
           {filteredOrders.length === 0 ? (
             <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280" }}>No orders found.</div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: "8px", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+            <div style={{ overflowX: "auto", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
               <thead>
                 <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e5e7eb" }}>
                   {["#", "Customer", "Total", "Status", "Date", "Payment", "Actions"].map(h => (
@@ -158,6 +159,7 @@ const SellerOrders = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </>
       )}
@@ -167,7 +169,8 @@ const SellerOrders = () => {
           {returns.length === 0 ? (
             <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280" }}>No return requests.</div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: "8px", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+            <div style={{ overflowX: "auto", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
               <thead>
                 <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e5e7eb" }}>
                   {["Return ID", "Order ID", "Product", "Customer", "Reason", "Status", "Refund Amount", "Date", "Actions"].map(h => (
@@ -204,6 +207,7 @@ const SellerOrders = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </>
       )}

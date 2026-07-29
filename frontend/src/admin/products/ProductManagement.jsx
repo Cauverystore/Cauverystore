@@ -167,7 +167,7 @@ const ProductManagement = () => {
   ];
 
   return (
-    <div style={{ maxWidth: "920px", padding: "1.5rem" }}>
+    <div style={{ maxWidth: "920px", width: "100%", margin: "0 auto", padding: "1.5rem", boxSizing: "border-box" }}>
       <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "1rem" }}>Product Management</h1>
 
       <div style={{ display: "flex", gap: "4px", marginBottom: "1rem", borderBottom: "2px solid #EAF7EE", overflowX: "auto" }}>

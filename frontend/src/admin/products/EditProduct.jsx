@@ -59,12 +59,12 @@ const EditProduct = () => {
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
 
   return (
-    <div style={{ maxWidth: "700px" }}>
+    <div style={{ maxWidth: "700px", width: "100%", margin: "0 auto", padding: "0 1rem", boxSizing: "border-box" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem" }}>Edit Product</h1>
-      <div style={{ display: "flex", gap: "0.25rem", marginBottom: "1.5rem", borderBottom: "1px solid #e2e8f0" }}>
+      <div style={{ display: "flex", gap: "0.25rem", marginBottom: "1.5rem", borderBottom: "1px solid #e2e8f0", overflowX: "auto", flexWrap: "wrap" }}>
         {["Basic", "Pricing", "Inventory", "Images", "Variants", "Discounts"].map((tab, i) => (
           <button key={i} onClick={() => setActiveTab(i)}
-            style={{ padding: "0.5rem 1rem", border: "none", background: activeTab === i ? "#16a34a" : "transparent", color: activeTab === i ? "#fff" : "#475569", borderRadius: "6px 6px 0 0", cursor: "pointer", fontWeight: 500, fontSize: "0.85rem" }}>
+            style={{ padding: "0.5rem 1rem", border: "none", background: activeTab === i ? "#16a34a" : "transparent", color: activeTab === i ? "#fff" : "#475569", borderRadius: "6px 6px 0 0", cursor: "pointer", fontWeight: 500, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
             {tab}
           </button>
         ))}

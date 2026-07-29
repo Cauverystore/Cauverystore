@@ -10,6 +10,58 @@
      --gray-800: #1f293b (sidebar hover)
    ============================================================ */
 
+/* ─── Mobile off-canvas sidebar for AdminLayout/AdminSidebar (JS components use cd- prefix to avoid colliding with the unused .admin-sidebar-* BEM classes below) ─── */
+.cd-admin-overlay {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .cd-hamburger-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cd-admin-sidebar {
+    transform: translateX(-100%) !important;
+    transition: transform 0.25s ease;
+  }
+
+  .cd-admin-sidebar.cd-open {
+    transform: translateX(0) !important;
+  }
+
+  .cd-admin-content {
+    margin-left: 0 !important;
+  }
+
+  .cd-admin-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 90;
+  }
+
+  .cd-superadmin-sidebar {
+    width: 260px !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.25s ease;
+  }
+
+  .cd-superadmin-sidebar.cd-open {
+    transform: translateX(0) !important;
+  }
+
+  .cd-superadmin-content {
+    margin-left: 0 !important;
+  }
+
+  .cd-desktop-only {
+    display: none !important;
+  }
+}
+
 /* ─── Layout ─── */
 .admin-layout {
   display: flex;
