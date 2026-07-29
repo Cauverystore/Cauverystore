@@ -124,6 +124,16 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   }, []);
 
+  const requestPasswordReset = useCallback(async (email) => {
+    const res = await API.post('/api/auth/request-password-reset', { email });
+    return res.data;
+  }, []);
+
+  const resetPassword = useCallback(async (email, otp, newPassword) => {
+    const res = await API.post('/api/auth/reset-password', { email, otp, newPassword });
+    return res.data;
+  }, []);
+
   const resetActivityTimer = useCallback(() => {
     setLastActivity(Date.now());
     setShowSessionWarning(false);
@@ -245,6 +255,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user, token, role, isAuthenticated, loading, error,
     login, register, logout, refreshToken, getAuthHeaders, isTokenExpired,
+    requestPasswordReset, resetPassword,
     isImpersonating, impersonationSession, impersonatedUser,
     startImpersonation, stopImpersonation,
     showSessionWarning, extendSession, lastActivity,

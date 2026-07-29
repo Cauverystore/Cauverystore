@@ -19,6 +19,7 @@ const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
 const Login = lazy(() => import("./pages/Auth/Login"));
 const Register = lazy(() => import("./pages/Auth/Register"));
+const ForgotPassword = lazy(() => import("./pages/Auth/ForgotPassword"));
 const Logout = lazy(() => import("./pages/Auth/Logout"));
 const Unauthorized = lazy(() => import("./pages/Auth/Unauthorized"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -145,6 +146,7 @@ function App() {
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/otp-verify" element={<OtpVerification />} />
