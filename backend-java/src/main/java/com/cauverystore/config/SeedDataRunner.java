@@ -52,14 +52,21 @@ public class SeedDataRunner implements CommandLineRunner {
 
         User sellerUser = userRepo.findByEmail("seller@cauverystore.in");
 
-        if (productRepo.count() == 0) {
+        {
             Object[][] prods = {
                 {"iPhone 15 Pro","Apple",134990.0,50,"Apple iPhone 15 Pro, 256GB, Titanium Black","Electronics","https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400",10.0},
                 {"Samsung Galaxy S24","Samsung",129999.0,35,"Samsung Galaxy S24 Ultra, 512GB","Electronics","https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400",8.0},
                 {"MacBook Air M3","Apple",164900.0,20,"Apple MacBook Air 15-inch, M3 chip, 16GB RAM","Electronics","https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400",5.0},
                 {"Sony WH-1000XM5","Sony",29990.0,60,"Wireless Noise Cancelling Headphones","Electronics","https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400",12.0},
+                {"Men's Casual Shirt","Zara",1499.0,80,"Men's slim-fit cotton casual shirt","Fashion","https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=400",15.0},
+                {"Women's Denim Jacket","Levi's",3299.0,45,"Women's classic blue denim jacket","Fashion","https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400",20.0},
+                {"Running Shoes","Nike",4999.0,60,"Men's lightweight running shoes","Fashion","https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",18.0},
+                {"Leather Handbag","Fossil",5999.0,25,"Women's genuine leather handbag","Fashion","https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400",10.0},
             };
+            java.util.Set<String> existingNames = new java.util.HashSet<>();
+            for (Product p : productRepo.findAll()) existingNames.add(p.getName());
             for (Object[] p : prods) {
+                if (existingNames.contains((String) p[0])) continue;
                 Product product = new Product();
                 product.setName((String)p[0]); product.setBrand((String)p[1]);
                 product.setPrice((Double)p[2]); product.setStock((Integer)p[3]);

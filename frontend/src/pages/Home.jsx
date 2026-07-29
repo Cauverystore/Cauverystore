@@ -2,7 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import {
   Search, Heart, Zap, Shirt, Home as HomeIcon, BookOpen, Smartphone, Laptop, Tv,
-  Sparkles, Cookie, Flame, Star, Store, Landmark, CreditCard, Package, Tags,
+  Sparkles, Cookie, Flame, Star, Store, Landmark, CreditCard, Package,
   ShoppingCart, Bookmark
 } from "lucide-react";
 import api from "../api/axios";
@@ -40,7 +40,6 @@ const QUICK_CATEGORIES = [
 ];
 
 const CATEGORIES = ["Electronics", "Fashion", "Home & Kitchen", "Grocery", "Beauty", "Appliances", "Books", "Sports", "Toys", "Deals"];
-const CATEGORY_DEALS = ["Top Offers", "Grocery", "Mobiles", "Fashion", "Electronics", "Home", "Appliances", "Travel", "Toys"];
 
 function normalizeProduct(p) {
   if (!p) return null;
@@ -375,22 +374,6 @@ const Home = () => {
             {electronics.length > 0
               ? electronics.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)
               : (loading ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />) : null)}
-          </div>
-        </div>
-      </section>
-
-      <section className="sn-section">
-        <div className="sn-container">
-          <h2 className="sn-section-title sn-mb"><Tags size={22} color="#2E9B57" className="sn-section-icon" /> Shop by Category</h2>
-          <div className="sn-category-grid">
-            {CATEGORY_DEALS.map((cat, i) => (
-              <div key={cat} className="sn-category-card" onClick={() => navigate(`/products?category=${encodeURIComponent(cat === "Top Offers" ? "Electronics" : cat)}`)}>
-                <div className="sn-category-card-visual" style={{ background: `hsl(${i * 36}, 60%, 92%)` }}>
-                  <span className="sn-category-card-icon">{React.createElement(QUICK_CATEGORIES[i % QUICK_CATEGORIES.length]?.icon || ShoppingCart, { size: 32 })}</span>
-                </div>
-                <span className="sn-category-card-label">{cat}</span>
-              </div>
-            ))}
           </div>
         </div>
       </section>
