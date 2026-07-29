@@ -8,6 +8,7 @@ import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.Role;
 import com.cauverystore.entities.User;
 import com.cauverystore.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,62 +25,62 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
         String message = authService.register(request);
         return ResponseEntity.ok(Map.of("message", message));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.authenticate(request));
     }
 
     @PostMapping("/user/login")
-    public ResponseEntity<AuthResponse> userLogin(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> userLogin(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.authenticate(request);
         authService.validateUserRole(response.getEmail(), Role.CUSTOMER);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/seller/login")
-    public ResponseEntity<AuthResponse> sellerLogin(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> sellerLogin(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.authenticate(request);
         authService.validateUserRole(response.getEmail(), Role.SELLER);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/admin/login")
-    public ResponseEntity<AuthResponse> adminLogin(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> adminLogin(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.authenticate(request);
         authService.validateAdminOrSuperAdmin(response.getEmail());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refreshAccessToken(request));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<Map<String, String>> logout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
     @PostMapping("/seller/logout")
-    public ResponseEntity<Map<String, String>> sellerLogout(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<Map<String, String>> sellerLogout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(Map.of("message", "Seller logged out successfully"));
     }
 
     @PostMapping("/admin/logout")
-    public ResponseEntity<Map<String, String>> adminLogout(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<Map<String, String>> adminLogout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(Map.of("message", "Admin logged out successfully"));
     }
 
     @PostMapping("/executive/logout")
-    public ResponseEntity<Map<String, String>> executiveLogout(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<Map<String, String>> executiveLogout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(Map.of("message", "Executive logged out successfully"));
     }
@@ -108,7 +109,7 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Map<String, String>> resetPassword(@RequestBody PasswordResetRequest request) {
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         authService.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
     }

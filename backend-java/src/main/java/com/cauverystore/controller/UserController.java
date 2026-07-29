@@ -6,6 +6,7 @@ import com.cauverystore.dto.RefreshTokenRequest;
 import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.User;
 import com.cauverystore.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,23 +23,23 @@ public class UserController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.authenticate(request));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.ok(Map.of("message", "User registered successfully"));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refreshAccessToken(request));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<Map<String, String>> logout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
