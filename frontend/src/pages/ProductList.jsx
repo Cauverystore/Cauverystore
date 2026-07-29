@@ -1,10 +1,12 @@
 ﻿import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Pagination from "../components/Pagination";
 
 const ProductList = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,19 @@ const ProductList = () => {
 
   const categoryValue = (cat) => cat.id || cat._id || cat.name || cat;
   const categoryLabel = (cat) => cat.name || cat.title || cat;
+
+  const handleAddToCart = async (product) => {
+    try {
+      await addToCart(product.id || product._id, 1);
+    } catch { /* ignore */ }
+  };
+
+  const handleBuyNow = async (product) => {
+    try {
+      await addToCart(product.id || product._id, 1);
+      navigate("/checkout");
+    } catch { /* ignore */ }
+  };
 
   return (
     <div className="products-page">
@@ -123,7 +138,7 @@ const ProductList = () => {
             <>
               <div className="pt-grid">
                 {products.map((p) => (
-                  <ProductTray key={p.id || p._id} product={p} />
+                  <ProductTray key={p.id || p._id} product={p} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
                 ))}
               </div>
               <Pagination page={page} totalPages={totalPages} onPage={setPage} />
