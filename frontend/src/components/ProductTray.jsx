@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Share2, Eye, ShoppingCart, Zap } from "lucide-react";
+import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark } from "lucide-react";
+import api from "../api/axios";
 import "../styles/product-tray.css";
 
 const PLACEHOLDER = "/images/placeholder.svg";
@@ -63,6 +64,8 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
   const imgErrorFixed = React.useRef(false);
   const [wishlisted, setWishlisted] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const pid = product?.id || product?._id;
   const name = product?.name || "Product";
@@ -110,6 +113,19 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
         setWishlisted(true);
       }
     } catch { /* ignore */ }
+  };
+
+  const handleSaveForLater = async (e) => {
+    e.stopPropagation();
+    const token = localStorage.getItem("accessToken");
+    if (!token || saving || saved) return;
+    setSaving(true);
+    try {
+      const { data: cartItem } = await api.post(`/api/cart/add?productId=${pid}&quantity=1`);
+      await api.post(`/api/cart/save-for-later/${cartItem.id}`);
+      setSaved(true);
+    } catch { /* ignore */ }
+    setSaving(false);
   };
 
   const handleShare = async (e) => {
@@ -160,6 +176,14 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
               aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <Heart size={16} fill={wishlisted ? "currentColor" : "none"} />
+            </button>
+            <button
+              className={`pt-action-btn ${saved ? "wishlisted" : ""}`}
+              onClick={handleSaveForLater}
+              disabled={saving}
+              aria-label={saved ? "Saved for later" : "Save for later"}
+            >
+              <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
             </button>
             <button className="pt-action-btn" onClick={handleShare} aria-label="Share product">
               <Share2 size={16} />

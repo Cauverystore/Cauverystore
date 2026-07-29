@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Search, Heart, Zap, Shirt, Home as HomeIcon, BookOpen, Smartphone, Laptop, Tv,
   Sparkles, Cookie, Flame, Star, Store, Landmark, CreditCard, Package, Tags,
-  ShoppingCart
+  ShoppingCart, Bookmark
 } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
@@ -75,6 +75,8 @@ function Stars({ rating, reviews }) {
 function ProductCard({ product, onCart, onBuyNow, adding }) {
   const navigate = useNavigate();
   const [wishlisted, setWishlisted] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleWishlist = async (e) => {
     e.stopPropagation();
@@ -92,18 +94,42 @@ function ProductCard({ product, onCart, onBuyNow, adding }) {
     } catch { /* ignore */ }
   };
 
+  const handleSaveForLater = async (e) => {
+    e.stopPropagation();
+    const isLoggedIn = !!localStorage.getItem("accessToken");
+    if (!isLoggedIn) { navigate("/login"); return; }
+    if (saving || saved) return;
+    setSaving(true);
+    try {
+      const { data: cartItem } = await api.post(`/api/cart/add?productId=${product.id}&quantity=1`);
+      await api.post(`/api/cart/save-for-later/${cartItem.id}`);
+      setSaved(true);
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
   return (
     <div className="sn-product-card" onClick={() => navigate(`/product/${product.id}`)}>
       <div className="sn-product-image-wrap">
         <CartItemImage src={product.image} name={product.name} width={200} height={200} className="sn-product-img" />
         {product.badge && <span className="sn-product-badge">{product.badge}</span>}
-        <button
-          className={`sn-wishlist-btn ${wishlisted ? "active" : ""}`}
-          onClick={handleWishlist}
-          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-        >
-          <Heart size={16} fill={wishlisted ? "currentColor" : "none"} />
-        </button>
+        <div className="sn-card-actions">
+          <button
+            className={`sn-wishlist-btn ${wishlisted ? "active" : ""}`}
+            onClick={handleWishlist}
+            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <Heart size={16} fill={wishlisted ? "currentColor" : "none"} />
+          </button>
+          <button
+            className={`sn-wishlist-btn ${saved ? "active" : ""}`}
+            onClick={handleSaveForLater}
+            disabled={saving}
+            aria-label={saved ? "Saved for later" : "Save for later"}
+          >
+            <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
+          </button>
+        </div>
       </div>
       <div className="sn-product-info">
         <h4 className="sn-product-name">{product.name || "Product"}</h4>

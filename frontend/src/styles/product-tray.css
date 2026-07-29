@@ -188,17 +188,12 @@
   cursor: pointer;
   color: var(--color-text-tertiary, #9ca3af);
   transition: all var(--transition-fast, 120ms ease);
-  opacity: 0;
-  transform: translateX(8px);
-}
-
-.pt-card:hover .pt-action-btn {
   opacity: 1;
-  transform: translateX(0);
 }
 
-.pt-card:hover .pt-action-btn:nth-child(2) {
-  transition-delay: 50ms;
+.pt-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .pt-action-btn:hover {
