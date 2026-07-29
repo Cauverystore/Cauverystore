@@ -21,6 +21,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [searchId, setSearchId] = useState('');
   const [filterStatus, setFilterStatus] = useState('ACTIVE');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -40,7 +41,7 @@ const UserManagement = () => {
     setLoading(true);
     setError('');
     try {
-      const params = { page: p, pageSize, role: activeTab, status: filterStatus !== 'ALL' ? filterStatus : undefined, search: search || undefined };
+      const params = { page: p, pageSize, role: activeTab, status: filterStatus !== 'ALL' ? filterStatus : undefined, search: search || undefined, id: searchId || undefined };
       const res = await api.get('/api/super-admin/users', { params });
       const data = res.data;
       let userList = Array.isArray(data) ? data : data.users || data.data || [];
@@ -56,7 +57,7 @@ const UserManagement = () => {
     }
   };
 
-  useEffect(() => { fetchUsers(1); setPage(1); }, [activeTab, filterStatus, search]);
+  useEffect(() => { fetchUsers(1); setPage(1); }, [activeTab, filterStatus, search, searchId]);
 
   useEffect(() => { fetchUsers(page); }, [page]);
 
@@ -271,7 +272,7 @@ const UserManagement = () => {
         {TABS.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => { setActiveTab(tab.key); setPage(1); }}
+            onClick={() => { setActiveTab(tab.key); setPage(1); setSearchId(''); }}
             style={{
               padding: '10px 20px',
               border: 'none',
@@ -298,6 +299,14 @@ const UserManagement = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {(activeTab === 'SELLER' || activeTab === 'CUSTOMER') && (
+            <input
+              className="admin-table-search"
+              placeholder="Search by ID..."
+              value={searchId}
+              onChange={(e) => setSearchId(e.target.value)}
+            />
+          )}
           <select className="admin-filter-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="ALL">All Status</option>
             {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}

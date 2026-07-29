@@ -150,7 +150,8 @@ public class SuperAdminController {
     public ResponseEntity<List<User>> listUsers(
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String id) {
         List<User> users = userRepo.findAll();
         if (role != null && !role.isEmpty()) {
             users = users.stream()
@@ -168,6 +169,12 @@ public class SuperAdminController {
                     .filter(u -> (u.getUsername() != null && u.getUsername().toLowerCase().contains(lower))
                             || (u.getEmail() != null && u.getEmail().toLowerCase().contains(lower))
                             || (u.getFullName() != null && u.getFullName().toLowerCase().contains(lower)))
+                    .collect(Collectors.toList());
+        }
+        if (id != null && !id.trim().isEmpty()) {
+            String idQuery = id.trim();
+            users = users.stream()
+                    .filter(u -> String.valueOf(u.getId()).contains(idQuery))
                     .collect(Collectors.toList());
         }
         return ResponseEntity.ok(users);
