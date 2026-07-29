@@ -1,7 +1,9 @@
 ﻿import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Heart, Trash2, Bookmark } from "lucide-react";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
+import { addToWishlist, removeFromWishlist } from "../services/wishlistService";
 import "../styles/cart.css";
 
 const Cart = () => {
@@ -14,6 +16,7 @@ const Cart = () => {
   const [promoMsg, setPromoMsg] = useState(null);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
+  const [wishlistedIds, setWishlistedIds] = useState(new Set());
   const navigate = useNavigate();
 
   const setAction = (id, loading) => setActionLoading(prev => ({ ...prev, [id]: loading }));
@@ -86,6 +89,26 @@ const Cart = () => {
     } catch (err) {
                 void err;
       setError("Failed to save item for later. Please try again.");
+    }
+    setAction(key, false);
+  };
+
+  const toggleWishlist = async (productId) => {
+    if (!productId) return;
+    const key = `wishlist-${productId}`;
+    setAction(key, true);
+    setError(null);
+    try {
+      if (wishlistedIds.has(productId)) {
+        await removeFromWishlist(productId);
+        setWishlistedIds(prev => { const next = new Set(prev); next.delete(productId); return next; });
+      } else {
+        await addToWishlist(productId);
+        setWishlistedIds(prev => new Set(prev).add(productId));
+      }
+    } catch (err) {
+      void err;
+      setError("Failed to update wishlist. Please try again.");
     }
     setAction(key, false);
   };
@@ -286,14 +309,26 @@ const Cart = () => {
                           <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty + 1)}
                             disabled={isLoading(`qty-${itemId}`)}>+</button>
                         </div>
-                        <button className={`cart-item-action-btn delete ${isLoading(`remove-${itemId}`) ? "disabled" : ""}`}
-                          onClick={() => removeItem(itemId)} disabled={isLoading(`remove-${itemId}`)}>
-                          {isLoading(`remove-${itemId}`) ? "Removing..." : "Delete"}
-                        </button>
-                        <button className={`cart-item-action-btn save ${isLoading(`save-${itemId}`) ? "disabled" : ""}`}
-                          onClick={() => saveForLater(itemId)} disabled={isLoading(`save-${itemId}`)}>
-                          {isLoading(`save-${itemId}`) ? "Saving..." : "Save for Later"}
-                        </button>
+                        <div className="cart-item-secondary-actions">
+                          <button
+                            className={`cart-item-action-btn wishlist ${wishlistedIds.has(product.id) ? "active" : ""}`}
+                            onClick={() => toggleWishlist(product.id)}
+                            disabled={isLoading(`wishlist-${product.id}`)}
+                          >
+                            <Heart size={14} fill={wishlistedIds.has(product.id) ? "currentColor" : "none"} />
+                            {wishlistedIds.has(product.id) ? "Wishlisted" : "Wishlist"}
+                          </button>
+                          <button className={`cart-item-action-btn save ${isLoading(`save-${itemId}`) ? "disabled" : ""}`}
+                            onClick={() => saveForLater(itemId)} disabled={isLoading(`save-${itemId}`)}>
+                            <Bookmark size={14} />
+                            {isLoading(`save-${itemId}`) ? "Saving..." : "Save for Later"}
+                          </button>
+                          <button className={`cart-item-action-btn delete ${isLoading(`remove-${itemId}`) ? "disabled" : ""}`}
+                            onClick={() => removeItem(itemId)} disabled={isLoading(`remove-${itemId}`)}>
+                            <Trash2 size={14} />
+                            {isLoading(`remove-${itemId}`) ? "Removing..." : "Delete"}
+                          </button>
+                        </div>
                         <button className="cart-item-action-btn buy-now"
                           onClick={() => navigate("/checkout")}>
                           Buy Now

@@ -213,8 +213,16 @@
 .cart-item-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-4);
+  justify-content: space-between;
+  gap: var(--spacing-3);
   margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.cart-item-secondary-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
   flex-wrap: wrap;
 }
 
@@ -274,14 +282,18 @@
 }
 
 .cart-item-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
   background: none;
-  border: none;
+  border: 1px solid transparent;
   padding: var(--spacing-1) var(--spacing-2);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
 .cart-item-action-btn:hover {
@@ -297,9 +309,25 @@
   opacity: 0.8;
 }
 
+.cart-item-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .cart-item-action-btn.save:hover {
   color: var(--color-primary);
   background: var(--color-primary-light);
+}
+
+.cart-item-action-btn.wishlist:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.cart-item-action-btn.wishlist.active {
+  color: var(--color-accent-rose, #f43f5e);
+  border-color: var(--color-accent-rose, #f43f5e);
+  background: rgba(244, 63, 94, 0.08);
 }
 
 .cart-item-action-btn.buy-now {
@@ -704,7 +732,8 @@
 .cart-btn,
 .save-later-item-move,
 .cart-item-action-btn.delete:hover,
-.cart-item-action-btn.save:hover {
+.cart-item-action-btn.save:hover,
+.cart-item-action-btn.wishlist:hover {
   background: #16a34a !important;
   color: #fff !important;
   border-color: #16a34a !important;
@@ -815,6 +844,22 @@
 
   .cart-item-actions {
     width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cart-item-secondary-actions {
     justify-content: space-between;
+  }
+
+  .cart-item-secondary-actions .cart-item-action-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .cart-item-action-btn.buy-now {
+    width: 100%;
+    justify-content: center;
+    padding: var(--spacing-2) var(--spacing-3);
   }
 }

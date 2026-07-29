@@ -74,12 +74,36 @@ function Stars({ rating, reviews }) {
 
 function ProductCard({ product, onCart, onBuyNow, adding }) {
   const navigate = useNavigate();
+  const [wishlisted, setWishlisted] = useState(false);
+
+  const handleWishlist = async (e) => {
+    e.stopPropagation();
+    const isLoggedIn = !!localStorage.getItem("accessToken");
+    if (!isLoggedIn) { navigate("/login"); return; }
+    try {
+      const { addToWishlist, removeFromWishlist } = await import("../services/wishlistService");
+      if (wishlisted) {
+        await removeFromWishlist(product.id);
+        setWishlisted(false);
+      } else {
+        await addToWishlist(product.id);
+        setWishlisted(true);
+      }
+    } catch { /* ignore */ }
+  };
+
   return (
     <div className="sn-product-card" onClick={() => navigate(`/product/${product.id}`)}>
       <div className="sn-product-image-wrap">
         <CartItemImage src={product.image} name={product.name} width={200} height={200} className="sn-product-img" />
         {product.badge && <span className="sn-product-badge">{product.badge}</span>}
-        <button className="sn-wishlist-btn" onClick={e => { e.stopPropagation(); }} aria-label="Add to wishlist"><Heart size={16} /></button>
+        <button
+          className={`sn-wishlist-btn ${wishlisted ? "active" : ""}`}
+          onClick={handleWishlist}
+          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          <Heart size={16} fill={wishlisted ? "currentColor" : "none"} />
+        </button>
       </div>
       <div className="sn-product-info">
         <h4 className="sn-product-name">{product.name || "Product"}</h4>
