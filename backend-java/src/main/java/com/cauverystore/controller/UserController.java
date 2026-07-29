@@ -3,6 +3,7 @@ package com.cauverystore.controller;
 import com.cauverystore.dto.AuthResponse;
 import com.cauverystore.dto.LoginRequest;
 import com.cauverystore.dto.RefreshTokenRequest;
+import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.User;
 import com.cauverystore.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,8 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody User user) {
-        authService.register(user);
+    public ResponseEntity<Map<String, String>> register(@RequestBody RegisterRequest request) {
+        authService.register(request);
         return ResponseEntity.ok(Map.of("message", "User registered successfully"));
     }
 

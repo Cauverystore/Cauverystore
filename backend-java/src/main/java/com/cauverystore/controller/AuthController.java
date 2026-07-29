@@ -4,6 +4,7 @@ import com.cauverystore.dto.AuthResponse;
 import com.cauverystore.dto.LoginRequest;
 import com.cauverystore.dto.PasswordResetRequest;
 import com.cauverystore.dto.RefreshTokenRequest;
+import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.Role;
 import com.cauverystore.entities.User;
 import com.cauverystore.service.AuthService;
@@ -23,8 +24,8 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody User user) {
-        String message = authService.register(user);
+    public ResponseEntity<Map<String, String>> register(@RequestBody RegisterRequest request) {
+        String message = authService.register(request);
         return ResponseEntity.ok(Map.of("message", message));
     }
 

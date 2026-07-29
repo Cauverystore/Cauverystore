@@ -4,6 +4,7 @@ import com.cauverystore.config.JwtUtil;
 import com.cauverystore.dto.AuthResponse;
 import com.cauverystore.dto.LoginRequest;
 import com.cauverystore.dto.RefreshTokenRequest;
+import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.EmailOtp;
 import com.cauverystore.entities.Role;
 import com.cauverystore.entities.User;
@@ -31,14 +32,26 @@ public class AuthService {
     private final EmailService emailService;
     private final AuditService auditService;
 
-    public String register(User user) {
-        if (userRepo.existsByEmail(user.getEmail())) {
+    public String register(RegisterRequest request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new RuntimeException("Password is required");
+        }
+        if (userRepo.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
-        if (userRepo.existsByUsername(user.getUsername())) {
+        if (request.getUsername() != null && userRepo.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username already taken");
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        User user = new User();
+        user.setFullName(request.getFullName());
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.CUSTOMER);
         user.setStatus("ACTIVE");
         user.setActive(true);
