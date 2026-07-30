@@ -34,13 +34,13 @@ public class EmailService {
     }
 
     private static final String LOGO_URL = "https://cauverystore.in/images/logo.jpg";
-    private static final String TEAL = "#0E5C5C";
-    private static final String GOLD = "#C8A24B";
-    private static final String BEIGE = "#F5F1EA";
-    private static final String RED = "#D93A2A";
+    static final String TEAL = "#0E5C5C";
+    static final String GOLD = "#C8A24B";
+    static final String BEIGE = "#F5F1EA";
+    static final String RED = "#D93A2A";
 
     /** Wraps body HTML with the standard branded header (logo + tagline) and footer divider. */
-    private String wrapBranded(String bodyHtml) {
+    static String wrapBranded(String bodyHtml) {
         return "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:" + BEIGE + ";border-radius:8px;overflow:hidden;'>"
                 + "<table role='presentation' width='100%' style='background:" + TEAL + ";'><tr><td style='padding:18px 24px;'>"
                 + "<table role='presentation'><tr>"
@@ -104,6 +104,15 @@ public class EmailService {
         String orderId = orderData.getOrDefault("orderId", "").toString();
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Order Delivered!</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>Order <strong>#" + orderId + "</strong> has been delivered. Enjoy your purchase!</p>";
+        send(to, subject, wrapBranded(body));
+    }
+
+    public void sendPaymentReceived(String to, Map<String, Object> orderData) {
+        String subject = "Payment Received - Cauvery Store";
+        String orderId = orderData.getOrDefault("orderId", "").toString();
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Payment Received</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>We've received your payment for order <strong>#" + orderId + "</strong>.</p>"
+                + "<p style='color:#4b5563;font-size:14px;'>Thank you for shopping with Cauvery Store.</p>";
         send(to, subject, wrapBranded(body));
     }
 
