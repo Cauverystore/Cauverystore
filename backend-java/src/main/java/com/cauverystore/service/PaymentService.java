@@ -6,6 +6,8 @@ import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.PaymentRepository;
 import com.razorpay.RazorpayClient;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,8 @@ import java.util.Map;
 
 @Service
 public class PaymentService {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     @Value("${razorpay.key_id}")
     private String keyId;
@@ -85,6 +89,7 @@ public class PaymentService {
             result.put("key", keyId);
             return result;
         } catch (Exception e) {
+            log.error("Razorpay order creation failed (amount={}, receipt={}): {}", amount, receipt, e.getMessage(), e);
             throw new RuntimeException("Failed to create Razorpay order", e);
         }
     }
