@@ -33,12 +33,12 @@ public class PaymentService {
         this.orderRepo = orderRepo;
     }
 
-    public com.razorpay.Order createRazorpayOrder(Long orderId, double amount) throws Exception {
+    public com.razorpay.Order createRazorpayOrder(String receipt, double amount) throws Exception {
         RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
         JSONObject orderRequest = new JSONObject();
         orderRequest.put("amount", (int) (amount * 100));
         orderRequest.put("currency", "INR");
-        orderRequest.put("receipt", "order_rcpt_" + orderId);
+        orderRequest.put("receipt", receipt);
         return razorpay.orders.create(orderRequest);
     }
 
@@ -66,14 +66,23 @@ public class PaymentService {
     }
 
     public Map<String, Object> createRazorpayOrder(String authHeader, Map<String, Object> body) {
-        Long orderId = Long.valueOf(body.get("orderId").toString());
-        double amount = Double.parseDouble(body.get("amount").toString());
+        Object amountObj = body.get("amount");
+        if (amountObj == null) {
+            throw new IllegalArgumentException("amount is required");
+        }
+        double amount = Double.parseDouble(amountObj.toString());
+        // No internal Order row exists yet at this point (it is created only after payment
+        // verification succeeds), so the receipt is derived from the client-supplied orderId
+        // when present, falling back to a timestamp-based reference otherwise.
+        Object orderIdObj = body.get("orderId");
+        String receipt = "order_rcpt_" + (orderIdObj != null ? orderIdObj.toString() : System.currentTimeMillis());
         try {
-            com.razorpay.Order razorpayOrder = createRazorpayOrder(orderId, amount);
+            com.razorpay.Order razorpayOrder = createRazorpayOrder(receipt, amount);
             Map<String, Object> result = new java.util.HashMap<>();
-            result.put("orderId", razorpayOrder.get("id"));
+            result.put("razorpayOrderId", razorpayOrder.get("id"));
             result.put("amount", razorpayOrder.get("amount"));
             result.put("currency", razorpayOrder.get("currency"));
+            result.put("key", keyId);
             return result;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create Razorpay order", e);

@@ -147,8 +147,7 @@ const Checkout = () => {
               await api.post("/api/payment/verify", {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                orderId: paymentData.orderId
+                razorpay_signature: response.razorpay_signature
               });
               const orderRes = await api.post("/api/orders/place", {
                 ...payload,
