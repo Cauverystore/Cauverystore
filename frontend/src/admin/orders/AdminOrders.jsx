@@ -18,7 +18,7 @@ const AdminOrders = () => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/admin/orders", { params: { page, status: statusFilter } });
+      const res = await api.get("/api/admin/orders", { params: { page: page - 1, status: statusFilter } });
       const data = res.data.content || res.data.orders || res.data || [];
       setOrders(Array.isArray(data) ? data : []);
       setTotalPages(res.data.totalPages || 1);

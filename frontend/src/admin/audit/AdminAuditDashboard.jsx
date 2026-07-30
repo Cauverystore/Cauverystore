@@ -11,7 +11,7 @@ const AdminAuditDashboard = () => {
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
-      try { const res = await api.get("/api/admin/audit-logs", { params: { page } }); setLogs(res.data.content || res.data || []); setTotalPages(res.data.totalPages || 1); } catch (err) { console.error(err); }
+      try { const res = await api.get("/api/admin/audit-logs", { params: { page: page - 1 } }); setLogs(res.data.content || res.data || []); setTotalPages(res.data.totalPages || 1); } catch (err) { console.error(err); }
       setLoading(false);
     };
     fetch();

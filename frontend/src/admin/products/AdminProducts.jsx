@@ -22,7 +22,7 @@ const AdminProducts = () => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/admin/products", { params: { page, search } });
+      const res = await api.get("/api/admin/products", { params: { page: page - 1, search } });
       if (!mountedRef.current) return;
       const data = res.data;
       setProducts(Array.isArray(data.content) ? data.content : Array.isArray(data) ? data : []);

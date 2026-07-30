@@ -12,7 +12,7 @@ const AdminInventory = () => {
     const fetch = async () => {
       setLoading(true);
       try {
-        const res = await api.get("/api/admin/products", { params: { page } });
+        const res = await api.get("/api/admin/products", { params: { page: page - 1 } });
         setProducts(res.data.content || res.data || []);
         setTotalPages(res.data.totalPages || 1);
       } catch (err) { console.error(err); }
