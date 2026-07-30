@@ -1,5 +1,7 @@
 package com.cauverystore.config;
 
+import com.cauverystore.entities.User;
+import com.cauverystore.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -22,10 +24,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
+    private final UserRepository userRepo;
 
-    public JwtFilter(JwtUtil jwtUtil, ObjectMapper objectMapper) {
+    public JwtFilter(JwtUtil jwtUtil, ObjectMapper objectMapper, UserRepository userRepo) {
         this.jwtUtil = jwtUtil;
         this.objectMapper = objectMapper;
+        this.userRepo = userRepo;
     }
 
     @Override
@@ -41,6 +45,17 @@ public class JwtFilter extends OncePerRequestFilter {
                 String username = claims.get("username", String.class);
                 String role = claims.get("role", String.class);
                 Long userId = claims.get("userId", Long.class);
+                Integer tokenVersion = claims.get("tokenVersion", Integer.class);
+
+                if (userId != null) {
+                    User user = userRepo.findById(userId).orElse(null);
+                    int currentVersion = (user != null && user.getTokenVersion() != null) ? user.getTokenVersion() : 0;
+                    int presentedVersion = tokenVersion != null ? tokenVersion : 0;
+                    if (user == null || presentedVersion != currentVersion) {
+                        sendError(response, "Session has been invalidated. Please log in again.");
+                        return;
+                    }
+                }
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     var auth = new UsernamePasswordAuthenticationToken(

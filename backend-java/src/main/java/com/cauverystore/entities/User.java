@@ -30,6 +30,8 @@ public class User extends BaseEntity {
     private Boolean mfaEnabled = false;
     private java.time.LocalDateTime lastLoginAt;
     private Integer failedLoginAttempts = 0;
+    private Boolean mustResetPassword = false;
+    private Integer tokenVersion = 0;
     private Long suspendedBy;
     private java.time.LocalDateTime suspendedAt;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -41,6 +43,12 @@ public class User extends BaseEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("user")
     private Cart cart;
+
+    /** Clears the refresh token and bumps the token version so previously issued access tokens stop passing JwtFilter's version check. */
+    public void invalidateSessions() {
+        this.refreshToken = null;
+        this.tokenVersion = (this.tokenVersion == null ? 0 : this.tokenVersion) + 1;
+    }
 
     @java.lang.SuppressWarnings("all")
     public String getFullName() {
@@ -110,6 +118,16 @@ public class User extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public Integer getFailedLoginAttempts() {
         return this.failedLoginAttempts;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public Boolean getMustResetPassword() {
+        return this.mustResetPassword;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public Integer getTokenVersion() {
+        return this.tokenVersion;
     }
 
     @java.lang.SuppressWarnings("all")
@@ -206,6 +224,16 @@ public class User extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setFailedLoginAttempts(final Integer failedLoginAttempts) {
         this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setMustResetPassword(final Boolean mustResetPassword) {
+        this.mustResetPassword = mustResetPassword;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setTokenVersion(final Integer tokenVersion) {
+        this.tokenVersion = tokenVersion;
     }
 
     @java.lang.SuppressWarnings("all")

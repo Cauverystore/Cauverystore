@@ -17,6 +17,7 @@ import com.cauverystore.repository.RolePermissionRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.AuditService;
 import com.cauverystore.service.AuthorizationService;
+import com.cauverystore.service.EmailService;
 import com.cauverystore.service.ImpersonationService;
 import com.cauverystore.service.PlatformSettingsService;
 import com.cauverystore.service.UserService;
@@ -63,6 +64,7 @@ public class SuperAdminController {
     private final AuthorizationService authorizationService;
     private final AuditService auditService;
     private final UserService userService;
+    private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final PermissionRepository permissionRepo;
     private final RolePermissionRepository rolePermissionRepo;
@@ -300,10 +302,13 @@ public class SuperAdminController {
         String newPassword = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "A1!";
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setFailedLoginAttempts(0);
+        user.setMustResetPassword(true);
+        user.invalidateSessions();
         userRepo.save(user);
 
         String currentEmail = authorizationService.getCurrentUserEmail();
         auditService.logAccountAction("PASSWORD_RESET_BY_SUPER_ADMIN", currentEmail, id);
+        emailService.sendPasswordResetConfirmation(user.getEmail());
 
         return ResponseEntity.ok(Map.of(
                 "message", "Password reset successfully",
@@ -315,6 +320,7 @@ public class SuperAdminController {
     public ResponseEntity<Map<String, String>> unlockUser(@PathVariable Long id) {
         User user = userService.getUser(id);
         user.setFailedLoginAttempts(0);
+        user.setMustResetPassword(true);
         userRepo.save(user);
 
         String currentEmail = authorizationService.getCurrentUserEmail();

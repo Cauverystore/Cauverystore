@@ -119,6 +119,24 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
     }
 
+    @PostMapping("/complete-forced-reset")
+    public ResponseEntity<AuthResponse> completeForcedReset(@RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(authService.completeForcedPasswordReset(
+                body.get("email"), body.get("oldPassword"), body.get("newPassword")));
+    }
+
+    @PostMapping("/request-password-reset-link")
+    public ResponseEntity<Map<String, String>> requestPasswordResetLink(@RequestBody Map<String, String> body) {
+        authService.requestPasswordResetLink(body.get("email"));
+        return ResponseEntity.ok(Map.of("message", "Reset link sent to email"));
+    }
+
+    @PostMapping("/reset-password-link")
+    public ResponseEntity<Map<String, String>> resetPasswordWithLink(@RequestBody Map<String, String> body) {
+        authService.resetPasswordWithLink(body.get("token"), body.get("newPassword"));
+        return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser() {
         Long userId = authService.deriveUserId();

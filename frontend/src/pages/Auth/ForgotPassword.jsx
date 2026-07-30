@@ -17,7 +17,7 @@ function isValidEmail(email) {
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const { requestPasswordReset, resetPassword } = useAuth();
+  const { requestPasswordReset, resetPassword, requestPasswordResetLink } = useAuth();
 
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
@@ -27,16 +27,18 @@ const ForgotPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [success, setSuccess] = useState('');
+  const [linkSent, setLinkSent] = useState(false);
 
   const passwordsMatch = newPassword === confirmPassword;
   const passwordValid = PASSWORD_REQUIREMENTS.every((r) => r.test(newPassword));
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
-    setError(''); setInfo('');
+    setError(''); setInfo(''); setLinkSent(false);
     if (!isValidEmail(email)) { setError('Please enter a valid email address'); return; }
     setLoading(true);
     try {
@@ -47,6 +49,20 @@ const ForgotPassword = () => {
       setError(err.response?.data?.error || err.response?.data?.message || 'Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestLink = async () => {
+    setError(''); setInfo('');
+    if (!isValidEmail(email)) { setError('Please enter a valid email address'); return; }
+    setLinkLoading(true);
+    try {
+      await requestPasswordResetLink(email);
+      setLinkSent(true);
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to send reset link. Please try again.');
+    } finally {
+      setLinkLoading(false);
     }
   };
 
@@ -98,6 +114,9 @@ const ForgotPassword = () => {
           {error && <div className="auth-alert error">{error}</div>}
           {info && !error && <div className="auth-alert info">{info}</div>}
           {success && <div className="auth-alert success">{success}</div>}
+          {linkSent && !error && (
+            <div className="auth-alert info">A reset link has been sent to your email. It expires in 30 minutes.</div>
+          )}
 
           {step === 1 ? (
             <form onSubmit={handleRequestOtp} className="auth-form">
@@ -116,8 +135,17 @@ const ForgotPassword = () => {
                 </div>
               </div>
 
-              <button type="submit" className={`auth-submit-btn${loading ? ' loading' : ''}`} disabled={loading}>
-                {loading ? 'Sending...' : 'Send Reset Code'}
+              <button type="submit" className={`auth-submit-btn${loading ? ' loading' : ''}`} disabled={loading || linkLoading}>
+                {loading ? 'Sending...' : 'Send Reset Code (OTP)'}
+              </button>
+              <button
+                type="button"
+                className="auth-submit-btn"
+                style={{ marginTop: '0.6rem', background: 'transparent', color: 'var(--color-primary, #16a34a)', border: '1px solid var(--color-primary, #16a34a)' }}
+                onClick={handleRequestLink}
+                disabled={loading || linkLoading}
+              >
+                {linkLoading ? 'Sending...' : 'Email Me a Reset Link Instead'}
               </button>
             </form>
           ) : (

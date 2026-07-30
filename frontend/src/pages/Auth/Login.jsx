@@ -7,6 +7,14 @@ import '../../styles/auth.css';
 
 const isNativeApp = Capacitor.isNativePlatform();
 
+const PASSWORD_REQUIREMENTS = [
+  { label: 'At least 8 characters', test: (v) => v.length >= 8 },
+  { label: 'Contains uppercase letter', test: (v) => /[A-Z]/.test(v) },
+  { label: 'Contains lowercase letter', test: (v) => /[a-z]/.test(v) },
+  { label: 'Contains a number', test: (v) => /\d/.test(v) },
+  { label: 'Contains special character', test: (v) => /[!@#$%^&*(),.?":{}|<>]/.test(v) },
+];
+
 const ROLES = [
   { value: 'customer', label: 'Customer' },
   { value: 'seller', label: 'Seller' },
@@ -25,7 +33,7 @@ const navigateForRole = (navigate, role) => {
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, completeForcedPasswordReset } = useAuth();
   const [role, setRole] = useState('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +43,12 @@ const Login = () => {
   const [error, setError] = useState('');
   const [remainingAttempts, setRemainingAttempts] = useState(null);
   const googleButtonRef = useRef(null);
+
+  const [forcedReset, setForcedReset] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const newPasswordValid = PASSWORD_REQUIREMENTS.every((r) => r.test(newPassword));
+  const newPasswordsMatch = newPassword === confirmNewPassword;
 
   const handleGoogleCredential = useCallback(async (response) => {
     setError('');
@@ -86,6 +100,11 @@ const Login = () => {
       await login(email, password, role, rememberMe);
       navigateForRole(navigate, role);
     } catch (err) {
+      if (err.response?.data?.passwordResetRequired) {
+        setForcedReset({ email: err.response.data.email || email, oldPassword: password });
+        setLoading(false);
+        return;
+      }
       const msg = err.response?.data?.error || err.response?.data?.message || 'Login failed. Please check your credentials.';
       setError(msg);
       const match = msg.match(/(\d+) attempt\(s\) remaining/);
@@ -94,6 +113,98 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  const handleCompleteForcedReset = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!newPasswordValid) { setError('Password does not meet the requirements below'); return; }
+    if (!newPasswordsMatch) { setError('Passwords do not match'); return; }
+    setLoading(true);
+    try {
+      const data = await completeForcedPasswordReset(forcedReset.email, forcedReset.oldPassword, newPassword, rememberMe);
+      navigateForRole(navigate, (data.role || role).toLowerCase());
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to set new password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (forcedReset) {
+    return (
+      <div className="auth-page">
+        <div className="auth-container">
+          <div className="auth-card">
+            <div className="auth-header">
+              <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #16a34a)" }}>Cauvery Store</div>
+              <h1 className="auth-title">Set a new password</h1>
+              <p className="auth-subtitle">Your password was reset by an administrator. Please choose a new password to continue.</p>
+            </div>
+
+            {error && (
+              <div className="auth-alert error">
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCompleteForcedReset} className="auth-form">
+              <div className="auth-field">
+                <label className="auth-field-label">New Password</label>
+                <div className="auth-input-wrapper">
+                  <span className="auth-input-icon">&#128274;</span>
+                  <input
+                    type="password"
+                    className="auth-input"
+                    placeholder="Create a strong password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                {newPassword && (
+                  <div className="auth-password-requirements">
+                    {PASSWORD_REQUIREMENTS.map((req, i) => (
+                      <div key={i} className={`auth-password-requirement${req.test(newPassword) ? ' met' : ''}`}>
+                        <span className="auth-password-requirement-icon">{req.test(newPassword) ? '✓' : '•'}</span>
+                        {req.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="auth-field">
+                <label className="auth-field-label">Confirm New Password</label>
+                <div className="auth-input-wrapper">
+                  <span className="auth-input-icon">&#128274;</span>
+                  <input
+                    type="password"
+                    className="auth-input"
+                    placeholder="Confirm your password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                {confirmNewPassword && !newPasswordsMatch && (
+                  <span className="auth-field-error">Passwords do not match</span>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className={`auth-submit-btn${loading ? ' loading' : ''}`}
+                disabled={loading || !newPasswordValid || !newPasswordsMatch}
+              >
+                {loading ? 'Saving...' : 'Set New Password & Sign In'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">

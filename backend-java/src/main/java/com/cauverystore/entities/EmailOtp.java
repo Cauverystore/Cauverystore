@@ -13,6 +13,8 @@ public class EmailOtp extends BaseEntity {
     private String otp;
     private LocalDateTime expiresAt;
     private boolean used = false;
+    private LocalDateTime lastRequestedAt;
+    private Integer verifyAttempts = 0;
 
     @java.lang.SuppressWarnings("all")
     public String getEmail() {
@@ -52,5 +54,25 @@ public class EmailOtp extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setUsed(final boolean used) {
         this.used = used;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public LocalDateTime getLastRequestedAt() {
+        return this.lastRequestedAt;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setLastRequestedAt(final LocalDateTime lastRequestedAt) {
+        this.lastRequestedAt = lastRequestedAt;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public Integer getVerifyAttempts() {
+        return this.verifyAttempts;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setVerifyAttempts(final Integer verifyAttempts) {
+        this.verifyAttempts = verifyAttempts;
     }
 }

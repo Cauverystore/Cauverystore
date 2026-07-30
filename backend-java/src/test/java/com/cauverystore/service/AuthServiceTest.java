@@ -4,6 +4,7 @@ import com.cauverystore.config.JwtUtil;
 import com.cauverystore.dto.AuthResponse;
 import com.cauverystore.dto.LoginRequest;
 import com.cauverystore.dto.RefreshTokenRequest;
+import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.EmailOtp;
 import com.cauverystore.entities.Role;
 import com.cauverystore.entities.User;
@@ -33,7 +34,9 @@ class AuthServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private JwtUtil jwtUtil;
     @Mock private EmailOtpRepository emailOtpRepo;
+    @Mock private com.cauverystore.repository.PasswordResetTokenRepository passwordResetTokenRepo;
     @Mock private EmailService emailService;
+    @Mock private AuditService auditService;
 
     @InjectMocks
     private AuthService authService;
@@ -62,7 +65,7 @@ class AuthServiceTest {
     void authenticate_shouldReturnTokens_whenValidCredentials() {
         when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
         when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
-        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString()))
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString(), any()))
                 .thenReturn("access-token");
         when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
 
@@ -110,7 +113,7 @@ class AuthServiceTest {
         when(userRepo.findByEmail("customer")).thenReturn(null);
         when(userRepo.findByUsername("customer")).thenReturn(user);
         when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
-        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString()))
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString(), any()))
                 .thenReturn("access-token");
         when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
 
@@ -121,50 +124,53 @@ class AuthServiceTest {
 
     @Test
     void register_shouldSucceed_whenEmailAndUsernameAreUnique() {
-        User newUser = new User();
-        newUser.setEmail("new@test.com");
-        newUser.setUsername("newuser");
-        newUser.setPassword("password");
-        newUser.setFullName("New User");
+        RegisterRequest req = new RegisterRequest();
+        req.setEmail("new@test.com");
+        req.setUsername("newuser");
+        req.setPassword("password");
+        req.setFullName("New User");
 
         when(userRepo.existsByEmail("new@test.com")).thenReturn(false);
         when(userRepo.existsByUsername("newuser")).thenReturn(false);
         when(passwordEncoder.encode("password")).thenReturn("encoded");
 
-        String result = authService.register(newUser);
+        String result = authService.register(req);
 
         assertEquals("Registration successful", result);
-        assertEquals(Role.CUSTOMER, newUser.getRole());
-        assertEquals("ACTIVE", newUser.getStatus());
-        assertTrue(newUser.isActive());
-        verify(userRepo).save(newUser);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepo).save(captor.capture());
+        User saved = captor.getValue();
+        assertEquals(Role.CUSTOMER, saved.getRole());
+        assertEquals("ACTIVE", saved.getStatus());
+        assertTrue(saved.isActive());
+        assertEquals("new@test.com", saved.getEmail());
         verify(emailService).sendWelcomeEmail("new@test.com", "New User");
     }
 
     @Test
     void register_shouldThrow_whenEmailExists() {
-        User newUser = new User();
-        newUser.setEmail("existing@test.com");
-        newUser.setUsername("newuser");
-        newUser.setPassword("password");
+        RegisterRequest req = new RegisterRequest();
+        req.setEmail("existing@test.com");
+        req.setUsername("newuser");
+        req.setPassword("password");
 
         when(userRepo.existsByEmail("existing@test.com")).thenReturn(true);
 
-        assertThrows(RuntimeException.class, () -> authService.register(newUser));
+        assertThrows(RuntimeException.class, () -> authService.register(req));
         verify(userRepo, never()).save(any());
     }
 
     @Test
     void register_shouldThrow_whenUsernameTaken() {
-        User newUser = new User();
-        newUser.setEmail("new@test.com");
-        newUser.setUsername("existing");
-        newUser.setPassword("password");
+        RegisterRequest req = new RegisterRequest();
+        req.setEmail("new@test.com");
+        req.setUsername("existing");
+        req.setPassword("password");
 
         when(userRepo.existsByEmail("new@test.com")).thenReturn(false);
         when(userRepo.existsByUsername("existing")).thenReturn(true);
 
-        assertThrows(RuntimeException.class, () -> authService.register(newUser));
+        assertThrows(RuntimeException.class, () -> authService.register(req));
     }
 
     @Test
@@ -176,7 +182,7 @@ class AuthServiceTest {
         when(jwtUtil.validateToken("old-refresh-token")).thenReturn(true);
         when(jwtUtil.getEmailFromToken("old-refresh-token")).thenReturn("customer@test.com");
         when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
-        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString()))
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString(), any()))
                 .thenReturn("new-access-token");
         when(jwtUtil.generateRefreshToken(anyString())).thenReturn("new-refresh-token");
 

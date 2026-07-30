@@ -160,6 +160,42 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   }, []);
 
+  const requestPasswordResetLink = useCallback(async (email) => {
+    const res = await API.post('/api/auth/request-password-reset-link', { email });
+    return res.data;
+  }, []);
+
+  const resetPasswordWithLink = useCallback(async (token, newPassword) => {
+    const res = await API.post('/api/auth/reset-password-link', { token, newPassword });
+    return res.data;
+  }, []);
+
+  const completeForcedPasswordReset = useCallback(async (email, oldPassword, newPassword, rememberMe = false) => {
+    setError('');
+    const res = await API.post('/api/auth/complete-forced-reset', { email, oldPassword, newPassword });
+    const data = res.data;
+
+    const accessToken = data.accessToken || data.token;
+    const newRefreshToken = data.refreshToken || '';
+    const userData = data.user || { email: data.email, fullName: data.username || data.email };
+    const userRoleFinal = data.role || 'CUSTOMER';
+
+    localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
+    localStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
+    localStorage.setItem(STORAGE_KEYS.role, userRoleFinal);
+    localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe ? 'true' : 'false');
+
+    setToken(accessToken);
+    setRefreshTokenValue(newRefreshToken);
+    setUser(userData);
+    setRole(userRoleFinal);
+    setIsAuthenticated(true);
+    setLastActivity(Date.now());
+
+    return data;
+  }, []);
+
   const resetActivityTimer = useCallback(() => {
     setLastActivity(Date.now());
     setShowSessionWarning(false);
@@ -281,7 +317,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user, token, role, isAuthenticated, loading, error,
     login, loginWithGoogle, register, logout, refreshToken, getAuthHeaders, isTokenExpired,
-    requestPasswordReset, resetPassword,
+    requestPasswordReset, resetPassword, completeForcedPasswordReset,
+    requestPasswordResetLink, resetPasswordWithLink,
     isImpersonating, impersonationSession, impersonatedUser,
     startImpersonation, stopImpersonation,
     showSessionWarning, extendSession, lastActivity,

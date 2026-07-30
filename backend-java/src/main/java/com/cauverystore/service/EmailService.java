@@ -65,6 +65,16 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    public void sendPasswordResetLink(String to, String resetUrl) {
+        String subject = "Reset Your Password - Cauvery Store";
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Reset Your Password</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Click the button below to choose a new password. This link is valid for 30 minutes and can only be used once.</p>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='" + resetUrl + "' style='background:" + TEAL + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Reset Password</a></div>"
+                + "<p style='color:#9ca3af;font-size:12px;'>If you did not request this, please ignore this email. If the button doesn't work, copy and paste this link: " + resetUrl + "</p>";
+        send(to, subject, wrapBranded(body));
+    }
+
     public void sendWelcomeEmail(String to, String name) {
         String subject = "Welcome to Cauvery Store!";
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Welcome, " + name + "!</h2>"
@@ -75,9 +85,12 @@ public class EmailService {
     }
 
     public void sendPasswordResetConfirmation(String to) {
-        String subject = "Your Password Has Been Reset - Cauvery Store";
-        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Password Reset Successful</h2>"
-                + "<p style='color:#4b5563;font-size:14px;'>Your password has been successfully reset. If you did not perform this action, please contact support immediately.</p>";
+        String subject = "Your Password Has Been Changed - Cauvery Store";
+        String changedAt = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a")
+                .format(java.time.LocalDateTime.now());
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Password Changed</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Your password was changed at <strong>" + changedAt + "</strong>. "
+                + "If this wasn't you, please contact support immediately.</p>";
         send(to, subject, wrapBranded(body));
     }
 

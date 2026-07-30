@@ -6,11 +6,14 @@ import com.cauverystore.dto.LoginRequest;
 import com.cauverystore.dto.RefreshTokenRequest;
 import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.EmailOtp;
+import com.cauverystore.entities.PasswordResetToken;
 import com.cauverystore.entities.Role;
 import com.cauverystore.entities.User;
 import com.cauverystore.exception.AuthenticationFailedException;
+import com.cauverystore.exception.PasswordResetRequiredException;
 import com.cauverystore.exception.TokenException;
 import com.cauverystore.repository.EmailOtpRepository;
+import com.cauverystore.repository.PasswordResetTokenRepository;
 import com.cauverystore.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -40,11 +43,14 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final EmailOtpRepository emailOtpRepo;
+    private final PasswordResetTokenRepository passwordResetTokenRepo;
     private final EmailService emailService;
     private final AuditService auditService;
 
     @Value("${google.client.id:}")
     private String googleClientId;
+    @Value("${frontend.url:https://cauverystore.in}")
+    private String frontendUrl;
 
     public String register(RegisterRequest request) {
         if (request.getEmail() == null || request.getEmail().isBlank()) {
@@ -128,9 +134,20 @@ public class AuthService {
         }
 
         user.setFailedLoginAttempts(0);
+
+        if (Boolean.TRUE.equals(user.getMustResetPassword())) {
+            userRepo.save(user);
+            auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "CUSTOMER", true);
+            throw new PasswordResetRequiredException(user.getEmail());
+        }
+
+        return issueTokens(user);
+    }
+
+    private AuthResponse issueTokens(User user) {
         String accessToken = jwtUtil.generateAccessToken(
                 user.getEmail(), user.getId(), user.getUsername(),
-                user.getRole() != null ? user.getRole().name() : "CUSTOMER");
+                user.getRole() != null ? user.getRole().name() : "CUSTOMER", user.getTokenVersion());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
         user.setRefreshToken(refreshToken);
@@ -146,6 +163,27 @@ public class AuthService {
         response.setRole(user.getRole() != null ? user.getRole().name() : "CUSTOMER");
         response.setUserId(user.getId());
         return response;
+    }
+
+    @Transactional
+    public AuthResponse completeForcedPasswordReset(String email, String oldPassword, String newPassword) {
+        User user = userRepo.findByEmail(email);
+        if (user == null) {
+            throw new AuthenticationFailedException("Invalid request");
+        }
+        if (!Boolean.TRUE.equals(user.getMustResetPassword())) {
+            throw new AuthenticationFailedException("Password reset is not required for this account");
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new AuthenticationFailedException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setMustResetPassword(false);
+        user.setFailedLoginAttempts(0);
+        user.invalidateSessions();
+        auditService.logAccountAction("PASSWORD_RESET_COMPLETED", email, user.getId());
+        emailService.sendPasswordResetConfirmation(user.getEmail());
+        return issueTokens(user);
     }
 
     @Transactional
@@ -198,23 +236,7 @@ public class AuthService {
         }
 
         user.setFailedLoginAttempts(0);
-        String accessToken = jwtUtil.generateAccessToken(
-                user.getEmail(), user.getId(), user.getUsername(),
-                user.getRole() != null ? user.getRole().name() : "CUSTOMER");
-        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
-        user.setRefreshToken(refreshToken);
-        userRepo.save(user);
-
-        auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "CUSTOMER", true);
-
-        AuthResponse response = new AuthResponse();
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setUsername(user.getUsername());
-        response.setEmail(user.getEmail());
-        response.setRole(user.getRole() != null ? user.getRole().name() : "CUSTOMER");
-        response.setUserId(user.getId());
-        return response;
+        return issueTokens(user);
     }
 
     @Transactional
@@ -237,7 +259,7 @@ public class AuthService {
 
         String newAccessToken = jwtUtil.generateAccessToken(
                 user.getEmail(), user.getId(), user.getUsername(),
-                user.getRole() != null ? user.getRole().name() : "CUSTOMER");
+                user.getRole() != null ? user.getRole().name() : "CUSTOMER", user.getTokenVersion());
         String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
     user.setRefreshToken(newRefreshToken);
@@ -284,14 +306,22 @@ public class AuthService {
         userRepo.save(user);
     }
 
+    private static final long OTP_REQUEST_COOLDOWN_SECONDS = 60;
+    private static final int MAX_OTP_VERIFY_ATTEMPTS = 5;
+
     public void requestPasswordReset(String email) {
         User user = userRepo.findByEmail(email);
         if (user == null) {
             throw new RuntimeException("User not found with email: " + email);
         }
 
-        String otp = String.format("%06d", new Random().nextInt(999999));
         EmailOtp emailOtp = emailOtpRepo.findByEmail(email);
+        if (emailOtp != null && emailOtp.getLastRequestedAt() != null
+                && emailOtp.getLastRequestedAt().isAfter(LocalDateTime.now().minusSeconds(OTP_REQUEST_COOLDOWN_SECONDS))) {
+            throw new AuthenticationFailedException("Please wait a minute before requesting another code.");
+        }
+
+        String otp = String.format("%06d", new Random().nextInt(999999));
         if (emailOtp == null) {
             emailOtp = new EmailOtp();
             emailOtp.setEmail(email);
@@ -299,7 +329,10 @@ public class AuthService {
         emailOtp.setOtp(otp);
         emailOtp.setExpiresAt(LocalDateTime.now().plusMinutes(15));
         emailOtp.setUsed(false);
+        emailOtp.setVerifyAttempts(0);
+        emailOtp.setLastRequestedAt(LocalDateTime.now());
         emailOtpRepo.save(emailOtp);
+        auditService.logAccountAction("PASSWORD_RESET_REQUESTED", email, user.getId());
         emailService.sendOtpEmail(user.getEmail(), otp);
     }
 
@@ -310,7 +343,7 @@ public class AuthService {
         }
         log.info("Password reset: id={}, email={}, failedLoginAttemptsBefore={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
         EmailOtp emailOtp = emailOtpRepo.findByEmail(email);
-        if (emailOtp == null || !emailOtp.getOtp().equals(otp)) {
+        if (emailOtp == null) {
             throw new AuthenticationFailedException("Invalid OTP");
         }
         if (emailOtp.isUsed()) {
@@ -319,13 +352,85 @@ public class AuthService {
         if (emailOtp.getExpiresAt() != null && emailOtp.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new AuthenticationFailedException("OTP has expired");
         }
+        int attempts = emailOtp.getVerifyAttempts() != null ? emailOtp.getVerifyAttempts() : 0;
+        if (attempts >= MAX_OTP_VERIFY_ATTEMPTS) {
+            throw new AuthenticationFailedException("Too many incorrect attempts. Please request a new code.");
+        }
+        if (!emailOtp.getOtp().equals(otp)) {
+            emailOtp.setVerifyAttempts(attempts + 1);
+            emailOtpRepo.save(emailOtp);
+            throw new AuthenticationFailedException("Invalid OTP");
+        }
         emailOtp.setUsed(true);
         emailOtpRepo.save(emailOtp);
 
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setFailedLoginAttempts(0);
+        user.invalidateSessions();
         userRepo.save(user);
         log.info("Password reset: id={}, email={}, failedLoginAttemptsAfterSave={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
+        auditService.logAccountAction("PASSWORD_RESET_COMPLETED", email, user.getId());
+        emailService.sendPasswordResetConfirmation(user.getEmail());
+    }
+
+    public void requestPasswordResetLink(String email) {
+        User user = userRepo.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found with email: " + email);
+        }
+
+        PasswordResetToken resetToken = passwordResetTokenRepo.findByEmail(email);
+        if (resetToken != null && resetToken.getLastRequestedAt() != null
+                && resetToken.getLastRequestedAt().isAfter(LocalDateTime.now().minusSeconds(OTP_REQUEST_COOLDOWN_SECONDS))) {
+            throw new AuthenticationFailedException("Please wait a minute before requesting another link.");
+        }
+
+        String token = java.util.UUID.randomUUID().toString().replace("-", "")
+                + java.util.UUID.randomUUID().toString().replace("-", "");
+        if (resetToken == null) {
+            resetToken = new PasswordResetToken();
+            resetToken.setEmail(email);
+        }
+        resetToken.setToken(token);
+        resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+        resetToken.setUsed(false);
+        resetToken.setLastRequestedAt(LocalDateTime.now());
+        passwordResetTokenRepo.save(resetToken);
+
+        auditService.logAccountAction("PASSWORD_RESET_LINK_REQUESTED", email, user.getId());
+        String resetUrl = frontendUrl + "/reset-password?token=" + token;
+        emailService.sendPasswordResetLink(user.getEmail(), resetUrl);
+    }
+
+    public void resetPasswordWithLink(String token, String newPassword) {
+        if (token == null || token.isBlank()) {
+            throw new AuthenticationFailedException("Invalid or expired reset link");
+        }
+        PasswordResetToken resetToken = passwordResetTokenRepo.findByToken(token);
+        if (resetToken == null) {
+            throw new AuthenticationFailedException("Invalid or expired reset link");
+        }
+        if (resetToken.isUsed()) {
+            throw new AuthenticationFailedException("This reset link has already been used");
+        }
+        if (resetToken.getExpiresAt() != null && resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new AuthenticationFailedException("This reset link has expired");
+        }
+        User user = userRepo.findByEmail(resetToken.getEmail());
+        if (user == null) {
+            throw new AuthenticationFailedException("Invalid or expired reset link");
+        }
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepo.save(resetToken);
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setFailedLoginAttempts(0);
+        user.invalidateSessions();
+        userRepo.save(user);
+
+        auditService.logAccountAction("PASSWORD_RESET_COMPLETED", resetToken.getEmail(), user.getId());
+        emailService.sendPasswordResetConfirmation(user.getEmail());
     }
 
     public User getUserById(Long id) {

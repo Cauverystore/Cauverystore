@@ -40,6 +40,16 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
+    @ExceptionHandler(PasswordResetRequiredException.class)
+    public ResponseEntity<Map<String, Object>> handlePasswordResetRequired(PasswordResetRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of(
+                        "error", ex.getMessage(),
+                        "passwordResetRequired", true,
+                        "email", ex.getEmail()
+                ));
+    }
+
     @ExceptionHandler(TokenException.class)
     public ResponseEntity<Map<String, String>> handleToken(TokenException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
