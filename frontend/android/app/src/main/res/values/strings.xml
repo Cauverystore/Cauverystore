@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cauvery Store</string>
+    <string name="title_activity_main">Cauvery Store</string>
+    <string name="package_name">in.cauverystore.app</string>
+    <string name="custom_url_scheme">in.cauverystore.app</string>
+</resources>
