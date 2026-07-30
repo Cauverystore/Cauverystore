@@ -88,8 +88,10 @@ public class AuthService {
             auditService.logLogin(identifier, "UNKNOWN", false);
             throw new AuthenticationFailedException("Invalid username or password");
         }
+        log.info("Login attempt: identifier={}, resolved id={}, email={}, failedLoginAttempts={}", identifier, user.getId(), user.getEmail(), user.getFailedLoginAttempts());
 
         if (user.getFailedLoginAttempts() != null && user.getFailedLoginAttempts() >= MAX_LOGIN_ATTEMPTS) {
+            log.info("Login lockout: id={}, email={}, failedLoginAttempts={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
             auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
             throw new AuthenticationFailedException("Account locked due to too many failed attempts. Try again later.");
         }
@@ -306,6 +308,7 @@ public class AuthService {
         if (user == null) {
             throw new RuntimeException("User not found");
         }
+        log.info("Password reset: id={}, email={}, failedLoginAttemptsBefore={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
         EmailOtp emailOtp = emailOtpRepo.findByEmail(email);
         if (emailOtp == null || !emailOtp.getOtp().equals(otp)) {
             throw new AuthenticationFailedException("Invalid OTP");
@@ -322,6 +325,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setFailedLoginAttempts(0);
         userRepo.save(user);
+        log.info("Password reset: id={}, email={}, failedLoginAttemptsAfterSave={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
     }
 
     public User getUserById(Long id) {
