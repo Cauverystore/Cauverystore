@@ -136,6 +136,43 @@ const OrderDetail = () => {
   const orderTotal = items.reduce((sum, item) => sum + lineTotal(item), 0) || order?.totalAmount || order?.total || 0;
   const orderId = order?.orderId || id?.slice(-8) || id;
 
+  const orderItemsList = useMemo(() => items.map((item, idx) => {
+    const product = safeProduct(item);
+    const imageSrc = product.image || product.images?.[0] || item.image || null;
+    const name = product.name || item.productName || item.name || "Product";
+    const price = item.price || product.price || 0;
+    const qty = item.quantity || 1;
+    const key = safeId(item, idx);
+
+    return (
+      <div
+        key={key}
+        style={{
+          display: "flex", gap: "1rem", alignItems: "center",
+          padding: "0.75rem 0", borderBottom: idx < items.length - 1 ? "1px solid var(--color-border-light)" : "none"
+        }}
+      >
+        <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--color-bg-secondary)" }}>
+          <CartItemImage src={imageSrc} name={name} width={72} height={72} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 500, fontSize: "0.95rem" }}>{name}</div>
+          {item.variantName && (
+            <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
+              {item.variantName}
+            </div>
+          )}
+          <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
+            Qty: {qty} x &#8377;{price.toFixed(2)}
+          </div>
+        </div>
+        <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>
+          &#8377;{lineTotal(item).toFixed(2)}
+        </div>
+      </div>
+    );
+  }), [items]);
+
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
@@ -271,42 +308,7 @@ const OrderDetail = () => {
         marginBottom: "1.25rem"
       }}>
         <h3 style={{ fontWeight: 600, marginBottom: "1rem", fontSize: "1.05rem" }}>Order Items</h3>
-        {useMemo(() => items.map((item, idx) => {
-          const product = safeProduct(item);
-          const imageSrc = product.image || product.images?.[0] || item.image || null;
-          const name = product.name || item.productName || item.name || "Product";
-          const price = item.price || product.price || 0;
-          const qty = item.quantity || 1;
-          const key = safeId(item, idx);
-
-          return (
-            <div
-              key={key}
-              style={{
-                display: "flex", gap: "1rem", alignItems: "center",
-                padding: "0.75rem 0", borderBottom: idx < items.length - 1 ? "1px solid var(--color-border-light)" : "none"
-              }}
-            >
-              <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--color-bg-secondary)" }}>
-                <CartItemImage src={imageSrc} name={name} width={72} height={72} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500, fontSize: "0.95rem" }}>{name}</div>
-                {item.variantName && (
-                  <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
-                    {item.variantName}
-                  </div>
-                )}
-                <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
-                  Qty: {qty} x &#8377;{price.toFixed(2)}
-                </div>
-              </div>
-              <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>
-                &#8377;{lineTotal(item).toFixed(2)}
-              </div>
-            </div>
-          );
-        }), [items])}
+        {orderItemsList}
       </div>
 
       {/* Order summary */}
