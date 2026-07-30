@@ -1,7 +1,6 @@
 package com.cauverystore.service;
 
 import com.resend.Resend;
-import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -146,8 +145,8 @@ public class EmailService {
                     .build();
             resend.emails().send(request);
             log.info("Email sent to {} with subject: {}", to, subject);
-        } catch (ResendException e) {
-            log.error("Failed to send email to {}: {}", to, e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to send email to {} (subject: {}): {}", to, subject, e.getMessage(), e);
         }
     }
 }

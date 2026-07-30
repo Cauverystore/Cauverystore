@@ -2,6 +2,8 @@ package com.cauverystore.service;
 
 import com.cauverystore.entities.Notification;
 import com.cauverystore.repository.NotificationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -9,6 +11,8 @@ import java.util.Map;
 
 @Service
 public class NotificationService {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
     private final NotificationRepository notificationRepo;
     private final EmailService emailService;
@@ -30,23 +34,32 @@ public class NotificationService {
     }
 
     public void sendOrderPlaced(String email, String orderId) {
-        emailService.sendOrderConfirmation(email, Map.of("orderId", orderId));
+        sendSafely(() -> emailService.sendOrderConfirmation(email, Map.of("orderId", orderId)), "order placed", orderId);
     }
 
     public void sendPaymentReceived(String email, String orderId) {
-        emailService.sendPaymentReceived(email, Map.of("orderId", orderId));
+        sendSafely(() -> emailService.sendPaymentReceived(email, Map.of("orderId", orderId)), "payment received", orderId);
     }
 
     public void sendOrderShipped(String email, String orderId) {
-        emailService.sendOrderShipped(email, Map.of("orderId", orderId));
+        sendSafely(() -> emailService.sendOrderShipped(email, Map.of("orderId", orderId)), "order shipped", orderId);
     }
 
     public void sendOrderDelivered(String email, String orderId) {
-        emailService.sendOrderDelivered(email, Map.of("orderId", orderId));
+        sendSafely(() -> emailService.sendOrderDelivered(email, Map.of("orderId", orderId)), "order delivered", orderId);
     }
 
     public void sendOrderCancelled(String email, String orderId) {
-        emailService.sendCancellation(email, Map.of("orderId", orderId));
+        sendSafely(() -> emailService.sendCancellation(email, Map.of("orderId", orderId)), "order cancelled", orderId);
+    }
+
+    /** Notification emails are a best-effort side effect and must never fail the order operation that triggered them. */
+    private void sendSafely(Runnable action, String kind, String orderId) {
+        try {
+            action.run();
+        } catch (Exception e) {
+            log.error("Failed to send '{}' notification email for order {}: {}", kind, orderId, e.getMessage(), e);
+        }
     }
 
     public java.util.List<Notification> getNotifications(Long userId) {
