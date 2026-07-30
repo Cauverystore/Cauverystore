@@ -35,7 +35,7 @@ const AuditLogs = () => {
     setLoading(true);
     setError('');
     try {
-      const params = { page: p, pageSize, action: filterAction !== 'ALL' ? filterAction : undefined, performedBy: filterUser || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+      const params = { page: p - 1, size: pageSize, action: filterAction !== 'ALL' ? filterAction : undefined, performedBy: filterUser || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
       const res = await api.get('/api/super-admin/activity-log', { params });
       const data = res.data;
       setLogs(Array.isArray(data) ? data : data.logs || data.data || data.activities || []);
