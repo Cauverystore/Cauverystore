@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { compressImages } from "../../utils/compressImage";
 
-const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"];
+const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
 const WARRANTY = ["6 Months","1 Year","2 Years","3 Years","No Warranty"];
 const RETURN_POLICY = ["7 Days","10 Days","15 Days","No Returns"];
@@ -20,7 +20,7 @@ const AddProduct = () => {
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
 
   const [form, setForm] = useState({
-    name: "", brand: "", category: "Electronics", price: "", stock: "", sku: "",
+    name: "", brand: "", category: "", price: "", stock: "", sku: "",
     description: "", manufacturer: "", modelNumber: "", barcode: "", hsnCode: "",
     countryOfOrigin: "India", shortDescription: "", technicalSpecs: "",
     warranty: "1 Year", returnPolicy: "7 Days",
@@ -45,7 +45,11 @@ const AddProduct = () => {
     try {
       const res = await api.get("/api/categories");
       const data = Array.isArray(res.data) ? res.data : [];
-      if (data.length > 0) setCategories(data.map((c) => (typeof c === "string" ? c : c.name)));
+      if (data.length > 0) {
+        const normalized = data.map((c) => (typeof c === "string" ? { id: null, name: c } : { id: c.id, name: c.name }));
+        setCategories(normalized);
+        setForm((f) => (f.category ? f : { ...f, category: normalized[0]?.id ?? "" }));
+      }
     } catch {}
   };
 
@@ -99,7 +103,9 @@ const AddProduct = () => {
     setMsg(null);
     try {
       const data = {
-        name: form.name, brand: form.brand, price: parseFloat(form.price),
+        name: form.name, brand: form.brand,
+        category: form.category ? { id: form.category } : null,
+        price: parseFloat(form.price),
         stock: parseInt(form.stock), sku: form.sku, description: form.description,
         manufacturer: form.manufacturer, modelNumber: form.modelNumber,
         barcode: form.barcode, hsnCode: form.hsnCode,
@@ -215,7 +221,13 @@ const AddProduct = () => {
         {fld("Product Name *", "name", "text", null, "Required")}
         <div style={S.grid2}>
           {fld("Brand", "brand")}
-          {fld("Category", "category", null, categories)}
+          <div style={S.field}>
+            <label style={S.label}>Category</label>
+            <select style={S.select} value={form.category} onChange={e => set("category", e.target.value)}>
+              <option value="">Select category</option>
+              {categories.map(c => <option key={c.id ?? c.name} value={c.id ?? ""}>{c.name}</option>)}
+            </select>
+          </div>
         </div>
         {fld("Description", "description", "textarea")}
       </div>
