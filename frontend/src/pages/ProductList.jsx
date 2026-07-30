@@ -55,7 +55,7 @@ const ProductList = () => {
     fetchProducts();
   }, [search, sort, category, page]);
 
-  const categoryValue = (cat) => cat.id || cat._id || cat.name || cat;
+  const categoryValue = (cat) => cat.name || cat.id || cat._id || cat;
   const categoryLabel = (cat) => cat.name || cat.title || cat;
 
   const handleAddToCart = async (product) => {
