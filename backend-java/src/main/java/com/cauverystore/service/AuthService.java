@@ -17,6 +17,8 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,6 +33,8 @@ import java.util.Random;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
@@ -169,6 +173,7 @@ public class AuthService {
         String name = (String) payload.get("name");
 
         User user = userRepo.findByEmail(email);
+        log.info("Google sign-in: email={}, existingUserFound={}", email, user != null);
         if (user == null) {
             user = new User();
             user.setFullName(name != null ? name : email);
@@ -179,10 +184,12 @@ public class AuthService {
             user.setStatus("ACTIVE");
             user.setActive(true);
             user.setFailedLoginAttempts(0);
-            userRepo.save(user);
+            user = userRepo.save(user);
+            log.info("Google sign-in: created new user id={}, status={}, active={}", user.getId(), user.getStatus(), user.isActive());
             emailService.sendWelcomeEmail(user.getEmail(), user.getFullName());
         }
 
+        log.info("Google sign-in: pre-check id={}, status={}, active={}", user.getId(), user.getStatus(), user.isActive());
         if (!"ACTIVE".equals(user.getStatus()) || !user.isActive()) {
             auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
             throw new AuthenticationFailedException("Account is not active");
