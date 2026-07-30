@@ -25,15 +25,19 @@ const Navbar = () => {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    import("../services/cartService").then(({ getCart }) => {
-      getCart().then(res => {
-        if (!cancelled) {
-          const data = res.data;
-          setCartCount(data?.totalItems ?? (Array.isArray(data) ? data.length : 0));
-        }
-      }).catch(() => {});
-    });
-    return () => { cancelled = true; };
+    const refreshCartCount = () => {
+      import("../services/cartService").then(({ getCart }) => {
+        getCart().then(res => {
+          if (!cancelled) {
+            const data = res.data;
+            setCartCount(data?.totalItems ?? (Array.isArray(data) ? data.length : 0));
+          }
+        }).catch(() => {});
+      });
+    };
+    refreshCartCount();
+    window.addEventListener("cart:updated", refreshCartCount);
+    return () => { cancelled = true; window.removeEventListener("cart:updated", refreshCartCount); };
   }, [token]);
 
   const handleSearch = (e) => {

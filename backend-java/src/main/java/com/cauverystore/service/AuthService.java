@@ -320,6 +320,7 @@ public class AuthService {
         emailOtpRepo.save(emailOtp);
 
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setFailedLoginAttempts(0);
         userRepo.save(user);
     }
 
