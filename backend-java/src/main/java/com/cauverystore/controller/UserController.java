@@ -5,6 +5,7 @@ import com.cauverystore.dto.LoginRequest;
 import com.cauverystore.dto.RefreshTokenRequest;
 import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.User;
+import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class UserController {
 
     private final AuthService authService;
+    private final UserRepository userRepo;
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -60,6 +62,7 @@ public class UserController {
         if (updatedUser.getPhone() != null) existing.setPhone(updatedUser.getPhone());
         if (updatedUser.getEmail() != null) existing.setEmail(updatedUser.getEmail());
         if (updatedUser.getAddress() != null) existing.setAddress(updatedUser.getAddress());
+        userRepo.save(existing);
         return ResponseEntity.ok(existing);
     }
 
