@@ -29,6 +29,16 @@
         </provider>
     </application>
 
+    <!-- Android 11+ hides other apps from package queries unless declared here.
+         Without this, the OS won't resolve any installed UPI app for our intent,
+         even though the intent-handling code in MainActivity is otherwise correct. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
