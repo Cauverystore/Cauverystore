@@ -156,8 +156,9 @@ const UserManagement = () => {
   const handleResetPassword = async (user) => {
     if (!window.confirm(`Reset password for ${user.fullName || user.name || user.email}?`)) return;
     try {
-      await api.post(`/api/super-admin/users/${user._id || user.id}/reset-password`, {});
-      showToast('Password reset email sent', 'success');
+      const res = await api.post(`/api/super-admin/users/${user._id || user.id}/reset-password`, {});
+      window.prompt('Password reset. New password (copy this to give to the user):', res.data?.newPassword || '');
+      showToast('Password reset and account unlocked', 'success');
     } catch (err) {
       showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to reset password', 'error');
     }

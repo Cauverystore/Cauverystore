@@ -299,6 +299,7 @@ public class SuperAdminController {
         User user = userService.getUser(id);
         String newPassword = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "A1!";
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setFailedLoginAttempts(0);
         userRepo.save(user);
 
         String currentEmail = authorizationService.getCurrentUserEmail();
