@@ -311,6 +311,18 @@ public class SuperAdminController {
         ));
     }
 
+    @PostMapping("/users/{id}/unlock")
+    public ResponseEntity<Map<String, String>> unlockUser(@PathVariable Long id) {
+        User user = userService.getUser(id);
+        user.setFailedLoginAttempts(0);
+        userRepo.save(user);
+
+        String currentEmail = authorizationService.getCurrentUserEmail();
+        auditService.logAccountAction("ACCOUNT_UNLOCKED_BY_SUPER_ADMIN", currentEmail, id);
+
+        return ResponseEntity.ok(Map.of("message", "Account unlocked successfully"));
+    }
+
     @PostMapping("/users/{id}/delete")
     @Transactional
     public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, AlertTriangle, Edit, RefreshCw, Key, ShieldOff, Shield, Trash2 } from 'lucide-react';
+import { Users, AlertTriangle, Edit, RefreshCw, Key, ShieldOff, Shield, Trash2, Lock, Unlock, Copy } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../admin/context/ToastContext';
 
@@ -9,6 +9,9 @@ const TABS = [
   { key: 'SELLER', label: 'Seller' },
   { key: 'CUSTOMER', label: 'Customer' },
 ];
+
+const MAX_LOGIN_ATTEMPTS = 5;
+const isLocked = (u) => (u.failedLoginAttempts || 0) >= MAX_LOGIN_ATTEMPTS;
 
 const STATUSES = ['ACTIVE', 'SUSPENDED', 'BLOCKED', 'DELETED'];
 
@@ -36,6 +39,11 @@ const UserManagement = () => {
 
   const [confirmAction, setConfirmAction] = useState(null);
   const [newRoleValue, setNewRoleValue] = useState('');
+  const [pwConfirm, setPwConfirm] = useState(null);
+  const [pwResult, setPwResult] = useState(null);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [unlockConfirm, setUnlockConfirm] = useState(null);
+  const [unlockLoading, setUnlockLoading] = useState(false);
 
   const fetchUsers = async (p = page) => {
     setLoading(true);
@@ -153,14 +161,46 @@ const UserManagement = () => {
     }
   };
 
-  const handleResetPassword = async (user) => {
-    if (!window.confirm(`Reset password for ${user.fullName || user.name || user.email}?`)) return;
+  const confirmResetPassword = async () => {
+    const user = pwConfirm;
+    if (!user) return;
+    setPwLoading(true);
     try {
       const res = await api.post(`/api/super-admin/users/${user._id || user.id}/reset-password`, {});
-      window.prompt('Password reset. New password (copy this to give to the user):', res.data?.newPassword || '');
-      showToast('Password reset and account unlocked', 'success');
+      setPwConfirm(null);
+      setPwResult({ user, password: res.data?.newPassword || '' });
+      fetchUsers(page);
     } catch (err) {
       showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to reset password', 'error');
+      setPwConfirm(null);
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const confirmUnlock = async () => {
+    const user = unlockConfirm;
+    if (!user) return;
+    setUnlockLoading(true);
+    try {
+      await api.post(`/api/super-admin/users/${user._id || user.id}/unlock`, {});
+      showToast(`${user.fullName || user.email} unlocked successfully`, 'success');
+      setUnlockConfirm(null);
+      fetchUsers(page);
+    } catch (err) {
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to unlock account', 'error');
+      setUnlockConfirm(null);
+    } finally {
+      setUnlockLoading(false);
+    }
+  };
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(pwResult?.password || '');
+      showToast('Password copied to clipboard', 'success');
+    } catch {
+      showToast('Could not copy automatically — please select and copy manually', 'error');
     }
   };
 
@@ -223,6 +263,11 @@ const UserManagement = () => {
                     {u.suspendedAt ? new Date(u.suspendedAt).toLocaleDateString() : ''}
                   </div>
                 )}
+                {isLocked(u) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem', color: '#dc2626', marginTop: '3px', fontWeight: 600 }}>
+                    <Lock size={11} /> Locked ({u.failedLoginAttempts} attempts)
+                  </div>
+                )}
               </td>
               <td style={{ fontSize: '0.8rem', color: '#6b7280' }}>
                 {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}
@@ -243,7 +288,10 @@ const UserManagement = () => {
                       <ShieldOff size={16} />
                     </button>
                   )}
-                  <button className="admin-table-action-btn" onClick={() => handleResetPassword(u)} title="Reset Password"><Key size={16} /></button>
+                  {isLocked(u) && (
+                    <button className="admin-table-action-btn" onClick={() => setUnlockConfirm(u)} title="Unlock Account" style={{ color: '#16a34a' }}><Unlock size={16} /></button>
+                  )}
+                  <button className="admin-table-action-btn" onClick={() => setPwConfirm(u)} title="Reset Password"><Key size={16} /></button>
                   {u.role === 'SUPER_ADMIN' ? (
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', padding: '0 8px' }}>Protected</span>
                   ) : (
@@ -445,6 +493,76 @@ const UserManagement = () => {
               <button className="admin-btn admin-btn-secondary" onClick={() => setConfirmAction(null)}>Cancel</button>
               <button className="admin-btn admin-btn-primary" onClick={() => handleChangeRole(confirmAction.user, newRoleValue)}>
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pwConfirm && (
+        <div className="admin-modal-overlay" onClick={() => !pwLoading && setPwConfirm(null)}>
+          <div className="admin-modal admin-modal-sm" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-body" style={{ textAlign: 'center' }}>
+              <div className="admin-confirm-icon warning"><Key size={32} /></div>
+              <div className="admin-confirm-text">
+                <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>Reset Password</h3>
+                <p>
+                  Generate a new random password for <strong>{pwConfirm.fullName || pwConfirm.name || pwConfirm.email}</strong>?
+                  {isLocked(pwConfirm) && ' This will also unlock their account.'}
+                </p>
+              </div>
+            </div>
+            <div className="admin-modal-footer" style={{ justifyContent: 'center' }}>
+              <button className="admin-btn admin-btn-secondary" onClick={() => setPwConfirm(null)} disabled={pwLoading}>Cancel</button>
+              <button className="admin-btn admin-btn-primary" onClick={confirmResetPassword} disabled={pwLoading}>
+                {pwLoading ? 'Resetting...' : 'Reset Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pwResult && (
+        <div className="admin-modal-overlay" onClick={() => setPwResult(null)}>
+          <div className="admin-modal admin-modal-sm" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <span className="admin-modal-title">Password Reset</span>
+              <button className="admin-modal-close" onClick={() => setPwResult(null)}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '10px' }}>
+                New password for <strong>{pwResult.user.fullName || pwResult.user.name || pwResult.user.email}</strong> — copy this now, it won't be shown again:
+              </p>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <code style={{ flex: 1, padding: '10px 12px', background: '#f3f4f6', borderRadius: '6px', fontSize: '0.95rem', wordBreak: 'break-all', userSelect: 'all' }}>
+                  {pwResult.password}
+                </code>
+                <button className="admin-table-action-btn" onClick={copyPassword} title="Copy"><Copy size={16} /></button>
+              </div>
+            </div>
+            <div className="admin-modal-footer" style={{ justifyContent: 'center' }}>
+              <button className="admin-btn admin-btn-primary" onClick={() => setPwResult(null)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {unlockConfirm && (
+        <div className="admin-modal-overlay" onClick={() => !unlockLoading && setUnlockConfirm(null)}>
+          <div className="admin-modal admin-modal-sm" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-body" style={{ textAlign: 'center' }}>
+              <div className="admin-confirm-icon warning"><Unlock size={32} /></div>
+              <div className="admin-confirm-text">
+                <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>Unlock Account</h3>
+                <p>
+                  Unlock <strong>{unlockConfirm.fullName || unlockConfirm.name || unlockConfirm.email}</strong>? They'll be able to log in again with their existing password.
+                </p>
+              </div>
+            </div>
+            <div className="admin-modal-footer" style={{ justifyContent: 'center' }}>
+              <button className="admin-btn admin-btn-secondary" onClick={() => setUnlockConfirm(null)} disabled={unlockLoading}>Cancel</button>
+              <button className="admin-btn admin-btn-primary" onClick={confirmUnlock} disabled={unlockLoading}>
+                {unlockLoading ? 'Unlocking...' : 'Unlock'}
               </button>
             </div>
           </div>
