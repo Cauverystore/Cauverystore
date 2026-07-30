@@ -36,8 +36,8 @@
   /* --- Accent / Semantic --- */
   --color-accent-gold: #C8A24B;
   --color-accent-orange: #d97706;
-  --color-accent-red: #C8A24B;
-  --color-accent-rose: #C8A24B;
+  --color-accent-red: #dc2626;
+  --color-accent-rose: #f43f5e;
   --color-accent-blue: #2563eb;
   --color-accent-indigo: #4f46e5;
   --color-accent-teal: #0d9488;
@@ -49,9 +49,9 @@
   --color-warning: #C8A24B;
   --color-warning-light: #faf0d7;
   --color-warning-bg: #fdf8ed;
-  --color-error: #C8A24B;
-  --color-error-light: #faf0d7;
-  --color-error-bg: #fdf8ed;
+  --color-error: #dc2626;
+  --color-error-light: #fee2e2;
+  --color-error-bg: #fef2f2;
   --color-info: #2563eb;
   --color-info-light: #dbeafe;
   --color-info-bg: #eff6ff;
