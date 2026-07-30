@@ -18,6 +18,8 @@ const GST_INVOICE_STYLES = `
   .giv-header { padding: 1.5rem 2rem; border-bottom: 2px solid #0E5C5C; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
   .giv-header-left { display: flex; align-items: center; gap: 1rem; }
   .giv-header-left img { height: 2.5rem; width: auto; }
+  .giv-brand-name { font-size: 0.95rem; font-weight: 700; color: #0E5C5C; line-height: 1.2; }
+  .giv-brand-tagline { font-size: 0.68rem; font-weight: 600; color: #C8A24B; margin-bottom: 0.25rem; }
   .giv-header-left h1 { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0; }
   .giv-header-right { text-align: right; }
   .giv-header-right .giv-inv-number { font-size: 1rem; font-weight: 700; color: #0E5C5C; }
@@ -185,8 +187,10 @@ const GstInvoiceView = () => {
         <div className="giv-invoice" id="gst-invoice-print">
           <div className="giv-header">
             <div className="giv-header-left">
-              <img src="/images/logo.jpg" alt="" />
+              <img src="/images/logo.jpg" alt="Cauvery Store" />
               <div>
+                <div className="giv-brand-name">Cauvery Store</div>
+                <div className="giv-brand-tagline">Everyday Essentials, Delivered</div>
                 <h1>Tax Invoice</h1>
                 <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
                   {invoice.invoiceCopyType === "ORIGINAL" ? "Original for Recipient" :
@@ -220,7 +224,7 @@ const GstInvoiceView = () => {
                 <div className="giv-party-name">{invoice.buyerName}</div>
                 <div className="giv-party-detail">{invoice.buyerAddress}</div>
                 <div className="giv-party-gstin">{invoice.buyerGstin === "URP" ? "GSTIN: URP (Unregistered Person)" : "GSTIN: " + invoice.buyerGstin}</div>
-                {invoice.buyerGstin && invoice.buyerGstin !== "URP" && <div className="giv-party-detail" style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "#16a34a" }}>ITC Eligible: Yes (B2B)</div>}
+                {invoice.buyerGstin && invoice.buyerGstin !== "URP" && <div className="giv-party-detail" style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "#0E5C5C" }}>ITC Eligible: Yes (B2B)</div>}
               </div>
             </div>
 
@@ -234,7 +238,7 @@ const GstInvoiceView = () => {
                  invoice.invoiceCopyType === "TRIPLICATE" ? "Triplicate" : "Original"}
               </div></div>
               <div className="giv-id-item"><div className="giv-id-label">HSN Digits</div><div className="giv-id-value">{invoice.hsnDigits || 4}-digit HSN</div></div>
-              <div className="giv-id-item"><div className="giv-id-label">Reverse Charge</div><div className="giv-id-value" style={{ color: invoice.reverseCharge ? "#dc2626" : "#16a34a" }}>{invoice.reverseCharge ? "Applicable" : "Not Applicable"}</div></div>
+              <div className="giv-id-item"><div className="giv-id-label">Reverse Charge</div><div className="giv-id-value" style={{ color: invoice.reverseCharge ? "#D93A2A" : "#0E5C5C" }}>{invoice.reverseCharge ? "Applicable" : "Not Applicable"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">IRN</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.irn || "Not generated"}</div></div>
               {invoice.ewayBillNumber && <div className="giv-id-item"><div className="giv-id-label">E-Way Bill</div><div className="giv-id-value">{invoice.ewayBillNumber}{invoice.ewayBillExpiry ? " (exp: " + invoice.ewayBillExpiry + ")" : ""}</div></div>}
               <div className="giv-id-item"><div className="giv-id-label">Ack No.</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.ackNo || "-"}</div></div>

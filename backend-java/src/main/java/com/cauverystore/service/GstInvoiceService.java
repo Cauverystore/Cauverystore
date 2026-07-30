@@ -19,6 +19,7 @@ import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.util.GstComplianceUtil;
+import com.cauverystore.util.PdfBrandingUtil;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
@@ -627,6 +628,11 @@ public class GstInvoiceService {
         Font bold9 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
 
+        // Brand header (logo + "Cauvery Store - Everyday Essentials, Delivered")
+        doc.add(PdfBrandingUtil.buildBrandHeader());
+        doc.add(PdfBrandingUtil.buildDivider());
+        doc.add(new Paragraph(" "));
+
         // Header
         PdfPTable headerTable = new PdfPTable(2);
         headerTable.setWidthPercentage(100);
@@ -718,7 +724,7 @@ public class GstInvoiceService {
         }
         for (String h : hdrs) {
             PdfPCell hc = new PdfPCell(new Phrase(h, bold9));
-            hc.setBackgroundColor(new Color(14, 92, 92));
+            hc.setBackgroundColor(PdfBrandingUtil.TEAL);
             hc.setPadding(4);
             hc.setHorizontalAlignment(Element.ALIGN_CENTER);
             table.addCell(hc);
@@ -765,7 +771,7 @@ public class GstInvoiceService {
         // Header row
         PdfPCell bh = new PdfPCell(new Phrase("Tax Breakup", bold10));
         bh.setColspan(4);
-        bh.setBackgroundColor(new Color(14, 92, 92));
+        bh.setBackgroundColor(PdfBrandingUtil.TEAL);
         bh.setPadding(6);
         bh.setHorizontalAlignment(Element.ALIGN_CENTER);
         breakupTable.addCell(bh);

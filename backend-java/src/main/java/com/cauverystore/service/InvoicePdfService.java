@@ -5,8 +5,10 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import com.cauverystore.dto.InvoiceResponse;
+import com.cauverystore.util.PdfBrandingUtil;
 import org.springframework.stereotype.Service;
 
+import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +23,11 @@ public class InvoicePdfService {
             PdfWriter.getInstance(document, out);
             document.open();
 
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20);
+            document.add(PdfBrandingUtil.buildBrandHeader());
+            document.add(PdfBrandingUtil.buildDivider());
+            document.add(new Paragraph(" "));
+
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, PdfBrandingUtil.TEAL);
             Paragraph title = new Paragraph("INVOICE", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
@@ -29,10 +35,13 @@ public class InvoicePdfService {
 
             Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
             Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 11);
+            Font statusFont = "CANCELLED".equalsIgnoreCase(invoice.getStatus())
+                    ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, PdfBrandingUtil.RED)
+                    : normalFont;
 
             document.add(new Paragraph("Order ID: " + invoice.getOrderId(), normalFont));
             document.add(new Paragraph("Date: " + invoice.getOrderDate(), normalFont));
-            document.add(new Paragraph("Status: " + invoice.getStatus(), normalFont));
+            document.add(new Paragraph("Status: " + invoice.getStatus(), statusFont));
             document.add(new Paragraph(" "));
 
             document.add(new Paragraph("Customer Details", headerFont));
@@ -49,14 +58,13 @@ public class InvoicePdfService {
             table.setSpacingBefore(10);
             table.setWidths(new float[]{4, 1, 2, 2});
 
-            PdfPCell cell = new PdfPCell(new Phrase("Item", headerFont));
-            table.addCell(cell);
-            cell = new PdfPCell(new Phrase("Qty", headerFont));
-            table.addCell(cell);
-            cell = new PdfPCell(new Phrase("Price", headerFont));
-            table.addCell(cell);
-            cell = new PdfPCell(new Phrase("Subtotal", headerFont));
-            table.addCell(cell);
+            Font tableHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, Color.WHITE);
+            for (String col : new String[]{"Item", "Qty", "Price", "Subtotal"}) {
+                PdfPCell cell = new PdfPCell(new Phrase(col, tableHeaderFont));
+                cell.setBackgroundColor(PdfBrandingUtil.TEAL);
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
 
             List<Map<String, Object>> items = invoice.getItems();
             if (items != null) {
@@ -81,10 +89,12 @@ public class InvoicePdfService {
             totalsTable.addCell(new Phrase("Delivery:", normalFont));
             totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getDeliveryCharge()), normalFont));
 
-            Font totalFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+            Font totalFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, PdfBrandingUtil.TEAL);
             PdfPCell totalLabel = new PdfPCell(new Phrase("Total:", totalFont));
+            totalLabel.setBackgroundColor(PdfBrandingUtil.BEIGE);
             totalsTable.addCell(totalLabel);
             PdfPCell totalValue = new PdfPCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getTotalAmount()), totalFont));
+            totalValue.setBackgroundColor(PdfBrandingUtil.BEIGE);
             totalsTable.addCell(totalValue);
 
             document.add(totalsTable);

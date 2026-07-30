@@ -38,6 +38,20 @@ const SellerOrders = () => {
     } catch { alert("Failed to update status"); }
   };
 
+  const downloadLabel = async (orderId) => {
+    try {
+      const res = await api.get(`/api/seller/orders/${orderId}/shipping-label/pdf`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `shipping-label-${orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch { alert("Failed to download shipping label"); }
+  };
+
   const handleReturnAction = async (returnId, status) => {
     const note = prompt("Admin note (optional):") || "";
     try {
@@ -111,15 +125,23 @@ const SellerOrders = () => {
                       <td style={{ padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#6b7280" }}>{formatDate(o.createdAt)}</td>
                       <td style={{ padding: "0.75rem 1rem", fontSize: "0.875rem" }}>{o.paymentMethod || "N/A"}</td>
                       <td style={{ padding: "0.75rem 1rem" }}>
-                        {getNextStatus(o.status) ? (
-                          <select value="" onChange={e => { if (e.target.value) handleStatusUpdate(o.id, e.target.value); }}
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px", border: "1px solid #d1d5db", cursor: "pointer" }}>
-                            <option value="">Update Status</option>
-                            <option value={getNextStatus(o.status)}>Mark as {getNextStatus(o.status)}</option>
-                          </select>
-                        ) : (
-                          <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>No actions</span>
-                        )}
+                        <div style={{ display: "flex", gap: "0.4rem", alignItems: "center", flexWrap: "wrap" }}>
+                          {getNextStatus(o.status) ? (
+                            <select value="" onChange={e => { if (e.target.value) handleStatusUpdate(o.id, e.target.value); }}
+                              style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", borderRadius: "4px", border: "1px solid #d1d5db", cursor: "pointer" }}>
+                              <option value="">Update Status</option>
+                              <option value={getNextStatus(o.status)}>Mark as {getNextStatus(o.status)}</option>
+                            </select>
+                          ) : (
+                            <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>No actions</span>
+                          )}
+                          <button onClick={() => downloadLabel(o.id)} style={{
+                            padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
+                            background: "#fff", color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                          }}>
+                            Label
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {expandedOrder === o.id && (

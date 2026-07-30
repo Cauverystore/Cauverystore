@@ -35,6 +35,20 @@ const AdminOrders = () => {
     } catch (err) { alert("Failed to update status"); }
   };
 
+  const downloadLabel = async (orderId) => {
+    try {
+      const res = await api.get(`/api/admin/orders/${orderId}/shipping-label/pdf`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `shipping-label-${orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) { alert("Failed to download shipping label"); }
+  };
+
   const assignCourier = async (orderId) => {
     if (!courier.trim()) return alert("Enter courier name");
     try {
@@ -137,6 +151,12 @@ const AdminOrders = () => {
                       <select value={o.status} onChange={(e) => updateStatus(oid, e.target.value)} style={{ padding: "0.2rem", fontSize: "0.7rem", borderRadius: 4 }}>
                         {[...STATUS_FLOW, CANCELLED].map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
+                      <button onClick={() => downloadLabel(oid)} style={{
+                        padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
+                        background: "#fff", color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                      }}>
+                        Label
+                      </button>
                     </div>
                   </td>
                 </tr>

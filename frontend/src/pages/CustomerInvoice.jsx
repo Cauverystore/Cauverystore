@@ -18,6 +18,8 @@ const GST_INVOICE_STYLES = `
   .giv-header { padding: 1.5rem 2rem; border-bottom: 2px solid #0E5C5C; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
   .giv-header-left { display: flex; align-items: center; gap: 1rem; }
   .giv-header-left img { height: 2.5rem; width: auto; }
+  .giv-brand-name { font-size: 0.95rem; font-weight: 700; color: #0E5C5C; line-height: 1.2; }
+  .giv-brand-tagline { font-size: 0.68rem; font-weight: 600; color: #C8A24B; margin-bottom: 0.25rem; }
   .giv-header-left h1 { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0; }
   .giv-header-right { text-align: right; }
   .giv-header-right .giv-inv-number { font-size: 1rem; font-weight: 700; color: #0E5C5C; }
@@ -212,8 +214,10 @@ const CustomerInvoice = () => {
         <div className="giv-invoice" id="gst-invoice-print">
           <div className="giv-header">
             <div className="giv-header-left">
-              <img src="/images/logo.jpg" alt="" />
+              <img src="/images/logo.jpg" alt="Cauvery Store" />
               <div>
+                <div className="giv-brand-name">Cauvery Store</div>
+                <div className="giv-brand-tagline">Everyday Essentials, Delivered</div>
                 <h1>Tax Invoice</h1>
                 <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
                   {invoice.invoiceCopyType === "ORIGINAL" ? "Original for Recipient" :
@@ -251,7 +255,7 @@ const CustomerInvoice = () => {
                     : "GSTIN: " + invoice.buyerGstin}
                 </div>
                 {invoice.buyerGstin && invoice.buyerGstin !== "URP" && (
-                  <div className="giv-party-detail" style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "#16a34a" }}>
+                  <div className="giv-party-detail" style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "#0E5C5C" }}>
                     ITC Eligible: Yes (B2B)
                   </div>
                 )}
@@ -369,7 +373,7 @@ const CustomerInvoice = () => {
                   <div className="giv-qr-value">{invoice.irn}</div>
                   {invoice.ackNo && <><div className="giv-qr-label">Ack No.</div><div className="giv-qr-value">{invoice.ackNo}</div></>}
                   {invoice.ackDate && <><div className="giv-qr-label">Ack Date</div><div className="giv-qr-value">{invoice.ackDate}</div></>}
-                  <div style={{ fontSize: "0.72rem", color: "#16a34a", marginTop: "0.25rem" }}>E-invoicing compliant invoice</div>
+                  <div style={{ fontSize: "0.72rem", color: "#0E5C5C", marginTop: "0.25rem" }}>E-invoicing compliant invoice</div>
                 </div>
               </div>
             )}

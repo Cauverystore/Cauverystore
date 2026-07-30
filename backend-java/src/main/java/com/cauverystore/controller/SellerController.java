@@ -6,6 +6,9 @@ import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.ProductService;
 import com.cauverystore.service.SellerService;
+import com.cauverystore.service.ShippingLabelService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,15 +29,18 @@ public class SellerController {
     private final UserRepository userRepo;
     private final GstConfigurationRepository gstConfigRepo;
     private final SellerRegistrationRepository sellerRegRepo;
+    private final ShippingLabelService shippingLabelService;
 
     public SellerController(SellerService sellerService, ProductService productService, UserRepository userRepo,
                             GstConfigurationRepository gstConfigRepo,
-                            SellerRegistrationRepository sellerRegRepo) {
+                            SellerRegistrationRepository sellerRegRepo,
+                            ShippingLabelService shippingLabelService) {
         this.sellerService = sellerService;
         this.productService = productService;
         this.userRepo = userRepo;
         this.gstConfigRepo = gstConfigRepo;
         this.sellerRegRepo = sellerRegRepo;
+        this.shippingLabelService = shippingLabelService;
     }
 
     private Long getCurrentSellerId() {
@@ -155,6 +161,21 @@ public class SellerController {
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         return ResponseEntity.ok(sellerService.getOrders(sellerId));
+    }
+
+    @GetMapping("/orders/{orderId}/shipping-label/pdf")
+    public ResponseEntity<?> downloadShippingLabel(@PathVariable Long orderId) {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        try {
+            byte[] pdf = shippingLabelService.generateLabelPdf(orderId, sellerId);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "shipping-label-" + orderId + ".pdf");
+            return ResponseEntity.ok().headers(headers).body(pdf);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PutMapping("/orders/{orderId}/status")
