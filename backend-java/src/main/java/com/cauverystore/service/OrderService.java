@@ -79,7 +79,7 @@ public class OrderService {
         return user;
     }
 
-    public Order placeOrder(String username, Address address) {
+    public Order placeOrder(String username, Address address, String paymentMethod) {
         User user = userRepo.findByUsername(username);
         if (user == null) {
             throw new UserNotFoundException("User not found: " + username);
@@ -117,6 +117,7 @@ public class OrderService {
         order.setUser(user);
         order.setAddress(savedAddress);
         order.setStatus("PLACED");
+        order.setPaymentMethod(paymentMethod != null ? paymentMethod : "COD");
 
         double totalAmount = 0;
         List<OrderItem> orderItems = new ArrayList<>();
@@ -411,7 +412,8 @@ public class OrderService {
         address.setState((String) body.get("state"));
         address.setPincode((String) body.get("pincode"));
 
-        Order order = placeOrder(user.getUsername(), address);
+        String paymentMethod = (String) body.getOrDefault("paymentMethod", "COD");
+        Order order = placeOrder(user.getUsername(), address, paymentMethod);
         Map<String, Object> result = new HashMap<>();
         result.put("id", order.getId());
         result.put("status", order.getStatus());

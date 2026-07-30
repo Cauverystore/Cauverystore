@@ -30,7 +30,7 @@ const ProductDetails = () => {
         if (catQ) {
           api.get(`/api/products/search?category=${encodeURIComponent(catQ)}&size=6`).then(r => {
             const list = r.data?.content || [];
-            setRelatedProducts(list.filter(p => (p.id || p._id) !== id).slice(0, 5));
+            setRelatedProducts(list.filter(p => String(p.id || p._id) !== String(id)).slice(0, 5));
           }).catch(() => {});
         }
       } catch (err) { void err; }
