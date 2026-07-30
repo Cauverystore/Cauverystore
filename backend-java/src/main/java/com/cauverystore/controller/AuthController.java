@@ -56,6 +56,11 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(authService.authenticateWithGoogle(body.get("credential")));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refreshAccessToken(request));

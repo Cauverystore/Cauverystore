@@ -12,13 +12,20 @@ import com.cauverystore.exception.AuthenticationFailedException;
 import com.cauverystore.exception.TokenException;
 import com.cauverystore.repository.EmailOtpRepository;
 import com.cauverystore.repository.UserRepository;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Random;
 
 @Service
@@ -31,6 +38,9 @@ public class AuthService {
     private final EmailOtpRepository emailOtpRepo;
     private final EmailService emailService;
     private final AuditService auditService;
+
+    @Value("${google.client.id:}")
+    private String googleClientId;
 
     public String register(RegisterRequest request) {
         if (request.getEmail() == null || request.getEmail().isBlank()) {
@@ -117,6 +127,72 @@ public class AuthService {
                 user.getRole() != null ? user.getRole().name() : "CUSTOMER");
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
+        user.setRefreshToken(refreshToken);
+        userRepo.save(user);
+
+        auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "CUSTOMER", true);
+
+        AuthResponse response = new AuthResponse();
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshToken);
+        response.setUsername(user.getUsername());
+        response.setEmail(user.getEmail());
+        response.setRole(user.getRole() != null ? user.getRole().name() : "CUSTOMER");
+        response.setUserId(user.getId());
+        return response;
+    }
+
+    @Transactional
+    public AuthResponse authenticateWithGoogle(String idTokenString) {
+        if (googleClientId == null || googleClientId.isBlank()) {
+            throw new AuthenticationFailedException("Google sign-in is not configured");
+        }
+        GoogleIdToken.Payload payload;
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken == null) {
+                throw new AuthenticationFailedException("Invalid Google sign-in token");
+            }
+            payload = idToken.getPayload();
+        } catch (GeneralSecurityException | java.io.IOException | IllegalArgumentException e) {
+            throw new AuthenticationFailedException("Invalid Google sign-in token");
+        }
+
+        if (!Boolean.TRUE.equals(payload.getEmailVerified())) {
+            throw new AuthenticationFailedException("Google account email is not verified");
+        }
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+
+        User user = userRepo.findByEmail(email);
+        if (user == null) {
+            user = new User();
+            user.setFullName(name != null ? name : email);
+            user.setUsername(email);
+            user.setEmail(email);
+            user.setPassword(null);
+            user.setRole(Role.CUSTOMER);
+            user.setStatus("ACTIVE");
+            user.setActive(true);
+            user.setFailedLoginAttempts(0);
+            userRepo.save(user);
+            emailService.sendWelcomeEmail(user.getEmail(), user.getFullName());
+        }
+
+        if (!"ACTIVE".equals(user.getStatus()) || !user.isActive()) {
+            auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
+            throw new AuthenticationFailedException("Account is not active");
+        }
+
+        user.setFailedLoginAttempts(0);
+        String accessToken = jwtUtil.generateAccessToken(
+                user.getEmail(), user.getId(), user.getUsername(),
+                user.getRole() != null ? user.getRole().name() : "CUSTOMER");
+        String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
         user.setRefreshToken(refreshToken);
         userRepo.save(user);
 

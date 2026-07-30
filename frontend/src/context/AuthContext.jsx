@@ -118,6 +118,32 @@ export const AuthProvider = ({ children }) => {
     return data;
   }, []);
 
+  const loginWithGoogle = useCallback(async (credential, rememberMe = false) => {
+    setError('');
+    const res = await API.post('/api/auth/google', { credential });
+    const data = res.data;
+
+    const accessToken = data.accessToken || data.token;
+    const newRefreshToken = data.refreshToken || '';
+    const userData = data.user || { email: data.email, fullName: data.username || data.email };
+    const userRoleFinal = data.role || 'CUSTOMER';
+
+    localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
+    localStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
+    localStorage.setItem(STORAGE_KEYS.role, userRoleFinal);
+    localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe ? 'true' : 'false');
+
+    setToken(accessToken);
+    setRefreshTokenValue(newRefreshToken);
+    setUser(userData);
+    setRole(userRoleFinal);
+    setIsAuthenticated(true);
+    setLastActivity(Date.now());
+
+    return data;
+  }, []);
+
   const register = useCallback(async (userData) => {
     setError('');
     const res = await API.post('/api/auth/register', userData);
@@ -254,7 +280,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user, token, role, isAuthenticated, loading, error,
-    login, register, logout, refreshToken, getAuthHeaders, isTokenExpired,
+    login, loginWithGoogle, register, logout, refreshToken, getAuthHeaders, isTokenExpired,
     requestPasswordReset, resetPassword,
     isImpersonating, impersonationSession, impersonatedUser,
     startImpersonation, stopImpersonation,
