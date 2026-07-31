@@ -3,6 +3,8 @@ import { Users, ShieldOff, Shield } from "lucide-react";
 import api from "../../utils/axios";
 
 const ROLES = ['CUSTOMER', 'SELLER', 'EXECUTIVE', 'ADMIN'];
+const CREATABLE_ROLES = ['SELLER', 'CUSTOMER'];
+const initialCreateForm = { fullName: '', email: '', password: '', role: 'SELLER' };
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -14,6 +16,11 @@ const AdminUsers = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 10;
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState(initialCreateForm);
+  const [createError, setCreateError] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
 
   const fetchUsers = async (p = page) => {
     setLoading(true);
@@ -68,6 +75,27 @@ const AdminUsers = () => {
     } catch (err) { alert(err.response?.data?.message || 'Failed to revoke suspension'); }
   };
 
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setCreateError('');
+    if (!createForm.fullName.trim() || !createForm.email.trim() || !createForm.password.trim()) {
+      setCreateError('All fields are required');
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      await api.post('/api/admin/users', createForm);
+      setShowCreateModal(false);
+      setCreateForm(initialCreateForm);
+      fetchUsers(1);
+      setPage(1);
+    } catch (err) {
+      setCreateError(err.response?.data?.error || 'Failed to create user');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const canManage = (u) => u.role !== 'SUPER_ADMIN' && u.role !== 'ADMIN';
 
   if (loading && users.length === 0) {
@@ -83,7 +111,12 @@ const AdminUsers = () => {
 
   return (
     <div>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1.5rem' }}>Users</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0 }}>Users</h1>
+        <button className="admin-btn admin-btn-primary" onClick={() => { setCreateForm(initialCreateForm); setCreateError(''); setShowCreateModal(true); }}>
+          + Create User
+        </button>
+      </div>
 
       {error && <div className="admin-alert error">{error}</div>}
 
@@ -167,6 +200,47 @@ const AdminUsers = () => {
           </div>
         </div>
       </div>
+
+      {showCreateModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="admin-modal" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <span className="admin-modal-title">Create User</span>
+              <button className="admin-modal-close" onClick={() => setShowCreateModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleCreate}>
+              <div className="admin-modal-body">
+                {createError && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '8px 12px', borderRadius: '6px', marginBottom: '16px', fontSize: '0.85rem' }}>{createError}</div>}
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Full Name <span className="required">*</span></label>
+                  <input className="admin-form-input" value={createForm.fullName} onChange={e => setCreateForm({ ...createForm, fullName: e.target.value })} placeholder="John Doe" required />
+                </div>
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Email <span className="required">*</span></label>
+                  <input className="admin-form-input" type="email" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} placeholder="john@example.com" required />
+                </div>
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Password <span className="required">*</span></label>
+                  <input className="admin-form-input" type="password" value={createForm.password} onChange={e => setCreateForm({ ...createForm, password: e.target.value })} placeholder="Min 8 characters" required minLength={8} />
+                </div>
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Role <span className="required">*</span></label>
+                  <select className="admin-form-select" value={createForm.role} onChange={e => setCreateForm({ ...createForm, role: e.target.value })}>
+                    {CREATABLE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 0' }}>Admins can only create Seller or Customer accounts.</p>
+                </div>
+              </div>
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setShowCreateModal(false)}>Cancel</button>
+                <button type="submit" className="admin-btn admin-btn-primary" disabled={createLoading}>
+                  {createLoading ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
