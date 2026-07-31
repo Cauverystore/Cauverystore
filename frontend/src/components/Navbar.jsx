@@ -1,18 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import CartDrawer from "./CartDrawer";
 
 const CATEGORIES = ["Electronics", "Fashion", "Home & Kitchen", "Grocery", "Beauty", "Appliances", "Books", "Sports", "Toys", "Deals"];
+const isNativeApp = Capacitor.isNativePlatform();
 
 const Navbar = () => {
   const navigate = useNavigate();
   const token = !!localStorage.getItem("accessToken");
   const userRole = localStorage.getItem("role") || "";
   const [search, setSearch] = useState("");
+  const [mobileSearch, setMobileSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const searchRef = useRef(null);
 
@@ -43,6 +45,11 @@ const Navbar = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (search.trim()) navigate(`/search?q=${encodeURIComponent(search.trim())}`);
+  };
+
+  const handleMobileSearch = (e) => {
+    e.preventDefault();
+    if (mobileSearch.trim()) navigate(`/search?q=${encodeURIComponent(mobileSearch.trim())}`);
   };
 
   return (
@@ -76,7 +83,7 @@ const Navbar = () => {
       </div>
 
       {/* Main Header */}
-      <header className={`sn-header ${scrolled ? "scrolled" : ""} ${mobileSearchOpen ? "mobile-search-open" : ""}`} style={{
+      <header className={`sn-header ${scrolled ? "scrolled" : ""}`} style={{
         background: "#fff", borderBottom: "1px solid var(--color-border, #e2e8f0)",
         position: "sticky", top: "28px", zIndex: 100, transition: "box-shadow 0.2s",
         boxShadow: scrolled ? "0 2px 8px rgba(0,0,0,0.06)" : "none"
@@ -98,8 +105,10 @@ const Navbar = () => {
 
           {/* Logo */}
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "8px" }}>
-            <img src="/images/logo.jpg" alt="" style={{ height: "2rem", width: "auto" }} />
-            <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #16a34a)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
+            <img src="/images/logo.jpg" alt="Cauvery Store" style={{ height: "2rem", width: "auto" }} />
+            {!isNativeApp && (
+              <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #16a34a)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
+            )}
           </Link>
 
           {/* Search Bar */}
@@ -132,13 +141,6 @@ const Navbar = () => {
 
           {/* Header Actions */}
           <div className="sn-header-actions" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <button className="sn-mobile-search-toggle" onClick={() => { setMobileSearchOpen(!mobileSearchOpen); if (!mobileSearchOpen) setTimeout(() => searchRef.current?.focus(), 100); }} title="Search" style={{
-              display: "none", background: "none", border: "none", cursor: "pointer", padding: "0.25rem 0.4rem"
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-              </svg>
-            </button>
             <button onClick={() => navigate(token ? "/profile" : "/login")} title="Account" style={{
               background: "none", border: "none", cursor: "pointer", display: "flex",
               flexDirection: "column", alignItems: "center", gap: "2px", padding: "0.25rem 0.4rem"
@@ -182,16 +184,6 @@ const Navbar = () => {
         </div>
       </header>
 
-      {mobileSearchOpen && (
-        <div className="sn-mobile-search-overlay">
-          <form onSubmit={(e) => { handleSearch(e); setMobileSearchOpen(false); }} className="sn-mobile-search-form">
-            <input ref={searchRef} type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="sn-mobile-search-input" />
-            <button type="submit" className="sn-mobile-search-submit" aria-label="Search">Go</button>
-          </form>
-          <button type="button" className="sn-mobile-search-close" onClick={() => setMobileSearchOpen(false)} aria-label="Close search">&times;</button>
-        </div>
-      )}
-
       {/* Category Navigation */}
       <nav style={{
         background: "#fff", borderBottom: "1px solid var(--color-border, #e2e8f0)",
@@ -220,6 +212,22 @@ const Navbar = () => {
           ))}
         </div>
       </nav>
+
+      {/* Mobile Search Bar (mobile web + app only, sits between category menu and page content) */}
+      <form onSubmit={handleMobileSearch} className="sn-mobile-search-bar">
+        <input
+          type="text"
+          placeholder="Search for products, brands and more..."
+          value={mobileSearch}
+          onChange={(e) => setMobileSearch(e.target.value)}
+          className="sn-mobile-search-input"
+        />
+        <button type="submit" aria-label="Search" className="sn-mobile-search-submit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
+      </form>
 
       {/* Mobile Menu Overlay */}
       {mobileOpen && (
@@ -298,6 +306,9 @@ const Navbar = () => {
       <CartDrawer open={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />
 
       <style>{`
+        .sn-mobile-search-bar {
+          display: none;
+        }
         @media (max-width: 768px) {
           .sn-hamburger { display: flex !important; }
           .sn-utility-bar > div:last-child { display: none; }
@@ -305,30 +316,21 @@ const Navbar = () => {
           .sn-header > div > nav { display: none; }
           .sn-mobile-bottom-bar { display: block !important; }
           .sn-header > div { padding: 0.6rem 1rem; }
-          .sn-mobile-search-toggle { display: flex !important; }
+          .sn-mobile-search-bar {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: #fff; padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--color-border, #e2e8f0);
+          }
         }
-        .sn-mobile-search-overlay {
-          position: fixed; top: 0; left: 0; right: 0; z-index: 150;
-          display: flex; align-items: center; gap: 0.5rem;
-          background: #fff; padding: 0.6rem 1rem;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-          border-bottom: 1px solid var(--color-border, #e2e8f0);
-        }
-        .sn-mobile-search-form {
-          flex: 1; display: flex; border-radius: 8px; overflow: hidden;
-          border: 2px solid var(--color-primary, #16a34a);
-        }
-        .sn-mobile-search-input {
-          flex: 1; padding: 0.55rem 0.75rem; border: none;
+        .sn-mobile-search-bar .sn-mobile-search-input {
+          flex: 1; padding: 0.55rem 0.75rem; border: 2px solid var(--color-primary, #16a34a);
+          border-right: none; border-radius: 8px 0 0 8px;
           font-size: 0.85rem; outline: none;
         }
-        .sn-mobile-search-submit {
+        .sn-mobile-search-bar .sn-mobile-search-submit {
           padding: 0.55rem 1rem; background: var(--color-primary, #16a34a);
-          color: #fff; border: none; font-weight: 600; font-size: 0.85rem; cursor: pointer;
-        }
-        .sn-mobile-search-close {
-          background: none; border: none; font-size: 1.5rem; line-height: 1;
-          color: var(--gray-600, #64748b); cursor: pointer; padding: 0 0.25rem;
+          color: #fff; border: none; border-radius: 0 8px 8px 0;
+          display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
       `}</style>
     </>
