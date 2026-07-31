@@ -169,32 +169,28 @@ class ProductServiceTest {
     }
 
     @Test
-    void deleteProductCascade_shouldDelete() {
-        boolean result = productService.deleteProductCascade(1L);
-
-        assertTrue(result);
-        verify(productRepo).deleteById(1L);
-    }
-
-    @Test
-    void deleteProductCascade_shouldSuspend_whenActiveOrderExists() {
+    void deleteProductCascade_shouldLeaveProductUntouched_whenActiveOrderExists() {
         Order activeOrder = new Order();
         activeOrder.setStatus("PLACED");
         OrderItem item = new OrderItem();
         item.setProduct(product);
         item.setOrder(activeOrder);
         when(orderItemRepo.findAll()).thenReturn(List.of(item));
-        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
 
         boolean result = productService.deleteProductCascade(1L);
 
         assertFalse(result);
-        assertFalse(product.isActive());
+        assertTrue(product.isActive());
+        verify(productRepo, never()).save(any());
         verify(productRepo, never()).deleteById(any());
+        verify(inventoryRepo, never()).delete(any());
+        verify(cartItemRepo, never()).deleteAll(anyList());
+        verify(wishlistRepo, never()).deleteAll(anyList());
+        verify(productDiscountRepo, never()).deleteAll(anyList());
     }
 
     @Test
-    void deleteProductCascade_shouldDelete_whenOnlyCancelledOrdersExist() {
+    void deleteProductCascade_shouldStayActive_whenOnlyCancelledOrdersExist() {
         Order cancelledOrder = new Order();
         cancelledOrder.setStatus("CANCELLED");
         OrderItem item = new OrderItem();
@@ -204,8 +200,35 @@ class ProductServiceTest {
 
         boolean result = productService.deleteProductCascade(1L);
 
+        assertFalse(result);
+        verify(productRepo, never()).deleteById(any());
+        verify(orderItemRepo, never()).deleteAll(anyList());
+    }
+
+    @Test
+    void deleteProductCascade_shouldReactivate_whenSuspendedButOnlyCancelledOrdersExist() {
+        product.setActive(false);
+        Order cancelledOrder = new Order();
+        cancelledOrder.setStatus("CANCELLED");
+        OrderItem item = new OrderItem();
+        item.setProduct(product);
+        item.setOrder(cancelledOrder);
+        when(orderItemRepo.findAll()).thenReturn(List.of(item));
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+
+        boolean result = productService.deleteProductCascade(1L);
+
+        assertFalse(result);
+        assertTrue(product.isActive());
+        verify(productRepo).save(product);
+        verify(productRepo, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteProductCascade_shouldDelete_whenNoOrderHistoryAtAll() {
+        boolean result = productService.deleteProductCascade(1L);
+
         assertTrue(result);
-        verify(orderItemRepo).deleteAll(List.of(item));
         verify(productRepo).deleteById(1L);
     }
 

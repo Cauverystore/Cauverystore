@@ -119,7 +119,7 @@ public class AdminProductController {
                 "deleted", deleted,
                 "message", deleted
                         ? "Product deleted"
-                        : "Product has existing orders and was suspended instead of deleted"
+                        : "Product has order history and cannot be permanently deleted; it remains active and available"
         ));
     }
 

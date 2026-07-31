@@ -416,6 +416,30 @@ public class ProductService {
             Long sellerId = authorizationService.getCurrentUserId();
             verifySellerOwnership(productId, sellerId);
         }
+
+        // Delete only ever truly removes a product with zero order history. Any order
+        // history at all - active or cancelled - keeps the product permanently, since
+        // even a cancelled order is a record worth preserving. An active order blocks
+        // the delete entirely (product left 100% untouched). A cancelled-only order
+        // never suspends the product - it just stays/becomes active and available.
+        var orderItems = orderItemRepo.findAll().stream()
+                .filter(oi -> oi.getProduct() != null && productId.equals(oi.getProduct().getId()))
+                .toList();
+        var activeOrderItems = orderItems.stream()
+                .filter(oi -> oi.getOrder() == null || !"CANCELLED".equalsIgnoreCase(oi.getOrder().getStatus()))
+                .toList();
+        if (!activeOrderItems.isEmpty()) {
+            return false;
+        }
+        if (!orderItems.isEmpty()) {
+            Product p = productRepo.findById(productId).orElse(null);
+            if (p != null && !p.isActive()) {
+                p.setActive(true);
+                productRepo.save(p);
+            }
+            return false;
+        }
+
         var inv = inventoryRepo.findByProduct_Id(productId);
         if (inv != null) inventoryRepo.delete(inv);
         var cartItems = cartItemRepo.findAll().stream()
@@ -430,23 +454,7 @@ public class ProductService {
                 .filter(pd -> pd.getProduct() != null && productId.equals(pd.getProduct().getId()))
                 .toList();
         productDiscountRepo.deleteAll(prodDiscounts);
-        var orderItems = orderItemRepo.findAll().stream()
-                .filter(oi -> oi.getProduct() != null && productId.equals(oi.getProduct().getId()))
-                .toList();
-        var activeOrderItems = orderItems.stream()
-                .filter(oi -> oi.getOrder() == null || !"CANCELLED".equalsIgnoreCase(oi.getOrder().getStatus()))
-                .toList();
-        if (!activeOrderItems.isEmpty()) {
-            Product p = productRepo.findById(productId).orElse(null);
-            if (p != null) {
-                p.setActive(false);
-                productRepo.save(p);
-            }
-            return false;
-        }
-        // Only cancelled orders reference this product (if any) - safe to drop those line items
-        // so the product's foreign key is clear; the cancelled orders themselves are untouched.
-        orderItemRepo.deleteAll(orderItems);
+
         productRepo.deleteById(productId);
         return true;
     }
