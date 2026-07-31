@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Capacitor } from "@capacitor/core";
 import CartDrawer from "./CartDrawer";
 
 const CATEGORIES = ["Electronics", "Fashion", "Home & Kitchen", "Grocery", "Beauty", "Appliances", "Books", "Sports", "Toys", "Deals"];
-const isNativeApp = Capacitor.isNativePlatform();
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -106,9 +104,7 @@ const Navbar = () => {
           {/* Logo */}
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "8px" }}>
             <img src="/images/logo.jpg" alt="Cauvery Store" style={{ height: "2rem", width: "auto" }} />
-            {!isNativeApp && (
-              <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #16a34a)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
-            )}
+            <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #16a34a)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
           </Link>
 
           {/* Search Bar */}
@@ -312,7 +308,7 @@ const Navbar = () => {
         @media (max-width: 768px) {
           .sn-hamburger { display: flex !important; }
           .sn-utility-bar > div:last-child { display: none; }
-          .sn-header > div > form { display: none; }
+          .sn-header > div > form { display: none !important; }
           .sn-header > div > nav { display: none; }
           .sn-mobile-bottom-bar { display: block !important; }
           .sn-header > div { padding: 0.6rem 1rem; }
