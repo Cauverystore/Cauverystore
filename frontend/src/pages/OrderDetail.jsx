@@ -139,7 +139,9 @@ const OrderDetail = () => {
   const orderItemsList = useMemo(() => items.map((item, idx) => {
     const product = safeProduct(item);
     const imageSrc = product.image || product.images?.[0] || item.image || null;
-    const name = product.name || item.productName || item.name || "Product";
+    const name = item.product
+      ? (product.name || item.productName || item.name || "Product")
+      : "Product is no longer available";
     const price = item.price || product.price || 0;
     const qty = item.quantity || 1;
     const key = safeId(item, idx);

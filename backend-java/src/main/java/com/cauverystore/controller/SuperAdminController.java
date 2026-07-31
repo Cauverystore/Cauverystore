@@ -21,6 +21,7 @@ import com.cauverystore.service.AuthorizationService;
 import com.cauverystore.service.EmailService;
 import com.cauverystore.service.ImpersonationService;
 import com.cauverystore.service.PlatformSettingsService;
+import com.cauverystore.service.ProductService;
 import com.cauverystore.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -69,6 +70,7 @@ public class SuperAdminController {
     private final PasswordEncoder passwordEncoder;
     private final PermissionRepository permissionRepo;
     private final RolePermissionRepository rolePermissionRepo;
+    private final ProductService productService;
     private final ReturnRequestRepository returnRequestRepo;
 
     @GetMapping("/dashboard")
@@ -352,6 +354,16 @@ public class SuperAdminController {
         result.put("skipped", skipped);
         result.put("message", "Deleted " + deleted + " of " + ids.size() + " orders" + (skipped > 0 ? " (" + skipped + " skipped)" : ""));
         return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("/products/{id}")
+    public ResponseEntity<Map<String, String>> forceDeleteProduct(@PathVariable Long id) {
+        productService.forceDeleteProduct(id);
+        String currentEmail = authorizationService.getCurrentUserEmail();
+        Long currentUserId = authorizationService.getCurrentUserId();
+        auditService.log(currentUserId, currentEmail, "PRODUCT_FORCE_DELETED_BY_SUPER_ADMIN", "Product", id,
+                "Product " + id + " force-deleted by " + currentEmail, null);
+        return ResponseEntity.ok(Map.of("message", "Product permanently deleted"));
     }
 
     @PostMapping("/users/{id}/delete")

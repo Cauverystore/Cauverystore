@@ -459,6 +459,42 @@ public class ProductService {
         return true;
     }
 
+    /**
+     * Super Admin-only override: deletes a product regardless of order history. Order
+     * items that referenced it (active or cancelled) are kept - their price/quantity
+     * snapshot and parent order are untouched - but their product link is cleared, so
+     * the order still shows correctly with a "Product is no longer available" fallback
+     * for that line instead of the order itself breaking or losing history.
+     */
+    @Transactional
+    @CacheEvict(value = {"products", "categories"}, allEntries = true)
+    public void forceDeleteProduct(Long productId) {
+        var orderItems = orderItemRepo.findAll().stream()
+                .filter(oi -> oi.getProduct() != null && productId.equals(oi.getProduct().getId()))
+                .toList();
+        for (var oi : orderItems) {
+            oi.setProduct(null);
+        }
+        orderItemRepo.saveAll(orderItems);
+
+        var inv = inventoryRepo.findByProduct_Id(productId);
+        if (inv != null) inventoryRepo.delete(inv);
+        var cartItems = cartItemRepo.findAll().stream()
+                .filter(ci -> ci.getProduct() != null && productId.equals(ci.getProduct().getId()))
+                .toList();
+        cartItemRepo.deleteAll(cartItems);
+        var wishlistItems = wishlistRepo.findAll().stream()
+                .filter(wi -> wi.getProduct() != null && productId.equals(wi.getProduct().getId()))
+                .toList();
+        wishlistRepo.deleteAll(wishlistItems);
+        var prodDiscounts = productDiscountRepo.findAll().stream()
+                .filter(pd -> pd.getProduct() != null && productId.equals(pd.getProduct().getId()))
+                .toList();
+        productDiscountRepo.deleteAll(prodDiscounts);
+
+        productRepo.deleteById(productId);
+    }
+
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product suspendProduct(Long productId) {
         Product p = getProductById(productId);

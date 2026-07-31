@@ -447,6 +447,8 @@ public class OrderService {
                         imageUrl = product.getImages().get(0).getUrl();
                     }
                     im.put("productImage", imageUrl);
+                } else {
+                    im.put("productName", "Product is no longer available");
                 }
                 return im;
             }).collect(Collectors.toList());
