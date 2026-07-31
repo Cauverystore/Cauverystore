@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Key, Settings, Eye, FileText, ArrowLeft, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { LayoutDashboard, Users, Key, Settings, Eye, FileText, ArrowLeft, ChevronLeft, ChevronRight, Menu, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/admin.css';
 import '../styles/design-system.css';
@@ -8,6 +8,7 @@ import { ToastProvider } from '../admin/context/ToastContext';
 
 const menuItems = [
   { to: '/super-admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/admin/products', label: 'Products', icon: Package },
   { to: '/super-admin/users', label: 'User Management', icon: Users },
   { to: '/super-admin/permissions', label: 'Permissions', icon: Key },
   { to: '/super-admin/settings', label: 'Platform Settings', icon: Settings },
