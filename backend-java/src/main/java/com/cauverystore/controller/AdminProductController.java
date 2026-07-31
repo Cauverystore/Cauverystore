@@ -110,12 +110,17 @@ public class AdminProductController {
 
     @DeleteMapping("/{productId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
+    public ResponseEntity<Map<String, Object>> deleteProduct(@PathVariable Long productId) {
         if (isSeller()) {
             productService.checkSellerOwnership(productId, getCurrentUserId());
         }
-        productService.deleteProductCascade(productId);
-        return ResponseEntity.noContent().build();
+        boolean deleted = productService.deleteProductCascade(productId);
+        return ResponseEntity.ok(Map.of(
+                "deleted", deleted,
+                "message", deleted
+                        ? "Product deleted"
+                        : "Product has existing orders and was suspended instead of deleted"
+        ));
     }
 
     @PutMapping("/{productId}/approval")

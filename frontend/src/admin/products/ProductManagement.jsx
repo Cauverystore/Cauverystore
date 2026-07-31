@@ -147,7 +147,7 @@ const ProductManagement = () => {
 
   const exportExcel = () => { window.open("http://localhost:9091/api/admin/products/export", "_blank"); };
   const toggleStatus = async (id, active) => { try{await api.put("/api/admin/products/"+id+"/status",{active}); loadProducts(); }catch{}; };
-  const delProduct = async (id) => { if(!window.confirm("Delete this product?"))return; try{await api.delete(isSeller?"/api/seller/products/"+id:"/api/admin/products/"+id); loadProducts(); setMsg({type:"success",text:"Deleted"}); }catch(e){setMsg({type:"error",text:"Delete failed"});} };
+  const delProduct = async (id) => { if(!window.confirm("Delete this product?"))return; try{const r=await api.delete(isSeller?"/api/seller/products/"+id:"/api/admin/products/"+id); loadProducts(); setMsg({type:r.data?.deleted===false?"error":"success",text:r.data?.message||"Deleted"}); }catch(e){setMsg({type:"error",text:"Delete failed"});} };
   const saveEdit = async () => { try{const ep=isSeller?"/api/seller/products/"+editing.id:"/api/admin/products/"+editing.id; await api.put(ep,editForm); setMsg({type:"success",text:"Updated!"}); setEditing(null); setTab("list"); loadProducts(); }catch(e){setMsg({type:"error",text:e.response?.data?.error||"Update failed"});} };
   const fldEdit = (label,key,type="text") => (<div style={S.field}><label style={S.label}>{label}</label>{type==="textarea"?<textarea style={S.textarea} value={editForm[key]||""} onChange={e=>setEditForm({...editForm,[key]:e.target.value})}/>:<input style={S.input} type={type} value={editForm[key]||""} onChange={e=>setEditForm({...editForm,[key]:e.target.value})}/>}</div>);
 

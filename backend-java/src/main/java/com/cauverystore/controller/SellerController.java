@@ -113,8 +113,13 @@ public class SellerController {
         } catch (Exception e) {
             return ResponseEntity.status(403).body(Map.of("error", "Not your product"));
         }
-        productService.deleteProductCascade(id);
-        return ResponseEntity.ok(Map.of("message", "Product deleted"));
+        boolean deleted = productService.deleteProductCascade(id);
+        return ResponseEntity.ok(Map.of(
+                "deleted", deleted,
+                "message", deleted
+                        ? "Product deleted"
+                        : "Product has existing orders and was suspended instead of deleted"
+        ));
     }
 
     @GetMapping("/products/{id}")

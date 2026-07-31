@@ -137,8 +137,12 @@ const SellerProducts = () => {
   const handleDelete = async (id) => {
     setError("");
     try {
-      await api.delete(`/api/seller/products/${id}`);
-      setProducts((prev) => prev.filter((p) => (p.id || p._id) !== id));
+      const res = await api.delete(`/api/seller/products/${id}`);
+      if (res.data?.deleted === false) {
+        setError(res.data?.message || "Product has existing orders and was suspended instead of deleted");
+      } else {
+        setProducts((prev) => prev.filter((p) => (p.id || p._id) !== id));
+      }
     } catch (err) {
       setError(err.response?.data?.error || "Failed to delete product");
     }
