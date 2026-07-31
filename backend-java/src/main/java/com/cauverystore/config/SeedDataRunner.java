@@ -52,7 +52,12 @@ public class SeedDataRunner implements CommandLineRunner {
 
         User sellerUser = userRepo.findByEmail("seller@cauverystore.in");
 
-        {
+        // Only seed demo products into a genuinely empty catalog (first-ever boot).
+        // A per-name existence check here would silently re-insert these on every
+        // restart whenever an admin deliberately deletes them - which is exactly
+        // what was happening: every deploy restarted the app and resurrected the
+        // demo catalog behind the admin's back.
+        if (productRepo.count() == 0) {
             Object[][] prods = {
                 {"iPhone 15 Pro","Apple",134990.0,50,"Apple iPhone 15 Pro, 256GB, Titanium Black","Electronics","https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400",10.0},
                 {"Samsung Galaxy S24","Samsung",129999.0,35,"Samsung Galaxy S24 Ultra, 512GB","Electronics","https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400",8.0},
@@ -63,10 +68,7 @@ public class SeedDataRunner implements CommandLineRunner {
                 {"Running Shoes","Nike",4999.0,60,"Men's lightweight running shoes","Fashion","https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",18.0},
                 {"Leather Handbag","Fossil",5999.0,25,"Women's genuine leather handbag","Fashion","https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400",10.0},
             };
-            java.util.Set<String> existingNames = new java.util.HashSet<>();
-            for (Product p : productRepo.findAll()) existingNames.add(p.getName());
             for (Object[] p : prods) {
-                if (existingNames.contains((String) p[0])) continue;
                 Product product = new Product();
                 product.setName((String)p[0]); product.setBrand((String)p[1]);
                 product.setPrice((Double)p[2]); product.setStock((Integer)p[3]);

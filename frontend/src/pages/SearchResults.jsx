@@ -29,7 +29,7 @@ const SearchResults = () => {
       setLoading(true);
       setError("");
       try {
-        const res = await searchProducts({ q: query, page: page - 1, size: 20 });
+        const res = await searchProducts({ name: query, page: page - 1, size: 20 });
         setProducts(res.data.content || res.data || []);
         setTotalPages(res.data.totalPages || 1);
       } catch (err) {
