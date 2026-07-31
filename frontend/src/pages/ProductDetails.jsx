@@ -56,6 +56,10 @@ const ProductDetails = () => {
 
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
   const categoryName = typeof product?.category === "object" ? product?.category?.name || "" : product?.category || "";
+  // Escaping "<" prevents a "</script>" inside a product name/description from
+  // closing this script tag early and letting injected markup execute as real
+  // script in every visitor's browser (stored XSS via JSON-LD).
+  const safeJsonLd = (obj) => JSON.stringify(obj, null, 2).replace(/</g, "\\u003c");
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
   if (!product) return <div style={{ textAlign: "center", padding: "3rem" }}>Product not found</div>;
@@ -70,7 +74,7 @@ const ProductDetails = () => {
         <meta property="og:image" content={toUrl(product.images?.[0]) || product.image || ""} />
         <meta property="og:type" content="product" />
       </Helmet>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({
+      <script type="application/ld+json" dangerouslySetInnerHTML={{__html: safeJsonLd({
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": product.name,
@@ -92,8 +96,8 @@ const ProductDetails = () => {
           "ratingValue": product.rating,
           "reviewCount": product.reviewCount || 0
         } : undefined
-      }, null, 2)}} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({
+      })}} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{__html: safeJsonLd({
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
