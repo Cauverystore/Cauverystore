@@ -188,6 +188,7 @@ const Navbar = () => {
             <input ref={searchRef} type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="sn-mobile-search-input" />
             <button type="submit" className="sn-mobile-search-submit" aria-label="Search">Go</button>
           </form>
+          <button type="button" className="sn-mobile-search-close" onClick={() => setMobileSearchOpen(false)} aria-label="Close search">&times;</button>
         </div>
       )}
 
@@ -304,6 +305,30 @@ const Navbar = () => {
           .sn-header > div > nav { display: none; }
           .sn-mobile-bottom-bar { display: block !important; }
           .sn-header > div { padding: 0.6rem 1rem; }
+          .sn-mobile-search-toggle { display: flex !important; }
+        }
+        .sn-mobile-search-overlay {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 150;
+          display: flex; align-items: center; gap: 0.5rem;
+          background: #fff; padding: 0.6rem 1rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          border-bottom: 1px solid var(--color-border, #e2e8f0);
+        }
+        .sn-mobile-search-form {
+          flex: 1; display: flex; border-radius: 8px; overflow: hidden;
+          border: 2px solid var(--color-primary, #16a34a);
+        }
+        .sn-mobile-search-input {
+          flex: 1; padding: 0.55rem 0.75rem; border: none;
+          font-size: 0.85rem; outline: none;
+        }
+        .sn-mobile-search-submit {
+          padding: 0.55rem 1rem; background: var(--color-primary, #16a34a);
+          color: #fff; border: none; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+        }
+        .sn-mobile-search-close {
+          background: none; border: none; font-size: 1.5rem; line-height: 1;
+          color: var(--gray-600, #64748b); cursor: pointer; padding: 0 0.25rem;
         }
       `}</style>
     </>
