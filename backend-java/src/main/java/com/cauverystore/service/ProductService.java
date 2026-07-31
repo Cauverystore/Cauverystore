@@ -433,7 +433,10 @@ public class ProductService {
         var orderItems = orderItemRepo.findAll().stream()
                 .filter(oi -> oi.getProduct() != null && productId.equals(oi.getProduct().getId()))
                 .toList();
-        if (!orderItems.isEmpty()) {
+        var activeOrderItems = orderItems.stream()
+                .filter(oi -> oi.getOrder() == null || !"CANCELLED".equalsIgnoreCase(oi.getOrder().getStatus()))
+                .toList();
+        if (!activeOrderItems.isEmpty()) {
             Product p = productRepo.findById(productId).orElse(null);
             if (p != null) {
                 p.setActive(false);
@@ -441,6 +444,9 @@ public class ProductService {
             }
             return false;
         }
+        // Only cancelled orders reference this product (if any) - safe to drop those line items
+        // so the product's foreign key is clear; the cancelled orders themselves are untouched.
+        orderItemRepo.deleteAll(orderItems);
         productRepo.deleteById(productId);
         return true;
     }

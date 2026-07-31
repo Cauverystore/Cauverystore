@@ -29,6 +29,11 @@ class ProductServiceTest {
     @Mock private ProductImageRepository productImageRepo;
     @Mock private DiscountRepository discountRepo;
     @Mock private AuthorizationService authorizationService;
+    @Mock private CartItemRepository cartItemRepo;
+    @Mock private WishlistRepository wishlistRepo;
+    @Mock private InventoryRepository inventoryRepo;
+    @Mock private ProductDiscountRepository productDiscountRepo;
+    @Mock private OrderItemRepository orderItemRepo;
 
     @InjectMocks
     private ProductService productService;
@@ -165,8 +170,42 @@ class ProductServiceTest {
 
     @Test
     void deleteProductCascade_shouldDelete() {
-        productService.deleteProductCascade(1L);
+        boolean result = productService.deleteProductCascade(1L);
 
+        assertTrue(result);
+        verify(productRepo).deleteById(1L);
+    }
+
+    @Test
+    void deleteProductCascade_shouldSuspend_whenActiveOrderExists() {
+        Order activeOrder = new Order();
+        activeOrder.setStatus("PLACED");
+        OrderItem item = new OrderItem();
+        item.setProduct(product);
+        item.setOrder(activeOrder);
+        when(orderItemRepo.findAll()).thenReturn(List.of(item));
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+
+        boolean result = productService.deleteProductCascade(1L);
+
+        assertFalse(result);
+        assertFalse(product.isActive());
+        verify(productRepo, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteProductCascade_shouldDelete_whenOnlyCancelledOrdersExist() {
+        Order cancelledOrder = new Order();
+        cancelledOrder.setStatus("CANCELLED");
+        OrderItem item = new OrderItem();
+        item.setProduct(product);
+        item.setOrder(cancelledOrder);
+        when(orderItemRepo.findAll()).thenReturn(List.of(item));
+
+        boolean result = productService.deleteProductCascade(1L);
+
+        assertTrue(result);
+        verify(orderItemRepo).deleteAll(List.of(item));
         verify(productRepo).deleteById(1L);
     }
 
