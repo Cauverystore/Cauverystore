@@ -375,6 +375,12 @@ public class SuperAdminController {
         }
         target.setActive(false);
         target.setStatus("DELETED");
+        // Email has a hard unique constraint, so a deleted account would otherwise
+        // permanently block that address from ever being used again - free it up
+        // while keeping the original traceable in the deleted record.
+        if (target.getEmail() != null && !target.getEmail().startsWith("deleted_")) {
+            target.setEmail("deleted_" + target.getId() + "_" + target.getEmail());
+        }
         userRepo.save(target);
         String currentEmail = authorizationService.getCurrentUserEmail();
         auditService.logAccountAction("USER_DELETED_BY_SUPER_ADMIN", currentEmail, id);
