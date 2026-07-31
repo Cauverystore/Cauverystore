@@ -7,9 +7,11 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://cauverystore.in',
     androidScheme: 'https',
-    // Google Sign-In and Razorpay checkout must open in the system browser,
-    // not the app's embedded WebView (Google blocks OAuth inside WebViews).
-    allowNavigation: ['cauverystore.in', '*.cauverystore.in']
+    // Google Sign-In must open in the system browser (Google blocks OAuth
+    // inside WebViews). Razorpay's checkout is an iframe injected into the
+    // page, not a popup, so its domains must be allowed to navigate inside
+    // the WebView itself or the iframe silently fails to load any content.
+    allowNavigation: ['cauverystore.in', '*.cauverystore.in', '*.razorpay.com', 'razorpay.com']
   }
 };
 
