@@ -13,6 +13,7 @@ import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.PermissionRepository;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.RefundRepository;
+import com.cauverystore.repository.ReturnRequestRepository;
 import com.cauverystore.repository.RolePermissionRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.AuditService;
@@ -68,6 +69,7 @@ public class SuperAdminController {
     private final PasswordEncoder passwordEncoder;
     private final PermissionRepository permissionRepo;
     private final RolePermissionRepository rolePermissionRepo;
+    private final ReturnRequestRepository returnRequestRepo;
 
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboard() {
@@ -327,6 +329,29 @@ public class SuperAdminController {
         auditService.logAccountAction("ACCOUNT_UNLOCKED_BY_SUPER_ADMIN", currentEmail, id);
 
         return ResponseEntity.ok(Map.of("message", "Account unlocked successfully"));
+    }
+
+    @PostMapping("/orders/bulk-delete")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> bulkDeleteOrders(@RequestBody Map<String, List<Long>> body) {
+        List<Long> ids = body.getOrDefault("ids", List.of());
+        int deleted = 0, skipped = 0;
+        for (Long id : ids) {
+            try {
+                returnRequestRepo.deleteAll(returnRequestRepo.findByOrderId(id));
+                orderRepo.deleteById(id);
+                deleted++;
+            } catch (Exception e) {
+                skipped++;
+            }
+        }
+        String currentEmail = authorizationService.getCurrentUserEmail();
+        auditService.logAccountAction("ORDERS_BULK_DELETED_BY_SUPER_ADMIN", currentEmail, null);
+        Map<String, Object> result = new HashMap<>();
+        result.put("deleted", deleted);
+        result.put("skipped", skipped);
+        result.put("message", "Deleted " + deleted + " of " + ids.size() + " orders" + (skipped > 0 ? " (" + skipped + " skipped)" : ""));
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/users/{id}/delete")
