@@ -198,10 +198,13 @@ public class SeedDataRunner implements CommandLineRunner {
             user.setFailedLoginAttempts(0);
             userRepo.save(user);
         } else {
+            // Never touch the password of an existing user here - it would silently
+            // revert any password change (including our own reset-password testing)
+            // back to the hardcoded seed default on every backend restart, i.e. every
+            // deploy. The seed password only ever applies to a brand-new account.
             boolean changed = false;
             if (!user.getFullName().equals(fullName)) { user.setFullName(fullName); changed = true; }
             if (!user.getUsername().equals(username)) { user.setUsername(username); changed = true; }
-            if (!passwordEncoder.matches(rawPassword, user.getPassword())) { user.setPassword(passwordEncoder.encode(rawPassword)); changed = true; }
             if (user.getRole() != role) { user.setRole(role); changed = true; }
             if (!"ACTIVE".equals(user.getStatus())) { user.setStatus("ACTIVE"); changed = true; }
             if (!user.isActive()) { user.setActive(true); changed = true; }
