@@ -142,6 +142,7 @@
 /* ─── Product Scroll Row ─── */
 .sn-product-scroll { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; -ms-overflow-style: none; scrollbar-width: none; }
 .sn-product-scroll::-webkit-scrollbar { display: none; }
+.sn-empty-section { padding: 40px 16px; text-align: center; color: var(--sn-text-secondary, #71717a); font-size: 0.95rem; }
 
 /* ─── Product Card ─── */
 .sn-product-card { flex: 0 0 220px; background: var(--sn-card-bg); border-radius: var(--sn-radius); overflow: hidden; box-shadow: var(--sn-shadow); cursor: pointer; transition: box-shadow 0.2s; display: flex; flex-direction: column; }

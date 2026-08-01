@@ -364,9 +364,7 @@ const Home = () => {
               {normalized.slice(0, 6).map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)}
             </div>
           ) : (
-            <div className="sn-product-scroll">
-              {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
-            </div>
+            <div className="sn-empty-section">No products available</div>
           )}
         </div>
       </section>
@@ -377,11 +375,15 @@ const Home = () => {
             <h2 className="sn-section-title"><Zap size={22} color="#fa8900" className="sn-section-icon" /> Trending Electronics</h2>
             <button className="sn-view-all" onClick={() => navigate("/products?category=Electronics")}>View All {"\u2192"}</button>
           </div>
-          <div className="sn-product-scroll">
-            {electronics.length > 0
-              ? electronics.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)
-              : (loading ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />) : null)}
-          </div>
+          {loading ? (
+            <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}</div>
+          ) : electronics.length > 0 ? (
+            <div className="sn-product-scroll">
+              {electronics.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)}
+            </div>
+          ) : (
+            <div className="sn-empty-section">No products available</div>
+          )}
         </div>
       </section>
 
@@ -391,11 +393,15 @@ const Home = () => {
             <h2 className="sn-section-title"><Shirt size={22} color="#2E9B57" className="sn-section-icon" /> Fashion Essentials</h2>
             <button className="sn-view-all" onClick={() => navigate("/products?category=Fashion")}>View All {"\u2192"}</button>
           </div>
-          <div className="sn-product-scroll">
-            {fashion.length > 0
-              ? fashion.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)
-              : (loading ? [...Array(4)].map((_, i) => <SkeletonCard key={i} />) : null)}
-          </div>
+          {loading ? (
+            <div className="sn-product-scroll">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
+          ) : fashion.length > 0 ? (
+            <div className="sn-product-scroll">
+              {fashion.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)}
+            </div>
+          ) : (
+            <div className="sn-empty-section">No products available</div>
+          )}
         </div>
       </section>
 
