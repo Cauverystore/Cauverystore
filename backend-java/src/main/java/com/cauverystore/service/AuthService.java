@@ -52,6 +52,13 @@ public class AuthService {
     @Value("${frontend.url:https://cauverystore.in}")
     private String frontendUrl;
 
+    // Email lookups are case-sensitive at the DB level, but users don't treat email
+    // case as meaningful - registering as "John@Gmail.com" and logging in as
+    // "john@gmail.com" must be the same account, not a lookup miss.
+    private static String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase();
+    }
+
     public String register(RegisterRequest request) {
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new RuntimeException("Email is required");
@@ -59,7 +66,8 @@ public class AuthService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new RuntimeException("Password is required");
         }
-        if (userRepo.existsByEmail(request.getEmail())) {
+        String email = normalizeEmail(request.getEmail());
+        if (userRepo.existsByEmail(email)) {
             throw new RuntimeException("Email already registered");
         }
 
@@ -80,7 +88,7 @@ public class AuthService {
         User user = new User();
         user.setFullName(request.getFullName());
         user.setUsername(username);
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setPhone(request.getPhone());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.CUSTOMER);
@@ -97,7 +105,7 @@ public class AuthService {
 
     public AuthResponse authenticate(LoginRequest request) {
         String identifier = request.getEmail() != null ? request.getEmail() : request.getUsername();
-        User user = userRepo.findByEmail(identifier);
+        User user = userRepo.findByEmail(normalizeEmail(identifier));
         if (user == null) {
             user = userRepo.findByUsername(identifier);
         }
@@ -320,7 +328,8 @@ public class AuthService {
     private static final long OTP_REQUEST_COOLDOWN_SECONDS = 60;
     private static final int MAX_OTP_VERIFY_ATTEMPTS = 5;
 
-    public void requestPasswordReset(String email) {
+    public void requestPasswordReset(String rawEmail) {
+        String email = normalizeEmail(rawEmail);
         User user = userRepo.findByEmail(email);
         if (user == null) {
             throw new RuntimeException("User not found with email: " + email);
@@ -347,7 +356,8 @@ public class AuthService {
         emailService.sendOtpEmail(user.getEmail(), otp);
     }
 
-    public void resetPassword(String email, String otp, String newPassword) {
+    public void resetPassword(String rawEmail, String otp, String newPassword) {
+        String email = normalizeEmail(rawEmail);
         User user = userRepo.findByEmail(email);
         if (user == null) {
             throw new RuntimeException("User not found");
@@ -384,7 +394,8 @@ public class AuthService {
         emailService.sendPasswordResetConfirmation(user.getEmail());
     }
 
-    public void requestPasswordResetLink(String email) {
+    public void requestPasswordResetLink(String rawEmail) {
+        String email = normalizeEmail(rawEmail);
         User user = userRepo.findByEmail(email);
         if (user == null) {
             throw new RuntimeException("User not found with email: " + email);
