@@ -62,13 +62,24 @@ public class AuthService {
         if (userRepo.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
-        if (request.getUsername() != null && userRepo.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already taken");
+
+        // The frontend derives username from the email's local part (e.g. "alice" from
+        // alice@gmail.com), which different real people can share across providers. That's
+        // an implementation detail invisible to the user, so a collision must never block
+        // registration - just make it unique instead of rejecting a genuinely new signup.
+        String username = request.getUsername();
+        if (username != null && !username.isBlank() && userRepo.existsByUsername(username)) {
+            String base = username;
+            int suffix = 1;
+            do {
+                username = base + suffix;
+                suffix++;
+            } while (userRepo.existsByUsername(username));
         }
 
         User user = new User();
         user.setFullName(request.getFullName());
-        user.setUsername(request.getUsername());
+        user.setUsername(username);
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
