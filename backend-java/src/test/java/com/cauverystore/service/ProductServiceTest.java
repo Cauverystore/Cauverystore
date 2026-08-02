@@ -76,17 +76,17 @@ class ProductServiceTest {
     }
 
     @Test
-    void getActiveProducts_shouldFilterBySeller_whenSeller() {
-        setAuthenticatedUser(1L, "SELLER");
+    void getActiveProducts_shouldReturnFullCatalog_evenWhenAuthenticatedAsSeller() {
+        // Public storefront browsing must never filter by the viewer's own role - a seller
+        // shopping as a customer sees the same catalog as everyone else. "My own products"
+        // is served exclusively by the seller/admin management endpoints, not this one.
         Product own = new Product(); own.setId(1L); own.setActive(true); own.setSellerId(1L);
         Product other = new Product(); other.setId(2L); other.setActive(true); other.setSellerId(2L);
         when(productRepo.findByActiveTrue()).thenReturn(List.of(own, other));
-        when(authorizationService.getCurrentUserId()).thenReturn(1L);
 
         List<Product> result = productService.getActiveProducts();
 
-        assertEquals(1, result.size());
-        assertEquals(1L, result.get(0).getId());
+        assertEquals(2, result.size());
     }
 
     @Test
@@ -106,13 +106,15 @@ class ProductServiceTest {
     }
 
     @Test
-    void getProductById_shouldRejectSeller_whenProductNotOwned() {
-        setAuthenticatedUser(2L, "SELLER");
+    void getProductById_shouldReturnProduct_regardlessOfViewerRole() {
+        // Public storefront browsing - viewing any active product's detail page must never be
+        // gated by seller ownership; that check belongs to the write-path management methods.
         product.setSellerId(1L);
         when(productRepo.findById(1L)).thenReturn(Optional.of(product));
-        when(authorizationService.getCurrentUserId()).thenReturn(2L);
 
-        assertThrows(AccessDeniedException.class, () -> productService.getProductById(1L));
+        Product result = productService.getProductById(1L);
+
+        assertEquals(1L, result.getId());
     }
 
     @Test
@@ -121,6 +123,7 @@ class ProductServiceTest {
         Product newProduct = new Product();
         newProduct.setName("New Product");
         newProduct.setPrice(50.0);
+        when(authorizationService.hasRole("SELLER")).thenReturn(true);
         when(authorizationService.getCurrentUserId()).thenReturn(1L);
         when(productRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -163,6 +166,7 @@ class ProductServiceTest {
         product.setSellerId(1L);
         Product update = new Product();
         when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(authorizationService.hasRole("SELLER")).thenReturn(true);
         when(authorizationService.getCurrentUserId()).thenReturn(2L);
 
         assertThrows(AccessDeniedException.class, () -> productService.updateProduct(1L, update));
@@ -237,6 +241,7 @@ class ProductServiceTest {
         setAuthenticatedUser(2L, "SELLER");
         product.setSellerId(1L);
         when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(authorizationService.hasRole("SELLER")).thenReturn(true);
         when(authorizationService.getCurrentUserId()).thenReturn(2L);
 
         assertThrows(AccessDeniedException.class, () -> productService.deleteProductCascade(1L));

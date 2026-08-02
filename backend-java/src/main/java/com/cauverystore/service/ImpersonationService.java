@@ -39,7 +39,7 @@ public class ImpersonationService {
 
         String impersonationToken = jwtUtil.generateAccessToken(
                 target.getEmail(), target.getId(), target.getUsername(),
-                target.getRole() != null ? target.getRole().name() : "CUSTOMER", target.getTokenVersion());
+                java.util.List.of(target.getRole() != null ? target.getRole().name() : "CUSTOMER"), target.getTokenVersion());
 
         auditService.log(impersonatorId, "impersonator", "IMPERSONATION_START",
                 "ImpersonationSession", session.getId(),

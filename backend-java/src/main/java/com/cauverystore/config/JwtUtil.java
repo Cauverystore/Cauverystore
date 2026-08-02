@@ -24,12 +24,13 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(String email, Long userId, String username, String role, Integer tokenVersion) {
+    public String generateAccessToken(String email, Long userId, String username, java.util.List<String> roles, Integer tokenVersion) {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("userId", userId)
                 .claim("username", username)
-                .claim("role", role)
+                .claim("role", roles.get(0))
+                .claim("roles", roles)
                 .claim("tokenVersion", tokenVersion != null ? tokenVersion : 0)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRY))

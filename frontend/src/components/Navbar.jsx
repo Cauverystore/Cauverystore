@@ -8,6 +8,12 @@ const Navbar = () => {
   const navigate = useNavigate();
   const token = !!localStorage.getItem("accessToken");
   const userRole = localStorage.getItem("role") || "";
+  const userRoles = (() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("roles") || "[]");
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : [userRole];
+    } catch { return [userRole]; }
+  })();
   const [search, setSearch] = useState("");
   const [mobileSearch, setMobileSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -63,7 +69,7 @@ const Navbar = () => {
         </div>
         <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
           <Link to="/contact" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Customer Support</Link>
-          {["SELLER", "ADMIN", "SUPER_ADMIN"].includes(userRole) ? (
+          {["SELLER", "ADMIN", "SUPER_ADMIN"].some((r) => userRoles.includes(r)) ? (
             <Link to="/seller/dashboard" style={{ color: "#86efac", textDecoration: "none", opacity: 0.85 }}>Seller Dashboard</Link>
           ) : (
             <Link to="/seller/register" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Become a Seller</Link>

@@ -2,7 +2,6 @@ package com.cauverystore.controller;
 
 import com.cauverystore.dto.AuthResponse;
 import com.cauverystore.dto.LoginRequest;
-import com.cauverystore.entities.Role;
 import com.cauverystore.entities.User;
 import com.cauverystore.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +22,7 @@ public class SellerAuthController {
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         AuthResponse response = authService.authenticate(request);
         User user = authService.getUserByEmail(response.getEmail());
-        if (user.getRole() != Role.SELLER) {
+        if (!authService.userHasRole(user, "SELLER")) {
             throw new RuntimeException("Access denied. Seller credentials required.");
         }
         if (!"ACTIVE".equals(user.getStatus()) || !user.isActive()) {

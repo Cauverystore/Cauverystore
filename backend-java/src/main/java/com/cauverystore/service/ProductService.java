@@ -12,8 +12,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -66,36 +64,24 @@ public class ProductService {
         this.orderItemRepo = orderItemRepo;
     }
 
+    // Public storefront browsing (ProductController, permitAll) - never filtered by the
+    // viewer's own role. A logged-in seller browsing the catalog to shop is a customer here,
+    // same as anyone else; "my own products" is served exclusively by the seller/admin
+    // management endpoints below, not the public catalog.
     @Cacheable(value = "products", key = "'active'")
     public List<Product> getActiveProducts() {
-        String role = getCurrentUserRoleIfAuthenticated();
-        if ("SELLER".equals(role)) {
-            Long sellerId = authorizationService.getCurrentUserId();
-            return productRepo.findByActiveTrue().stream()
-                    .filter(p -> sellerId.equals(p.getSellerId()))
-                    .toList();
-        }
         return productRepo.findByActiveTrue();
     }
 
     @Cacheable(value = "products", key = "#id")
     public Product getProductById(Long id) {
-        Product product = productRepo.findById(id)
+        return productRepo.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
-        String role = getCurrentUserRoleIfAuthenticated();
-        if ("SELLER".equals(role)) {
-            Long sellerId = authorizationService.getCurrentUserId();
-            if (product.getSellerId() != null && !product.getSellerId().equals(sellerId)) {
-                throw new AccessDeniedException("Seller does not own this product");
-            }
-        }
-        return product;
     }
 
     @Cacheable(value = "products", key = "'all'")
     public List<Product> getAllProducts() {
-        String role = getCurrentUserRoleIfAuthenticated();
-        if ("SELLER".equals(role)) {
+        if (authorizationService.hasRole("SELLER")) {
             Long sellerId = authorizationService.getCurrentUserId();
             return productRepo.findAll().stream()
                     .filter(p -> sellerId.equals(p.getSellerId()))
@@ -354,8 +340,7 @@ public class ProductService {
 
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product addProduct(Product product) {
-        String role = getCurrentUserRoleIfAuthenticated();
-        if ("SELLER".equals(role)) {
+        if (authorizationService.hasRole("SELLER")) {
             Long sellerId = authorizationService.getCurrentUserId();
             product.setSellerId(sellerId);
         }
@@ -388,8 +373,7 @@ public class ProductService {
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product updateProduct(Long productId, Product product) {
         Product existing = getProductById(productId);
-        String role = getCurrentUserRoleIfAuthenticated();
-        if ("SELLER".equals(role)) {
+        if (authorizationService.hasRole("SELLER")) {
             Long sellerId = authorizationService.getCurrentUserId();
             verifySellerOwnership(productId, sellerId);
         }
@@ -411,8 +395,7 @@ public class ProductService {
     @Transactional
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public boolean deleteProductCascade(Long productId) {
-        String role = getCurrentUserRoleIfAuthenticated();
-        if ("SELLER".equals(role)) {
+        if (authorizationService.hasRole("SELLER")) {
             Long sellerId = authorizationService.getCurrentUserId();
             verifySellerOwnership(productId, sellerId);
         }
@@ -790,17 +773,4 @@ public class ProductService {
         return productRepo.save(p);
     }
 
-    private String getCurrentUserRoleIfAuthenticated() {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-                return auth.getAuthorities().stream()
-                        .map(g -> g.getAuthority().replace("ROLE_", ""))
-                        .findFirst().orElse(null);
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return null;
-    }
 }

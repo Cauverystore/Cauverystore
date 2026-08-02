@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   refreshToken: 'refreshToken',
   user: 'user',
   role: 'role',
+  roles: 'roles',
   rememberMe: 'rememberMe',
 };
 
@@ -33,6 +34,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [refreshTokenValue, setRefreshTokenValue] = useState(null);
   const [role, setRole] = useState(null);
+  const [roles, setRoles] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,6 +51,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(STORAGE_KEYS.refreshToken);
     localStorage.removeItem(STORAGE_KEYS.user);
     localStorage.removeItem(STORAGE_KEYS.role);
+    localStorage.removeItem(STORAGE_KEYS.roles);
     localStorage.removeItem('admin_token');
   }, []);
 
@@ -64,6 +67,7 @@ export const AuthProvider = ({ children }) => {
     setRefreshTokenValue(null);
     setUser(null);
     setRole(null);
+    setRoles([]);
     setIsAuthenticated(false);
     setError('');
     setShowSessionWarning(false);
@@ -101,17 +105,20 @@ export const AuthProvider = ({ children }) => {
     const newRefreshToken = data.refreshToken || '';
     const userData = data.user || { email, fullName: data.username || email };
     const userRoleFinal = data.role || (userRole ? userRole.toUpperCase() : 'CUSTOMER');
+    const rolesFinal = Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : [userRoleFinal];
 
     localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
     localStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
     localStorage.setItem(STORAGE_KEYS.role, userRoleFinal);
+    localStorage.setItem(STORAGE_KEYS.roles, JSON.stringify(rolesFinal));
     localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe ? 'true' : 'false');
 
     setToken(accessToken);
     setRefreshTokenValue(newRefreshToken);
     setUser(userData);
     setRole(userRoleFinal);
+    setRoles(rolesFinal);
     setIsAuthenticated(true);
     setLastActivity(Date.now());
 
@@ -127,17 +134,20 @@ export const AuthProvider = ({ children }) => {
     const newRefreshToken = data.refreshToken || '';
     const userData = data.user || { email: data.email, fullName: data.username || data.email };
     const userRoleFinal = data.role || 'CUSTOMER';
+    const rolesFinal = Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : [userRoleFinal];
 
     localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
     localStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
     localStorage.setItem(STORAGE_KEYS.role, userRoleFinal);
+    localStorage.setItem(STORAGE_KEYS.roles, JSON.stringify(rolesFinal));
     localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe ? 'true' : 'false');
 
     setToken(accessToken);
     setRefreshTokenValue(newRefreshToken);
     setUser(userData);
     setRole(userRoleFinal);
+    setRoles(rolesFinal);
     setIsAuthenticated(true);
     setLastActivity(Date.now());
 
@@ -179,17 +189,20 @@ export const AuthProvider = ({ children }) => {
     const newRefreshToken = data.refreshToken || '';
     const userData = data.user || { email: data.email, fullName: data.username || data.email };
     const userRoleFinal = data.role || 'CUSTOMER';
+    const rolesFinal = Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : [userRoleFinal];
 
     localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
     localStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
     localStorage.setItem(STORAGE_KEYS.role, userRoleFinal);
+    localStorage.setItem(STORAGE_KEYS.roles, JSON.stringify(rolesFinal));
     localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe ? 'true' : 'false');
 
     setToken(accessToken);
     setRefreshTokenValue(newRefreshToken);
     setUser(userData);
     setRole(userRoleFinal);
+    setRoles(rolesFinal);
     setIsAuthenticated(true);
     setLastActivity(Date.now());
 
@@ -236,6 +249,7 @@ export const AuthProvider = ({ children }) => {
       const savedRefreshToken = localStorage.getItem(STORAGE_KEYS.refreshToken);
       const savedUser = localStorage.getItem(STORAGE_KEYS.user);
       const savedRole = localStorage.getItem(STORAGE_KEYS.role);
+      const savedRoles = localStorage.getItem(STORAGE_KEYS.roles);
 
       const savedImpersonation = localStorage.getItem(IMPERSONATION_STORAGE_KEY);
       if (savedImpersonation) {
@@ -254,6 +268,7 @@ export const AuthProvider = ({ children }) => {
         setRefreshTokenValue(savedRefreshToken);
         try { setUser(savedUser ? JSON.parse(savedUser) : null); } catch { setUser(null); }
         setRole(savedRole);
+        try { setRoles(savedRoles ? JSON.parse(savedRoles) : (savedRole ? [savedRole] : [])); } catch { setRoles(savedRole ? [savedRole] : []); }
         setIsAuthenticated(true);
         setLastActivity(Date.now());
       } else if (savedAccessToken && savedRefreshToken) {
@@ -267,6 +282,7 @@ export const AuthProvider = ({ children }) => {
             setRefreshTokenValue(newRefresh);
             try { setUser(savedUser ? JSON.parse(savedUser) : null); } catch { setUser(null); }
             setRole(savedRole);
+            try { setRoles(savedRoles ? JSON.parse(savedRoles) : (savedRole ? [savedRole] : [])); } catch { setRoles(savedRole ? [savedRole] : []); }
             setIsAuthenticated(true);
             setLastActivity(Date.now());
           })
@@ -315,7 +331,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const value = {
-    user, token, role, isAuthenticated, loading, error,
+    user, token, role, roles, isAuthenticated, loading, error,
     login, loginWithGoogle, register, logout, refreshToken, getAuthHeaders, isTokenExpired,
     requestPasswordReset, resetPassword, completeForcedPasswordReset,
     requestPasswordResetLink, resetPasswordWithLink,

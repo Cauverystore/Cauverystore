@@ -145,9 +145,9 @@ public class AuthService {
         }
 
         if (request.getRole() != null && !request.getRole().isEmpty()) {
-            String roleName = user.getRole() != null ? user.getRole().name() : "";
-            if (!roleName.equalsIgnoreCase(request.getRole())) {
-                auditService.logLogin(user.getEmail(), roleName, false);
+            java.util.List<String> capabilities = computeRoles(user);
+            if (capabilities.stream().noneMatch(r -> r.equalsIgnoreCase(request.getRole()))) {
+                auditService.logLogin(user.getEmail(), capabilities.get(0), false);
                 throw new AuthenticationFailedException("Access denied. This account does not have the required role.");
             }
         }
@@ -160,26 +160,58 @@ public class AuthService {
             throw new PasswordResetRequiredException(user.getEmail());
         }
 
-        return issueTokens(user);
+        return issueTokens(user, request.getRole());
+    }
+
+    // A user's stored role already reliably means "has this capability" - it's only ever
+    // treated as EXCLUSIVE (instead of additive) that's wrong. Everyone who isn't staff is
+    // implicitly always a CUSTOMER too, so a seller can log in and shop under the same
+    // account instead of losing customer access the moment they become a seller.
+    private java.util.List<String> computeRoles(User user) {
+        Role r = user.getRole();
+        if (r == Role.ADMIN || r == Role.SUPER_ADMIN || r == Role.EXECUTIVE) {
+            return java.util.List.of(r.name());
+        }
+        if (r == Role.SELLER) {
+            return new java.util.ArrayList<>(java.util.List.of(Role.SELLER.name(), Role.CUSTOMER.name()));
+        }
+        return java.util.List.of(Role.CUSTOMER.name());
+    }
+
+    public boolean userHasRole(User user, String role) {
+        return computeRoles(user).stream().anyMatch(r -> r.equalsIgnoreCase(role));
     }
 
     private AuthResponse issueTokens(User user) {
+        return issueTokens(user, null);
+    }
+
+    private AuthResponse issueTokens(User user, String preferredRole) {
+        java.util.List<String> roles = new java.util.ArrayList<>(computeRoles(user));
+        if (preferredRole != null) {
+            String match = roles.stream().filter(r -> r.equalsIgnoreCase(preferredRole)).findFirst().orElse(null);
+            if (match != null) {
+                roles.remove(match);
+                roles.add(0, match);
+            }
+        }
+
         String accessToken = jwtUtil.generateAccessToken(
-                user.getEmail(), user.getId(), user.getUsername(),
-                user.getRole() != null ? user.getRole().name() : "CUSTOMER", user.getTokenVersion());
+                user.getEmail(), user.getId(), user.getUsername(), roles, user.getTokenVersion());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
         user.setRefreshToken(refreshToken);
         userRepo.save(user);
 
-        auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "CUSTOMER", true);
+        auditService.logLogin(user.getEmail(), roles.get(0), true);
 
         AuthResponse response = new AuthResponse();
         response.setAccessToken(accessToken);
         response.setRefreshToken(refreshToken);
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
-        response.setRole(user.getRole() != null ? user.getRole().name() : "CUSTOMER");
+        response.setRole(roles.get(0));
+        response.setRoles(roles);
         response.setUserId(user.getId());
         return response;
     }
@@ -278,7 +310,7 @@ public class AuthService {
 
         String newAccessToken = jwtUtil.generateAccessToken(
                 user.getEmail(), user.getId(), user.getUsername(),
-                user.getRole() != null ? user.getRole().name() : "CUSTOMER", user.getTokenVersion());
+                computeRoles(user), user.getTokenVersion());
         String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
     user.setRefreshToken(newRefreshToken);
@@ -470,7 +502,7 @@ public class AuthService {
 
     public void validateUserRole(String email, Role expectedRole) {
         User user = getUserByEmail(email);
-        if (user.getRole() != expectedRole) {
+        if (!userHasRole(user, expectedRole.name())) {
             throw new AuthenticationFailedException(
                     "Access denied. " + expectedRole.name() + " credentials required.");
         }

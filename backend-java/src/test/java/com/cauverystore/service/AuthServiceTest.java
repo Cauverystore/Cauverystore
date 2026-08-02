@@ -65,7 +65,7 @@ class AuthServiceTest {
     void authenticate_shouldReturnTokens_whenValidCredentials() {
         when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
         when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
-        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString(), any()))
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyList(), any()))
                 .thenReturn("access-token");
         when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
 
@@ -79,6 +79,32 @@ class AuthServiceTest {
         assertEquals("CUSTOMER", response.getRole());
         assertEquals(1L, response.getUserId());
         verify(userRepo).save(user);
+    }
+
+    @Test
+    void authenticate_shouldSucceedAsCustomer_whenSellerAccountSelectsCustomerRole() {
+        user.setRole(Role.SELLER);
+        loginReq.setRole("customer");
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyList(), any()))
+                .thenReturn("access-token");
+        when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
+
+        AuthResponse response = authService.authenticate(loginReq);
+
+        assertEquals("CUSTOMER", response.getRole());
+        assertTrue(response.getRoles().contains("CUSTOMER"));
+        assertTrue(response.getRoles().contains("SELLER"));
+    }
+
+    @Test
+    void authenticate_shouldReject_whenPlainCustomerAccountSelectsSellerRole() {
+        loginReq.setRole("seller");
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
+
+        assertThrows(AuthenticationFailedException.class, () -> authService.authenticate(loginReq));
     }
 
     @Test
@@ -113,7 +139,7 @@ class AuthServiceTest {
         when(userRepo.findByEmail("customer")).thenReturn(null);
         when(userRepo.findByUsername("customer")).thenReturn(user);
         when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
-        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString(), any()))
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyList(), any()))
                 .thenReturn("access-token");
         when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
 
@@ -161,7 +187,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_shouldThrow_whenUsernameTaken() {
+    void register_shouldAutoSuffixUsername_whenUsernameTaken() {
         RegisterRequest req = new RegisterRequest();
         req.setEmail("new@test.com");
         req.setUsername("existing");
@@ -169,8 +195,14 @@ class AuthServiceTest {
 
         when(userRepo.existsByEmail("new@test.com")).thenReturn(false);
         when(userRepo.existsByUsername("existing")).thenReturn(true);
+        when(userRepo.existsByUsername("existing1")).thenReturn(false);
+        when(passwordEncoder.encode("password")).thenReturn("encoded");
 
-        assertThrows(RuntimeException.class, () -> authService.register(req));
+        authService.register(req);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepo).save(captor.capture());
+        assertEquals("existing1", captor.getValue().getUsername());
     }
 
     @Test
@@ -182,7 +214,7 @@ class AuthServiceTest {
         when(jwtUtil.validateToken("old-refresh-token")).thenReturn(true);
         when(jwtUtil.getEmailFromToken("old-refresh-token")).thenReturn("customer@test.com");
         when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
-        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyString(), any()))
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyList(), any()))
                 .thenReturn("new-access-token");
         when(jwtUtil.generateRefreshToken(anyString())).thenReturn("new-refresh-token");
 

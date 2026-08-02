@@ -100,6 +100,20 @@ public class AuthorizationService {
                 .orElseThrow(() -> new RuntimeException("No role found"));
     }
 
+    // A dual-capability account (e.g. customer + seller) carries multiple authorities in one
+    // token - use this whenever the question is "does the current user have X capability at
+    // all", not "what is their single active role" (getCurrentUserRole/hasRole below).
+    public java.util.Set<String> getCurrentUserRoles() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new AccessDeniedException("Not authenticated");
+        }
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .map(a -> a.replace("ROLE_", ""))
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
     public String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
@@ -109,13 +123,13 @@ public class AuthorizationService {
     }
 
     public boolean hasRole(String role) {
-        String userRole = getCurrentUserRole();
-        return userRole.equalsIgnoreCase(role);
+        java.util.Set<String> mine = getCurrentUserRoles();
+        return mine.stream().anyMatch(r -> r.equalsIgnoreCase(role));
     }
 
     public boolean hasAnyRole(String... roles) {
-        String userRole = getCurrentUserRole();
-        return Arrays.stream(roles).anyMatch(r -> r.equalsIgnoreCase(userRole));
+        java.util.Set<String> mine = getCurrentUserRoles();
+        return Arrays.stream(roles).anyMatch(r -> mine.stream().anyMatch(m -> m.equalsIgnoreCase(r)));
     }
 
     public void requireAnyRole(String... roles) {
@@ -127,11 +141,10 @@ public class AuthorizationService {
     }
 
     public void requireProductAccess(Long productId) {
-        String role = getCurrentUserRole();
-        if ("ADMIN".equalsIgnoreCase(role) || "SUPER_ADMIN".equalsIgnoreCase(role)) {
+        if (hasAnyRole("ADMIN", "SUPER_ADMIN")) {
             return;
         }
-        if ("SELLER".equalsIgnoreCase(role)) {
+        if (hasRole("SELLER")) {
             Long currentUserId = getCurrentUserId();
             Product product = productRepo.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found with id: " + productId));
@@ -144,23 +157,20 @@ public class AuthorizationService {
     }
 
     public void requireOrderAccess(Long orderId) {
-        String role = getCurrentUserRole();
-        if ("ADMIN".equalsIgnoreCase(role) || "SUPER_ADMIN".equalsIgnoreCase(role)) {
+        if (hasAnyRole("ADMIN", "SUPER_ADMIN")) {
             return;
         }
         Long currentUserId = getCurrentUserId();
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
-        if ("CUSTOMER".equalsIgnoreCase(role)) {
-            if (order.getUser() == null || !currentUserId.equals(order.getUser().getId())) {
-                throw new PermissionDeniedException("Customer can only access their own orders");
-            }
-            return;
-        }
-        if ("SELLER".equalsIgnoreCase(role)) {
-            if (order.getSellerId() != null && !order.getSellerId().equals(currentUserId)) {
-                throw new PermissionDeniedException("Seller does not own this order");
-            }
+        // A dual-capability account may legitimately be the customer on this order, the seller
+        // on it, or (for staff, handled above) neither - check every capability they hold
+        // rather than branching on a single exclusive role.
+        boolean ownsAsCustomer = hasRole("CUSTOMER")
+                && order.getUser() != null && currentUserId.equals(order.getUser().getId());
+        boolean ownsAsSeller = hasRole("SELLER")
+                && order.getSellerId() != null && order.getSellerId().equals(currentUserId);
+        if (ownsAsCustomer || ownsAsSeller) {
             return;
         }
         throw new PermissionDeniedException("Access denied. Insufficient permissions to access this order.");
@@ -209,7 +219,6 @@ public class AuthorizationService {
     }
 
     public Map<String, Object> maskUserData(User user) {
-        String role = getCurrentUserRole();
         Map<String, Object> data = new HashMap<>();
         data.put("id", user.getId());
         data.put("fullName", user.getFullName());
@@ -222,7 +231,7 @@ public class AuthorizationService {
         data.put("mfaEnabled", user.getMfaEnabled());
         data.put("lastLoginAt", user.getLastLoginAt());
         data.put("failedLoginAttempts", user.getFailedLoginAttempts());
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        boolean isAdmin = hasRole("ADMIN");
         data.put("phone", isAdmin ? "****" : user.getPhone());
         data.put("address", isAdmin ? "****" : user.getAddress());
         return data;
@@ -238,16 +247,14 @@ public class AuthorizationService {
     }
 
     public Long resolveSellerId() {
-        String role = getCurrentUserRole();
-        if ("SELLER".equalsIgnoreCase(role)) {
+        if (hasRole("SELLER")) {
             return getCurrentUserId();
         }
         return null;
     }
 
     public boolean isSellerOfProduct(Long productId) {
-        String role = getCurrentUserRole();
-        if (!"SELLER".equalsIgnoreCase(role)) {
+        if (!hasRole("SELLER")) {
             return false;
         }
         Long currentUserId = getCurrentUserId();

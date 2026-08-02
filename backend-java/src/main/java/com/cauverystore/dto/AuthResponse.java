@@ -7,6 +7,7 @@ public class AuthResponse {
     private String username;
     private String email;
     private String role;
+    private java.util.List<String> roles;
     private Long userId;
 
     @java.lang.SuppressWarnings("all")
@@ -37,6 +38,16 @@ public class AuthResponse {
     @java.lang.SuppressWarnings("all")
     public Long getUserId() {
         return this.userId;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public java.util.List<String> getRoles() {
+        return this.roles;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setRoles(final java.util.List<String> roles) {
+        this.roles = roles;
     }
 
     @java.lang.SuppressWarnings("all")
