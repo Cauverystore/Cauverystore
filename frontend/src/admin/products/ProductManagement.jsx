@@ -145,7 +145,20 @@ const ProductManagement = () => {
   const handleBulk = async () => { if(!file)return; const fd=new FormData(); fd.append("file",file); setSubmitting(true);
     try{const ep=isSeller?"/api/seller/products/bulk-upload":"/api/admin/products/bulk-upload"; const r=await api.post(ep,fd); setMsg({type:"success",text:r.data.message||"Uploaded"}); setFile(null); if(fileRef.current) fileRef.current.value=""; await loadProducts(); }catch(e){const err=e.response?.data?.error||e.response?.status||e.message; setMsg({type:"error",text:"Upload failed: "+(err||"Unknown error")});} setSubmitting(false); };
 
-  const exportExcel = () => { window.open("http://localhost:9091/api/admin/products/export", "_blank"); };
+  const exportExcel = async () => {
+    try {
+      const ep = isSeller ? "/api/seller/products/export" : "/api/admin/products/export";
+      const res = await api.get(ep, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = isSeller ? "my-products-report.xlsx" : "products-report.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (e) { setMsg({ type: "error", text: "Failed to export products" }); }
+  };
   const toggleStatus = async (id, active) => { try{await api.put("/api/admin/products/"+id+"/status",{active}); loadProducts(); }catch{}; };
   const delProduct = async (id) => {
     if (!window.confirm(isSuperAdmin ? "Permanently delete this product? This cannot be undone." : "Delete this product?")) return;

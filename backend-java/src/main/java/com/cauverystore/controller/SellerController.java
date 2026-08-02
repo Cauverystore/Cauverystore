@@ -133,6 +133,40 @@ public class SellerController {
         }
     }
 
+    @GetMapping("/products/export")
+    public ResponseEntity<?> exportProducts() throws Exception {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
+
+        var products = productService.getAllProducts(sellerId);
+        org.apache.poi.ss.usermodel.Workbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+        org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet("Products");
+        var hs = wb.createCellStyle();
+        var f = wb.createFont(); f.setBold(true); hs.setFont(f);
+        String[] headers = {"ID","Product Code","Name","Brand","Category","Price","Stock","SKU","Status"};
+        var row = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) { var c = row.createCell(i); c.setCellValue(headers[i]); c.setCellStyle(hs); sheet.setColumnWidth(i, 3500); }
+        int r = 1;
+        for (var p : products) {
+            var dr = sheet.createRow(r++);
+            dr.createCell(0).setCellValue(p.getId());
+            dr.createCell(1).setCellValue(p.getProductCode());
+            dr.createCell(2).setCellValue(p.getName());
+            dr.createCell(3).setCellValue(p.getBrand());
+            dr.createCell(4).setCellValue(p.getCategory() != null ? p.getCategory().getName() : "");
+            dr.createCell(5).setCellValue(p.getPrice());
+            dr.createCell(6).setCellValue(p.getStock());
+            dr.createCell(7).setCellValue(p.getSku());
+            dr.createCell(8).setCellValue(p.getProductStatus());
+        }
+        var bos = new java.io.ByteArrayOutputStream();
+        wb.write(bos); wb.close();
+        return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=my-products-report.xlsx")
+            .contentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .body(bos.toByteArray());
+    }
+
     @PostMapping("/products/bulk-upload")
     public ResponseEntity<?> bulkUpload(@RequestParam("file") MultipartFile file) {
         Long sellerId = getCurrentSellerId();

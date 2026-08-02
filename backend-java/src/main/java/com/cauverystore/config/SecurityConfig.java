@@ -66,7 +66,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers("/api/admin/template.xlsx").permitAll()
                 .requestMatchers("/api/seller/template.xlsx").permitAll()
-                .requestMatchers("/api/admin/products/export").permitAll()
                 .requestMatchers("/api/newsletter/**").permitAll()
                 .requestMatchers("/api/support-tickets/**").authenticated()
                 .requestMatchers("/api/payment-methods/**").authenticated()

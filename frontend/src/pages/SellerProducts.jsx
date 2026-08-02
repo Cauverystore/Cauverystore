@@ -148,6 +148,27 @@ const SellerProducts = () => {
     }
   };
 
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setError("");
+    try {
+      const res = await api.get("/api/seller/products/export", { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "my-products-report.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError("Failed to export products");
+    }
+    setExporting(false);
+  };
+
   const openAnalytics = async (id) => {
     setAnalyticsLoading(true);
     setAnalyticsProduct(null);
@@ -204,6 +225,9 @@ const SellerProducts = () => {
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>My Products</h1>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <button style={{ ...btnBase, background: "#f3f4f6", color: "#374151" }} onClick={fetchProducts}>&#8635; Refresh</button>
+          <button style={{ ...btnBase, background: "#f3f4f6", color: "#374151" }} onClick={handleExport} disabled={exporting}>
+            {exporting ? "Exporting..." : "⤓ Export Report"}
+          </button>
           <a
             href={`${api.defaults.baseURL || "http://localhost:9091"}/api/seller/template.xlsx`}
             style={{ ...btnBase, background: "#f3f4f6", color: "#374151", textDecoration: "none", fontSize: "0.8rem" }}
