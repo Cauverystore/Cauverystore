@@ -391,6 +391,22 @@
   background: var(--color-cta-active);
 }
 
+.pt-btn-remove {
+  width: 100%;
+  margin-top: 6px;
+  background: var(--color-cta);
+  color: #fff;
+}
+
+.pt-btn-remove:hover:not(:disabled) {
+  background: var(--color-cta-hover);
+  box-shadow: 0 2px 8px rgba(14, 92, 92, 0.2);
+}
+
+.pt-btn-remove:active:not(:disabled) {
+  background: var(--color-cta-active);
+}
+
 /* ─── Skeleton Loading ─── */
 .pt-skeleton {
   background: var(--color-surface, #fff);

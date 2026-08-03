@@ -52,6 +52,15 @@ const Wishlist = () => {
     }
   };
 
+  const handleRemove = async (product) => {
+    const pid = product.id || product._id;
+    try {
+      await toggleWishlist(pid);
+    } catch {
+      setError("Failed to remove item from wishlist");
+    }
+  };
+
   if (loading) {
     return (
       <div className="account-page">
@@ -90,6 +99,7 @@ const Wishlist = () => {
                   product={p}
                   onAddToCart={handleAddToCart}
                   onMoveToCart={handleMoveToCart}
+                  onRemove={handleRemove}
                 />
               );
             })}
