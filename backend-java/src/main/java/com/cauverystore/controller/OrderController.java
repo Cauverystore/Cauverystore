@@ -83,8 +83,10 @@ public class OrderController {
     @PutMapping("/{orderId}/cancel")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<Map<String, Object>> cancelOrder(@PathVariable Long orderId,
+                                                            @RequestBody(required = false) Map<String, String> body,
                                                             @RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.ok(orderService.cancelOrder(authHeader, orderId));
+        String reason = body != null ? body.get("reason") : null;
+        return ResponseEntity.ok(orderService.cancelOrder(authHeader, orderId, reason));
     }
 
     @PostMapping("/{orderId}/return")

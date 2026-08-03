@@ -55,20 +55,37 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("newest");
+  const [cancellingId, setCancellingId] = useState(null);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetch = async () => {
-      setLoading(true);
-      try {
-        const params = {};
-        if (statusFilter !== "ALL") params.status = statusFilter;
-        const res = await api.get("/api/orders", { params });
-        setOrders(res.data || []);
-      } catch { setOrders([]); }
-      setLoading(false);
-    };
-    fetch();
-  }, [statusFilter]);
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (statusFilter !== "ALL") params.status = statusFilter;
+      const res = await api.get("/api/orders", { params });
+      setOrders(res.data || []);
+    } catch { setOrders([]); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchOrders(); }, [statusFilter]);
+
+  const CANCELLABLE_STATUSES = ["PLACED", "CONFIRMED", "PACKED", "PENDING"];
+  const canCancelOrder = (order) => CANCELLABLE_STATUSES.includes((order.status || "").toUpperCase());
+
+  const handleCancel = async (orderId) => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    setCancellingId(orderId);
+    setError("");
+    try {
+      await api.put(`/api/orders/${orderId}/cancel`);
+      await fetchOrders();
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to cancel order. Please try again.");
+    }
+    setCancellingId(null);
+  };
 
   const sorted = useMemo(() => {
     let list = [...orders];
@@ -103,6 +120,13 @@ const Orders = () => {
         <h1 className="orders-title">My Orders</h1>
         <span className="orders-count">{orders.length} order{orders.length !== 1 ? "s" : ""}</span>
       </div>
+
+      {error && (
+        <div style={{ marginBottom: "1rem", padding: "0.75rem 1rem", background: "#fef2f2", borderRadius: 8, color: "#dc2626", fontSize: "0.9rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{error}</span>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontWeight: 700 }}>&times;</button>
+        </div>
+      )}
 
       <div className="orders-toolbar">
         <div className="orders-filter-group">
@@ -191,9 +215,21 @@ const Orders = () => {
                     <StatusTimeline status={order.status} />
                   )}
 
-                  <button className="order-card-btn" onClick={() => navigate(`/orders/${oid}`)}>
-                    View Details
-                  </button>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    {canCancelOrder(order) && (
+                      <button
+                        className="order-card-btn"
+                        style={{ background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" }}
+                        disabled={cancellingId === oid}
+                        onClick={() => handleCancel(oid)}
+                      >
+                        {cancellingId === oid ? "Cancelling..." : "Cancel Order"}
+                      </button>
+                    )}
+                    <button className="order-card-btn" onClick={() => navigate(`/orders/${oid}`)}>
+                      View Details
+                    </button>
+                  </div>
                 </div>
               </div>
             );

@@ -438,13 +438,18 @@ public class OrderService {
 
     private static final Set<String> TERMINAL_ORDER_STATUSES = Set.of("CANCELLED", "REFUNDED", "DELIVERED");
 
-    @Transactional
     public Order cancelOrder(Long orderId) {
+        return cancelOrder(orderId, null);
+    }
+
+    @Transactional
+    public Order cancelOrder(Long orderId, String reason) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
         if (TERMINAL_ORDER_STATUSES.contains(order.getStatus())) {
             throw new RuntimeException("Order cannot be cancelled - current status is " + order.getStatus());
         }
+        boolean hadReason = reason != null && !reason.isBlank();
 
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
@@ -458,15 +463,28 @@ public class OrderService {
         OrderTimeline timeline = new OrderTimeline();
         timeline.setOrder(order);
         timeline.setStatus("CANCELLED");
-        timeline.setMessage("Order cancelled");
+        timeline.setMessage(hadReason ? "Order cancelled: " + reason : "Order cancelled");
         timeline.setTimestamp(LocalDateTime.now());
         order.getTimeline().add(timeline);
+
+        // A prepaid order being cancelled needs its money back, not just its stock - this
+        // mirrors refundOrder's own record-creation exactly so cancellation-triggered refunds
+        // show up the same way a manually-issued one would.
+        if (order.isPaid()) {
+            Refund refund = new Refund();
+            refund.setOrderId(orderId);
+            refund.setAmount(order.getTotalAmount());
+            refund.setRefundDate(LocalDate.now());
+            refund.setReason(hadReason ? "Order cancelled: " + reason : "Order cancelled");
+            refund.setStatus("COMPLETED");
+            refundRepo.save(refund);
+        }
 
         Order saved = orderRepo.save(order);
         notificationService.sendOrderCancelled(order.getUser().getEmail(), orderId.toString());
         notificationService.createNotification(order.getUser().getId(), "ORDER",
                 "Order Cancelled",
-                "Your order #" + orderId + " has been cancelled.");
+                "Your order #" + orderId + " has been cancelled successfully.");
         return saved;
     }
 
@@ -576,16 +594,27 @@ public class OrderService {
     // call is a same-class self-invocation, which bypasses Spring's proxy and silently ignores
     // its own @Transactional. Without an active transaction/session from this outer method,
     // the lazy-loaded order.getTimeline()/getItems() inside it fail once the session closes.
-    @Transactional
     public Map<String, Object> cancelOrder(String authHeader, Long orderId) {
+        return cancelOrder(authHeader, orderId, null);
+    }
+
+    @Transactional
+    public Map<String, Object> cancelOrder(String authHeader, Long orderId, String reason) {
         User user = extractUserFromHeader(authHeader);
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
         verifyOrderOwnership(order, user.getId());
-        Order o = cancelOrder(orderId);
+        // Customer self-service cancellation only - once an order has shipped it's out for
+        // delivery and can't be unilaterally pulled back the way an unshipped one can. Admins
+        // retain the ability to cancel a shipped order via adminCancelOrder for exceptions.
+        if ("SHIPPED".equals(order.getStatus())) {
+            throw new RuntimeException("This order has already been shipped and can no longer be cancelled");
+        }
+        Order o = cancelOrder(orderId, reason);
+        boolean hadReason = reason != null && !reason.isBlank();
         auditService.log(user.getId(), user.getEmail(), "ORDER_CANCELLED",
                 "Order", o.getId(),
-                "Order #" + o.getId() + " cancelled by customer", null);
+                "Order #" + o.getId() + " cancelled by customer" + (hadReason ? ": " + reason : ""), null);
         return Map.of("id", o.getId(), "status", o.getStatus());
     }
 
@@ -713,6 +742,16 @@ public class OrderService {
             if (product != null) {
                 inventoryService.restoreStock(product, item.getQuantity());
             }
+        }
+
+        if (order.isPaid()) {
+            Refund refund = new Refund();
+            refund.setOrderId(orderId);
+            refund.setAmount(order.getTotalAmount());
+            refund.setRefundDate(LocalDate.now());
+            refund.setReason("Order cancelled by admin");
+            refund.setStatus("COMPLETED");
+            refundRepo.save(refund);
         }
 
         Order saved = orderRepo.save(order);

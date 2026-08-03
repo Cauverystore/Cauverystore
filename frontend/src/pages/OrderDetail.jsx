@@ -82,7 +82,7 @@ const OrderDetail = () => {
 
   const canCancel =
     !isCancelled &&
-    (status.toUpperCase() === "PLACED" || status.toUpperCase() === "CONFIRMED" || status.toUpperCase() === "PENDING");
+    ["PLACED", "CONFIRMED", "PACKED", "PENDING"].includes(status.toUpperCase());
 
   const handleCancel = async () => {
     if (!window.confirm("Are you sure you want to cancel this order?")) return;

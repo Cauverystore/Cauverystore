@@ -10,6 +10,7 @@ const Cart = () => {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
   const [freqItems, setFreqItems] = useState([]);
   const [freqLoading, setFreqLoading] = useState(false);
   const [promoCode, setPromoCode] = useState("");
@@ -83,9 +84,11 @@ const Cart = () => {
     const key = `save-${itemId}`;
     setAction(key, true);
     setError(null);
+    setSuccessMsg(null);
     try {
       await api.post(`/api/cart/save-for-later/${itemId}`);
       await fetchCart();
+      setSuccessMsg("Item moved to Save for Later.");
     } catch (err) {
                 void err;
       setError("Failed to save item for later. Please try again.");
@@ -111,9 +114,11 @@ const Cart = () => {
     const key = `move-${itemId}`;
     setAction(key, true);
     setError(null);
+    setSuccessMsg(null);
     try {
       await api.post(`/api/cart/move-to-cart/${itemId}`);
       await fetchCart();
+      setSuccessMsg("Item moved back to your cart.");
     } catch (err) {
                 void err;
       setError("Failed to move item to cart. Please try again.");
@@ -250,6 +255,12 @@ const Cart = () => {
         <div className="cart-summary-coupon-applied" style={{ gridColumn: "1 / -1", justifyContent: "space-between" }}>
           <span>{error}</span>
           <button onClick={() => setError(null)} className="cart-summary-coupon-remove">&times;</button>
+        </div>
+      )}
+      {successMsg && (
+        <div className="cart-summary-coupon-applied" style={{ gridColumn: "1 / -1", justifyContent: "space-between" }}>
+          <span>{successMsg}</span>
+          <button onClick={() => setSuccessMsg(null)} className="cart-summary-coupon-remove">&times;</button>
         </div>
       )}
           {/* ─── LEFT COLUMN: Cart items → Checkout → Continue → Freq Bought ─── */}

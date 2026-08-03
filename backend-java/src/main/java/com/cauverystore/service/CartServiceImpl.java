@@ -127,12 +127,20 @@ public class CartServiceImpl implements CartService {
     @Transactional
     @Override
     public CartItem toggleSaveForLater(User user, Long itemId) {
+        return setSavedForLater(user, itemId, null);
+    }
+
+    // Directional set, not a blind flip - saveForLater/moveToCart each need a guaranteed
+    // outcome regardless of current state (a retry or double-click on "Move to Cart" must not
+    // toggle the item back to saved). Pass null to flip whatever the current value is.
+    @Transactional
+    public CartItem setSavedForLater(User user, Long itemId, Boolean savedForLater) {
         Cart cart = getCart(user);
         CartItem item = cartItemRepo.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Cart item not found"));
         if (!item.getCart().getId().equals(cart.getId()))
             throw new RuntimeException("Item does not belong to this user's cart");
-        item.setSavedForLater(!item.isSavedForLater());
+        item.setSavedForLater(savedForLater != null ? savedForLater : !item.isSavedForLater());
         CartItem saved = cartItemRepo.save(item);
         updateCartTotals(cart);
         cartRepo.save(cart);
@@ -293,12 +301,12 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartItem saveForLater(String authHeader, Long itemId) {
-        return toggleSaveForLater(extractUserFromHeader(authHeader), itemId);
+        return setSavedForLater(extractUserFromHeader(authHeader), itemId, true);
     }
 
     @Override
     public CartItem moveToCart(String authHeader, Long itemId) {
-        return toggleSaveForLater(extractUserFromHeader(authHeader), itemId);
+        return setSavedForLater(extractUserFromHeader(authHeader), itemId, false);
     }
 
     @Override
