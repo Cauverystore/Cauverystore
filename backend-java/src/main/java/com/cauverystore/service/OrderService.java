@@ -381,6 +381,7 @@ public class OrderService {
         return orderRepo.findAll();
     }
 
+    @Transactional
     public Order updateOrderStatus(Long orderId, String status) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
@@ -469,6 +470,7 @@ public class OrderService {
         return saved;
     }
 
+    @Transactional
     public Order refundOrder(Long orderId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
@@ -570,6 +572,11 @@ public class OrderService {
         }
     }
 
+    // @Transactional here (not just on the cancelOrder(Long) it calls) matters: that inner
+    // call is a same-class self-invocation, which bypasses Spring's proxy and silently ignores
+    // its own @Transactional. Without an active transaction/session from this outer method,
+    // the lazy-loaded order.getTimeline()/getItems() inside it fail once the session closes.
+    @Transactional
     public Map<String, Object> cancelOrder(String authHeader, Long orderId) {
         User user = extractUserFromHeader(authHeader);
         Order order = orderRepo.findById(orderId)
@@ -585,6 +592,7 @@ public class OrderService {
     // Distinct from cancelOrder: a return only makes sense once an order was actually
     // delivered. It raises a ReturnRequest for admin review instead of unilaterally
     // reversing the order/stock the way cancellation does.
+    @Transactional
     public Map<String, Object> createReturnRequest(String authHeader, Long orderId, String reason) {
         User user = extractUserFromHeader(authHeader);
         Order order = orderRepo.findById(orderId)
