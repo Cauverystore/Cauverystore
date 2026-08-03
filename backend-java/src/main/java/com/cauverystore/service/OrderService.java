@@ -402,6 +402,12 @@ public class OrderService {
                 throw new RuntimeException("Cannot move from " + current + " to " + status);
             }
         }
+        // This generic endpoint can also be used to cancel an order, so it needs the same
+        // terminal-state guard cancelOrder/adminCancelOrder already enforce - otherwise a paid
+        // order could be re-cancelled repeatedly, restoring stock and refunding it each time.
+        if ("CANCELLED".equals(status) && TERMINAL_ORDER_STATUSES.contains(current)) {
+            throw new RuntimeException("Order cannot be cancelled - current status is " + current);
+        }
 
         order.setStatus(status);
 
@@ -428,7 +434,17 @@ public class OrderService {
                 try { gstInvoiceService.updateInvoiceStatusByOrderId(orderId, "DISPATCHED"); } catch (Exception e) { System.err.println("Invoice status update skipped: " + e.getMessage()); }
                 break;
             case "CANCELLED":
-                notificationService.sendOrderCancelled(order, null, null);
+                for (OrderItem item : order.getItems()) {
+                    Product product = item.getProduct();
+                    if (product != null) {
+                        inventoryService.restoreStock(product, item.getQuantity());
+                    }
+                }
+                Refund cancelRefund = null;
+                if (order.isPaid()) {
+                    cancelRefund = paymentService.processRefundForOrder(orderId, order.getTotalAmount(), "Order cancelled by admin");
+                }
+                notificationService.sendOrderCancelled(order, "Order cancelled by admin", cancelRefund);
                 break;
         }
 
