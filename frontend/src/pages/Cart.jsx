@@ -409,7 +409,7 @@ const Cart = () => {
             {!freqLoading && freqItemsToShow.length > 0 && (
               <div className="save-later-section">
                 <h3 className="save-later-title">Frequently Bought Together</h3>
-                <div className="save-later-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+                <div className="save-later-grid">
                   {freqItemsToShow.map((prod) => {
                     const pid = prod.id || prod._id;
                     const image = prod.image || prod.images?.[0] || "";

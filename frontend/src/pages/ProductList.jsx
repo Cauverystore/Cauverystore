@@ -172,7 +172,16 @@ const ProductList = () => {
         .products-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
         .products-empty-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
         .products-empty-text { font-size: 0.875rem; color: #64748b; }
-        .pl-content .pt-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        /* .pl-content shares its row with a 240px sidebar down to the 768px breakpoint below,
+           so its column counts switch later than the standalone .pt-grid breakpoints - matching
+           those exactly here would squeeze 3 columns into a narrower-than-expected content area. */
+        .pl-content .pt-grid { grid-template-columns: repeat(2, 1fr); }
+        @media (min-width: 900px) {
+          .pl-content .pt-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (min-width: 1280px) {
+          .pl-content .pt-grid { grid-template-columns: repeat(4, 1fr); }
+        }
         @media (max-width: 768px) {
           .pl-layout { flex-direction: column; }
           .pl-sidebar { display: none; }

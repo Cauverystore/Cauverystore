@@ -11,8 +11,12 @@
   gap: var(--spacing-6);
 }
 
+/* Only split into a sidebar column when a sidebar is actually rendered - most account
+   pages (Wishlist included) render just .account-content with no .account-sidebar sibling,
+   and without this guard that lone child was auto-placed into the narrow 240px first
+   track instead of the remaining 1fr, squeezing the whole page's content and grids. */
 @media (min-width: 768px) {
-  .account-page {
+  .account-page:has(.account-sidebar) {
     grid-template-columns: 240px 1fr;
   }
 }

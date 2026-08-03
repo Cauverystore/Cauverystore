@@ -8,6 +8,10 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 160px;
+  max-width: 300px;
+  margin: 0 auto;
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: var(--radius-xl, 12px);

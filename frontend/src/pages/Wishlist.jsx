@@ -78,7 +78,15 @@ const Wishlist = () => {
                 <div key={pid} className="product-card">
                   <Link to={`/product/${pid}`} style={{ textDecoration: "none" }}>
                     <div className="product-card-image-wrap">
-                      <img loading="lazy" width="200" height="200" className="product-card-image" src={p.image || p.images?.[0]?.url || p.images?.[0] || "/images/placeholder.svg"} alt={p.name} />
+                      <img
+                        loading="lazy"
+                        width="200"
+                        height="200"
+                        className="product-card-image"
+                        src={p.image || p.images?.[0]?.url || p.images?.[0] || "/images/placeholder.svg"}
+                        alt={p.name}
+                        onError={(e) => { e.target.onerror = null; e.target.src = "/images/placeholder.svg"; }}
+                      />
                     </div>
                   </Link>
                   <div className="product-card-body">
