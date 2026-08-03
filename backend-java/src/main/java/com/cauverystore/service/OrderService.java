@@ -43,6 +43,7 @@ public class OrderService {
     private final ProductService productService;
     private final CouponService couponService;
     private final ReturnRequestRepository returnRequestRepo;
+    private final PaymentService paymentService;
 
     public OrderService(OrderRepository orderRepo, OrderItemRepository orderItemRepo,
                         CartRepository cartRepo, ProductRepository productRepo,
@@ -57,7 +58,8 @@ public class OrderService {
                         SellerRegistrationRepository sellerRegRepo,
                         ProductService productService,
                         CouponService couponService,
-                        ReturnRequestRepository returnRequestRepo) {
+                        ReturnRequestRepository returnRequestRepo,
+                        PaymentService paymentService) {
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -78,6 +80,7 @@ public class OrderService {
         this.productService = productService;
         this.couponService = couponService;
         this.returnRequestRepo = returnRequestRepo;
+        this.paymentService = paymentService;
     }
 
     private User extractUserFromHeader(String authHeader) {
@@ -471,13 +474,8 @@ public class OrderService {
         // mirrors refundOrder's own record-creation exactly so cancellation-triggered refunds
         // show up the same way a manually-issued one would.
         if (order.isPaid()) {
-            Refund refund = new Refund();
-            refund.setOrderId(orderId);
-            refund.setAmount(order.getTotalAmount());
-            refund.setRefundDate(LocalDate.now());
-            refund.setReason(hadReason ? "Order cancelled: " + reason : "Order cancelled");
-            refund.setStatus("COMPLETED");
-            refundRepo.save(refund);
+            paymentService.processRefundForOrder(orderId, order.getTotalAmount(),
+                    hadReason ? "Order cancelled: " + reason : "Order cancelled");
         }
 
         Order saved = orderRepo.save(order);
@@ -500,13 +498,7 @@ public class OrderService {
         }
         order.setStatus("REFUNDED");
 
-        Refund refund = new Refund();
-        refund.setOrderId(orderId);
-        refund.setAmount(order.getTotalAmount());
-        refund.setRefundDate(LocalDate.now());
-        refund.setReason("Customer requested refund");
-        refund.setStatus("COMPLETED");
-        refundRepo.save(refund);
+        paymentService.processRefundForOrder(orderId, order.getTotalAmount(), "Customer requested refund");
 
         return orderRepo.save(order);
     }
@@ -745,13 +737,7 @@ public class OrderService {
         }
 
         if (order.isPaid()) {
-            Refund refund = new Refund();
-            refund.setOrderId(orderId);
-            refund.setAmount(order.getTotalAmount());
-            refund.setRefundDate(LocalDate.now());
-            refund.setReason("Order cancelled by admin");
-            refund.setStatus("COMPLETED");
-            refundRepo.save(refund);
+            paymentService.processRefundForOrder(orderId, order.getTotalAmount(), "Order cancelled by admin");
         }
 
         Order saved = orderRepo.save(order);

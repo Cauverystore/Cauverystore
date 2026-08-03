@@ -2,8 +2,10 @@ package com.cauverystore.service;
 
 import com.cauverystore.entities.Order;
 import com.cauverystore.entities.Payment;
+import com.cauverystore.entities.Refund;
 import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.PaymentRepository;
+import com.cauverystore.repository.RefundRepository;
 import com.razorpay.RazorpayClient;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -15,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class PaymentService {
@@ -31,11 +35,13 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepo;
     private final OrderRepository orderRepo;
+    private final RefundRepository refundRepo;
     private final AuthorizationService authorizationService;
 
-    public PaymentService(PaymentRepository paymentRepo, OrderRepository orderRepo, AuthorizationService authorizationService) {
+    public PaymentService(PaymentRepository paymentRepo, OrderRepository orderRepo, RefundRepository refundRepo, AuthorizationService authorizationService) {
         this.paymentRepo = paymentRepo;
         this.orderRepo = orderRepo;
+        this.refundRepo = refundRepo;
         this.authorizationService = authorizationService;
     }
 
@@ -162,5 +168,44 @@ public class PaymentService {
         }
 
         return paymentRepo.save(payment);
+    }
+
+    // Creates the Refund bookkeeping record AND actually moves the money back via Razorpay's
+    // refund API when the order was paid online. Never throws - a gateway failure marks the
+    // record FAILED instead of blocking whatever order-lifecycle transaction called this
+    // (mirrors how EmailService/GST-invoice failures are already swallowed elsewhere), so
+    // customer-facing order cancellation can never be broken by a refund-side outage.
+    @Transactional
+    public Refund processRefundForOrder(Long orderId, double amountRupees, String reason) {
+        Refund refund = new Refund();
+        refund.setOrderId(orderId);
+        refund.setAmount(amountRupees);
+        refund.setRefundDate(LocalDate.now());
+        refund.setReason(reason);
+
+        Optional<Payment> paymentOpt = paymentRepo.findByOrderId(orderId);
+        if (paymentOpt.isEmpty() || paymentOpt.get().getRazorpayPaymentId() == null) {
+            // Order was never actually charged through Razorpay (e.g. COD) - nothing for the
+            // gateway to reverse, so the bookkeeping record alone is the whole story.
+            refund.setStatus("COMPLETED");
+            return refundRepo.save(refund);
+        }
+
+        Payment payment = paymentOpt.get();
+        try {
+            RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
+            JSONObject refundRequest = new JSONObject();
+            refundRequest.put("amount", (int) Math.round(amountRupees * 100));
+            com.razorpay.Refund razorpayRefund = razorpay.payments.refund(payment.getRazorpayPaymentId(), refundRequest);
+            String gatewayStatus = razorpayRefund.get("status");
+            refund.setGatewayRefundId(razorpayRefund.get("id"));
+            refund.setStatus("processed".equals(gatewayStatus) ? "COMPLETED" : "PENDING");
+        } catch (Exception e) {
+            log.error("Razorpay refund failed for order {} (paymentId={}, amount={}): {}",
+                    orderId, payment.getRazorpayPaymentId(), amountRupees, e.getMessage(), e);
+            refund.setStatus("FAILED");
+            refund.setReason((reason != null ? reason + " " : "") + "[Gateway refund failed: " + e.getMessage() + "]");
+        }
+        return refundRepo.save(refund);
     }
 }

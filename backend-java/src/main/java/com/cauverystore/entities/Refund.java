@@ -22,6 +22,10 @@ public class Refund {
 
     private String status;
 
+    // The gateway's own refund reference (e.g. Razorpay's rfnd_... id) - null for orders that
+    // were never actually charged online (COD) or where the gateway call itself failed.
+    private String gatewayRefundId;
+
     public Long getId() {
         return id;
     }
@@ -68,5 +72,13 @@ public class Refund {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getGatewayRefundId() {
+        return gatewayRefundId;
+    }
+
+    public void setGatewayRefundId(String gatewayRefundId) {
+        this.gatewayRefundId = gatewayRefundId;
     }
 }
