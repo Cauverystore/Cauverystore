@@ -36,6 +36,7 @@ public class Order extends BaseEntity {
     private Double tax;
     private Double deliveryCharge;
     private Long sellerId;
+    private LocalDateTime labelGeneratedAt;
 
     @java.lang.SuppressWarnings("all")
     public User getUser() {
@@ -120,6 +121,11 @@ public class Order extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public Long getSellerId() {
         return this.sellerId;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public LocalDateTime getLabelGeneratedAt() {
+        return this.labelGeneratedAt;
     }
 
     @JsonIgnoreProperties({"orders", "cart", "addresses", "password", "refreshToken", "role", "email", "phone"})
@@ -208,5 +214,10 @@ public class Order extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setSellerId(final Long sellerId) {
         this.sellerId = sellerId;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setLabelGeneratedAt(final LocalDateTime labelGeneratedAt) {
+        this.labelGeneratedAt = labelGeneratedAt;
     }
 }

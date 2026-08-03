@@ -38,10 +38,16 @@ const SellerOrders = () => {
     } catch { alert("Failed to update status"); }
   };
 
+  const UNLABELABLE_STATUSES = ["CANCELLED", "REFUNDED", "RETURNED"];
+
+  const fetchLabelBlobUrl = async (orderId) => {
+    const res = await api.get(`/api/seller/orders/${orderId}/shipping-label/pdf`, { responseType: "blob" });
+    return window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+  };
+
   const downloadLabel = async (orderId) => {
     try {
-      const res = await api.get(`/api/seller/orders/${orderId}/shipping-label/pdf`, { responseType: "blob" });
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const url = await fetchLabelBlobUrl(orderId);
       const a = document.createElement("a");
       a.href = url;
       a.download = `shipping-label-${orderId}.pdf`;
@@ -50,6 +56,16 @@ const SellerOrders = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch { alert("Failed to download shipping label"); }
+  };
+
+  const printLabel = async (orderId) => {
+    try {
+      const url = await fetchLabelBlobUrl(orderId);
+      const printWindow = window.open(url, "_blank");
+      if (printWindow) {
+        printWindow.addEventListener("load", () => printWindow.print());
+      }
+    } catch { alert("Failed to print shipping label"); }
   };
 
   const handleReturnAction = async (returnId, status) => {
@@ -135,12 +151,22 @@ const SellerOrders = () => {
                           ) : (
                             <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>No actions</span>
                           )}
-                          <button onClick={() => downloadLabel(o.id)} style={{
-                            padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
-                            background: "#fff", color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
-                          }}>
-                            Label
-                          </button>
+                          {!UNLABELABLE_STATUSES.includes(o.status) && (
+                            <>
+                              <button onClick={() => downloadLabel(o.id)} title="Download shipping label" style={{
+                                padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
+                                background: "#fff", color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                              }}>
+                                Download Label
+                              </button>
+                              <button onClick={() => printLabel(o.id)} title="Print shipping label" style={{
+                                padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
+                                background: "#0E5C5C", color: "#fff", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                              }}>
+                                Print Label
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
