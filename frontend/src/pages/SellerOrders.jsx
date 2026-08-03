@@ -68,6 +68,18 @@ const SellerOrders = () => {
     } catch { alert("Failed to print shipping label"); }
   };
 
+  const assignCourier = async (order) => {
+    const courier = prompt("Courier name:", order.courier || "");
+    if (courier === null) return;
+    if (!courier.trim()) { alert("Courier name is required"); return; }
+    const trackingNumber = prompt("Tracking / AWB number (optional):", order.trackingNumber || "");
+    if (trackingNumber === null) return;
+    try {
+      await api.put(`/api/seller/orders/${order.id}/courier`, { courier, trackingNumber });
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, courier, trackingNumber } : o));
+    } catch (e) { alert(e.response?.data?.error || "Failed to assign courier"); }
+  };
+
   const handleReturnAction = async (returnId, status) => {
     const note = prompt("Admin note (optional):") || "";
     try {
@@ -153,6 +165,12 @@ const SellerOrders = () => {
                           )}
                           {!UNLABELABLE_STATUSES.includes(o.status) && (
                             <>
+                              <button onClick={(e) => { e.stopPropagation(); assignCourier(o); }} title="Assign courier / tracking number" style={{
+                                padding: "0.25rem 0.5rem", border: "1px solid #d1d5db", borderRadius: 4, cursor: "pointer",
+                                background: "#fff", color: "#374151", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                              }}>
+                                {o.trackingNumber ? "Edit Courier" : "Assign Courier"}
+                              </button>
                               <button onClick={() => downloadLabel(o.id)} title="Download shipping label" style={{
                                 padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
                                 background: "#fff", color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
@@ -200,6 +218,10 @@ const SellerOrders = () => {
                               <strong>Address:</strong> {o.address}
                             </div>
                           )}
+                          <div style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#6b7280" }}>
+                            <strong>Courier:</strong> {o.courier || "Not assigned"}
+                            {o.trackingNumber && <span> &middot; <strong>Tracking:</strong> {o.trackingNumber}</span>}
+                          </div>
                         </td>
                       </tr>
                     )}

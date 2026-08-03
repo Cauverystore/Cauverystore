@@ -228,6 +228,17 @@ public class SellerController {
         }
     }
 
+    @PutMapping("/orders/{orderId}/courier")
+    public ResponseEntity<?> assignCourier(@PathVariable Long orderId, @RequestBody Map<String, String> body) {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        try {
+            return ResponseEntity.ok(sellerService.assignCourier(orderId, sellerId, body.get("courier"), body.get("trackingNumber")));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/returns")
     public ResponseEntity<?> getReturns() {
         Long sellerId = getCurrentSellerId();

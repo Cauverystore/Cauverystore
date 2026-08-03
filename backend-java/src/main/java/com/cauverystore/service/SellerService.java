@@ -1,6 +1,7 @@
 package com.cauverystore.service;
 
 import com.cauverystore.entities.Order;
+import com.cauverystore.entities.OrderTimeline;
 import com.cauverystore.entities.Product;
 import com.cauverystore.entities.ProductAnalytics;
 import com.cauverystore.entities.ReturnRequest;
@@ -180,6 +181,35 @@ public class SellerService {
             }
         }
         auditService.log(null, "seller:" + sellerId, "ORDER_STATUS_UPDATE", "Order", orderId, "Status changed to " + newStatus, null);
+        return saved;
+    }
+
+    private static final List<String> UNCOURIERABLE_STATUSES = Arrays.asList("CANCELLED", "REFUNDED", "RETURNED");
+
+    public Order assignCourier(Long orderId, Long sellerId, String courier, String trackingNumber) {
+        Order order = orderRepo.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
+        if (!sellerId.equals(order.getSellerId())) throw new RuntimeException("Not your order");
+        if (UNCOURIERABLE_STATUSES.contains(order.getStatus())) {
+            throw new RuntimeException("Cannot assign a courier to an order that is " + order.getStatus());
+        }
+        if (courier == null || courier.isBlank()) throw new RuntimeException("Courier name is required");
+
+        order.setCourier(courier);
+        if (trackingNumber != null && !trackingNumber.isBlank()) {
+            order.setTrackingNumber(trackingNumber);
+        }
+
+        OrderTimeline timeline = new OrderTimeline();
+        timeline.setOrder(order);
+        timeline.setStatus("COURIER_ASSIGNED");
+        timeline.setMessage("Courier assigned: " + courier
+                + (trackingNumber != null && !trackingNumber.isBlank() ? " (Tracking: " + trackingNumber + ")" : ""));
+        timeline.setTimestamp(LocalDateTime.now());
+        order.getTimeline().add(timeline);
+
+        Order saved = orderRepo.save(order);
+        auditService.log(null, "seller:" + sellerId, "COURIER_ASSIGNED", "Order", orderId,
+                "Courier: " + courier + (trackingNumber != null && !trackingNumber.isBlank() ? ", Tracking: " + trackingNumber : ""), null);
         return saved;
     }
 
