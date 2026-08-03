@@ -428,7 +428,7 @@ public class OrderService {
                 try { gstInvoiceService.updateInvoiceStatusByOrderId(orderId, "DISPATCHED"); } catch (Exception e) { System.err.println("Invoice status update skipped: " + e.getMessage()); }
                 break;
             case "CANCELLED":
-                notificationService.sendOrderCancelled(order.getUser().getEmail(), orderId.toString());
+                notificationService.sendOrderCancelled(order, null, null);
                 break;
         }
 
@@ -473,13 +473,14 @@ public class OrderService {
         // A prepaid order being cancelled needs its money back, not just its stock - this
         // mirrors refundOrder's own record-creation exactly so cancellation-triggered refunds
         // show up the same way a manually-issued one would.
+        Refund refund = null;
         if (order.isPaid()) {
-            paymentService.processRefundForOrder(orderId, order.getTotalAmount(),
+            refund = paymentService.processRefundForOrder(orderId, order.getTotalAmount(),
                     hadReason ? "Order cancelled: " + reason : "Order cancelled");
         }
 
         Order saved = orderRepo.save(order);
-        notificationService.sendOrderCancelled(order.getUser().getEmail(), orderId.toString());
+        notificationService.sendOrderCancelled(order, reason, refund);
         notificationService.createNotification(order.getUser().getId(), "ORDER",
                 "Order Cancelled",
                 "Your order #" + orderId + " has been cancelled successfully.");
@@ -736,8 +737,9 @@ public class OrderService {
             }
         }
 
+        Refund refund = null;
         if (order.isPaid()) {
-            paymentService.processRefundForOrder(orderId, order.getTotalAmount(), "Order cancelled by admin");
+            refund = paymentService.processRefundForOrder(orderId, order.getTotalAmount(), "Order cancelled by admin");
         }
 
         Order saved = orderRepo.save(order);
@@ -746,7 +748,7 @@ public class OrderService {
                 "ORDER_ADMIN_CANCELLED", "Order", orderId,
                 "Order #" + orderId + " cancelled by admin", null);
 
-        notificationService.sendOrderCancelled(order.getUser().getEmail(), orderId.toString());
+        notificationService.sendOrderCancelled(order, "Order cancelled by admin", refund);
         notificationService.createNotification(order.getUser().getId(), "ORDER",
                 "Order Cancelled", "Your order #" + orderId + " has been cancelled by admin.");
         return saved;

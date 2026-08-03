@@ -2,6 +2,7 @@ package com.cauverystore.service;
 
 import com.cauverystore.entities.Notification;
 import com.cauverystore.entities.Order;
+import com.cauverystore.entities.Refund;
 import com.cauverystore.repository.NotificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,8 +51,8 @@ public class NotificationService {
         sendSafely(() -> emailService.sendOrderDelivered(email, Map.of("orderId", orderId)), "order delivered", orderId);
     }
 
-    public void sendOrderCancelled(String email, String orderId) {
-        sendSafely(() -> emailService.sendCancellation(email, Map.of("orderId", orderId)), "order cancelled", orderId);
+    public void sendOrderCancelled(Order order, String reason, Refund refund) {
+        sendSafely(() -> emailService.sendCancellation(order, reason, refund), "order cancelled", String.valueOf(order.getId()));
     }
 
     /** Notification emails are a best-effort side effect and must never fail the order operation that triggered them. */

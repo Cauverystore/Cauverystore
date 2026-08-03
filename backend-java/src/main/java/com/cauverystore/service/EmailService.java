@@ -3,6 +3,7 @@ package com.cauverystore.service;
 import com.cauverystore.entities.Address;
 import com.cauverystore.entities.Order;
 import com.cauverystore.entities.OrderItem;
+import com.cauverystore.entities.Refund;
 import com.resend.Resend;
 import com.resend.services.emails.model.CreateEmailOptions;
 import jakarta.annotation.PostConstruct;
@@ -232,12 +233,92 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
-    public void sendCancellation(String to, Map<String, Object> orderData) {
-        String subject = "Order Cancelled - Cauvery Store";
-        String orderId = orderData.getOrDefault("orderId", "").toString();
-        String body = "<h2 style='color:" + RED + ";margin-top:0;'>Order Cancelled</h2>"
-                + "<p style='color:#4b5563;font-size:14px;'>Order <strong>#" + orderId + "</strong> has been cancelled as requested.</p>";
-        send(to, subject, wrapBranded(body));
+    /** Full cancellation email: order summary, cancelled items, refund status (if the order was paid), and reason. */
+    public void sendCancellation(Order order, String reason, Refund refund) {
+        if (order.getUser() == null || order.getUser().getEmail() == null) return;
+        String to = order.getUser().getEmail();
+        String customerName = order.getUser().getFullName() != null ? order.getUser().getFullName() : "there";
+        String orderId = String.valueOf(order.getId());
+        String orderDate = order.getCreatedAt() != null ? order.getCreatedAt().format(EMAIL_DATE_FORMAT) : "-";
+        boolean hadReason = reason != null && !reason.isBlank();
+
+        String subject = "Your CauveryStore Order #" + orderId + " Has Been Cancelled";
+
+        StringBuilder body = new StringBuilder();
+        body.append("<h2 style='color:").append(RED).append(";margin-top:0;'>Order Cancelled</h2>")
+                .append("<p style='color:#4b5563;font-size:14px;'>Hello ").append(customerName)
+                .append(", we regret to inform you that your order has been cancelled.</p>");
+
+        // Order summary
+        body.append("<table role='presentation' width='100%' style='font-size:13px;color:#4b5563;margin:16px 0;'>")
+                .append(summaryRow("Order ID", "#" + orderId))
+                .append(summaryRow("Order Date", orderDate))
+                .append(summaryRow("Payment Method", safe(order.getPaymentMethod())))
+                .append("</table>");
+
+        // Items cancelled
+        body.append("<h3 style='color:").append(TEAL).append(";font-size:15px;margin-bottom:8px;'>Items Cancelled</h3>")
+                .append("<table role='presentation' width='100%' style='border-collapse:collapse;font-size:13px;'>")
+                .append("<tr style='background:").append(TEAL).append(";color:#ffffff;'>")
+                .append("<th style='padding:8px;text-align:left;'>Product</th>")
+                .append("<th style='padding:8px;text-align:center;'>Qty</th>")
+                .append("<th style='padding:8px;text-align:right;'>Price</th>")
+                .append("<th style='padding:8px;text-align:right;'>Subtotal</th></tr>");
+        if (order.getItems() != null) {
+            for (OrderItem item : order.getItems()) {
+                String name = item.getProduct() != null ? item.getProduct().getName() : "Item";
+                double lineSubtotal = item.getPrice() * item.getQuantity();
+                body.append("<tr style='border-bottom:1px solid #e5e7eb;'>")
+                        .append("<td style='padding:8px;'>").append(safe(name)).append("</td>")
+                        .append("<td style='padding:8px;text-align:center;'>").append(item.getQuantity()).append("</td>")
+                        .append("<td style='padding:8px;text-align:right;'>₹").append(String.format("%.2f", item.getPrice())).append("</td>")
+                        .append("<td style='padding:8px;text-align:right;'>₹").append(String.format("%.2f", lineSubtotal)).append("</td>")
+                        .append("</tr>");
+            }
+        }
+        body.append("</table>");
+
+        // Refund information - only relevant if the order was actually paid for
+        String refundTimeline = "5-7 business days";
+        if (refund != null) {
+            body.append("<h3 style='color:").append(TEAL).append(";font-size:15px;margin:20px 0 8px;'>Refund Information</h3>")
+                    .append("<table role='presentation' width='100%' style='font-size:13px;color:#4b5563;'>")
+                    .append(summaryRow("Refund Amount", "₹" + String.format("%.2f", refund.getAmount() != null ? refund.getAmount() : 0)))
+                    .append(summaryRow("Refund Method", "Original payment method"))
+                    .append(summaryRow("Refund Status", refundStatusLabel(refund.getStatus())))
+                    .append(summaryRow("Refund Timeline", refundTimeline))
+                    .append("</table>");
+        }
+
+        // Cancellation reason
+        body.append("<h3 style='color:").append(TEAL).append(";font-size:15px;margin:20px 0 8px;'>Cancellation Reason</h3>")
+                .append("<p style='color:#4b5563;font-size:13px;'>").append(hadReason ? safe(reason) : "Order cancelled").append("</p>");
+
+        // Next steps
+        body.append("<p style='color:#4b5563;font-size:13px;margin-top:20px;'>")
+                .append(refund != null ? "Refund will be processed within " + refundTimeline + ". " : "")
+                .append("You can reorder anytime from your CauveryStore account.</p>");
+
+        // Customer support
+        body.append("<div style='background:").append(BEIGE).append(";padding:14px;border-radius:6px;margin-top:16px;font-size:12px;color:#4b5563;'>")
+                .append("<strong>Need help?</strong><br/>")
+                .append("Email: <a href='mailto:support@cauverystore.in'>support@cauverystore.in</a><br/>")
+                .append("Phone: <a href='tel:+919876543210'>+91 98765 43210</a><br/>")
+                .append("<a href='https://cauverystore.in/refund-policy'>Returns &amp; Refund Policy</a>")
+                .append("</div>")
+                .append("<p style='color:#9ca3af;font-size:12px;margin-top:16px;'>We hope to serve you again soon.</p>");
+
+        send(to, subject, wrapBranded(body.toString()));
+    }
+
+    private static String refundStatusLabel(String status) {
+        if (status == null) return "Processing";
+        return switch (status) {
+            case "COMPLETED" -> "Processed";
+            case "PENDING" -> "Processing";
+            case "FAILED" -> "Delayed - our team will process this manually";
+            default -> status;
+        };
     }
 
     public void sendRefundConfirmation(String to, Map<String, Object> refundData) {
