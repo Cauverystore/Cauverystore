@@ -19,11 +19,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // Atomic conditional decrement, mirroring InventoryRepository.decrementStockIfAvailable -
     // used when a product has no dedicated Inventory row and Product.stock is authoritative.
-    @Modifying(clearAutomatically = true)
+    @Modifying
     @Query("UPDATE Product p SET p.stock = p.stock - :qty WHERE p.id = :productId AND p.stock >= :qty")
     int decrementStockIfAvailable(@Param("productId") Long productId, @Param("qty") int qty);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying
     @Query("UPDATE Product p SET p.stock = p.stock + :qty WHERE p.id = :productId")
     int incrementStock(@Param("productId") Long productId, @Param("qty") int qty);
 

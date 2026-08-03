@@ -15,11 +15,14 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     // Atomic conditional decrement - the WHERE clause makes the check-and-decrement a single
     // statement, so two concurrent requests can't both read the same pre-decrement stock value
     // and both succeed. Returns the number of rows updated: 0 means insufficient stock.
-    @Modifying(clearAutomatically = true)
+    // Deliberately NOT clearAutomatically=true: that detaches every entity already loaded in
+    // the caller's persistence context (e.g. an Order fetched earlier in the same transaction),
+    // breaking its lazy collections for the rest of that transaction.
+    @Modifying
     @Query("UPDATE Inventory i SET i.stock = i.stock - :qty WHERE i.product.id = :productId AND i.stock >= :qty")
     int decrementStockIfAvailable(@Param("productId") Long productId, @Param("qty") int qty);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying
     @Query("UPDATE Inventory i SET i.stock = i.stock + :qty WHERE i.product.id = :productId")
     int incrementStock(@Param("productId") Long productId, @Param("qty") int qty);
 }
