@@ -26,8 +26,8 @@ public class AdminOrderController {
     private final ShippingLabelService shippingLabelService;
 
     @GetMapping
-    public ResponseEntity<Page<Order>> getAllOrders(Pageable pageable) {
-        return ResponseEntity.ok(orderService.getAllOrders(pageable));
+    public ResponseEntity<Page<Order>> getAllOrders(Pageable pageable, @RequestParam(required = false) String status) {
+        return ResponseEntity.ok(orderService.getAllOrders(pageable, status));
     }
 
     @GetMapping("/{id}")

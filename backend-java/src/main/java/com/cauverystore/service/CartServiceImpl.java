@@ -24,14 +24,26 @@ public class CartServiceImpl implements CartService {
     private final ProductRepository productRepo;
     private final JwtUtil jwtUtil;
     private final UserRepository userRepo;
+    private final ProductService productService;
 
     public CartServiceImpl(CartRepository cartRepo, CartItemRepository cartItemRepo,
-                           ProductRepository productRepo, JwtUtil jwtUtil, UserRepository userRepo) {
+                           ProductRepository productRepo, JwtUtil jwtUtil, UserRepository userRepo,
+                           ProductService productService) {
         this.cartRepo = cartRepo;
         this.cartItemRepo = cartItemRepo;
         this.productRepo = productRepo;
         this.jwtUtil = jwtUtil;
         this.userRepo = userRepo;
+        this.productService = productService;
+    }
+
+    // Mirrors OrderService.placeOrder's line-pricing exactly - whatever the cart shows the
+    // customer here must be what checkout actually charges, or the two silently diverge.
+    private double effectiveUnitPrice(CartItem item) {
+        if (item.getVariant() != null && item.getVariant().getPrice() != null) {
+            return item.getVariant().getPrice();
+        }
+        return productService.getDiscountedPriceDouble(item.getProduct().getId());
     }
 
     private User extractUserFromHeader(String authHeader) {
@@ -58,7 +70,7 @@ public class CartServiceImpl implements CartService {
     public Cart addItem(User user, Product product, int quantity) {
         if (product == null) throw new RuntimeException("Product not found");
         if (quantity <= 0) throw new RuntimeException("Quantity must be positive");
-        if (product.getStock() < quantity) throw new RuntimeException("Not enough stock available");
+        if ((product.getStock() == null ? 0 : product.getStock()) < quantity) throw new RuntimeException("Not enough stock available");
 
         Cart cart = getCart(user);
         if (!cart.getUser().getId().equals(user.getId()))
@@ -70,7 +82,7 @@ public class CartServiceImpl implements CartService {
 
         if (existingItem != null) {
             int newQty = existingItem.getQuantity() + quantity;
-            if (product.getStock() < newQty)
+            if ((product.getStock() == null ? 0 : product.getStock()) < newQty)
                 throw new RuntimeException("Not enough stock for updated quantity");
             existingItem.setQuantity(newQty);
             cartItemRepo.save(existingItem);
@@ -136,7 +148,8 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new RuntimeException("Cart item not found"));
         if (!item.getCart().getId().equals(cart.getId()))
             throw new RuntimeException("Item does not belong to this user's cart");
-        if (item.getProduct().getStock() < quantity)
+        Integer availableStock = item.getProduct().getStock();
+        if ((availableStock == null ? 0 : availableStock) < quantity)
             throw new RuntimeException("Not enough stock available");
         item.setQuantity(quantity);
         cartItemRepo.save(item);
@@ -194,16 +207,17 @@ public class CartServiceImpl implements CartService {
         product.put("image", (p.getImages() != null && !p.getImages().isEmpty())
                 ? p.getImages().get(0).getUrl() : null);
 
+        int stock = p.getStock() == null ? 0 : p.getStock();
         String stockStatus;
-        if (p.getStock() <= 0) stockStatus = "Out of Stock";
-        else if (p.getStock() <= 5) stockStatus = "Only " + p.getStock() + " left";
+        if (stock <= 0) stockStatus = "Out of Stock";
+        else if (stock <= 5) stockStatus = "Only " + stock + " left";
         else stockStatus = "In Stock";
 
         product.put("stockStatus", stockStatus);
-        product.put("inStock", p.getStock() > 0);
+        product.put("inStock", stock > 0);
         detail.put("product", product);
 
-        double subtotal = Math.round(p.getPrice() * item.getQuantity() * 100.0) / 100.0;
+        double subtotal = Math.round(effectiveUnitPrice(item) * item.getQuantity() * 100.0) / 100.0;
         detail.put("subtotal", subtotal);
 
         if (item.getVariant() != null) {
@@ -314,7 +328,7 @@ public class CartServiceImpl implements CartService {
         for (CartItem item : cart.getItems()) {
             if (!item.isSavedForLater()) {
                 totalItems += item.getQuantity();
-                totalPrice += item.getQuantity() * item.getProduct().getPrice();
+                totalPrice += item.getQuantity() * effectiveUnitPrice(item);
             }
         }
         cart.setTotalItems(totalItems);

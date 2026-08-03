@@ -37,8 +37,11 @@ public class PaymentMethodService {
 
     public SavedPaymentMethod setDefault(Long id, Long userId) {
         User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-        clearDefaultForUser(user);
         SavedPaymentMethod pm = repo.findById(id).orElseThrow(() -> new RuntimeException("Payment method not found"));
+        if (pm.getUser() == null || !pm.getUser().getId().equals(userId)) {
+            throw new com.cauverystore.exception.AccessDeniedException("Payment method does not belong to this user");
+        }
+        clearDefaultForUser(user);
         pm.setIsDefault(true);
         return repo.save(pm);
     }

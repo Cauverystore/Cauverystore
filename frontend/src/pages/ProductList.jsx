@@ -78,15 +78,15 @@ const ProductList = () => {
           <div className="pl-sidebar-section">
             <h3 className="pl-sidebar-title">Category</h3>
             <div className="pl-sidebar-categories">
-              <div className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} onClick={() => setCategory("")}>All Categories</div>
+              <div className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} onClick={() => { setCategory(""); setPage(1); }}>All Categories</div>
               {categories.map((cat) => (
-                <div key={categoryValue(cat)} className={`pl-sidebar-cat ${category === categoryValue(cat) ? "active" : ""}`} onClick={() => setCategory(categoryValue(cat))}>{categoryLabel(cat)}</div>
+                <div key={categoryValue(cat)} className={`pl-sidebar-cat ${category === categoryValue(cat) ? "active" : ""}`} onClick={() => { setCategory(categoryValue(cat)); setPage(1); }}>{categoryLabel(cat)}</div>
               ))}
             </div>
           </div>
           <div className="pl-sidebar-section">
             <h3 className="pl-sidebar-title">Sort By</h3>
-            <select value={sort} onChange={(e) => setSort(e.target.value)} className="pl-sidebar-select">
+            <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sidebar-select">
               <option value="">Default</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
@@ -106,7 +106,7 @@ const ProductList = () => {
         <div className="pl-content">
           <div className="pl-toolbar">
             <button className="pl-mobile-filter-btn" onClick={() => setMobileFilterOpen(true)}>Filters</button>
-            <select value={sort} onChange={(e) => setSort(e.target.value)} className="pl-sort-select">
+            <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sort-select">
               <option value="">Sort by</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>

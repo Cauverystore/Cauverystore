@@ -33,7 +33,7 @@ const Checkout = () => {
       try {
         const [cartRes, addrRes] = await Promise.all([
           api.get("/api/cart"),
-          api.get("/api/user/addresses").catch(() => ({ data: [] }))
+          api.get("/api/users/addresses").catch(() => ({ data: [] }))
         ]);
         setCartItems(cartRes.data?.items || []);
         const addrs = Array.isArray(addrRes.data) ? addrRes.data : [];
@@ -96,7 +96,7 @@ const Checkout = () => {
     setPromoError("");
     if (!promoCode.trim()) { setPromoError("Enter a promo code"); return; }
     try {
-      const res = await api.post("/api/promo/validate", { code: promoCode.trim() });
+      const res = await api.post("/api/promo/validate", { code: promoCode.trim(), cartTotal: subtotal });
       setPromoApplied(res.data?.promo || res.data);
       setPromoError("");
     } catch (err) {

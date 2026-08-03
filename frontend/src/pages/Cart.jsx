@@ -149,12 +149,12 @@ const Cart = () => {
     if (!promoCode.trim()) return;
     setPromoMsg(null);
     try {
-      const res = await api.post("/api/promo/validate", { code: promoCode });
+      const res = await api.post("/api/promo/validate", { code: promoCode, cartTotal: subtotal });
       setAppliedCoupon(res.data);
       setPromoMsg({ type: "success", text: `Coupon "${promoCode}" applied!` });
     } catch (err) {
       setAppliedCoupon(null);
-      setPromoMsg({ type: "error", text: err.response?.data?.message || "Invalid or expired coupon" });
+      setPromoMsg({ type: "error", text: err.response?.data?.error || err.response?.data?.message || "Invalid or expired coupon" });
     }
   };
 
@@ -215,13 +215,25 @@ const Cart = () => {
 
   const freqItemsToShow = freqItems.slice(0, 3);
 
-  if (items.length === 0) {
+  if (items.length === 0 && !error) {
     return (
       <div style={{ maxWidth: "var(--container-wide)", margin: "0 auto", padding: "var(--spacing-4)" }}>
         <h1 className="cart-title">Shopping Cart</h1>
         <div className="cart-empty">
           <span className="cart-empty-icon">&#128722;</span>
           <span className="cart-empty-text">Your cart is empty.</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (items.length === 0 && error) {
+    return (
+      <div style={{ maxWidth: "var(--container-wide)", margin: "0 auto", padding: "var(--spacing-4)" }}>
+        <h1 className="cart-title">Shopping Cart</h1>
+        <div className="cart-summary-coupon-applied" style={{ justifyContent: "space-between" }}>
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="cart-summary-coupon-remove">&times;</button>
         </div>
       </div>
     );

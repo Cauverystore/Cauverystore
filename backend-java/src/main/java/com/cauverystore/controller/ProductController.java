@@ -1,6 +1,7 @@
 package com.cauverystore.controller;
 
 import com.cauverystore.entities.Product;
+import com.cauverystore.service.AuthorizationService;
 import com.cauverystore.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,7 @@ import java.util.Map;
 public class ProductController {
 
     private final ProductService productService;
+    private final AuthorizationService authorizationService;
 
     @GetMapping
     public ResponseEntity<List<Product>> getActiveProducts() {
@@ -60,12 +62,18 @@ public class ProductController {
     @PostMapping("/{id}/discounts")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> addDiscount(@PathVariable Long id, @RequestBody Map<String, Object> discount) {
+        if (authorizationService.hasRole("SELLER")) {
+            productService.checkSellerOwnership(id, authorizationService.getCurrentUserId());
+        }
         return ResponseEntity.ok(productService.addDiscount(id, discount));
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Product> updateActiveStatus(@PathVariable Long id, @RequestBody Map<String, Boolean> body) {
+        if (authorizationService.hasRole("SELLER")) {
+            productService.checkSellerOwnership(id, authorizationService.getCurrentUserId());
+        }
         return ResponseEntity.ok(productService.updateActiveStatus(id, body.get("active")));
     }
 }

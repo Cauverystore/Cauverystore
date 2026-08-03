@@ -5,6 +5,7 @@ import com.cauverystore.entities.Product;
 import com.cauverystore.repository.InventoryRepository;
 import com.cauverystore.repository.ProductRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,20 +32,32 @@ public class InventoryService {
         return inventoryRepo.findByProduct_Id(productId);
     }
 
+    @Transactional
     public void deductStock(Product product, int qty) {
         Inventory inventory = inventoryRepo.findByProduct_Id(product.getId());
         if (inventory != null) {
-            if (inventory.getStock() < qty) {
+            int updated = inventoryRepo.decrementStockIfAvailable(product.getId(), qty);
+            if (updated == 0) {
                 throw new RuntimeException("Insufficient inventory for " + product.getName());
             }
-            inventory.setStock(inventory.getStock() - qty);
-            inventoryRepo.save(inventory);
         } else {
-            if (product.getStock() == null || product.getStock() < qty) {
+            int updated = productRepo.decrementStockIfAvailable(product.getId(), qty);
+            if (updated == 0) {
                 throw new RuntimeException("Insufficient stock for " + product.getName());
             }
-            product.setStock(product.getStock() - qty);
-            productRepo.save(product);
+        }
+    }
+
+    // Mirrors deductStock's choice of table exactly, so a cancellation always credits back
+    // whichever table the original order actually deducted from instead of drifting the two
+    // out of sync.
+    @Transactional
+    public void restoreStock(Product product, int qty) {
+        Inventory inventory = inventoryRepo.findByProduct_Id(product.getId());
+        if (inventory != null) {
+            inventoryRepo.incrementStock(product.getId(), qty);
+        } else {
+            productRepo.incrementStock(product.getId(), qty);
         }
     }
 

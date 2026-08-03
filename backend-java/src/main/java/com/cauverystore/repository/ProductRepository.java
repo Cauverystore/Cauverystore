@@ -5,6 +5,7 @@ import com.cauverystore.entities.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,6 +16,16 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByActiveTrue();
+
+    // Atomic conditional decrement, mirroring InventoryRepository.decrementStockIfAvailable -
+    // used when a product has no dedicated Inventory row and Product.stock is authoritative.
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Product p SET p.stock = p.stock - :qty WHERE p.id = :productId AND p.stock >= :qty")
+    int decrementStockIfAvailable(@Param("productId") Long productId, @Param("qty") int qty);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Product p SET p.stock = p.stock + :qty WHERE p.id = :productId")
+    int incrementStock(@Param("productId") Long productId, @Param("qty") int qty);
 
     List<Product> findByCategoryAndActiveTrue(Category category);
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import userService from "../services/userService";
 import "../styles/account.css";
 
-const initialForm = { name: "", address: "", city: "", state: "", pincode: "", phone: "", isDefault: false };
+const initialForm = { fullName: "", street: "", city: "", state: "", pincode: "", phone: "", isDefault: false };
 
 const AddressBook = () => {
   const [addresses, setAddresses] = useState([]);
@@ -61,7 +61,7 @@ const AddressBook = () => {
 
   const openEdit = (addr) => {
     setEditId(addr.id || addr._id);
-    setForm({ name: addr.name, address: addr.address, city: addr.city, state: addr.state, pincode: addr.pincode, phone: addr.phone, isDefault: addr.isDefault || false });
+    setForm({ fullName: addr.fullName, street: addr.street, city: addr.city, state: addr.state, pincode: addr.pincode, phone: addr.phone, isDefault: addr.isDefault || false });
     setShowForm(true);
   };
 
@@ -94,7 +94,7 @@ const AddressBook = () => {
               <div className="profile-form">
                 <div className="admin-form-group">
                   <label className="admin-form-label">Name</label>
-                  <input className="admin-form-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                  <input className="admin-form-input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />
                 </div>
                 <div className="admin-form-group">
                   <label className="admin-form-label">Phone</label>
@@ -102,7 +102,7 @@ const AddressBook = () => {
                 </div>
                 <div className="admin-form-group full-width">
                   <label className="admin-form-label">Address</label>
-                  <input className="admin-form-input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required />
+                  <input className="admin-form-input" value={form.street} onChange={(e) => setForm({ ...form, street: e.target.value })} required />
                 </div>
                 <div className="admin-form-group">
                   <label className="admin-form-label">City</label>
@@ -136,8 +136,8 @@ const AddressBook = () => {
             {addresses.map((addr) => (
               <div key={addr.id || addr._id} className={`address-card ${addr.isDefault ? "default" : ""}`}>
                 {addr.isDefault && <span className="address-card-badge">Default</span>}
-                <div className="address-card-name">{addr.name}</div>
-                <div className="address-card-detail">{addr.address}, {addr.city}, {addr.state} - {addr.pincode}</div>
+                <div className="address-card-name">{addr.fullName}</div>
+                <div className="address-card-detail">{addr.street}, {addr.city}, {addr.state} - {addr.pincode}</div>
                 <div className="address-card-phone">{addr.phone}</div>
                 <div className="address-card-actions">
                   <button className="address-card-action" onClick={() => openEdit(addr)}>Edit</button>

@@ -6,6 +6,8 @@ import com.cauverystore.entities.User;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.ProductReviewRepository;
 import com.cauverystore.repository.UserRepository;
+import com.cauverystore.service.AuthorizationService;
+import com.cauverystore.service.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,15 +21,22 @@ public class ProductReviewController {
     private final ProductReviewRepository reviewRepo;
     private final ProductRepository productRepo;
     private final UserRepository userRepo;
+    private final ProductService productService;
+    private final AuthorizationService authorizationService;
 
-    public ProductReviewController(ProductReviewRepository rr, ProductRepository pr, UserRepository ur) {
+    public ProductReviewController(ProductReviewRepository rr, ProductRepository pr, UserRepository ur,
+                                    ProductService productService, AuthorizationService authorizationService) {
         this.reviewRepo = rr; this.productRepo = pr; this.userRepo = ur;
+        this.productService = productService; this.authorizationService = authorizationService;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     @GetMapping("/api/admin/products/{productId}/reviews")
     public ResponseEntity<?> getAdminReviews(@PathVariable Long productId) {
         if (!productRepo.existsById(productId)) return ResponseEntity.badRequest().body(Map.of("error","Product not found"));
+        if (authorizationService.hasRole("SELLER")) {
+            productService.checkSellerOwnership(productId, authorizationService.getCurrentUserId());
+        }
         List<Map<String,Object>> result = reviewRepo.findByProduct_IdOrderByCreatedAtDesc(productId).stream().map(r -> {
             Map<String,Object> m = new LinkedHashMap<>();
             m.put("id",r.getId()); m.put("rating",r.getRating());
@@ -41,8 +50,14 @@ public class ProductReviewController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     @DeleteMapping("/api/admin/products/{productId}/reviews/{reviewId}")
-    public ResponseEntity<?> deleteReview(@PathVariable Long reviewId) {
-        if (!reviewRepo.existsById(reviewId)) return ResponseEntity.badRequest().body(Map.of("error","Review not found"));
+    public ResponseEntity<?> deleteReview(@PathVariable Long productId, @PathVariable Long reviewId) {
+        ProductReview review = reviewRepo.findById(reviewId).orElse(null);
+        if (review == null || review.getProduct() == null || !review.getProduct().getId().equals(productId)) {
+            return ResponseEntity.badRequest().body(Map.of("error","Review not found"));
+        }
+        if (authorizationService.hasRole("SELLER")) {
+            productService.checkSellerOwnership(productId, authorizationService.getCurrentUserId());
+        }
         reviewRepo.deleteById(reviewId);
         return ResponseEntity.ok(Map.of("message","Review deleted"));
     }

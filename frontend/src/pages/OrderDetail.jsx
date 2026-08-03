@@ -32,20 +32,21 @@ const OrderDetail = () => {
     const fetchOrderData = async () => {
       setError("");
       try {
-        const [itemsRes, timelineRes] = await Promise.allSettled([
+        const [orderRes, itemsRes, timelineRes] = await Promise.allSettled([
+          api.get(`/api/orders/${id}`),
           api.get(`/api/orders/${id}/items`),
           api.get(`/api/orders/${id}/timeline`)
         ]);
 
+        if (orderRes.status === "fulfilled") {
+          setOrder(orderRes.value.data);
+        } else {
+          setError("Failed to load order details.");
+        }
+
         if (itemsRes.status === "fulfilled") {
           const data = itemsRes.value.data;
-          const isArray = Array.isArray(data);
-          if (isArray) {
-            setItems(data);
-          } else {
-            setItems(data?.items || data?.orderItems || []);
-            setOrder(data?.order || data);
-          }
+          setItems(Array.isArray(data) ? data : data?.items || data?.orderItems || []);
         } else {
           void itemsRes;
         }
@@ -88,15 +89,8 @@ const OrderDetail = () => {
     setCancelling(true);
     try {
       await api.put(`/api/orders/${id}/cancel`);
-      setOrder((prev) => ({ ...prev, status: "CANCELLED" }));
-      const itemsRes = await api.get(`/api/orders/${id}/items`);
-      const data = itemsRes.data;
-      if (Array.isArray(data)) {
-        setItems(data);
-      } else {
-        setItems(data?.items || data?.orderItems || []);
-        setOrder((prev) => ({ ...prev, ...(data?.order || data) }));
-      }
+      const orderRes = await api.get(`/api/orders/${id}`);
+      setOrder(orderRes.data);
     } catch (err) {
       void err;
       setError("Failed to cancel order. Please try again.");

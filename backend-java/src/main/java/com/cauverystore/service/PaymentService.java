@@ -31,10 +31,12 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepo;
     private final OrderRepository orderRepo;
+    private final AuthorizationService authorizationService;
 
-    public PaymentService(PaymentRepository paymentRepo, OrderRepository orderRepo) {
+    public PaymentService(PaymentRepository paymentRepo, OrderRepository orderRepo, AuthorizationService authorizationService) {
         this.paymentRepo = paymentRepo;
         this.orderRepo = orderRepo;
+        this.authorizationService = authorizationService;
     }
 
     public com.razorpay.Order createRazorpayOrder(String receipt, double amount) throws Exception {
@@ -104,28 +106,59 @@ public class PaymentService {
             throw new RuntimeException("Payment verification failed");
         }
 
+        // The signature only proves Razorpay genuinely processed *some* payment with this
+        // order/payment id pair - it says nothing about which of our orders it was for or how
+        // much was actually charged. Both of those are attacker-controlled in the request body,
+        // so trust neither: fetch the authoritative charged amount from Razorpay directly, and
+        // verify the caller actually owns the order before marking it paid.
+        double verifiedAmountRupees;
+        try {
+            RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
+            com.razorpay.Payment razorpayPayment = razorpay.payments.fetch(razorpayPaymentId);
+            if (!"captured".equals(razorpayPayment.get("status")) && !"authorized".equals(razorpayPayment.get("status"))) {
+                throw new RuntimeException("Payment has not been captured by Razorpay");
+            }
+            if (!razorpayOrderId.equals(razorpayPayment.get("order_id"))) {
+                throw new RuntimeException("Payment does not belong to the given order");
+            }
+            int verifiedAmountPaise = razorpayPayment.get("amount");
+            verifiedAmountRupees = verifiedAmountPaise / 100.0;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to fetch payment {} from Razorpay for verification: {}", razorpayPaymentId, e.getMessage(), e);
+            throw new RuntimeException("Unable to verify payment with Razorpay");
+        }
+
         Payment payment = new Payment();
         payment.setRazorpayOrderId(razorpayOrderId);
         payment.setRazorpayPaymentId(razorpayPaymentId);
         payment.setRazorpaySignature(signature);
         payment.setStatus("COMPLETED");
         payment.setPaidAt(LocalDateTime.now());
-
-        if (body.containsKey("amount")) {
-            payment.setAmount(Double.parseDouble(body.get("amount")));
-        }
+        payment.setAmount(verifiedAmountRupees);
         if (body.containsKey("currency")) {
             payment.setCurrency(body.get("currency"));
         }
         if (body.containsKey("orderId")) {
             Long orderId = Long.valueOf(body.get("orderId"));
-            payment.setOrderId(orderId);
 
-            Order order = orderRepo.findById(orderId).orElse(null);
-            if (order != null) {
-                order.setPaid(true);
-                orderRepo.save(order);
+            Order order = orderRepo.findById(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+            Long currentUserId = authorizationService.getCurrentUserId();
+            if (order.getUser() == null || !order.getUser().getId().equals(currentUserId)) {
+                throw new com.cauverystore.exception.AccessDeniedException("This order does not belong to the current user");
             }
+            if (order.isPaid()) {
+                throw new RuntimeException("This order has already been paid for");
+            }
+            if (Math.abs(verifiedAmountRupees - order.getTotalAmount()) > 1.0) {
+                throw new RuntimeException("Paid amount does not match the order total");
+            }
+
+            payment.setOrderId(orderId);
+            order.setPaid(true);
+            orderRepo.save(order);
         }
 
         return paymentRepo.save(payment);

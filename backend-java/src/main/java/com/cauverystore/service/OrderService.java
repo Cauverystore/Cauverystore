@@ -40,6 +40,9 @@ public class OrderService {
     private final GstInvoiceService gstInvoiceService;
     private final GstConfigurationRepository gstConfigRepo;
     private final SellerRegistrationRepository sellerRegRepo;
+    private final ProductService productService;
+    private final CouponService couponService;
+    private final ReturnRequestRepository returnRequestRepo;
 
     public OrderService(OrderRepository orderRepo, OrderItemRepository orderItemRepo,
                         CartRepository cartRepo, ProductRepository productRepo,
@@ -51,7 +54,10 @@ public class OrderService {
                         AuditService auditService,
                         GstInvoiceService gstInvoiceService,
                         GstConfigurationRepository gstConfigRepo,
-                        SellerRegistrationRepository sellerRegRepo) {
+                        SellerRegistrationRepository sellerRegRepo,
+                        ProductService productService,
+                        CouponService couponService,
+                        ReturnRequestRepository returnRequestRepo) {
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -69,6 +75,9 @@ public class OrderService {
         this.gstInvoiceService = gstInvoiceService;
         this.gstConfigRepo = gstConfigRepo;
         this.sellerRegRepo = sellerRegRepo;
+        this.productService = productService;
+        this.couponService = couponService;
+        this.returnRequestRepo = returnRequestRepo;
     }
 
     private User extractUserFromHeader(String authHeader) {
@@ -80,6 +89,10 @@ public class OrderService {
     }
 
     public Order placeOrder(String username, Address address, String paymentMethod) {
+        return placeOrder(username, address, paymentMethod, null);
+    }
+
+    public Order placeOrder(String username, Address address, String paymentMethod, String promoCode) {
         User user = userRepo.findByUsername(username);
         if (user == null) {
             throw new UserNotFoundException("User not found: " + username);
@@ -119,13 +132,18 @@ public class OrderService {
         order.setStatus("PLACED");
         order.setPaymentMethod(paymentMethod != null ? paymentMethod : "COD");
 
-        double totalAmount = 0;
+        double subTotal = 0;
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CartItem cartItem : activeItems) {
             Product product = cartItem.getProduct();
             int qty = cartItem.getQuantity();
-            double price = product.getPrice();
+            // A variant's own price overrides the base product price when set; otherwise charge
+            // whatever active discount currently applies. This must match what the cart/checkout
+            // UI actually showed the customer, or the charged amount silently diverges from it.
+            double price = (cartItem.getVariant() != null && cartItem.getVariant().getPrice() != null)
+                    ? cartItem.getVariant().getPrice()
+                    : productService.getDiscountedPriceDouble(product.getId());
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -136,13 +154,34 @@ public class OrderService {
                 orderItem.setVariant(cartItem.getVariant());
             }
             orderItems.add(orderItem);
-            totalAmount += price * qty;
+            subTotal += price * qty;
 
             inventoryService.deductStock(product, qty);
         }
 
+        // Never trust a client-computed discount for what actually gets charged - re-validate
+        // the coupon against the server-computed subtotal and recompute the discount here.
+        com.cauverystore.entities.Coupon appliedCoupon = null;
+        double discount = 0;
+        if (promoCode != null && !promoCode.isBlank()) {
+            appliedCoupon = couponService.validate(promoCode, subTotal);
+            discount = couponService.computeDiscount(appliedCoupon, subTotal);
+        }
+
+        double deliveryCharge = (appliedCoupon != null && appliedCoupon.isFreeShipping()) || subTotal >= 500 ? 0 : 40;
+        double taxableAmount = Math.max(subTotal - discount, 0);
+        double tax = Math.round(taxableAmount * 0.12 * 100.0) / 100.0;
+        double totalAmount = taxableAmount + tax + deliveryCharge;
+
         order.setItems(orderItems);
+        order.setSubTotal(subTotal);
+        order.setTax(tax);
+        order.setDeliveryCharge(deliveryCharge);
         order.setTotalAmount(totalAmount);
+
+        if (appliedCoupon != null) {
+            couponService.recordUsage(appliedCoupon);
+        }
 
         OrderTimeline timeline = new OrderTimeline();
         timeline.setOrder(order);
@@ -222,6 +261,39 @@ public class OrderService {
         return orderItemRepo.findByOrder_Id(orderId);
     }
 
+    public Map<String, Object> getOrderDetail(Long orderId, String authHeader) {
+        User user = extractUserFromHeader(authHeader);
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        verifyOrderOwnership(order, user.getId());
+
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", order.getId());
+        m.put("status", order.getStatus());
+        m.put("paymentMethod", order.getPaymentMethod());
+        m.put("paymentStatus", order.isPaid() ? "PAID" : "PENDING");
+        m.put("totalAmount", order.getTotalAmount());
+        m.put("subTotal", order.getSubTotal());
+        m.put("tax", order.getTax());
+        m.put("deliveryCharge", order.getDeliveryCharge());
+        m.put("trackingNumber", order.getTrackingNumber());
+        m.put("courier", order.getCourier());
+        m.put("createdAt", order.getCreatedAt() != null ? order.getCreatedAt().toString() : null);
+
+        if (order.getAddress() != null) {
+            Address addr = order.getAddress();
+            Map<String, Object> shippingAddress = new HashMap<>();
+            shippingAddress.put("name", addr.getFullName());
+            shippingAddress.put("address", addr.getStreet());
+            shippingAddress.put("city", addr.getCity());
+            shippingAddress.put("state", addr.getState());
+            shippingAddress.put("pincode", addr.getPincode());
+            m.put("shippingAddress", shippingAddress);
+        }
+
+        return m;
+    }
+
     public InvoiceResponse getInvoice(Long orderId, String authHeader) {
         User user = extractUserFromHeader(authHeader);
         Order order = orderRepo.findById(orderId)
@@ -298,6 +370,13 @@ public class OrderService {
         return orderRepo.findAll(pageable);
     }
 
+    public Page<Order> getAllOrders(Pageable pageable, String status) {
+        if (status == null || status.isBlank()) {
+            return orderRepo.findAll(pageable);
+        }
+        return orderRepo.findByStatus(status, pageable);
+    }
+
     public List<Order> getAllOrders() {
         return orderRepo.findAll();
     }
@@ -308,6 +387,12 @@ public class OrderService {
 
         List<String> progression = List.of("PLACED", "CONFIRMED", "PACKED", "SHIPPED", "DELIVERED");
         String current = order.getStatus();
+        // CANCELLED/REFUNDED sit outside the normal progression list, so the check above would
+        // otherwise be skipped entirely for them, letting a cancelled order be "progressed"
+        // straight to SHIPPED/DELIVERED.
+        if (("CANCELLED".equals(current) || "REFUNDED".equals(current)) && progression.contains(status)) {
+            throw new RuntimeException("Cannot move from " + current + " to " + status);
+        }
         if (progression.contains(current) && progression.contains(status)) {
             if (progression.indexOf(status) <= progression.indexOf(current)) {
                 throw new RuntimeException("Cannot move from " + current + " to " + status);
@@ -350,16 +435,20 @@ public class OrderService {
         return saved;
     }
 
+    private static final Set<String> TERMINAL_ORDER_STATUSES = Set.of("CANCELLED", "REFUNDED", "DELIVERED");
+
     @Transactional
     public Order cancelOrder(Long orderId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        if (TERMINAL_ORDER_STATUSES.contains(order.getStatus())) {
+            throw new RuntimeException("Order cannot be cancelled - current status is " + order.getStatus());
+        }
 
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             if (product != null) {
-                product.setStock(product.getStock() != null ? product.getStock() + item.getQuantity() : item.getQuantity());
-                productRepo.save(product);
+                inventoryService.restoreStock(product, item.getQuantity());
             }
         }
 
@@ -383,6 +472,12 @@ public class OrderService {
     public Order refundOrder(Long orderId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        if (!order.isPaid()) {
+            throw new RuntimeException("Cannot refund an order that was never paid");
+        }
+        if ("REFUNDED".equals(order.getStatus())) {
+            throw new RuntimeException("Order has already been refunded");
+        }
         order.setStatus("REFUNDED");
 
         Refund refund = new Refund();
@@ -413,7 +508,8 @@ public class OrderService {
         address.setPincode((String) body.get("pincode"));
 
         String paymentMethod = (String) body.getOrDefault("paymentMethod", "COD");
-        Order order = placeOrder(user.getUsername(), address, paymentMethod);
+        String promoCode = (String) body.get("promoCode");
+        Order order = placeOrder(user.getUsername(), address, paymentMethod, promoCode);
         Map<String, Object> result = new HashMap<>();
         result.put("id", order.getId());
         result.put("status", order.getStatus());
@@ -422,9 +518,13 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getOrdersByHeader(String authHeader) {
+    public List<Map<String, Object>> getOrdersByHeader(String authHeader, String status) {
         User user = extractUserFromHeader(authHeader);
-        return getOrders(user.getUsername()).stream().map(o -> {
+        List<Order> orders = getOrders(user.getUsername());
+        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+            orders = orders.stream().filter(o -> status.equalsIgnoreCase(o.getStatus())).toList();
+        }
+        return orders.stream().map(o -> {
             Map<String, Object> m = new HashMap<>();
             m.put("id", o.getId());
             m.put("orderId", o.getId().toString());
@@ -482,10 +582,45 @@ public class OrderService {
         return Map.of("id", o.getId(), "status", o.getStatus());
     }
 
+    // Distinct from cancelOrder: a return only makes sense once an order was actually
+    // delivered. It raises a ReturnRequest for admin review instead of unilaterally
+    // reversing the order/stock the way cancellation does.
+    public Map<String, Object> createReturnRequest(String authHeader, Long orderId, String reason) {
+        User user = extractUserFromHeader(authHeader);
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        verifyOrderOwnership(order, user.getId());
+        if (!"DELIVERED".equals(order.getStatus())) {
+            throw new RuntimeException("Only delivered orders can be returned");
+        }
+        if (reason == null || reason.isBlank()) {
+            throw new RuntimeException("A reason is required to request a return");
+        }
+
+        ReturnRequest rr = new ReturnRequest();
+        rr.setOrder(order);
+        rr.setUser(user);
+        rr.setReason(reason);
+        rr.setStatus("PENDING");
+        ReturnRequest saved = returnRequestRepo.save(rr);
+
+        auditService.log(user.getId(), user.getEmail(), "RETURN_REQUESTED",
+                "Order", orderId,
+                "Return requested for order #" + orderId + ": " + reason, null);
+        notificationService.createNotification(user.getId(), "ORDER",
+                "Return Request Submitted",
+                "Your return request for order #" + orderId + " has been submitted.");
+
+        return Map.of("id", saved.getId(), "status", saved.getStatus());
+    }
+
     @Transactional
     public Order markShipped(Long orderId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        if ("CANCELLED".equals(order.getStatus()) || "REFUNDED".equals(order.getStatus())) {
+            throw new RuntimeException("Cannot ship an order that is " + order.getStatus());
+        }
         order.setStatus("SHIPPED");
         order.setShippedAt(LocalDateTime.now());
 
@@ -518,6 +653,9 @@ public class OrderService {
     public Order markDelivered(Long orderId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        if ("CANCELLED".equals(order.getStatus()) || "REFUNDED".equals(order.getStatus())) {
+            throw new RuntimeException("Cannot deliver an order that is " + order.getStatus());
+        }
         order.setStatus("DELIVERED");
         order.setDeliveredAt(LocalDateTime.now());
 
@@ -550,6 +688,9 @@ public class OrderService {
     public Order adminCancelOrder(Long orderId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        if (TERMINAL_ORDER_STATUSES.contains(order.getStatus())) {
+            throw new RuntimeException("Order cannot be cancelled - current status is " + order.getStatus());
+        }
         order.setStatus("CANCELLED");
 
         OrderTimeline timeline = new OrderTimeline();
@@ -562,8 +703,7 @@ public class OrderService {
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             if (product != null) {
-                product.setStock(product.getStock() != null ? product.getStock() + item.getQuantity() : item.getQuantity());
-                productRepo.save(product);
+                inventoryService.restoreStock(product, item.getQuantity());
             }
         }
 

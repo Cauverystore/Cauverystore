@@ -8,13 +8,16 @@ const AdminRefunds = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  const PAGE_SIZE = 20;
+
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
       try {
-        const res = await api.get("/api/admin/refunds", { params: { page } });
-        setRefunds(res.data.content || res.data || []);
-        setTotalPages(res.data.totalPages || 1);
+        const res = await api.get("/api/admin/refunds");
+        const all = Array.isArray(res.data) ? res.data : res.data.content || [];
+        setTotalPages(Math.max(1, Math.ceil(all.length / PAGE_SIZE)));
+        setRefunds(all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
       } catch (err) { console.error(err); }
       setLoading(false);
     };
@@ -23,9 +26,12 @@ const AdminRefunds = () => {
 
   const handleAction = async (id, action) => {
     try {
-      await api.put(`/api/admin/refunds/${id}/${action.toLowerCase()}`);
-      const res = await api.get("/api/admin/refunds", { params: { page } });
-      setRefunds(res.data.content || res.data || []);
+      const status = action === "APPROVE" ? "COMPLETED" : "REJECTED";
+      await api.put(`/api/admin/refunds/${id}/status`, { status });
+      const res = await api.get("/api/admin/refunds");
+      const all = Array.isArray(res.data) ? res.data : res.data.content || [];
+      setTotalPages(Math.max(1, Math.ceil(all.length / PAGE_SIZE)));
+      setRefunds(all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
     } catch (err) { alert("Failed to process"); }
   };
 

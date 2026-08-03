@@ -36,8 +36,16 @@ public class OrderController {
 
     @GetMapping
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<List<Map<String, Object>>> getOrders(@RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.ok(orderService.getOrdersByHeader(authHeader));
+    public ResponseEntity<List<Map<String, Object>>> getOrders(@RequestHeader("Authorization") String authHeader,
+                                                                 @RequestParam(required = false) String status) {
+        return ResponseEntity.ok(orderService.getOrdersByHeader(authHeader, status));
+    }
+
+    @GetMapping("/{orderId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> getOrderDetail(@PathVariable Long orderId,
+                                                                @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(orderService.getOrderDetail(orderId, authHeader));
     }
 
     @GetMapping("/{orderId}/items")
@@ -77,6 +85,14 @@ public class OrderController {
     public ResponseEntity<Map<String, Object>> cancelOrder(@PathVariable Long orderId,
                                                             @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(orderService.cancelOrder(authHeader, orderId));
+    }
+
+    @PostMapping("/{orderId}/return")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Map<String, Object>> requestReturn(@PathVariable Long orderId,
+                                                               @RequestBody Map<String, String> body,
+                                                               @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(orderService.createReturnRequest(authHeader, orderId, body.get("reason")));
     }
 
     @PutMapping("/{orderId}/status")

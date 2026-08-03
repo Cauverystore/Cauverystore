@@ -22,14 +22,14 @@ const EditProduct = () => {
         setForm({
           name: prod.name || "",
           description: prod.description || "",
-          category: typeof cat === "object" && cat ? cat.name || "" : cat || "",
+          category: typeof cat === "object" && cat ? (cat.id ?? "") : "",
           brand: prod.brand || "",
           price: prod.price || "",
           mrp: prod.mrp || "",
           stock: prod.stock || "",
           sku: prod.sku || "",
         });
-        setCategories(Array.isArray(catRes.data) ? catRes.data.map((c) => c.name) : []);
+        setCategories(Array.isArray(catRes.data) ? catRes.data : []);
       } catch (err) { console.error(err); }
       setLoading(false);
     };
@@ -38,7 +38,7 @@ const EditProduct = () => {
 
   useEffect(() => {
     const handler = () => {
-      api.get("/api/categories").then(r => setCategories(Array.isArray(r.data) ? r.data.map((c) => c.name) : [])).catch(() => {});
+      api.get("/api/categories").then(r => setCategories(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     };
     window.addEventListener("category-changed", handler);
     return () => window.removeEventListener("category-changed", handler);
@@ -49,7 +49,8 @@ const EditProduct = () => {
   const handleSubmit = async () => {
     try {
       await api.put(`/api/admin/products/${id}`, {
-        name: form.name, description: form.description, category: form.category, brand: form.brand,
+        name: form.name, description: form.description,
+        category: form.category ? { id: form.category } : null, brand: form.brand,
         price: parseFloat(form.price), mrp: parseFloat(form.mrp), stock: parseInt(form.stock), sku: form.sku,
       });
       navigate("/admin/products");
@@ -77,7 +78,7 @@ const EditProduct = () => {
           <div className="form-group"><label>Category</label>
             <select name="category" value={form.category || ""} onChange={handleChange} style={inputStyle}>
               {categories.length === 0 && <option value="">No categories</option>}
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group"><label>Brand</label><input name="brand" value={form.brand || ""} onChange={handleChange} style={inputStyle} /></div>

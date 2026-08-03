@@ -252,7 +252,8 @@ public class ProductService {
 
     private String slugify(String text) {
         if (text == null) return null;
-        return text.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "").substring(0, Math.min(text.length(), 80));
+        String slug = text.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+        return slug.substring(0, Math.min(slug.length(), 80));
     }
 
     private String getCell(org.apache.poi.ss.usermodel.Row row, int col) {
@@ -717,13 +718,14 @@ public class ProductService {
 
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     @Transactional
-    public Map<String, Object> bulkEdit(Map<String, Object> body) {
+    public Map<String, Object> bulkEdit(Map<String, Object> body, Long sellerId) {
         @SuppressWarnings("unchecked")
         List<Integer> idsRaw = (List<Integer>) body.get("productIds");
         List<Long> ids = idsRaw.stream().map(Long::valueOf).toList();
         int updated = 0;
         for (Long id : ids) {
             try {
+                if (sellerId != null) verifySellerOwnership(id, sellerId);
                 Product p = getProductById(id);
                 if (body.containsKey("price")) p.setPrice(Double.valueOf(body.get("price").toString()));
                 if (body.containsKey("stock")) p.setStock(Integer.valueOf(body.get("stock").toString()));
