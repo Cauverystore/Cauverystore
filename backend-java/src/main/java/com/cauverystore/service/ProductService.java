@@ -79,6 +79,14 @@ public class ProductService {
                 .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
     }
 
+    // Stock changes happen via InventoryService's atomic UPDATE queries, which never go through
+    // this class's own @CacheEvict-annotated methods - so the "products" cache (including
+    // getProductById's stock figure) would otherwise stay stale until an unrelated product edit
+    // happened to evict it. InventoryService calls this after every stock change instead.
+    @CacheEvict(value = "products", allEntries = true)
+    public void evictProductCache() {
+    }
+
     @Cacheable(value = "products", key = "'all'")
     public List<Product> getAllProducts() {
         if (authorizationService.hasRole("SELLER")) {

@@ -17,10 +17,12 @@ public class BulkUploadService {
 
     private final ProductRepository productRepo;
     private final CategoryRepository catRepo;
+    private final ProductService productService;
 
-    public BulkUploadService(ProductRepository productRepo, CategoryRepository catRepo) {
+    public BulkUploadService(ProductRepository productRepo, CategoryRepository catRepo, ProductService productService) {
         this.productRepo = productRepo;
         this.catRepo = catRepo;
+        this.productService = productService;
     }
 
     public Map<String, Object> uploadProducts(MultipartFile file) {
@@ -53,6 +55,10 @@ public class BulkUploadService {
         } catch (Exception e) {
             result.put("error", "Failed to process file: " + e.getMessage());
             return result;
+        }
+
+        if (success > 0) {
+            productService.evictProductCache();
         }
 
         result.put("success", success);

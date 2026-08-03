@@ -15,10 +15,12 @@ public class InventoryService {
 
     private final InventoryRepository inventoryRepo;
     private final ProductRepository productRepo;
+    private final ProductService productService;
 
-    public InventoryService(InventoryRepository inventoryRepo, ProductRepository productRepo) {
+    public InventoryService(InventoryRepository inventoryRepo, ProductRepository productRepo, ProductService productService) {
         this.inventoryRepo = inventoryRepo;
         this.productRepo = productRepo;
+        this.productService = productService;
     }
 
     public Inventory addStock(Inventory inventory) {
@@ -46,6 +48,10 @@ public class InventoryService {
                 throw new RuntimeException("Insufficient stock for " + product.getName());
             }
         }
+        // These queries update stock straight in the DB, bypassing ProductService's own
+        // @CacheEvict methods entirely - without this, the storefront would keep serving
+        // cached (and increasingly wrong) stock numbers after every order.
+        productService.evictProductCache();
     }
 
     // Mirrors deductStock's choice of table exactly, so a cancellation always credits back
@@ -59,6 +65,7 @@ public class InventoryService {
         } else {
             productRepo.incrementStock(product.getId(), qty);
         }
+        productService.evictProductCache();
     }
 
     public Map<String, Object> getDashboard(Long sellerId) {
