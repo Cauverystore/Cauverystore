@@ -241,7 +241,7 @@ public class OrderService {
                 "Order", savedOrder.getId(),
                 "Order #" + savedOrder.getId() + " placed for " + totalAmount, null);
 
-        notificationService.sendOrderPlaced(user.getEmail(), savedOrder.getId().toString());
+        notificationService.sendOrderPlaced(savedOrder, discount);
         notificationService.createNotification(user.getId(), "ORDER", "Order Placed",
                 "Your order #" + savedOrder.getId() + " has been placed successfully.");
 

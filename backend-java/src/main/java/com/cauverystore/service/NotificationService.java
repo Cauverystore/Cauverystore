@@ -1,6 +1,7 @@
 package com.cauverystore.service;
 
 import com.cauverystore.entities.Notification;
+import com.cauverystore.entities.Order;
 import com.cauverystore.repository.NotificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +34,8 @@ public class NotificationService {
         return notificationRepo.save(notification);
     }
 
-    public void sendOrderPlaced(String email, String orderId) {
-        sendSafely(() -> emailService.sendOrderConfirmation(email, Map.of("orderId", orderId)), "order placed", orderId);
+    public void sendOrderPlaced(Order order, double discount) {
+        sendSafely(() -> emailService.sendOrderConfirmation(order, discount), "order placed", String.valueOf(order.getId()));
     }
 
     public void sendPaymentReceived(String email, String orderId) {
