@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark } from "lucide-react";
+import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark, ArrowRightCircle } from "lucide-react";
 import api from "../api/axios";
 import { useWishlist } from "../context/WishlistContext";
 import "../styles/product-tray.css";
@@ -58,13 +58,14 @@ const TrustBadge = ({ text, type }) => (
   </div>
 );
 
-const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) => {
+const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, quickActions = true }) => {
   const navigate = useNavigate();
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const imgErrorFixed = React.useRef(false);
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const [adding, setAdding] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -99,6 +100,16 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
   const handleBuyNow = (e) => {
     e.stopPropagation();
     if (onBuyNow) onBuyNow(product);
+  };
+
+  const handleMoveToCart = async (e) => {
+    e.stopPropagation();
+    if (moving || !inStock) return;
+    setMoving(true);
+    try {
+      if (onMoveToCart) await onMoveToCart(product);
+    } catch { /* ignore */ }
+    setMoving(false);
   };
 
   const handleWishlist = (e) => {
@@ -217,15 +228,27 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, quickActions = true }) =>
             <ShoppingCart size={16} />
             <span>{adding ? "Adding..." : "Add to Cart"}</span>
           </button>
-          <button
-            className="pt-btn pt-btn-buy"
-            onClick={handleBuyNow}
-            disabled={!inStock}
-            aria-label="Buy now"
-          >
-            <Zap size={16} />
-            <span>Buy Now</span>
-          </button>
+          {onMoveToCart ? (
+            <button
+              className="pt-btn pt-btn-buy"
+              onClick={handleMoveToCart}
+              disabled={!inStock || moving}
+              aria-label="Move to cart"
+            >
+              <ArrowRightCircle size={16} />
+              <span>{moving ? "Moving..." : "Move to Cart"}</span>
+            </button>
+          ) : (
+            <button
+              className="pt-btn pt-btn-buy"
+              onClick={handleBuyNow}
+              disabled={!inStock}
+              aria-label="Buy now"
+            >
+              <Zap size={16} />
+              <span>Buy Now</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
