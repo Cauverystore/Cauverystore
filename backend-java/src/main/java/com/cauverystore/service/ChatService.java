@@ -488,8 +488,7 @@ public class ChatService {
         sb.append(match.getName());
         if (match.getBrand() != null && !match.getBrand().isBlank()) sb.append(" by ").append(match.getBrand());
         sb.append("\nPrice: ").append(priceLabel(match));
-        if (match.getCategory() != null) sb.append("\nCategory: ").append(match.getCategory().getName());
-        else if (match.getSubCategory() != null) sb.append("\nCategory: ").append(match.getSubCategory());
+        if (categoryName(match) != null) sb.append("\nCategory: ").append(categoryName(match));
         int stock = match.getStock() == null ? 0 : match.getStock();
         sb.append("\nAvailability: ").append(stock <= 0 ? "Out of stock" : (stock <= 5 ? "Only " + stock + " left" : "In stock"));
         if (match.getDescription() != null && !match.getDescription().isBlank()) {
@@ -640,25 +639,29 @@ public class ChatService {
 
     private int scoreProduct(Product p, List<String> tokens) {
         if (tokens.isEmpty()) return 0;
-        String haystack = ((p.getName() == null ? "" : p.getName())
-                + " " + (p.getBrand() == null ? "" : p.getBrand())
-                + " " + (p.getDescription() == null ? "" : p.getDescription())
-                + " " + (p.getSubCategory() == null ? "" : p.getSubCategory())
-                + " " + (p.getColor() == null ? "" : p.getColor())
-                + " " + (p.getTags() == null ? "" : String.join(" ", p.getTags())))
-                .toLowerCase(Locale.ROOT);
-        String name = (p.getName() == null ? "" : p.getName()).toLowerCase(Locale.ROOT);
-        String brand = (p.getBrand() == null ? "" : p.getBrand()).toLowerCase(Locale.ROOT);
-        String sub = (p.getSubCategory() == null ? "" : p.getSubCategory()).toLowerCase(Locale.ROOT);
-        int score = 0;
-        for (String t : tokens) {
-            if (!haystack.contains(t)) continue;
-            if (name.contains(t)) score += 5;
-            else if (brand.contains(t)) score += 3;
-            else if (sub.contains(t)) score += 2;
-            else score += 1;
+        try {
+            String haystack = ((p.getName() == null ? "" : p.getName())
+                    + " " + (p.getBrand() == null ? "" : p.getBrand())
+                    + " " + (p.getDescription() == null ? "" : p.getDescription())
+                    + " " + (p.getSubCategory() == null ? "" : p.getSubCategory())
+                    + " " + (p.getColor() == null ? "" : p.getColor())
+                    + " " + (p.getTags() == null ? "" : String.join(" ", p.getTags())))
+                    .toLowerCase(Locale.ROOT);
+            String name = (p.getName() == null ? "" : p.getName()).toLowerCase(Locale.ROOT);
+            String brand = (p.getBrand() == null ? "" : p.getBrand()).toLowerCase(Locale.ROOT);
+            String sub = (p.getSubCategory() == null ? "" : p.getSubCategory()).toLowerCase(Locale.ROOT);
+            int score = 0;
+            for (String t : tokens) {
+                if (!haystack.contains(t)) continue;
+                if (name.contains(t)) score += 5;
+                else if (brand.contains(t)) score += 3;
+                else if (sub.contains(t)) score += 2;
+                else score += 1;
+            }
+            return score;
+        } catch (Exception e) {
+            return 0;
         }
-        return score;
     }
 
     private Map<String, Object> compactProduct(Product p) {
@@ -670,13 +673,25 @@ public class ChatService {
         m.put("offerPrice", p.getOfferPrice());
         m.put("stock", p.getStock());
         m.put("inStock", p.getStock() != null && p.getStock() > 0);
-        m.put("category", p.getCategory() != null ? p.getCategory().getName() : p.getSubCategory());
-        String img = null;
-        if (p.getImages() != null && !p.getImages().isEmpty()) {
-            img = p.getImages().get(0).getUrl();
-        }
-        m.put("image", img);
+        m.put("category", categoryName(p));
+        m.put("image", productImage(p));
         return m;
+    }
+
+    private String categoryName(Product p) {
+        try {
+            if (p.getCategory() != null) return p.getCategory().getName();
+        } catch (Exception ignored) {
+        }
+        return p.getSubCategory();
+    }
+
+    private String productImage(Product p) {
+        try {
+            if (p.getImages() != null && !p.getImages().isEmpty()) return p.getImages().get(0).getUrl();
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private String priceLabel(Product p) {
