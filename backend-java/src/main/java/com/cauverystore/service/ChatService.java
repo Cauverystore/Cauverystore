@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 @Service
 public class ChatService {
@@ -57,6 +58,25 @@ public class ChatService {
             "refund", "return", "exchange", "shipping", "delivery", "courier", "payment", "cod",
             "upi", "card", "netbanking", "net banking", "warranty", "cancel", "account", "login",
             "password", "register", "otp", "coupon", "discount", "offer", "contact", "support", "policy", "when"
+    );
+
+    private static final List<String[]> BUILT_IN_FAQS = List.of(
+            new String[]{"Return & Exchange",
+                    "Returns and exchanges are available on eligible items. You can review the full policy and start a return right from the My Orders page; our team processes it within a few business days."},
+            new String[]{"Shipping & Delivery",
+                    "Standard delivery typically takes 2-5 business days depending on your location. Tracking details are emailed to you as soon as your order ships."},
+            new String[]{"Payment Methods",
+                    "We accept Cash on Delivery (on eligible pincodes), UPI, credit and debit cards, and net banking. Just pick your preferred method at checkout."},
+            new String[]{"Warranty",
+                    "Eligible products come with a manufacturer warranty. The warranty period and terms are shown on each product page."},
+            new String[]{"Order Cancellation",
+                    "You can cancel an order from the My Orders page as long as it hasn't shipped yet. Refunds for cancelled orders are processed back to your original payment method."},
+            new String[]{"Coupons & Discounts",
+                    "Active coupon codes are listed under Offers. You can apply a coupon at checkout when your order meets the minimum amount."},
+            new String[]{"Account & Login",
+                    "You can log in with your email and password or continue with Google. If you forget your password, use the \"Forgot Password\" link on the login page."},
+            new String[]{"Contact Support",
+                    "You can reach our support team through the Contact page, or raise a support ticket and we'll get back to you quickly."}
     );
 
     public ChatResponse respond(String authHeader, String message) {
@@ -133,7 +153,11 @@ public class ChatService {
 
     private boolean matchesAny(String msg, String... words) {
         for (String w : words) {
-            if (msg.contains(w)) return true;
+            if (w.length() <= 3) {
+                if (Pattern.compile("\\b" + w + "\\b").matcher(msg).find()) return true;
+            } else if (msg.contains(w)) {
+                return true;
+            }
         }
         return false;
     }
@@ -331,10 +355,10 @@ public class ChatService {
 
     private ChatResponse faqAnswer(String msg) {
         List<String> keywords = FAQ_KEYWORDS.stream().filter(msg::contains).toList();
-        List<Faq> faqs = faqService.getActive();
-        Faq best = null;
+        String bestQ = null;
+        String bestA = null;
         int bestScore = 0;
-        for (Faq f : faqs) {
+        for (Faq f : faqService.getActive()) {
             String q = f.getQuestion() == null ? "" : f.getQuestion().toLowerCase(Locale.ROOT);
             int score = 0;
             for (String k : keywords) {
@@ -342,12 +366,24 @@ public class ChatService {
             }
             if (score > bestScore) {
                 bestScore = score;
-                best = f;
+                bestQ = f.getQuestion();
+                bestA = f.getAnswer();
             }
         }
-        if (best != null) {
-            return ChatResponse.create("faq",
-                            best.getQuestion() + "\n\n" + best.getAnswer())
+        for (String[] ba : BUILT_IN_FAQS) {
+            String text = (ba[0] + " " + ba[1]).toLowerCase(Locale.ROOT);
+            int score = 0;
+            for (String k : keywords) {
+                if (text.contains(k)) score++;
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                bestQ = ba[0];
+                bestA = ba[1];
+            }
+        }
+        if (bestQ != null && bestA != null) {
+            return ChatResponse.create("faq", bestQ + "\n\n" + bestA)
                     .quickReplies(List.of("Any offers right now?", "Track my order", "Show my cart", "Help"));
         }
         if (!keywords.isEmpty()) {
@@ -364,11 +400,15 @@ public class ChatService {
         boolean newArrival = msg.contains("new arrival") || msg.contains("new arrivals") || msg.contains("new in") || msg.contains("latest");
         List<String> tokens = tokens(msg);
 
-        List<Product> pool = productService.getActiveProducts().stream()
+        List<Product> allActive = productService.getActiveProducts();
+        List<Product> pool = allActive.stream()
                 .filter(p -> !bestSeller || Boolean.TRUE.equals(p.getBestSeller()))
                 .filter(p -> !trending || Boolean.TRUE.equals(p.getTrending()))
                 .filter(p -> !newArrival || Boolean.TRUE.equals(p.getNewArrival()))
                 .toList();
+        if (bestSeller || trending || newArrival) {
+            if (pool.isEmpty()) pool = allActive;
+        }
 
         List<Product> ranked;
         if (tokens.isEmpty() || bestSeller || trending || newArrival) {
