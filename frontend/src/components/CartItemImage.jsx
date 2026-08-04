@@ -2,11 +2,14 @@ import React, { useState, useMemo, useCallback } from "react";
 import { imgUrl } from "../utils/images";
 
 const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
+const toThumb = (img) => typeof img === "object" && img?.thumbUrl ? img.thumbUrl : "";
 
 const CartItemImage = ({ src, name, width = 60, height = 60, className = "" }) => {
   const [failed, setFailed] = useState(false);
 
   const finalSrc = useMemo(() => {
+    const thumb = toThumb(src);
+    if (thumb) return imgUrl(thumb);
     const raw = toUrl(src);
     return raw ? imgUrl(raw) : null;
   }, [src]);

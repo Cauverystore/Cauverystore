@@ -330,6 +330,9 @@ public class ProductService {
             p.setId(productId);
             image.setProduct(p);
             image.setUrl("/uploads/" + filename);
+            if (original != null) {
+                image.setThumbUrl("/uploads/" + thumbFilename);
+            }
             image.setMain(isMain);
             productImageRepo.save(image);
         } catch (Exception e) {
@@ -549,11 +552,13 @@ public class ProductService {
         String uuid = UUID.randomUUID().toString();
         String filename = uuid + ".jpg";
         String thumbFilename = uuid + "_thumb.jpg";
+        boolean hasResize = false;
         try {
-            Path uploadDir = Paths.get("uploads");
+            Path uploadDir = getUploadDir();
             Files.createDirectories(uploadDir);
             BufferedImage original = ImageIO.read(file.getInputStream());
             if (original != null) {
+                hasResize = true;
                 BufferedImage resized = resizeImage(original, 1200);
                 writeJpeg(resized, uploadDir.resolve(filename), 0.85f);
                 BufferedImage thumb = createSquareThumbnail(original, 400);
@@ -575,6 +580,9 @@ public class ProductService {
         ProductImage image = new ProductImage();
         image.setProduct(p);
         image.setUrl("/uploads/" + filename);
+        if (hasResize) {
+            image.setThumbUrl("/uploads/" + thumbFilename);
+        }
         image.setSortOrder(nextOrder);
         if (p.getImages().isEmpty()) {
             image.setMain(true);
@@ -675,6 +683,38 @@ public class ProductService {
                 p.getImages().get(0).setMain(true);
                 productImageRepo.save(p.getImages().get(0));
             }
+        }
+    }
+
+    @Transactional
+    public void backfillThumbnails() {
+        List<ProductImage> images = productImageRepo.findAll();
+        for (ProductImage img : images) {
+            String url = img.getUrl();
+            if (url == null || !url.startsWith("/uploads/")) continue;
+            String name = url.substring("/uploads/".length());
+            int dot = name.lastIndexOf(".");
+            if (dot <= 0) continue;
+            String thumbName = name.substring(0, dot) + "_thumb.jpg";
+            Path uploadDir = getUploadDir();
+            try {
+                Path thumbPath = uploadDir.resolve(thumbName);
+                if (Files.exists(thumbPath)) {
+                    if (img.getThumbUrl() == null) {
+                        img.setThumbUrl("/uploads/" + thumbName);
+                        productImageRepo.save(img);
+                    }
+                    continue;
+                }
+                Path mainPath = uploadDir.resolve(name);
+                if (!Files.exists(mainPath)) continue;
+                BufferedImage original = ImageIO.read(mainPath.toFile());
+                if (original == null) continue;
+                BufferedImage thumb = createSquareThumbnail(original, 400);
+                writeJpeg(thumb, thumbPath, 0.8f);
+                img.setThumbUrl("/uploads/" + thumbName);
+                productImageRepo.save(img);
+            } catch (Exception ignored) {}
         }
     }
 

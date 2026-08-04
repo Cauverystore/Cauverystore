@@ -82,9 +82,13 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const stock = product?.stock ?? product?.stockQuantity ?? (product?.inStock ? 1 : 0);
   const inStock = stock > 0;
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
+  const toThumb = (img) => typeof img === "object" && img?.thumbUrl ? img.thumbUrl : "";
   const images = product?.images || (product?.image ? [toUrl(product.image)] : []);
   const rawImage = images.length > 0 ? toUrl(images[0]) : null;
   const image = rawImage ? imgUrl(rawImage) : PLACEHOLDER;
+  const thumbImage = toThumb(images[0]) ? imgUrl(toThumb(images[0])) : "";
+  const imgSrc = thumbImage && thumbImage !== image ? thumbImage : image;
+  const srcSet = thumbImage && thumbImage !== image && image.startsWith("http") ? `${thumbImage} 400w, ${image} 1200w` : undefined;
   const badge = product?.badge || (discount > 50 ? "Best Seller" : discount > 30 ? "Popular" : "");
   const wishlisted = wishlistIds.has(pid);
 
@@ -166,7 +170,9 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
       <div className="pt-image-wrap">
         {!imgLoaded && !imgError && <div className="pt-img-placeholder" />}
         <img
-          src={image}
+          src={imgSrc}
+          srcSet={srcSet}
+          sizes="(min-width: 960px) 200px, 160px"
           alt={name}
           width="200" height="200"
           className={`pt-image ${imgLoaded ? "loaded" : ""}`}

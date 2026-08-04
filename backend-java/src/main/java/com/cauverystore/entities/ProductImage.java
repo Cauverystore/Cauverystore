@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 public class ProductImage extends BaseEntity {
     @Column(nullable = false)
     private String url;
+    private String thumbUrl;
     private boolean main = false;
     private Integer sortOrder = 0;
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,8 +30,8 @@ public class ProductImage extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
-    public void setSortOrder(final Integer sortOrder) {
-        this.sortOrder = sortOrder;
+    public String getThumbUrl() {
+        return this.thumbUrl;
     }
 
     @java.lang.SuppressWarnings("all")
@@ -44,8 +45,13 @@ public class ProductImage extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
-    public Product getProduct() {
-        return this.product;
+    public void setSortOrder(final Integer sortOrder) {
+        this.sortOrder = sortOrder;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setThumbUrl(final String thumbUrl) {
+        this.thumbUrl = thumbUrl;
     }
 
     @java.lang.SuppressWarnings("all")

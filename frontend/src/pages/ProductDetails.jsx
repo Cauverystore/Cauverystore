@@ -65,6 +65,11 @@ const ProductDetails = () => {
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
   if (!product) return <div style={{ textAlign: "center", padding: "3rem" }}>Product not found</div>;
 
+  const selImage = product.images?.[selectedImage];
+  const mainSrc = fullUrl(selImage) || fullUrl(product.image) || "/images/placeholder.svg";
+  const mainThumb = typeof selImage === "object" && selImage?.thumbUrl ? imgUrl(selImage.thumbUrl) : "";
+  const mainSrcSet = mainThumb && mainSrc.startsWith("http") ? `${mainThumb} 400w, ${mainSrc} 1200w` : undefined;
+
   return (
     <div className="product-detail-page">
       <Helmet>
@@ -114,7 +119,7 @@ const ProductDetails = () => {
       ]} />
       <div className="pd-main">
         <div className="product-image-section">
-          <img className="product-main-image" src={fullUrl(product.images?.[selectedImage]) || fullUrl(product.image) || "/images/placeholder.svg"} alt={product.name} width="400" height="400" fetchPriority="high" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
+          <img className="product-main-image" src={mainSrc} srcSet={mainSrcSet} sizes="(min-width: 768px) 400px, 100vw" alt={product.name} width="400" height="400" fetchPriority="high" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
           {(product.images || []).length > 1 && (
             <div className="product-thumbnails">
               {product.images.map((img, i) => (
