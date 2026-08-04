@@ -8,6 +8,7 @@ import CustomerLayout from "./layouts/CustomerLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import ImpersonationBanner from "./components/ImpersonationBanner";
+import ChatWidget from "./components/ChatWidget";
 
 const Home = lazy(() => import("./pages/Home"));
 const ProductList = lazy(() => import("./pages/ProductList"));
@@ -130,6 +131,7 @@ function App() {
           "address": { "@type": "PostalAddress", "addressCountry": "IN" }
         })}} />
         <ImpersonationBanner />
+        <ChatWidget />
         <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", color: "#94a3b8", fontSize: "0.95rem" }}>Loading...</div>}>
         <Routes>
           <Route element={<CustomerLayout />}>

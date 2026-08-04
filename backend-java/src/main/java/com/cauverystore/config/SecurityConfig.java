@@ -67,6 +67,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/template.xlsx").permitAll()
                 .requestMatchers("/api/seller/template.xlsx").permitAll()
                 .requestMatchers("/api/newsletter/**").permitAll()
+                .requestMatchers("/api/chat/**").permitAll()
                 .requestMatchers("/api/support-tickets/**").authenticated()
                 .requestMatchers("/api/payment-methods/**").authenticated()
                 .requestMatchers("/error").permitAll()
