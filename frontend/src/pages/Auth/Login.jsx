@@ -157,10 +157,11 @@ const Login = () => {
 
             <form onSubmit={handleCompleteForcedReset} className="auth-form">
               <div className="auth-field">
-                <label className="auth-field-label">New Password</label>
+                <label className="auth-field-label" htmlFor="login-new-password">New Password</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
+                    id="login-new-password"
                     type="password"
                     className="auth-input"
                     placeholder="Create a strong password"
@@ -182,10 +183,11 @@ const Login = () => {
               </div>
 
               <div className="auth-field">
-                <label className="auth-field-label">Confirm New Password</label>
+                <label className="auth-field-label" htmlFor="login-confirm-password">Confirm New Password</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
+                    id="login-confirm-password"
                     type="password"
                     className="auth-input"
                     placeholder="Confirm your password"
@@ -232,8 +234,9 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">
-              <label className="auth-field-label">I am a</label>
+              <label className="auth-field-label" htmlFor="login-role">I am a</label>
               <select
+                id="login-role"
                 className="auth-input"
                 style={{ padding: 'var(--spacing-3)', cursor: 'pointer' }}
                 value={role}
@@ -246,10 +249,11 @@ const Login = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label">Email or Username</label>
+              <label className="auth-field-label" htmlFor="login-email">Email or Username</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#9993;</span>
                 <input
+                  id="login-email"
                   type="text"
                   className="auth-input"
                   placeholder="Enter your email or username"
@@ -262,10 +266,11 @@ const Login = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label">Password</label>
+              <label className="auth-field-label" htmlFor="login-password">Password</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128274;</span>
                 <input
+                  id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   className="auth-input"
                   placeholder="Enter your password"

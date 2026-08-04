@@ -14,7 +14,7 @@ const ImpersonationBanner = () => {
         left: 0,
         right: 0,
         zIndex: 9999,
-        background: 'linear-gradient(90deg, #f59e0b, #d97706)',
+        background: 'linear-gradient(90deg, #b45309, #92400e)',
         color: '#fff',
         padding: '8px 24px',
         display: 'flex',

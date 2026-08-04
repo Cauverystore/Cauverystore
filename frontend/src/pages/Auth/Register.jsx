@@ -100,10 +100,11 @@ const Register = () => {
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">
-              <label className="auth-field-label">Full Name</label>
+              <label className="auth-field-label" htmlFor="register-name">Full Name</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128100;</span>
                 <input
+                  id="register-name"
                   type="text"
                   className={`auth-input${touched.fullName && !form.fullName.trim() ? ' error' : ''}`}
                   placeholder="Enter your full name"
@@ -116,10 +117,11 @@ const Register = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label">Email</label>
+              <label className="auth-field-label" htmlFor="register-email">Email</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#9993;</span>
                 <input
+                  id="register-email"
                   type="email"
                   className={`auth-input${touched.email && !emailValid ? ' error' : touched.email && emailValid && form.email ? ' valid' : ''}`}
                   placeholder="Enter your email"
@@ -135,10 +137,11 @@ const Register = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label">Phone</label>
+              <label className="auth-field-label" htmlFor="register-phone">Phone</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128222;</span>
                 <input
+                  id="register-phone"
                   type="tel"
                   className={`auth-input${touched.phone && form.phone && form.phone.length < 10 ? ' error' : ''}`}
                   placeholder="Enter your phone number"
@@ -151,10 +154,11 @@ const Register = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label">Password</label>
+              <label className="auth-field-label" htmlFor="register-password">Password</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128274;</span>
                 <input
+                  id="register-password"
                   type={showPassword ? 'text' : 'password'}
                   className={`auth-input${touched.password && form.password.length < 8 ? ' error' : form.password.length >= 8 ? ' valid' : ''}`}
                   placeholder="Create a strong password"
@@ -197,10 +201,11 @@ const Register = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label">Confirm Password</label>
+              <label className="auth-field-label" htmlFor="register-confirm-password">Confirm Password</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128274;</span>
                 <input
+                  id="register-confirm-password"
                   type={showConfirmPassword ? 'text' : 'password'}
                   className={`auth-input${touched.confirmPassword && !passwordsMatch ? ' error' : touched.confirmPassword && passwordsMatch && form.confirmPassword ? ' valid' : ''}`}
                   placeholder="Confirm your password"
@@ -232,8 +237,8 @@ const Register = () => {
               />
               <label htmlFor="terms">
                 I agree to the{' '}
-                <Link to="/terms" className="auth-link">Terms of Service</Link> and{' '}
-                <Link to="/privacy" className="auth-link">Privacy Policy</Link>
+                <Link to="/policies#terms" className="auth-link">Terms of Service</Link> and{' '}
+                <Link to="/policies#privacy" className="auth-link">Privacy Policy</Link>
               </label>
             </div>
 

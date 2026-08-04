@@ -38,7 +38,7 @@ const Footer = () => {
         <form onSubmit={handleSubscribe} style={{
           display: "flex", gap: "0.5rem", flexShrink: 0, width: "100%", maxWidth: "420px"
         }}>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email address" required style={{
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email address" aria-label="Email address for newsletter" required style={{
             flex: 1, padding: "0.6rem 0.85rem", border: "none", borderRadius: "6px",
             fontSize: "0.85rem", outline: "none"
           }} />
@@ -132,7 +132,7 @@ const Footer = () => {
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "0.35rem",
               padding: "0.3rem 0.6rem", border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: "6px", fontSize: "0.75rem", color: "#94a3b8", cursor: "pointer", width: "fit-content"
+              borderRadius: "6px", fontSize: "0.75rem", color: "#94a3b8", width: "fit-content"
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
               App Store
@@ -140,7 +140,7 @@ const Footer = () => {
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "0.35rem",
               padding: "0.3rem 0.6rem", border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: "6px", fontSize: "0.75rem", color: "#94a3b8", cursor: "pointer", width: "fit-content"
+              borderRadius: "6px", fontSize: "0.75rem", color: "#94a3b8", width: "fit-content"
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               Google Play

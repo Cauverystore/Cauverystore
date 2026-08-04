@@ -87,8 +87,8 @@
 
   --color-text-primary: var(--gray-900);
   --color-text-secondary: var(--gray-600);
-  --color-text-tertiary: var(--gray-400);
-  --color-text-muted: var(--gray-400);
+  --color-text-tertiary: var(--gray-500);
+  --color-text-muted: var(--gray-500);
   --color-text-inverse: var(--white);
   --color-text-link: var(--color-primary);
   --color-text-link-hover: var(--color-primary-hover);

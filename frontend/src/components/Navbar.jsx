@@ -21,6 +21,42 @@ const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const searchRef = useRef(null);
+  const mobileMenuRef = useRef(null);
+  const menuFocusRestore = useRef(null);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    menuFocusRestore.current = document.activeElement;
+    const getFocusable = () => {
+      const panel = mobileMenuRef.current;
+      if (!panel) return [];
+      return Array.from(panel.querySelectorAll('a, button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+        .filter((el) => !el.disabled);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") { setMobileOpen(false); return; }
+      if (e.key === "Tab") {
+        const els = getFocusable();
+        if (els.length === 0) return;
+        const first = els[0];
+        const last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    const focusTimer = setTimeout(() => {
+      const els = getFocusable();
+      if (els.length > 0) els[0].focus();
+    }, 60);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener("keydown", onKeyDown);
+      if (menuFocusRestore.current && typeof menuFocusRestore.current.focus === "function") {
+        menuFocusRestore.current.focus();
+      }
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -123,6 +159,7 @@ const Navbar = () => {
               ref={searchRef}
               type="text"
               placeholder="Search for products, brands and more..."
+              aria-label="Search for products"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -220,6 +257,7 @@ const Navbar = () => {
         <input
           type="text"
           placeholder="Search for products, brands and more..."
+          aria-label="Search for products"
           value={mobileSearch}
           onChange={(e) => setMobileSearch(e.target.value)}
           className="sn-mobile-search-input"
@@ -237,7 +275,7 @@ const Navbar = () => {
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200,
           display: "flex"
         }} onClick={() => setMobileOpen(false)}>
-          <div style={{
+          <div ref={mobileMenuRef} role="dialog" aria-modal="true" aria-label="Menu" style={{
             width: "280px", background: "#fff", height: "100%", overflowY: "auto",
             padding: "1rem", boxShadow: "2px 0 12px rgba(0,0,0,0.1)"
           }} onClick={(e) => e.stopPropagation()}>
@@ -248,7 +286,7 @@ const Navbar = () => {
               <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
                 {token ? "Hello, User" : "Welcome"}
               </span>
-              <button onClick={() => setMobileOpen(false)} style={{
+              <button onClick={() => setMobileOpen(false)} aria-label="Close menu" style={{
                 background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem"
               }}>&times;</button>
             </div>
@@ -275,36 +313,6 @@ const Navbar = () => {
         </div>
       )}
 
-      {/* Mobile bottom bar */}
-      <div style={{
-        display: "none", position: "fixed", bottom: 0, left: 0, right: 0,
-        background: "#fff", borderTop: "1px solid var(--color-border, #e2e8f0)",
-        zIndex: 99, padding: "0.35rem 0"
-      }} className="sn-mobile-bottom-bar">
-        <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center" }}>
-          <button onClick={() => navigate("/")} style={bottomBtnStyle}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-            <span>Home</span>
-          </button>
-          <button onClick={() => navigate("/products")} style={bottomBtnStyle}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            <span>Shop</span>
-          </button>
-          <button onClick={() => setCartDrawerOpen(true)} style={bottomBtnStyle}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-            <span>Cart</span>
-          </button>
-          <button onClick={() => navigate(token ? "/wishlist" : "/login")} style={bottomBtnStyle}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <span>Wishlist</span>
-          </button>
-          <button onClick={() => navigate(token ? "/profile" : "/login")} style={bottomBtnStyle}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span>Profile</span>
-          </button>
-        </div>
-      </div>
-
       <CartDrawer open={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />
 
       <style>{`
@@ -316,7 +324,6 @@ const Navbar = () => {
           .sn-utility-bar > div:last-child { display: none; }
           .sn-header > div > form { display: none !important; }
           .sn-header > div > nav { display: none; }
-          .sn-mobile-bottom-bar { display: block !important; }
           .sn-header > div { padding: 0.6rem 1rem; }
           .sn-mobile-search-bar {
             display: flex; align-items: center; gap: 0.5rem;
@@ -337,12 +344,6 @@ const Navbar = () => {
       `}</style>
     </>
   );
-};
-
-const bottomBtnStyle = {
-  display: "flex", flexDirection: "column", alignItems: "center", gap: "2px",
-  background: "none", border: "none", cursor: "pointer", padding: "0.25rem 0.5rem",
-  fontSize: "0.6rem", color: "var(--gray-600)", fontWeight: 500
 };
 
 export default Navbar;

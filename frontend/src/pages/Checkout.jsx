@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
+import loadRazorpay from "../utils/loadRazorpay";
 import "../styles/checkout.css";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
@@ -127,13 +128,17 @@ const Checkout = () => {
         const orderId = res.data?.id || res.data?._id || res.data?.orderId;
         navigate(`/order-success?id=${orderId}`);
       } else {
-        const paymentRes = await api.post("/api/payment/create", { amount: total, ...payload });
-        const paymentData = paymentRes.data;
-        if (!window.Razorpay) {
+        let rzp;
+        try {
+          await loadRazorpay();
+          rzp = window.Razorpay;
+        } catch (e) {
           setError("Razorpay SDK not loaded. Please try COD.");
           setPlacing(false);
           return;
         }
+        const paymentRes = await api.post("/api/payment/create", { amount: total, ...payload });
+        const paymentData = paymentRes.data;
         const options = {
           key: paymentData.key || paymentData.razorpayKey || process.env.REACT_APP_RAZORPAY_KEY_ID || "rzp_test_XXXXXXXXXXXXXXXXX",
           amount: paymentData.amount || Math.round(total * 100),
@@ -163,12 +168,12 @@ const Checkout = () => {
           },
           modal: { ondismiss: function () { setError("Payment was cancelled."); setPlacing(false); } }
         };
-        const rzp = new window.Razorpay(options);
-        rzp.on("payment.failed", function (response) {
+        const rzpInst = new rzp(options);
+        rzpInst.on("payment.failed", function (response) {
           setError("Payment failed: " + (response.error?.description || "Unknown error"));
           setPlacing(false);
         });
-        rzp.open();
+        rzpInst.open();
       }
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Failed to place order. Please try again.");
@@ -229,8 +234,10 @@ const Checkout = () => {
             {savedAddresses.length > 0 && !showNewAddr && (
               <div style={{ marginBottom: "1rem" }}>
                 {savedAddresses.map((addr) => (
-                  <div key={addr.id} onClick={() => { setSelectedAddrId(addr.id); setShipping(addr); }}
+                  <button type="button" key={addr.id} onClick={() => { setSelectedAddrId(addr.id); setShipping(addr); }}
+                    aria-pressed={selectedAddrId === addr.id}
                     style={{
+                      display: "block", width: "100%", textAlign: "left", fontFamily: "inherit",
                       padding: "0.75rem", border: selectedAddrId === addr.id ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
                       borderRadius: "var(--radius-sm)", marginBottom: "0.5rem", cursor: "pointer",
                       background: selectedAddrId === addr.id ? "var(--color-primary-light)" : "var(--color-surface)"
@@ -240,7 +247,7 @@ const Checkout = () => {
                       {addr.street}, {addr.city}, {addr.state} - {addr.pincode}
                     </div>
                     <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>Phone: {addr.phone}</div>
-                  </div>
+                  </button>
                 ))}
                 <button onClick={() => setShowNewAddr(true)} style={{
                   padding: "0.5rem 1rem", border: "1px dashed var(--color-primary)", borderRadius: "var(--radius-sm)",
@@ -260,8 +267,8 @@ const Checkout = () => {
                   { label: "Pincode", name: "pincode", placeholder: "6-digit pincode" },
                 ].map((field) => (
                   <div key={field.name} style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                    <label style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{field.label}</label>
-                    <input name={field.name} value={shipping[field.name] || ""} onChange={handleChange}
+                    <label htmlFor={`shipping-${field.name}`} style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{field.label}</label>
+                    <input id={`shipping-${field.name}`} name={field.name} value={shipping[field.name] || ""} onChange={handleChange}
                       placeholder={field.placeholder}
                       style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none" }} />
                   </div>

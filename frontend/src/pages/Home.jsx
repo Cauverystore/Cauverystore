@@ -12,10 +12,10 @@ import { useWishlist } from "../context/WishlistContext";
 import "../styles/shopnest-home.css";
 
 const BANNERS = [
-  { id: 1, title: "Big Summer Sale", subtitle: "Up to 70% off on Electronics", cta: "Shop Now", bg: "#0B3D2E", accent: "#2E9B57", color: "#7FFFD4" },
-  { id: 2, title: "Fashion Week", subtitle: "New arrivals starting at \u20B9299", cta: "Explore Styles", bg: "#146C43", accent: "#2E9B57", color: "#7FFFD4" },
+  { id: 1, title: "Big Summer Sale", subtitle: "Up to 70% off on Electronics", cta: "Shop Now", bg: "#0B3D2E", accent: "#1B7A45", color: "#7FFFD4" },
+  { id: 2, title: "Fashion Week", subtitle: "New arrivals starting at \u20B9299", cta: "Explore Styles", bg: "#146C43", accent: "#1B7A45", color: "#7FFFD4" },
   { id: 3, title: "Home Makeover", subtitle: "Kitchen essentials & furniture deals", cta: "Upgrade Now", bg: "#115035", accent: "#0B3D2E", color: "#7FFFD4" },
-  { id: 4, title: "Book Bonanza", subtitle: "Bestsellers at flat 40% off", cta: "Browse Books", bg: "#146C43", accent: "#2E9B57", color: "#7FFFD4" },
+  { id: 4, title: "Book Bonanza", subtitle: "Bestsellers at flat 40% off", cta: "Browse Books", bg: "#146C43", accent: "#1B7A45", color: "#7FFFD4" },
 ];
 const BANNER_ICONS = [Zap, Shirt, HomeIcon, BookOpen];
 
@@ -61,7 +61,7 @@ function Stars({ rating, reviews }) {
   const full = Math.floor(rating);
   const half = rating - full >= 0.5;
   return (
-    <span className="stars">
+    <span className="stars" aria-label={`${rating} out of 5 stars`}>
       {[...Array(5)].map((_, i) => (
         <span key={i} className={i < full ? "star full" : (i === full && half ? "star half" : "star empty")}>
           {i < full ? "\u2605" : (i === full && half ? "\u2605" : "\u2606")}
@@ -101,7 +101,14 @@ function ProductCard({ product, onCart, onBuyNow, adding }) {
   };
 
   return (
-    <div className="sn-product-card" onClick={() => navigate(`/product/${product.id}`)}>
+    <div
+      className="sn-product-card"
+      onClick={() => navigate(`/product/${product.id}`)}
+      role="button"
+      tabIndex={0}
+      aria-label={`View ${product.name || "Product"}`}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/product/${product.id}`); } }}
+    >
       <div className="sn-product-image-wrap">
         <CartItemImage src={product.image} name={product.name} width={200} height={200} className="sn-product-img" />
         {product.badge && <span className="sn-product-badge">{product.badge}</span>}
@@ -261,7 +268,7 @@ const Home = () => {
   return (
     <div className="sn-page">
       {toast && (
-        <div className={`sn-toast sn-toast-${toast.type}`}>
+        <div className={`sn-toast sn-toast-${toast.type}`} role="status" aria-live="polite">
           {toast.text}
         </div>
       )}

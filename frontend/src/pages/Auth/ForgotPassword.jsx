@@ -121,10 +121,11 @@ const ForgotPassword = () => {
           {step === 1 ? (
             <form onSubmit={handleRequestOtp} className="auth-form">
               <div className="auth-field">
-                <label className="auth-field-label">Email</label>
+                <label className="auth-field-label" htmlFor="fp-email">Email</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#9993;</span>
                   <input
+                    id="fp-email"
                     type="email"
                     className="auth-input"
                     placeholder="Enter your email"
@@ -151,10 +152,11 @@ const ForgotPassword = () => {
           ) : (
             <form onSubmit={handleResetPassword} className="auth-form">
               <div className="auth-field">
-                <label className="auth-field-label">OTP Code</label>
+                <label className="auth-field-label" htmlFor="fp-otp">OTP Code</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
+                    id="fp-otp"
                     type="text"
                     className="auth-input"
                     placeholder="Enter 6-digit code"
@@ -167,10 +169,11 @@ const ForgotPassword = () => {
               </div>
 
               <div className="auth-field">
-                <label className="auth-field-label">New Password</label>
+                <label className="auth-field-label" htmlFor="fp-new-password">New Password</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
+                    id="fp-new-password"
                     type={showPassword ? 'text' : 'password'}
                     className="auth-input"
                     placeholder="Create a strong password"
@@ -195,10 +198,11 @@ const ForgotPassword = () => {
               </div>
 
               <div className="auth-field">
-                <label className="auth-field-label">Confirm New Password</label>
+                <label className="auth-field-label" htmlFor="fp-confirm-password">Confirm New Password</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
+                    id="fp-confirm-password"
                     type={showPassword ? 'text' : 'password'}
                     className="auth-input"
                     placeholder="Confirm your password"

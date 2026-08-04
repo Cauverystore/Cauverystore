@@ -692,6 +692,10 @@
   transition: all var(--transition-fast);
   min-height: 180px;
   text-align: center;
+  width: 100%;
+  background: none;
+  font-family: inherit;
+  color: inherit;
 }
 
 .address-add-card:hover {

@@ -238,7 +238,7 @@ const Cart = () => {
         <h1 className="cart-title">Shopping Cart</h1>
         <div className="cart-summary-coupon-applied" style={{ justifyContent: "space-between" }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="cart-summary-coupon-remove">&times;</button>
+          <button onClick={() => setError(null)} className="cart-summary-coupon-remove" aria-label="Dismiss error">&times;</button>
         </div>
       </div>
     );
@@ -254,13 +254,13 @@ const Cart = () => {
       {error && (
         <div className="cart-summary-coupon-applied" style={{ gridColumn: "1 / -1", justifyContent: "space-between" }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="cart-summary-coupon-remove">&times;</button>
+          <button onClick={() => setError(null)} className="cart-summary-coupon-remove" aria-label="Dismiss error">&times;</button>
         </div>
       )}
       {successMsg && (
         <div className="cart-summary-coupon-applied" style={{ gridColumn: "1 / -1", justifyContent: "space-between" }}>
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="cart-summary-coupon-remove">&times;</button>
+          <button onClick={() => setSuccessMsg(null)} className="cart-summary-coupon-remove" aria-label="Dismiss message">&times;</button>
         </div>
       )}
           {/* ─── LEFT COLUMN: Cart items → Checkout → Continue → Freq Bought ─── */}
@@ -321,10 +321,10 @@ const Cart = () => {
                       <div className="cart-item-actions">
                         <div className="cart-item-qty">
                           <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty - 1)}
-                            disabled={qty <= 1 || isLoading(`qty-${itemId}`)}>-</button>
-                          <input className="cart-item-qty-value" type="number" value={qty} readOnly />
+                            disabled={qty <= 1 || isLoading(`qty-${itemId}`)} aria-label={`Decrease quantity of ${product.name || "item"}`}>-</button>
+                          <input className="cart-item-qty-value" type="number" value={qty} readOnly aria-label={`Quantity of ${product.name || "item"}`} />
                           <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty + 1)}
-                            disabled={isLoading(`qty-${itemId}`)}>+</button>
+                            disabled={isLoading(`qty-${itemId}`)} aria-label={`Increase quantity of ${product.name || "item"}`}>+</button>
                         </div>
                         <div className="cart-item-secondary-actions">
                           <button
@@ -484,6 +484,7 @@ const Cart = () => {
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value)}
                 placeholder="Enter coupon code"
+                aria-label="Enter coupon code"
                 disabled={!!appliedCoupon}
               />
               {!appliedCoupon ? (

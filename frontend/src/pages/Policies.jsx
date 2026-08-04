@@ -149,7 +149,8 @@ const policies = {
 };
 
 const Policies = () => {
-  const [activeTab, setActiveTab] = useState("privacy");
+  const initialTab = window.location.hash.replace("#", "") || "privacy";
+  const [activeTab, setActiveTab] = useState(tabs.some((t) => t.id === initialTab) ? initialTab : "privacy");
   const policy = policies[activeTab];
 
   const tabsConfig = tabs.map((t) => ({ id: t.id, label: t.label }));

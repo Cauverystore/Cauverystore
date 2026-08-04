@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark, ArrowRightCircle, Trash2 } from "lucide-react";
 import api from "../api/axios";
 import { useWishlist } from "../context/WishlistContext";
+import { imgUrl } from "../utils/images";
 import "../styles/product-tray.css";
 
 const PLACEHOLDER = "/images/placeholder.svg";
@@ -82,7 +83,8 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const inStock = stock > 0;
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
   const images = product?.images || (product?.image ? [toUrl(product.image)] : []);
-  const image = (images.length > 0 ? toUrl(images[0]) : null) || PLACEHOLDER;
+  const rawImage = images.length > 0 ? toUrl(images[0]) : null;
+  const image = rawImage ? imgUrl(rawImage) : PLACEHOLDER;
   const badge = product?.badge || (discount > 50 ? "Best Seller" : discount > 30 ? "Popular" : "");
   const wishlisted = wishlistIds.has(pid);
 

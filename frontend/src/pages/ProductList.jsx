@@ -74,15 +74,15 @@ const ProductList = () => {
           <div className="pl-sidebar-section">
             <h3 className="pl-sidebar-title">Category</h3>
             <div className="pl-sidebar-categories">
-              <div className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} onClick={() => { setCategory(""); setPage(1); }}>All Categories</div>
+              <button type="button" className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} aria-pressed={category === ""} onClick={() => { setCategory(""); setPage(1); }}>All Categories</button>
               {categories.map((cat) => (
-                <div key={categoryValue(cat)} className={`pl-sidebar-cat ${category === categoryValue(cat) ? "active" : ""}`} onClick={() => { setCategory(categoryValue(cat)); setPage(1); }}>{categoryLabel(cat)}</div>
+                <button type="button" key={categoryValue(cat)} className={`pl-sidebar-cat ${category === categoryValue(cat) ? "active" : ""}`} aria-pressed={category === categoryValue(cat)} onClick={() => { setCategory(categoryValue(cat)); setPage(1); }}>{categoryLabel(cat)}</button>
               ))}
             </div>
           </div>
           <div className="pl-sidebar-section">
             <h3 className="pl-sidebar-title">Sort By</h3>
-            <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sidebar-select">
+            <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sidebar-select" aria-label="Sort products">
               <option value="">Default</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
@@ -94,7 +94,7 @@ const ProductList = () => {
           </div>
           <div className="pl-sidebar-section">
             <h3 className="pl-sidebar-title">Search</h3>
-            <input type="text" placeholder="Search products..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-sidebar-input" />
+            <input type="text" placeholder="Search products..." aria-label="Search products" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-sidebar-input" />
           </div>
           <button className="pl-sidebar-clear" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>Clear All Filters</button>
         </aside>
@@ -149,7 +149,7 @@ const ProductList = () => {
         .pl-sidebar-section { margin-bottom: 1.25rem; }
         .pl-sidebar-title { font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; }
         .pl-sidebar-categories { display: flex; flex-direction: column; gap: 2px; max-height: 280px; overflow-y: auto; }
-        .pl-sidebar-cat { padding: 0.4rem 0.6rem; font-size: 0.82rem; color: #475569; cursor: pointer; border-radius: 6px; transition: all 0.12s; }
+        .pl-sidebar-cat { width: 100%; padding: 0.4rem 0.6rem; font-size: 0.82rem; color: #475569; cursor: pointer; border-radius: 6px; transition: all 0.12s; background: none; border: none; text-align: left; font-family: inherit; }
         .pl-sidebar-cat:hover { background: #f1f5f9; }
         .pl-sidebar-cat.active { background: #f0fdf4; font-weight: 600; }
         .pl-sidebar-select { width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; }

@@ -64,10 +64,11 @@ const ResetPasswordLink = () => {
           ) : (
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="auth-field">
-                <label className="auth-field-label">New Password</label>
+                <label className="auth-field-label" htmlFor="rpl-new-password">New Password</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
+                    id="rpl-new-password"
                     type={showPassword ? 'text' : 'password'}
                     className="auth-input"
                     placeholder="Create a strong password"
@@ -92,10 +93,11 @@ const ResetPasswordLink = () => {
               </div>
 
               <div className="auth-field">
-                <label className="auth-field-label">Confirm New Password</label>
+                <label className="auth-field-label" htmlFor="rpl-confirm-password">Confirm New Password</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
+                    id="rpl-confirm-password"
                     type={showPassword ? 'text' : 'password'}
                     className="auth-input"
                     placeholder="Confirm your password"

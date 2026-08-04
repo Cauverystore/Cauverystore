@@ -66,7 +66,7 @@ const OffersPage = () => {
 
   return (
     <div className="products-page">
-      {cartMsg && <div className="pt-toast">{cartMsg}</div>}
+      {cartMsg && <div className="pt-toast" role="status" aria-live="polite">{cartMsg}</div>}
       <div className="section-header">
         <h2 className="section-title">Deals of the Day</h2>
         <span className="products-toolbar-count">{products.length} products</span>

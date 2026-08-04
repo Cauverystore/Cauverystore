@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import api from "../api/axios";
 import { getProductById } from "../services/productService";
 import { addToCartOrLogin } from "../utils/cartActions";
+import { imgUrl } from "../utils/images";
 import Breadcrumb from "../components/Breadcrumb";
 import "../styles/productDetails.css";
 
@@ -53,6 +54,8 @@ const ProductDetails = () => {
   };
 
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
+  const fullUrl = (img) => { const raw = toUrl(img); return raw ? imgUrl(raw) : ""; };
+  const siteDefaultImage = window.location.origin + "/images/logo.jpg";
   const categoryName = typeof product?.category === "object" ? product?.category?.name || "" : product?.category || "";
   // Escaping "<" prevents a "</script>" inside a product name/description from
   // closing this script tag early and letting injected markup execute as real
@@ -69,14 +72,14 @@ const ProductDetails = () => {
         <meta name="description" content={product.description?.substring(0, 160) || `${product.name} at Cauvery Store`} />
         <meta property="og:title" content={`${product.name} - Cauvery Store`} />
         <meta property="og:description" content={product.description?.substring(0, 200) || `${product.name} at Cauvery Store`} />
-        <meta property="og:image" content={toUrl(product.images?.[0]) || product.image || ""} />
+        <meta property="og:image" content={fullUrl(product.images?.[0]) || fullUrl(product.image) || siteDefaultImage} />
         <meta property="og:type" content="product" />
       </Helmet>
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html: safeJsonLd({
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": product.name,
-        "image": toUrl(product.images?.[0]) || product.image || "",
+        "image": fullUrl(product.images?.[0]) || fullUrl(product.image) || siteDefaultImage,
         "description": product.description,
         "sku": product.sku || product.id?.toString(),
         "brand": product.brand ? { "@type": "Brand", "name": product.brand } : undefined,
@@ -111,11 +114,21 @@ const ProductDetails = () => {
       ]} />
       <div className="pd-main">
         <div className="product-image-section">
-          <img className="product-main-image" src={toUrl(product.images?.[selectedImage]) || product.image || "/images/placeholder.svg"} alt={product.name} width="400" height="400" />
+          <img className="product-main-image" src={fullUrl(product.images?.[selectedImage]) || fullUrl(product.image) || "/images/placeholder.svg"} alt={product.name} width="400" height="400" fetchPriority="high" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
           {(product.images || []).length > 1 && (
             <div className="product-thumbnails">
               {product.images.map((img, i) => (
-                <img key={i} src={toUrl(img)} alt="" width="60" height="60" className={i === selectedImage ? "active" : ""} onClick={() => setSelectedImage(i)} />
+                <button
+                  key={i}
+                  type="button"
+                  className={`product-thumb-btn${i === selectedImage ? " active" : ""}`}
+                  onClick={() => setSelectedImage(i)}
+                  aria-label={`View image ${i + 1} of ${product.images.length}`}
+                  aria-pressed={i === selectedImage}
+                  style={{ border: "none", padding: 0, background: "none", cursor: "pointer" }}
+                >
+                  <img src={fullUrl(img)} alt="" width="60" height="60" loading="lazy" className={i === selectedImage ? "active" : ""} onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
+                </button>
               ))}
             </div>
           )}
@@ -192,16 +205,22 @@ const ProductDetails = () => {
           <div className="related-products-scroll">
             {relatedProducts.map((p) => {
               const pid = p.id || p._id;
-              const img = p.images?.[0]?.url || p.image || "";
+              const img = fullUrl(p.images?.[0]) || fullUrl(p.image);
               const price = p.dealPrice || p.price || 0;
               return (
-                <div key={pid} className="related-product-card" onClick={() => navigate(`/product/${pid}`)}>
-                  <img src={img} alt={p.name} width="200" height="200" loading="lazy" className="related-product-img" />
+                <button
+                  type="button"
+                  key={pid}
+                  className="related-product-card"
+                  onClick={() => navigate(`/product/${pid}`)}
+                  style={{ display: "block", fontFamily: "inherit", color: "inherit", textAlign: "left" }}
+                >
+                  <img src={img || "/images/placeholder.svg"} alt={p.name} width="200" height="200" loading="lazy" className="related-product-img" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
                   <div className="related-product-info">
                     <p className="related-product-name">{p.name}</p>
                     <p className="related-product-price">{"\u20B9"}{price.toLocaleString()}</p>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

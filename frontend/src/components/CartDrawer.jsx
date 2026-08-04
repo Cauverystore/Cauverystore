@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import { getCart, updateQuantity as updateCartItemQuantity, removeItem as removeCartItem } from "../services/cartService";
@@ -8,6 +8,47 @@ const CartDrawer = ({ open, onClose }) => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const drawerRef = useRef(null);
+  const previouslyFocused = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    previouslyFocused.current = document.activeElement;
+
+    const getFocusable = () => {
+      const drawer = drawerRef.current;
+      if (!drawer) return [];
+      return Array.from(drawer.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+        .filter((el) => !el.disabled && el.getAttribute("aria-hidden") !== "true");
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Tab") {
+        const els = getFocusable();
+        if (els.length === 0) return;
+        const first = els[0];
+        const last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+
+    const focusTimer = setTimeout(() => {
+      const els = getFocusable();
+      if (els.length > 0) els[0].focus();
+    }, 60);
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused.current && typeof previouslyFocused.current.focus === "function") {
+        previouslyFocused.current.focus();
+      }
+    };
+  }, [open, onClose]);
 
   useEffect(() => {
     if (open) {
@@ -51,14 +92,14 @@ const CartDrawer = ({ open, onClose }) => {
 
   return (
     <>
-      <div className="cart-drawer-overlay" onClick={onClose} />
-      <div className="cart-drawer">
+      <div className="cart-drawer-overlay" onClick={onClose} aria-hidden="true" />
+      <div className="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping cart" ref={drawerRef}>
         <div className="cart-drawer-header">
           <h3><ShoppingCart size={18} /> Your Cart ({cartItems.length})</h3>
           <button className="cart-drawer-close" onClick={onClose} aria-label="Close cart"><X size={20} /></button>
         </div>
 
-        <div className="cart-drawer-body">
+        <div className="cart-drawer-body" aria-live="polite">
           {loading ? (
             <div className="cart-drawer-loading">Loading...</div>
           ) : cartItems.length === 0 ? (
@@ -90,12 +131,12 @@ const CartDrawer = ({ open, onClose }) => {
                       {product.weight && <span className="cd-attr">Weight: {product.weight}g</span>}
                     </div>
                     <div className="cart-drawer-item-qty">
-                      <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty - 1)} disabled={qty <= 1}><Minus size={14} /></button>
+                      <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty - 1)} disabled={qty <= 1} aria-label={`Decrease quantity of ${name}`}><Minus size={14} /></button>
                       <span>{qty}</span>
-                      <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty + 1)}><Plus size={14} /></button>
+                      <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty + 1)} aria-label={`Increase quantity of ${name}`}><Plus size={14} /></button>
                     </div>
                   </div>
-                  <button className="cart-drawer-remove-btn" onClick={() => handleRemove(id)} aria-label="Remove item"><Trash2 size={16} /></button>
+                  <button className="cart-drawer-remove-btn" onClick={() => handleRemove(id)} aria-label={`Remove ${name} from cart`}><Trash2 size={16} /></button>
                 </div>
               );
             })
@@ -117,7 +158,7 @@ const CartDrawer = ({ open, onClose }) => {
 
       <style>{`
         .cd-attrs { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
-        .cd-attr { font-size: 0.72rem; color: #64748b; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; }
+        .cd-attr { font-size: 0.72rem; color: #475569; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; }
         .cart-drawer-overlay {
           position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; opacity: 1; transition: opacity 0.2s;
         }
@@ -134,8 +175,8 @@ const CartDrawer = ({ open, onClose }) => {
         .cart-drawer-close { background: none; border: none; cursor: pointer; color: #64748b; padding: 0.25rem; }
         .cart-drawer-close:hover { color: #1e293b; }
         .cart-drawer-body { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; }
-        .cart-drawer-loading { text-align: center; color: #94a3b8; padding: 2rem; }
-        .cart-drawer-empty { text-align: center; padding: 3rem 1rem; color: #94a3b8; }
+        .cart-drawer-loading { text-align: center; color: #6b7280; padding: 2rem; }
+        .cart-drawer-empty { text-align: center; padding: 3rem 1rem; color: #6b7280; }
         .cart-drawer-empty svg { margin-bottom: 1rem; }
         .cart-drawer-empty p { margin: 0 0 1rem; }
         .cart-drawer-shop-btn {

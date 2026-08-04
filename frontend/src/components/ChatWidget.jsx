@@ -43,6 +43,8 @@ const ChatWidget = () => {
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const widgetRef = useRef(null);
+  const launcherRef = useRef(null);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const wishlist = useWishlist();
@@ -50,6 +52,32 @@ const ChatWidget = () => {
   const closeWidget = useCallback(() => {
     setOpen(false);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") { closeWidget(); return; }
+      if (e.key === "Tab") {
+        const widget = widgetRef.current;
+        if (!widget) return;
+        const els = Array.from(widget.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+          .filter((el) => !el.disabled);
+        if (els.length === 0) return;
+        const first = els[0];
+        const last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, closeWidget]);
+
+  useEffect(() => {
+    if (!open) {
+      launcherRef.current?.focus();
+    }
+  }, [open]);
 
   const appendBot = useCallback((data) => {
     setMessages((prev) => [
@@ -211,7 +239,7 @@ const ChatWidget = () => {
   return (
     <>
       {open && (
-        <div className="cw-widget" role="dialog" aria-label="Cauvery Store assistant chat">
+        <div className="cw-widget" role="dialog" aria-modal="true" aria-label="Cauvery Store assistant chat" ref={widgetRef}>
           <div className="cw-header">
             <div className="cw-header-info">
               <div className="cw-avatar">
@@ -227,7 +255,7 @@ const ChatWidget = () => {
             </button>
           </div>
 
-          <div className="cw-body" ref={scrollRef}>
+          <div className="cw-body" ref={scrollRef} aria-live="polite">
             {messages.map((m) => (
               <div key={m.id} className={`cw-row cw-${m.from}`}>
                 <div className="cw-bubble">
@@ -281,7 +309,7 @@ const ChatWidget = () => {
         </div>
       )}
 
-      <button className="cw-launcher" onClick={() => setOpen((o) => !o)} aria-label={open ? "Close chat" : "Open chat assistant"}>
+      <button className="cw-launcher" ref={launcherRef} onClick={() => setOpen((o) => !o)} aria-label={open ? "Close chat" : "Open chat assistant"}>
         {open ? <CloseIcon /> : <ChatIcon />}
       </button>
     </>

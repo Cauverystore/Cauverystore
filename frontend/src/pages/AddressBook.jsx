@@ -93,28 +93,28 @@ const AddressBook = () => {
               <h3 className="profile-section-title">{editId ? "Edit Address" : "Add Address"}</h3>
               <div className="profile-form">
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Name</label>
-                  <input className="admin-form-input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />
+                  <label className="admin-form-label" htmlFor="addr-name">Name</label>
+                  <input id="addr-name" className="admin-form-input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />
                 </div>
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Phone</label>
-                  <input className="admin-form-input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+                  <label className="admin-form-label" htmlFor="addr-phone">Phone</label>
+                  <input id="addr-phone" className="admin-form-input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
                 </div>
                 <div className="admin-form-group full-width">
-                  <label className="admin-form-label">Address</label>
-                  <input className="admin-form-input" value={form.street} onChange={(e) => setForm({ ...form, street: e.target.value })} required />
+                  <label className="admin-form-label" htmlFor="addr-street">Address</label>
+                  <input id="addr-street" className="admin-form-input" value={form.street} onChange={(e) => setForm({ ...form, street: e.target.value })} required />
                 </div>
                 <div className="admin-form-group">
-                  <label className="admin-form-label">City</label>
-                  <input className="admin-form-input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} required />
+                  <label className="admin-form-label" htmlFor="addr-city">City</label>
+                  <input id="addr-city" className="admin-form-input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} required />
                 </div>
                 <div className="admin-form-group">
-                  <label className="admin-form-label">State</label>
-                  <input className="admin-form-input" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} required />
+                  <label className="admin-form-label" htmlFor="addr-state">State</label>
+                  <input id="addr-state" className="admin-form-input" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} required />
                 </div>
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Pincode</label>
-                  <input className="admin-form-input" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} required />
+                  <label className="admin-form-label" htmlFor="addr-pincode">Pincode</label>
+                  <input id="addr-pincode" className="admin-form-input" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} required />
                 </div>
               </div>
               <div className="admin-form-actions">
@@ -146,10 +146,10 @@ const AddressBook = () => {
               </div>
             ))}
             {!showForm && (
-              <div className="address-add-card" onClick={() => { setShowForm(true); setEditId(null); setForm({ ...initialForm }); }}>
+              <button type="button" className="address-add-card" onClick={() => { setShowForm(true); setEditId(null); setForm({ ...initialForm }); }}>
                 <div className="address-add-icon">+</div>
                 <div className="address-add-text">Add New Address</div>
-              </div>
+              </button>
             )}
           </div>
         )}
