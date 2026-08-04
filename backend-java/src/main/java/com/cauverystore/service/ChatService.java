@@ -687,13 +687,17 @@ public class ChatService {
     private int scoreProduct(Product p, List<String> tokens) {
         if (tokens.isEmpty()) return 0;
         try {
-            String haystack = ((p.getName() == null ? "" : p.getName())
-                    + " " + (p.getBrand() == null ? "" : p.getBrand())
-                    + " " + (p.getDescription() == null ? "" : p.getDescription())
-                    + " " + (p.getSubCategory() == null ? "" : p.getSubCategory())
-                    + " " + (p.getColor() == null ? "" : p.getColor())
-                    + " " + (p.getTags() == null ? "" : String.join(" ", p.getTags())))
-                    .toLowerCase(Locale.ROOT);
+            StringBuilder hay = new StringBuilder()
+                    .append(p.getName() == null ? "" : p.getName()).append(" ")
+                    .append(p.getBrand() == null ? "" : p.getBrand()).append(" ")
+                    .append(p.getDescription() == null ? "" : p.getDescription()).append(" ")
+                    .append(p.getSubCategory() == null ? "" : p.getSubCategory()).append(" ")
+                    .append(p.getColor() == null ? "" : p.getColor()).append(" ");
+            try {
+                if (p.getTags() != null) hay.append(String.join(" ", p.getTags()));
+            } catch (Exception ignored) {
+            }
+            String haystack = hay.toString().toLowerCase(Locale.ROOT);
             String name = (p.getName() == null ? "" : p.getName()).toLowerCase(Locale.ROOT);
             String brand = (p.getBrand() == null ? "" : p.getBrand()).toLowerCase(Locale.ROOT);
             String sub = (p.getSubCategory() == null ? "" : p.getSubCategory()).toLowerCase(Locale.ROOT);
