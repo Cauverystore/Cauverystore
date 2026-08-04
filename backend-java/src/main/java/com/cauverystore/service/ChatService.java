@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -79,6 +80,21 @@ public class ChatService {
                     "You can reach our support team through the Contact page, or raise a support ticket and we'll get back to you quickly."}
     );
 
+    private static final List<String> PRICE_SORT_ASC = List.of(
+            "lowest priced", "lowest price", "cheapest", "cheap", "least expensive", "most affordable",
+            "affordable", "budget", "inexpensive", "low cost", "low priced", "value for money"
+    );
+
+    private static final List<String> PRICE_SORT_DESC = List.of(
+            "most expensive", "highest priced", "highest price", "expensive", "costly", "pricey",
+            "costliest", "high end", "premium", "top priced"
+    );
+
+    private static final List<String> PRICE_RANGE_WORDS = List.of(
+            "under ", "below", "less than", "more than", "greater than", "over ", "above ",
+            "between ", "up to", "upto", "within ", "at most", "at least", "minimum", "maximum", "max"
+    );
+
     public ChatResponse respond(String authHeader, String message) {
         if (message == null || message.trim().isEmpty()) {
             return fallback();
@@ -145,6 +161,7 @@ public class ChatService {
         if (matchesAny(msg, "offer", "offers", "deal", "discount", "coupon", "promo", "sale", "savings", "festive")) return "deals";
         if (matchesAny(msg, "refund", "return", "exchange", "shipping", "delivery", "payment", "pay", "cod", "upi",
                 "warranty", "cancel order", "how do i", "how to", "faq", "policy", "when will", "return policy", "what is the")) return "faq";
+        if (containsAny(msg, PRICE_SORT_ASC) || containsAny(msg, PRICE_SORT_DESC) || containsAny(msg, PRICE_RANGE_WORDS)) return "product_search";
         if (matchesAny(msg, "details", "detail", "tell me more", "about this", "info", "information",
                 "specification", "specs", "price", "in stock", "available", "stock", "describe")) return "product_details";
 
@@ -154,6 +171,19 @@ public class ChatService {
     private boolean matchesAny(String msg, String... words) {
         for (String w : words) {
             if (w.length() <= 3) {
+                if (Pattern.compile("\\b" + w + "\\b").matcher(msg).find()) return true;
+            } else if (msg.contains(w)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsAny(String msg, List<String> words) {
+        for (String w : words) {
+            if (w.endsWith(" ")) {
+                if (msg.contains(w)) return true;
+            } else if (w.length() <= 3) {
                 if (Pattern.compile("\\b" + w + "\\b").matcher(msg).find()) return true;
             } else if (msg.contains(w)) {
                 return true;
@@ -398,6 +428,12 @@ public class ChatService {
         boolean bestSeller = msg.contains("best seller") || msg.contains("bestseller");
         boolean trending = msg.contains("trending");
         boolean newArrival = msg.contains("new arrival") || msg.contains("new arrivals") || msg.contains("new in") || msg.contains("latest");
+        boolean priceAsc = containsAny(msg, PRICE_SORT_ASC);
+        boolean priceDesc = containsAny(msg, PRICE_SORT_DESC);
+        double[] range = extractPriceRange(msg);
+        double minPrice = range[0];
+        double maxPrice = range[1];
+        boolean priceMode = priceAsc || priceDesc || minPrice > 0 || maxPrice > 0;
         List<String> tokens = tokens(msg);
 
         List<Product> allActive = productService.getActiveProducts();
@@ -411,27 +447,38 @@ public class ChatService {
         }
 
         List<Product> ranked;
-        if (tokens.isEmpty() || bestSeller || trending || newArrival) {
-            ranked = pool;
+        String header;
+        if (priceMode) {
+            List<Product> pricePool = pool.stream()
+                    .filter(p -> p.getPrice() != null)
+                    .filter(p -> minPrice <= 0 || effectivePrice(p) >= minPrice)
+                    .filter(p -> maxPrice <= 0 || effectivePrice(p) <= maxPrice)
+                    .collect(Collectors.toList());
+            Comparator<Product> byPrice = Comparator.comparingDouble(this::effectivePrice);
+            if (priceDesc) pricePool.sort(byPrice.reversed());
+            else pricePool.sort(byPrice);
+            ranked = pricePool.size() > 6 ? pricePool.subList(0, 6) : pricePool;
+            header = priceHeader(msg, priceAsc, priceDesc, minPrice, maxPrice);
+        } else if (tokens.isEmpty() || bestSeller || trending || newArrival) {
+            ranked = pool.size() > 6 ? pool.subList(0, 6) : pool;
+            header = bestSeller ? "Here are our best sellers:\n"
+                    : trending ? "Here's what's trending right now:\n"
+                    : newArrival ? "Check out our latest arrivals:\n"
+                    : "Here's what I found for \"" + msg + "\":\n";
         } else {
             ranked = pool.stream()
                     .filter(p -> scoreProduct(p, tokens) > 0)
                     .sorted((a, b) -> Integer.compare(scoreProduct(b, tokens), scoreProduct(a, tokens)))
                     .toList();
+            if (ranked.size() > 6) ranked = ranked.subList(0, 6);
+            header = "Here's what I found for \"" + msg + "\":\n";
         }
-        if (ranked.size() > 6) ranked = ranked.subList(0, 6);
 
         if (ranked.isEmpty()) {
             return ChatResponse.create("no_results",
                             "I couldn't find any products matching that. Try a different word, or browse our latest offers!")
                     .quickReplies(List.of("Show me best sellers", "Any offers right now?", "Help"));
         }
-
-        String header;
-        if (bestSeller) header = "Here are our best sellers:\n";
-        else if (trending) header = "Here's what's trending right now:\n";
-        else if (newArrival) header = "Check out our latest arrivals:\n";
-        else header = "Here's what I found for \"" + msg + "\":\n";
 
         StringBuilder sb = new StringBuilder(header);
         List<Map<String, Object>> actions = new ArrayList<>();
@@ -704,6 +751,56 @@ public class ChatService {
 
     private String inr(double amount) {
         return "\u20B9" + String.format(Locale.ROOT, "%,.2f", amount);
+    }
+
+    private double effectivePrice(Product p) {
+        double price = p.getPrice() == null ? 0 : p.getPrice();
+        if (p.getOfferPrice() != null && p.getOfferPrice() < price) return p.getOfferPrice();
+        return price;
+    }
+
+    private double[] extractPriceRange(String msg) {
+        double min = 0;
+        double max = 0;
+        String clean = msg.replaceAll("[\\u20B9,]", " ");
+        List<Double> nums = new ArrayList<>();
+        java.util.regex.Matcher m = Pattern.compile("\\d+(?:\\.\\d+)?").matcher(clean);
+        while (m.find()) {
+            nums.add(Double.parseDouble(m.group()));
+        }
+        if (msg.contains("between") && nums.size() >= 2) {
+            min = nums.get(0);
+            max = nums.get(1);
+            return new double[]{min, max};
+        }
+        if (msg.contains("under") || msg.contains("below") || msg.contains("less than")
+                || msg.contains("beneath") || msg.contains("up to") || msg.contains("upto")
+                || msg.contains("within") || msg.contains("at most") || msg.contains("not more than")
+                || msg.contains("max") || msg.contains("maximum")) {
+            for (Double d : nums) max = Math.max(max, d);
+        }
+        if (msg.contains("over") || msg.contains("above") || msg.contains("more than")
+                || msg.contains("greater than") || msg.contains("at least") || msg.contains("minimum")
+                || msg.contains("min")) {
+            for (Double d : nums) min = Math.max(min, d);
+        }
+        return new double[]{min, max};
+    }
+
+    private String priceHeader(String msg, boolean asc, boolean desc, double min, double max) {
+        if (desc) return "Here are the most expensive products:\n";
+        if (asc) {
+            if (msg.contains("budget") || msg.contains("affordable") || msg.contains("cheap")) {
+                return "Here are our most affordable picks:\n";
+            }
+            return "Here are the lowest-priced products:\n";
+        }
+        StringBuilder b = new StringBuilder("Here are products ");
+        if (min > 0 && max > 0) b.append("between ").append(inr(min)).append(" and ").append(inr(max));
+        else if (min > 0) b.append("over ").append(inr(min));
+        else b.append("under ").append(inr(max));
+        b.append(":\n");
+        return b.toString();
     }
 
     private String safeMessage(Exception e) {
