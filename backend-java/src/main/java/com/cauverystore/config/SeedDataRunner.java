@@ -2,6 +2,7 @@ package com.cauverystore.config;
 
 import com.cauverystore.entities.*;
 import com.cauverystore.repository.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,9 @@ public class SeedDataRunner implements CommandLineRunner {
     private final RolePermissionRepository rolePermissionRepo;
     private final SellerRegistrationRepository sellerRegRepo;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.seed.demo-products:true}")
+    private boolean seedDemoProducts;
 
     public SeedDataRunner(UserRepository ur, CategoryRepository cr, ProductRepository pr,
                           ProductImageRepository pir, DiscountRepository dr,
@@ -57,7 +61,9 @@ public class SeedDataRunner implements CommandLineRunner {
         // restart whenever an admin deliberately deletes them - which is exactly
         // what was happening: every deploy restarted the app and resurrected the
         // demo catalog behind the admin's back.
-        if (productRepo.count() == 0) {
+        // app.seed.demo-products=false (APP_SEED_DEMO_PRODUCTS=false in prod) keeps
+        // the demo catalog gone for good once the admin has emptied the store.
+        if (seedDemoProducts && productRepo.count() == 0) {
             Object[][] prods = {
                 {"iPhone 15 Pro","Apple",134990.0,50,"Apple iPhone 15 Pro, 256GB, Titanium Black","Electronics","https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400",10.0},
                 {"Samsung Galaxy S24","Samsung",129999.0,35,"Samsung Galaxy S24 Ultra, 512GB","Electronics","https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400",8.0},
