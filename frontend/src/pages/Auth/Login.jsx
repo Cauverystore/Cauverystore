@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../context/AuthContext';
 import GoogleAuthNative from '../../utils/googleAuthNative';
@@ -33,6 +33,7 @@ const navigateForRole = (navigate, role) => {
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, loginWithGoogle, completeForcedPasswordReset } = useAuth();
   const [role, setRole] = useState('customer');
   const [email, setEmail] = useState('');
@@ -50,26 +51,32 @@ const Login = () => {
   const newPasswordValid = PASSWORD_REQUIREMENTS.every((r) => r.test(newPassword));
   const newPasswordsMatch = newPassword === confirmNewPassword;
 
+  const goAfterLogin = useCallback((role) => {
+    const redirect = searchParams.get('redirect');
+    if (redirect && redirect.startsWith('/')) navigate(redirect);
+    else navigateForRole(navigate, role);
+  }, [navigate, searchParams]);
+
   const handleGoogleCredential = useCallback(async (response) => {
     setError('');
     try {
       const data = await loginWithGoogle(response.credential, rememberMe);
-      navigateForRole(navigate, (data.role || 'customer').toLowerCase());
+      goAfterLogin((data.role || 'customer').toLowerCase());
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-in failed. Please try again.');
     }
-  }, [loginWithGoogle, navigate, rememberMe]);
+  }, [loginWithGoogle, rememberMe, goAfterLogin]);
 
   const handleNativeGoogleSignIn = useCallback(async () => {
     setError('');
     try {
       const result = await GoogleAuthNative.signIn();
       const data = await loginWithGoogle(result.idToken, rememberMe);
-      navigateForRole(navigate, (data.role || 'customer').toLowerCase());
+      goAfterLogin((data.role || 'customer').toLowerCase());
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-in failed. Please try again.');
     }
-  }, [loginWithGoogle, navigate, rememberMe]);
+  }, [loginWithGoogle, rememberMe, goAfterLogin]);
 
   useEffect(() => {
     if (role !== 'customer' || isNativeApp) return;
@@ -98,7 +105,7 @@ const Login = () => {
     setRemainingAttempts(null);
     try {
       await login(email, password, role, rememberMe);
-      navigateForRole(navigate, role);
+      goAfterLogin(role);
     } catch (err) {
       if (err.response?.data?.passwordResetRequired) {
         setForcedReset({ email: err.response.data.email || email, oldPassword: password });
@@ -122,7 +129,7 @@ const Login = () => {
     setLoading(true);
     try {
       const data = await completeForcedPasswordReset(forcedReset.email, forcedReset.oldPassword, newPassword, rememberMe);
-      navigateForRole(navigate, (data.role || role).toLowerCase());
+      goAfterLogin((data.role || role).toLowerCase());
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Failed to set new password.');
     } finally {

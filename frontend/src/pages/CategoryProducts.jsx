@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { searchProducts } from "../services/productService";
-import { addToCart } from "../services/cartService";
+import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Breadcrumb from "../components/Breadcrumb";
 import Pagination from "../components/Pagination";
@@ -35,16 +35,12 @@ const CategoryProducts = () => {
   }, [category, page]);
 
   const handleAddToCart = async (product) => {
-    try {
-      await addToCart(product.id || product._id, 1);
-    } catch { /* ignore */ }
+    await addToCartOrLogin(navigate, product, 1);
   };
 
   const handleBuyNow = async (product) => {
-    try {
-      await addToCart(product.id || product._id, 1);
-      navigate("/checkout");
-    } catch { /* ignore */ }
+    const res = await addToCartOrLogin(navigate, product, 1);
+    if (res.ok) navigate("/checkout");
   };
 
   return (

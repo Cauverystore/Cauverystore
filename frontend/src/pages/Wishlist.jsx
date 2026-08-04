@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getWishlist } from "../services/wishlistService";
-import { addToCart } from "../services/cartService";
+import { addToCartOrLogin } from "../utils/cartActions";
 import { useWishlist } from "../context/WishlistContext";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import "../styles/account.css";
@@ -12,6 +12,7 @@ const getItemId = (item) => {
 };
 
 const Wishlist = () => {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,21 +36,15 @@ const Wishlist = () => {
   const displayedItems = items.filter((item) => wishlistIds.has(getItemId(item)));
 
   const handleAddToCart = async (product) => {
-    try {
-      await addToCart(product.id || product._id, 1);
-    } catch {
-      setError("Failed to add item to cart");
-    }
+    const res = await addToCartOrLogin(navigate, product, 1);
+    if (!res.ok) setError("Failed to add item to cart");
   };
 
   const handleMoveToCart = async (product) => {
     const pid = product.id || product._id;
-    try {
-      await addToCart(pid, 1);
-      await toggleWishlist(pid);
-    } catch {
-      setError("Failed to move item to cart");
-    }
+    const res = await addToCartOrLogin(navigate, product, 1);
+    if (!res.ok) { setError("Failed to move item to cart"); return; }
+    await toggleWishlist(pid);
   };
 
   const handleRemove = async (product) => {

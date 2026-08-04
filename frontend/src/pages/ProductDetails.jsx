@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import api from "../api/axios";
 import { getProductById } from "../services/productService";
-import { addToCart } from "../services/cartService";
+import { addToCartOrLogin } from "../utils/cartActions";
 import Breadcrumb from "../components/Breadcrumb";
 import "../styles/productDetails.css";
 
@@ -40,18 +40,16 @@ const ProductDetails = () => {
   }, [id]);
 
   const handleAddToCart = async () => {
-    try {
-      await addToCart(product.id || product._id, quantity);
-      setCartMsg("Added to cart!");
-      setTimeout(() => setCartMsg(""), 2000);
-    } catch (err) { setCartMsg("Failed to add to cart"); setTimeout(() => setCartMsg(""), 2000); }
+    const res = await addToCartOrLogin(navigate, product, quantity);
+    if (res.needLogin) return;
+    setCartMsg(res.ok ? "Added to cart!" : "Failed to add to cart");
+    setTimeout(() => setCartMsg(""), 2000);
   };
 
   const handleBuyNow = async () => {
-    try {
-      await addToCart(product.id || product._id, quantity);
-      navigate("/checkout");
-    } catch { setCartMsg("Failed to add to cart"); setTimeout(() => setCartMsg(""), 2000); }
+    const res = await addToCartOrLogin(navigate, product, quantity);
+    if (res.ok) navigate("/checkout");
+    else if (!res.needLogin) { setCartMsg("Failed to add to cart"); setTimeout(() => setCartMsg(""), 2000); }
   };
 
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";

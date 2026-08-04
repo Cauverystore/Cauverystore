@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
-import { addToCart } from "../services/cartService";
+import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Pagination from "../components/Pagination";
 
@@ -59,16 +59,12 @@ const ProductList = () => {
   const categoryLabel = (cat) => cat.name || cat.title || cat;
 
   const handleAddToCart = async (product) => {
-    try {
-      await addToCart(product.id || product._id, 1);
-    } catch { /* ignore */ }
+    await addToCartOrLogin(navigate, product, 1);
   };
 
   const handleBuyNow = async (product) => {
-    try {
-      await addToCart(product.id || product._id, 1);
-      navigate("/checkout");
-    } catch { /* ignore */ }
+    const res = await addToCartOrLogin(navigate, product, 1);
+    if (res.ok) navigate("/checkout");
   };
 
   return (
