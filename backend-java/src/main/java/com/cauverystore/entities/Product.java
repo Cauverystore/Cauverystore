@@ -70,6 +70,7 @@ public class Product extends BaseEntity {
     private Integer returnWindow = 7;
     private Long sellerId;
     private String productStatus = "published";
+    private String channel = "ALL";
     private Long viewCount = 0L;
     @ElementCollection
     private List<String> badges = new ArrayList<>();
@@ -509,6 +510,12 @@ public class Product extends BaseEntity {
     public void setProductStatus(final String productStatus) {
         this.productStatus = productStatus;
     }
+
+    @java.lang.SuppressWarnings("all")
+    public String getChannel() { return this.channel; }
+
+    @java.lang.SuppressWarnings("all")
+    public void setChannel(final String channel) { this.channel = channel; }
 
     @java.lang.SuppressWarnings("all")
     public void setViewCount(final Long viewCount) {

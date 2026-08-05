@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "seller_registrations")
@@ -65,6 +67,11 @@ public class SellerRegistration {
 
     @Column(columnDefinition = "TEXT")
     private String licenses;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "seller_registration_apobs", joinColumns = @JoinColumn(name = "seller_registration_id"))
+    @Column(name = "apob", columnDefinition = "TEXT")
+    private List<String> apobList = new ArrayList<>();
 
     private LocalDateTime submittedAt;
     private LocalDateTime approvedAt;
@@ -150,6 +157,8 @@ public class SellerRegistration {
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
     public String getLicenses() { return licenses; }
     public void setLicenses(String licenses) { this.licenses = licenses; }
+    public List<String> getApobList() { return apobList; }
+    public void setApobList(List<String> apobList) { this.apobList = apobList; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

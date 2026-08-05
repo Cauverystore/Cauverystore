@@ -1,10 +1,12 @@
 package com.cauverystore.service;
 
+import com.cauverystore.client.GstnClient;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.GstInvoiceItem;
 import com.cauverystore.entities.GstSyncQueue;
 import com.cauverystore.entities.GstConfiguration;
 import com.cauverystore.entities.SellerRegistration;
+import com.cauverystore.entities.TcsRecord;
 import com.cauverystore.entities.Order;
 import com.cauverystore.entities.OrderItem;
 import com.cauverystore.entities.Product;
@@ -18,8 +20,10 @@ import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.UserRepository;
+import com.cauverystore.repository.TcsRecordRepository;
 import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.util.PdfBrandingUtil;
+import com.cauverystore.util.ExcelExportUtil;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
@@ -39,14 +43,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.io.ByteArrayOutputStream;
 import java.util.*;
-import java.util.Base64;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,6 +62,8 @@ public class GstInvoiceService {
     private final ProductRepository productRepo;
     private final UserRepository userRepo;
     private final AuditService auditService;
+    private final GstnClient gstnClient;
+    private final TcsRecordRepository tcsRepo;
 
     private static final Map<String, String> STATE_CODES = new LinkedHashMap<>();
     static {
@@ -88,7 +91,8 @@ public class GstInvoiceService {
                              GstSyncQueueRepository syncRepo, GstConfigurationRepository configRepo,
                              SellerRegistrationRepository sellerRegRepo,
                              OrderRepository orderRepo, ProductRepository productRepo,
-                             UserRepository userRepo, AuditService auditService) {
+                             UserRepository userRepo, AuditService auditService,
+                             GstnClient gstnClient, TcsRecordRepository tcsRepo) {
         this.invoiceRepo = invoiceRepo;
         this.itemRepo = itemRepo;
         this.syncRepo = syncRepo;
@@ -98,6 +102,8 @@ public class GstInvoiceService {
         this.productRepo = productRepo;
         this.userRepo = userRepo;
         this.auditService = auditService;
+        this.gstnClient = gstnClient;
+        this.tcsRepo = tcsRepo;
     }
 
     @Transactional
@@ -242,18 +248,21 @@ public class GstInvoiceService {
         // Generate IRN and QR code if e-invoicing applies (turnover >= 5Cr)
         boolean einvoicingApplicable = annualTurnover != null && annualTurnover >= 5_00_00_000;
         if (einvoicingApplicable) {
-            String irn = generateIrn(gstin, orderId, inv.getInvoiceNumber());
-            inv.setIrn(irn);
-            inv.setQrCode(generateQrData(irn, gstin, inv.getInvoiceNumber(), taxableAmount));
-            // Simulate ack
-            inv.setAckNo("ACK-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + String.format("%06d", orderId % 1000000));
-            inv.setAckDate(LocalDate.now().toString());
+            Map<String, Object> irnResp = gstnClient.generateIrn(inv);
+            inv.setIrn((String) irnResp.get("irn"));
+            inv.setQrCode((String) irnResp.get("qrCode"));
+            inv.setAckNo((String) irnResp.get("ackNo"));
+            inv.setAckDate((String) irnResp.get("ackDate"));
         }
 
         // Generate e-way bill if taxable amount exceeds ₹50,000
         if (taxableAmount > 50000) {
-            inv.setEwayBillNumber("EWB" + String.format("%012d", (orderId * 100 + 1) % 1000000000000L));
-            inv.setEwayBillExpiry(LocalDate.now().plusDays(15));
+            Map<String, Object> ewbResp = gstnClient.generateEwayBill(inv);
+            inv.setEwayBillNumber((String) ewbResp.get("ewayBillNumber"));
+            Object validUpto = ewbResp.get("validUpto");
+            if (validUpto != null) {
+                inv.setEwayBillExpiry(LocalDate.parse(validUpto.toString()));
+            }
         }
 
         double tcsRate = config != null ? config.getTcsRate() : 1.0;
@@ -264,6 +273,26 @@ public class GstInvoiceService {
         inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax() + tcsAmount) * 100.0) / 100.0);
 
         GstInvoice saved = invoiceRepo.save(inv);
+
+        // Record TCS for GSTR-8 (1% TCS on taxable value under Section 52)
+        if (tcsAmount > 0) {
+            TcsRecord tcs = new TcsRecord();
+            tcs.setSellerGstin(saved.getSellerGstin());
+            tcs.setMarketplace("NOYYAL");
+            tcs.setOrderId(orderId);
+            tcs.setInvoiceNumber(saved.getInvoiceNumber());
+            tcs.setSellerId(saved.getSellerId());
+            tcs.setCustomerId(saved.getCustomerId());
+            tcs.setCustomerEmail(saved.getCustomerEmail());
+            tcs.setCustomerGstin(isB2b ? saved.getBuyerGstin() : "");
+            tcs.setTransactionDate(LocalDate.now());
+            tcs.setTaxableAmount(saved.getTaxableAmount());
+            tcs.setTcsRate(saved.getTcsRate());
+            tcs.setTcsAmount(tcsAmount);
+            tcs.setFilingStatus("PENDING");
+            tcs.setPeriod(LocalDate.now().format(DateTimeFormatter.ofPattern("MMyyyy")));
+            tcsRepo.save(tcs);
+        }
 
         addToSyncQueue(saved.getId(), "GENERATE_EINVOICE");
 
@@ -523,6 +552,12 @@ public class GstInvoiceService {
             entry.put("isInterState", inv.getIsInterState());
             entry.put("invoiceType", inv.getInvoiceType());
             entry.put("itcEligible", inv.getItcEligible());
+            // B2C interstate supplies > ₹2.5L must carry buyer GSTIN and full address (GSTR-1 B2CL / 6B).
+            boolean b2cInterstateAboveLimit = "B2C".equals(inv.getInvoiceType())
+                    && Boolean.TRUE.equals(inv.getIsInterState())
+                    && nz(inv.getTaxableAmount()) > 250000;
+            entry.put("b2cInterstateAboveLimit", b2cInterstateAboveLimit);
+            entry.put("requiresBuyerGstin", b2cInterstateAboveLimit);
             entry.put("irn", inv.getIrn());
             entry.put("status", inv.getStatus());
             gstr1.add(entry);
@@ -623,32 +658,8 @@ public class GstInvoiceService {
         return "33";
     }
 
-    private String generateIrn(String gstin, Long orderId, String invoiceNumber) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            String input = gstin + "|" + orderId + "|" + invoiceNumber + "|" + LocalDate.now();
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (int i = 0; i < 16; i++) {
-                hex.append(String.format("%02x", hash[i]));
-            }
-            return "SIM" + hex.toString().toUpperCase();
-        } catch (NoSuchAlgorithmException e) {
-            return "SIM" + UUID.randomUUID().toString().replace("-", "").substring(0, 32).toUpperCase();
-        }
-    }
-
-    private String generateQrData(String irn, String gstin, String invoiceNumber, double amount) {
-        Map<String, String> qrPayload = new LinkedHashMap<>();
-        qrPayload.put("irn", irn);
-        qrPayload.put("gstin", gstin);
-        qrPayload.put("invNo", invoiceNumber);
-        qrPayload.put("amount", String.format("%.2f", amount));
-        qrPayload.put("date", LocalDate.now().toString());
-        String json = qrPayload.entrySet().stream()
-                .map(e -> "\"" + e.getKey() + "\":\"" + e.getValue() + "\"")
-                .collect(Collectors.joining(",", "{", "}"));
-        return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    public byte[] exportExcel(String sheetName, String[] headers, List<Map<String, Object>> rows) {
+        return ExcelExportUtil.toExcel(sheetName, headers, rows);
     }
 
     public Map<String, Object> getCustomerInvoiceForOrder(Long orderId, Long customerUserId) {
@@ -918,6 +929,10 @@ public class GstInvoiceService {
 
     private String safeStr(String s) {
         return s != null ? s : "";
+    }
+
+    private double nz(Double v) {
+        return v != null ? v : 0.0;
     }
 
     private void addSumRow(PdfPTable table, String label, String value, Font font) {

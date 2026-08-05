@@ -74,6 +74,16 @@ public class GstInvoice {
     private String ewayBillNumber;
     private LocalDate ewayBillExpiry;
 
+    private String transporterName;
+    private String transporterGstin;
+    private String transporterId;
+    private String vehicleNumber;
+    private String vehicleType = "R";
+    private String transportMode = "ROAD";
+    private Double distanceKm;
+    private LocalDate journeyStartDate;
+    private LocalDate journeyEndDate;
+
     private String status = "DRAFT";
 
     private String invoiceStatus = "PENDING";
@@ -177,6 +187,24 @@ public class GstInvoice {
     public void setEwayBillNumber(String ewayBillNumber) { this.ewayBillNumber = ewayBillNumber; }
     public LocalDate getEwayBillExpiry() { return ewayBillExpiry; }
     public void setEwayBillExpiry(LocalDate ewayBillExpiry) { this.ewayBillExpiry = ewayBillExpiry; }
+    public String getTransporterName() { return transporterName; }
+    public void setTransporterName(String transporterName) { this.transporterName = transporterName; }
+    public String getTransporterGstin() { return transporterGstin; }
+    public void setTransporterGstin(String transporterGstin) { this.transporterGstin = transporterGstin; }
+    public String getTransporterId() { return transporterId; }
+    public void setTransporterId(String transporterId) { this.transporterId = transporterId; }
+    public String getVehicleNumber() { return vehicleNumber; }
+    public void setVehicleNumber(String vehicleNumber) { this.vehicleNumber = vehicleNumber; }
+    public String getVehicleType() { return vehicleType; }
+    public void setVehicleType(String vehicleType) { this.vehicleType = vehicleType; }
+    public String getTransportMode() { return transportMode; }
+    public void setTransportMode(String transportMode) { this.transportMode = transportMode; }
+    public Double getDistanceKm() { return distanceKm; }
+    public void setDistanceKm(Double distanceKm) { this.distanceKm = distanceKm; }
+    public LocalDate getJourneyStartDate() { return journeyStartDate; }
+    public void setJourneyStartDate(LocalDate journeyStartDate) { this.journeyStartDate = journeyStartDate; }
+    public LocalDate getJourneyEndDate() { return journeyEndDate; }
+    public void setJourneyEndDate(LocalDate journeyEndDate) { this.journeyEndDate = journeyEndDate; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getInvoiceStatus() { return invoiceStatus; }

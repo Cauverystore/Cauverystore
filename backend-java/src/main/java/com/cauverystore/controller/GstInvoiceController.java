@@ -184,6 +184,12 @@ public class GstInvoiceController {
         if ("json".equalsIgnoreCase(format)) {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(gstService.exportJson(rows));
         }
+        if ("xlsx".equalsIgnoreCase(format)) {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=credit-notes.xlsx")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(gstService.exportExcel("Credit Notes", headers, rows));
+        }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=credit-notes.csv")
                 .contentType(MediaType.TEXT_PLAIN)
@@ -239,6 +245,12 @@ public class GstInvoiceController {
         if ("json".equalsIgnoreCase(format)) {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(gstService.exportJson(creditNoteService.getGstr3bData(userId, startDate, endDate)));
         }
+        if ("xlsx".equalsIgnoreCase(format)) {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=gstr3b.xlsx")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(gstService.exportExcel("GSTR-3B", headers, rows));
+        }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=gstr3b.csv")
                 .contentType(MediaType.TEXT_PLAIN)
@@ -256,6 +268,12 @@ public class GstInvoiceController {
         String[] headers = {"invoiceNumber", "invoiceDate", "buyerGstin", "buyerName", "taxableAmount", "cgst", "sgst", "igst", "totalTax", "totalAmount", "placeOfSupply", "isInterState", "invoiceType", "itcEligible", "irn", "status"};
         if ("json".equalsIgnoreCase(format)) {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(gstService.exportJson(rows));
+        }
+        if ("xlsx".equalsIgnoreCase(format)) {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=gstr1.xlsx")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(gstService.exportExcel("GSTR-1", headers, rows));
         }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=gstr1.csv")

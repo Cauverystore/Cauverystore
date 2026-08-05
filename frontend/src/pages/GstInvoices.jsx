@@ -220,7 +220,12 @@ const GstInvoices = () => {
         <Helmet><title>GST Invoice System | Cauvery Store</title></Helmet>
 
         <h1>GST Invoice System</h1>
-        <p className="gst-subtitle">Generate, manage, and sync GST-compliant invoices with HSN/SAC, tax breakup, TCS, and e-invoice support.</p>
+        <p className="gst-subtitle" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          Generate, manage, and sync GST-compliant invoices with HSN/SAC, tax breakup, TCS, and e-invoice support.
+          <Link to="/seller/gst-compliance" style={{ fontSize: "0.8rem", fontWeight: 600, color: "#0E5C5C", textDecoration: "none", whiteSpace: "nowrap", border: "1.5px solid #0E5C5C", padding: "0.3rem 0.75rem", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+            <BarChart3 size={13} /> Compliance Center
+          </Link>
+        </p>
 
         <div className="gst-tabs">
           {TABS.map((t) => (

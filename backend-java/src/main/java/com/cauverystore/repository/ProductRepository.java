@@ -17,6 +17,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByActiveTrue();
 
+    List<Product> findByChannelAndActiveTrue(String channel);
+
     // Atomic conditional decrement, mirroring InventoryRepository.decrementStockIfAvailable -
     // used when a product has no dedicated Inventory row and Product.stock is authoritative.
     @Modifying
