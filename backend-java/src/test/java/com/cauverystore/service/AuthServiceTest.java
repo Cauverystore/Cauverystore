@@ -37,6 +37,11 @@ class AuthServiceTest {
     @Mock private com.cauverystore.repository.PasswordResetTokenRepository passwordResetTokenRepo;
     @Mock private EmailService emailService;
     @Mock private AuditService auditService;
+    @Mock private SessionService sessionService;
+    @Mock private PasswordPolicyService passwordPolicyService;
+    @Mock private TotpService totpService;
+    @Mock private OtpService otpService;
+    @Mock private com.cauverystore.util.CryptoUtil cryptoUtil;
 
     @InjectMocks
     private AuthService authService;
@@ -158,13 +163,14 @@ class AuthServiceTest {
 
         when(userRepo.existsByEmail("new@test.com")).thenReturn(false);
         when(userRepo.existsByUsername("newuser")).thenReturn(false);
-        when(passwordEncoder.encode("password")).thenReturn("encoded");
 
         String result = authService.register(req);
 
         assertEquals("Registration successful", result);
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepo).save(captor.capture());
+        // register() saves twice: once to persist the user, then again after
+        // passwordPolicyService.recordNewPassword() sets the hashed password on it.
+        verify(userRepo, times(2)).save(captor.capture());
         User saved = captor.getValue();
         assertEquals(Role.CUSTOMER, saved.getRole());
         assertEquals("ACTIVE", saved.getStatus());
@@ -196,12 +202,11 @@ class AuthServiceTest {
         when(userRepo.existsByEmail("new@test.com")).thenReturn(false);
         when(userRepo.existsByUsername("existing")).thenReturn(true);
         when(userRepo.existsByUsername("existing1")).thenReturn(false);
-        when(passwordEncoder.encode("password")).thenReturn("encoded");
 
         authService.register(req);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepo).save(captor.capture());
+        verify(userRepo, times(2)).save(captor.capture());
         assertEquals("existing1", captor.getValue().getUsername());
     }
 
@@ -276,11 +281,14 @@ class AuthServiceTest {
     void changePassword_shouldSucceed_whenOldPasswordMatches() {
         when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
         when(passwordEncoder.matches("oldPass", user.getPassword())).thenReturn(true);
-        when(passwordEncoder.encode("newPass")).thenReturn("encodedNewPass");
 
         authService.changePassword("customer@test.com", "oldPass", "newPass");
 
-        assertEquals("encodedNewPass", user.getPassword());
+        // Hashing/history are owned by PasswordPolicyService (mocked here), so assert the
+        // delegation rather than the resulting hash.
+        verify(passwordPolicyService).validateComplexity("newPass");
+        verify(passwordPolicyService).checkHistory(user, "newPass");
+        verify(passwordPolicyService).recordNewPassword(user, "newPass");
         verify(userRepo).save(user);
     }
 
@@ -317,12 +325,11 @@ class AuthServiceTest {
         otp.setExpiresAt(LocalDateTime.now().plusMinutes(10));
 
         when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
-        when(emailOtpRepo.findByEmail("customer@test.com")).thenReturn(otp);
-        when(passwordEncoder.encode("newPass")).thenReturn("encodedNewPass");
+        when(emailOtpRepo.findByEmailAndPurpose("customer@test.com", "PASSWORD_RESET")).thenReturn(otp);
 
         authService.resetPassword("customer@test.com", "123456", "newPass");
 
-        assertEquals("encodedNewPass", user.getPassword());
+        verify(passwordPolicyService).recordNewPassword(user, "newPass");
         assertTrue(otp.isUsed());
         verify(emailOtpRepo).save(otp);
         verify(userRepo).save(user);
@@ -336,7 +343,7 @@ class AuthServiceTest {
         otp.setUsed(false);
 
         when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
-        when(emailOtpRepo.findByEmail("customer@test.com")).thenReturn(otp);
+        when(emailOtpRepo.findByEmailAndPurpose("customer@test.com", "PASSWORD_RESET")).thenReturn(otp);
 
         assertThrows(AuthenticationFailedException.class,
                 () -> authService.resetPassword("customer@test.com", "123456", "newPass"));
@@ -351,7 +358,7 @@ class AuthServiceTest {
         otp.setExpiresAt(LocalDateTime.now().minusMinutes(1));
 
         when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
-        when(emailOtpRepo.findByEmail("customer@test.com")).thenReturn(otp);
+        when(emailOtpRepo.findByEmailAndPurpose("customer@test.com", "PASSWORD_RESET")).thenReturn(otp);
 
         assertThrows(AuthenticationFailedException.class,
                 () -> authService.resetPassword("customer@test.com", "123456", "newPass"));

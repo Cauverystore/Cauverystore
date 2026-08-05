@@ -49,8 +49,8 @@ const Register = () => {
   const handleGoogleCredential = useCallback(async (response) => {
     setError('');
     try {
-      await loginWithGoogle(response.credential, false);
-      navigate('/');
+      const data = await loginWithGoogle(response.credential, false);
+      navigate(data.profileIncomplete ? '/complete-profile' : '/');
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-up failed. Please try again.');
     }
@@ -60,8 +60,8 @@ const Register = () => {
     setError('');
     try {
       const result = await GoogleAuthNative.signIn();
-      await loginWithGoogle(result.idToken, false);
-      navigate('/');
+      const data = await loginWithGoogle(result.idToken, false);
+      navigate(data.profileIncomplete ? '/complete-profile' : '/');
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-up failed. Please try again.');
     }

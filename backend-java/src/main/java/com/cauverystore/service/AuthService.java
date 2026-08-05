@@ -261,6 +261,10 @@ public class AuthService {
         response.setRoles(roles);
         response.setUserId(user.getId());
         response.setMfaRequired(false);
+        // Google sign-in only ever supplies name + email - a customer account created that way
+        // has no phone on file unless they fill it in afterward, unlike the manual registration
+        // form where phone is a required field from the start.
+        response.setProfileIncomplete(user.getPhone() == null || user.getPhone().isBlank());
         return response;
     }
 

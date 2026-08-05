@@ -64,22 +64,24 @@ const Login = () => {
     setError('');
     try {
       const data = await loginWithGoogle(response.credential, rememberMe);
-      goAfterLogin((data.role || 'customer').toLowerCase());
+      if (data.profileIncomplete) navigate('/complete-profile');
+      else goAfterLogin((data.role || 'customer').toLowerCase());
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-in failed. Please try again.');
     }
-  }, [loginWithGoogle, rememberMe, goAfterLogin]);
+  }, [loginWithGoogle, rememberMe, goAfterLogin, navigate]);
 
   const handleNativeGoogleSignIn = useCallback(async () => {
     setError('');
     try {
       const result = await GoogleAuthNative.signIn();
       const data = await loginWithGoogle(result.idToken, rememberMe);
-      goAfterLogin((data.role || 'customer').toLowerCase());
+      if (data.profileIncomplete) navigate('/complete-profile');
+      else goAfterLogin((data.role || 'customer').toLowerCase());
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-in failed. Please try again.');
     }
-  }, [loginWithGoogle, rememberMe, goAfterLogin]);
+  }, [loginWithGoogle, rememberMe, goAfterLogin, navigate]);
 
   useEffect(() => {
     if (role !== 'customer' || isNativeApp) return;

@@ -12,6 +12,7 @@ public class AuthResponse {
     private Boolean mfaRequired = false;
     private String mfaMethod;
     private String message;
+    private Boolean profileIncomplete = false;
 
     @java.lang.SuppressWarnings("all")
     public String getAccessToken() {
@@ -111,5 +112,15 @@ public class AuthResponse {
     @java.lang.SuppressWarnings("all")
     public void setMessage(final String message) {
         this.message = message;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public Boolean getProfileIncomplete() {
+        return this.profileIncomplete;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setProfileIncomplete(final Boolean profileIncomplete) {
+        this.profileIncomplete = profileIncomplete;
     }
 }
