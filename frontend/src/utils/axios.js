@@ -69,7 +69,16 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const res = await api.post('/api/auth/refresh');
+        // Deliberately bypasses the `api` instance (and its interceptors) - if the refresh
+        // token/cookie is also stale, this call 401s too, and routing it back through this
+        // same interceptor would queue it behind `isRefreshing`, which only clears when this
+        // very call finishes. That's a permanent deadlock: every future request hangs forever
+        // instead of ever reaching the catch block below.
+        const res = await axios.post(
+          (process.env.REACT_APP_API_URL || 'http://localhost:9091') + '/api/auth/refresh',
+          {},
+          { withCredentials: true }
+        );
 
         const newAccessToken = res.data.accessToken || res.data.token;
 
