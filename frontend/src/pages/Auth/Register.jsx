@@ -251,6 +251,11 @@ const Register = () => {
             </button>
           </form>
 
+          <div className="auth-alert info" style={{ marginTop: 'var(--spacing-4)' }}>
+            Prefer one click? Use Google to sign up from the{' '}
+            <Link to="/login" className="auth-link">Sign In</Link> page — it creates your account automatically the first time.
+          </div>
+
           <div className="auth-footer">
             Already have an account?{' '}
             <Link to="/login" className="auth-link">Sign in</Link>
