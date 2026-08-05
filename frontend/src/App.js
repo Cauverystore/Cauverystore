@@ -31,6 +31,7 @@ const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
 const Login = lazy(() => import("./pages/Auth/Login"));
 const Register = lazy(() => import("./pages/Auth/Register"));
 const CompleteProfile = lazy(() => import("./pages/Auth/CompleteProfile"));
+const SellerLayout = lazy(() => import("./layouts/SellerLayout"));
 const ForgotPassword = lazy(() => import("./pages/Auth/ForgotPassword"));
 const ResetPasswordLink = lazy(() => import("./pages/Auth/ResetPasswordLink"));
 const Logout = lazy(() => import("./pages/Auth/Logout"));
@@ -191,21 +192,26 @@ function App() {
             <Route path="/support-tickets" element={<ProtectedRoute><MyTickets /></ProtectedRoute>} />
             <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethods /></ProtectedRoute>} />
             <Route path="/seller/register" element={<SellerRegistration />} />
-            <Route path="/seller/dashboard" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerDashboard /></ProtectedRoute>} />
-            <Route path="/seller/products" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerProducts /></ProtectedRoute>} />
-            <Route path="/seller/products/add" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><AddProduct /></ProtectedRoute>} />
-            <Route path="/seller/products/edit/:id" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><EditProduct /></ProtectedRoute>} />
-            <Route path="/seller/products/bulk-upload" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><BulkUpload /></ProtectedRoute>} />
-            <Route path="/seller/inventory" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerInventory /></ProtectedRoute>} />
-            <Route path="/seller/orders" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerOrders /></ProtectedRoute>} />
-            <Route path="/seller/store" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerStore /></ProtectedRoute>} />
-            <Route path="/seller/payouts" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerPayouts /></ProtectedRoute>} />
-            <Route path="/seller/analytics" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerAnalytics /></ProtectedRoute>} />
-            <Route path="/seller/gst-invoices" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><GstInvoices /></ProtectedRoute>} />
-            <Route path="/seller/gst-invoices/view/:id" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><GstInvoiceView /></ProtectedRoute>} />
-            <Route path="/seller/gst-invoices/credit-note/:id" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><CreditNoteView /></ProtectedRoute>} />
-            <Route path="/seller/gst-invoices/debit-note/:id" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><DebitNoteView /></ProtectedRoute>} />
-            <Route path="/seller/gst-compliance" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><GstCompliance /></ProtectedRoute>} />
+          </Route>
+
+          {/* Seller Centre gets its own shell (sidebar + header) rather than the storefront
+              chrome - without it these pages had no way to reach each other at all. */}
+          <Route path="/seller" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerLayout /></ProtectedRoute>}>
+            <Route path="dashboard" element={<SellerDashboard />} />
+            <Route path="products" element={<SellerProducts />} />
+            <Route path="products/add" element={<AddProduct />} />
+            <Route path="products/edit/:id" element={<EditProduct />} />
+            <Route path="products/bulk-upload" element={<BulkUpload />} />
+            <Route path="inventory" element={<SellerInventory />} />
+            <Route path="orders" element={<SellerOrders />} />
+            <Route path="store" element={<SellerStore />} />
+            <Route path="payouts" element={<SellerPayouts />} />
+            <Route path="analytics" element={<SellerAnalytics />} />
+            <Route path="gst-invoices" element={<GstInvoices />} />
+            <Route path="gst-invoices/view/:id" element={<GstInvoiceView />} />
+            <Route path="gst-invoices/credit-note/:id" element={<CreditNoteView />} />
+            <Route path="gst-invoices/debit-note/:id" element={<DebitNoteView />} />
+            <Route path="gst-compliance" element={<GstCompliance />} />
           </Route>
 
           <Route path="/admin/login" element={<AdminLogin />} />
