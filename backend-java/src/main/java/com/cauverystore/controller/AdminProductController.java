@@ -214,6 +214,19 @@ public class AdminProductController {
         return ResponseEntity.ok(productService.uploadImage(productId, file));
     }
 
+    @PostMapping("/{productId}/images/url")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
+    public ResponseEntity<ProductImage> attachImageUrls(@PathVariable Long productId,
+                                                        @RequestBody Map<String, String> body) {
+        if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
+        return ResponseEntity.ok(productService.attachImageUrls(
+                productId,
+                body.get("preview_url"),
+                body.get("thumbnail_url"),
+                body.get("zoom_url"),
+                body.get("original_url")));
+    }
+
     @PutMapping("/{productId}/images/reorder")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Void> reorderImages(@PathVariable Long productId,

@@ -4,6 +4,7 @@ import com.cauverystore.entities.*;
 import com.cauverystore.exception.AccessDeniedException;
 import com.cauverystore.exception.ProductNotFoundException;
 import com.cauverystore.repository.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ByteArrayResource;
@@ -276,8 +277,11 @@ public class ProductService {
         } catch (Exception e) { return c.toString().trim(); }
     }
 
+    @Value("${app.upload.dir:uploads}")
+    private String uploadDir;
+
     private Path getUploadDir() {
-        return Paths.get(System.getProperty("user.dir"), "uploads");
+        return Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
     private void downloadAndSaveImage(Long productId, String imageUrl, boolean isMain) {
@@ -540,6 +544,39 @@ public class ProductService {
         return p.getImages();
     }
 
+    // Persists a set of processed image URLs produced by the Node image-service
+    // (POST /upload-image -> sharp WebP sizes). url/previewUrl carry the 600px
+    // preview (the primary display image), thumbUrl the 150px thumbnail, and
+    // zoomUrl/originalUrl the larger sizes used by the product detail view.
+    @CacheEvict(value = "products", allEntries = true)
+    public ProductImage attachImageUrls(Long productId, String previewUrl, String thumbUrl,
+                                        String zoomUrl, String originalUrl) {
+        Product p = getProductById(productId);
+        for (String candidate : new String[]{previewUrl, thumbUrl, zoomUrl, originalUrl}) {
+            if (candidate == null || candidate.isBlank()) continue;
+            // Only accept server-relative upload paths; reject traversal and absolute URLs.
+            if (!candidate.startsWith("/uploads/") || candidate.contains("..")) {
+                throw new IllegalArgumentException("Invalid image URL: " + candidate);
+            }
+        }
+        if (previewUrl == null || previewUrl.isBlank()) {
+            throw new IllegalArgumentException("preview_url is required");
+        }
+        int nextOrder = (int) productImageRepo.countByProduct_Id(productId);
+        ProductImage image = new ProductImage();
+        image.setProduct(p);
+        image.setUrl(previewUrl);
+        image.setThumbUrl(thumbUrl);
+        image.setPreviewUrl(previewUrl);
+        image.setZoomUrl(zoomUrl);
+        image.setOriginalUrl(originalUrl);
+        image.setSortOrder(nextOrder);
+        if (p.getImages().isEmpty()) {
+            image.setMain(true);
+        }
+        return productImageRepo.save(image);
+    }
+
     public ProductImage uploadImage(Long productId, MultipartFile file) {
         Product p = getProductById(productId);
         String contentType = file.getContentType();
@@ -668,11 +705,11 @@ public class ProductService {
             if (url != null && url.startsWith("/uploads/")) {
                 try {
                     String name = url.substring("/uploads/".length());
-                    Path file = Paths.get("uploads", name);
+                    Path file = getUploadDir().resolve(name);
                     Files.deleteIfExists(file);
                     int dot = name.lastIndexOf(".");
                     if (dot > 0) {
-                        Path thumb = Paths.get("uploads", name.substring(0, dot) + "_thumb.jpg");
+                        Path thumb = getUploadDir().resolve(name.substring(0, dot) + "_thumb.jpg");
                         Files.deleteIfExists(thumb);
                     }
                 } catch (Exception ignored) {}

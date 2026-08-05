@@ -43,6 +43,19 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      IMAGE_SERVICE_URL: http://images:9092
+    volumes:
+      - uploads:/app/uploads
+
+  image-service:
+    build: ./image-service
+    ports:
+      - "9092:9092"
+    environment:
+      PORT: 9092
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads:/app/uploads
 
   frontend:
     build:
@@ -53,7 +66,9 @@ services:
       - "3000:80"
     depends_on:
       - backend
+      - image-service
 
 volumes:
   pgdata:
   redisdata:
+  uploads:

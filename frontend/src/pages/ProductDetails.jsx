@@ -58,7 +58,7 @@ const ProductDetails = () => {
     else if (!res.needLogin) { setCartMsg("Failed to add to cart"); setTimeout(() => setCartMsg(""), 2000); }
   };
 
-  const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
+  const toUrl = (img) => (typeof img === "object" ? img?.previewUrl || img?.url || "" : img || "");
   const fullUrl = (img) => { const raw = toUrl(img); return raw ? imgUrl(raw) : ""; };
   const siteDefaultImage = window.location.origin + "/images/logo.jpg";
   const categoryName = typeof product?.category === "object" ? product?.category?.name || "" : product?.category || "";
@@ -73,7 +73,11 @@ const ProductDetails = () => {
   const selImage = product.images?.[selectedImage];
   const mainSrc = fullUrl(selImage) || fullUrl(product.image) || "/images/placeholder.svg";
   const mainThumb = typeof selImage === "object" && selImage?.thumbUrl ? imgUrl(selImage.thumbUrl) : "";
-  const mainSrcSet = mainThumb && mainSrc.startsWith("http") ? `${mainThumb} 400w, ${mainSrc} 1200w` : undefined;
+  const mainZoom = typeof selImage === "object" && selImage?.zoomUrl ? imgUrl(selImage.zoomUrl) : "";
+  // srcset: 150px thumbnail, 600px preview, 1200px zoom (WebP from the image pipeline).
+  const mainSrcSet = mainSrc.startsWith("http")
+    ? [mainThumb && `${mainThumb} 150w`, mainSrc && `${mainSrc} 600w`, mainZoom && `${mainZoom} 1200w`].filter(Boolean).join(", ")
+    : undefined;
 
   return (
     <div className="product-detail-page">
@@ -137,7 +141,7 @@ const ProductDetails = () => {
                   aria-pressed={i === selectedImage}
                   style={{ border: "none", padding: 0, background: "none", cursor: "pointer" }}
                 >
-                  <img src={fullUrl(img)} alt="" width="60" height="60" loading="lazy" className={i === selectedImage ? "active" : ""} onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
+                  <img src={typeof img === "object" && img?.thumbUrl ? imgUrl(img.thumbUrl) : fullUrl(img)} alt="" width="60" height="60" loading="lazy" className={i === selectedImage ? "active" : ""} onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
                 </button>
               ))}
             </div>

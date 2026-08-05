@@ -33,12 +33,23 @@ const ManageImages = () => {
     setUploading(true);
     setMsg({ type: "info", text: "Compressing images..." });
     const compressed = await compressImages(selectedFiles);
+    let failed = 0;
     for (const file of compressed) {
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("image", file);
+      fd.append("product_id", String(id));
       try {
-        await api.post(`/api/admin/products/${id}/images`, fd);
+        // Process via the image pipeline (Java passthrough -> Node multer/sharp).
+        const up = await api.post("/api/uploads/upload-image", fd);
+        // Link the processed WebP sizes to this product.
+        await api.post(`/api/admin/products/${id}/images/url`, {
+          thumbnail_url: up.data.thumbnail_url,
+          preview_url: up.data.preview_url,
+          zoom_url: up.data.zoom_url,
+          original_url: up.data.original_url,
+        });
       } catch (err) {
+        failed += 1;
         setMsg({ type: "error", text: `Failed to upload ${file.name}` });
       }
     }
@@ -46,7 +57,10 @@ const ManageImages = () => {
     if (fileRef.current) fileRef.current.value = "";
     await loadImages();
     setUploading(false);
-    setMsg({ type: "success", text: "Images uploaded" });
+    setMsg({
+      type: "success",
+      text: failed === 0 ? "Images uploaded" : `${compressed.length - failed} of ${compressed.length} images uploaded`,
+    });
   };
 
   const handleDelete = async (imageId, url) => {

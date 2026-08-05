@@ -10,6 +10,9 @@ public class ProductImage extends BaseEntity {
     @Column(nullable = false)
     private String url;
     private String thumbUrl;
+    private String previewUrl;
+    private String zoomUrl;
+    private String originalUrl;
     private boolean main = false;
     private Integer sortOrder = 0;
     @ManyToOne(fetch = FetchType.LAZY)
@@ -62,6 +65,36 @@ public class ProductImage extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setMain(final boolean main) {
         this.main = main;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getPreviewUrl() {
+        return this.previewUrl;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getZoomUrl() {
+        return this.zoomUrl;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getOriginalUrl() {
+        return this.originalUrl;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setPreviewUrl(final String previewUrl) {
+        this.previewUrl = previewUrl;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setZoomUrl(final String zoomUrl) {
+        this.zoomUrl = zoomUrl;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setOriginalUrl(final String originalUrl) {
+        this.originalUrl = originalUrl;
     }
 
     @JsonIgnoreProperties({"images", "variants", "reviews", "questions", "discounts"})

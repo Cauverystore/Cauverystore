@@ -127,9 +127,18 @@ const AddProduct = () => {
         const compressed = await compressImages(images);
         for (const file of compressed) {
           const fd = new FormData();
-          fd.append("file", file);
+          fd.append("image", file);
+          fd.append("product_id", String(productId));
           try {
-            await api.post(`/api/admin/products/${productId}/images`, fd);
+            // Process via the image pipeline (Java passthrough -> Node multer/sharp),
+            // then link the processed WebP sizes to the new product.
+            const up = await api.post("/api/uploads/upload-image", fd);
+            await api.post(`/api/admin/products/${productId}/images/url`, {
+              thumbnail_url: up.data.thumbnail_url,
+              preview_url: up.data.preview_url,
+              zoom_url: up.data.zoom_url,
+              original_url: up.data.original_url,
+            });
           } catch (imgErr) {
             setImageErrors((prev) => [...prev, `Failed to upload ${file.name}`]);
           }
