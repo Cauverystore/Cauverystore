@@ -8,3 +8,6 @@ frontend/build/
 .idea/
 *.iml
 .github/
+
+.vercel
+.env*

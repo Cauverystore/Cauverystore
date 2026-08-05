@@ -142,6 +142,7 @@ public class GstInvoiceService {
         boolean isB2b = buyerGstin != null && !buyerGstin.isBlank() && !"URP".equalsIgnoreCase(buyerGstin.trim());
         inv.setBuyerGstin(isB2b ? buyerGstin.toUpperCase() : "URP");
         inv.setInvoiceType(isB2b ? "B2B" : "B2C");
+        inv.setItcEligible(isB2b);
         inv.setBuyerName(buyer != null ? buyer.getFullName() : "Walk-in Customer");
         Address addr = order.getAddress();
         inv.setBuyerAddress(addr != null ? String.join(", ", 
@@ -165,20 +166,38 @@ public class GstInvoiceService {
         double totalCgst = 0, totalSgst = 0, totalIgst = 0;
         List<GstInvoiceItem> items = new ArrayList<>();
 
+        // Product-level discounts are already baked into OrderItem.price. Coupon discounts and
+        // delivery charges are order-level amounts: allocate them across line items so GST applies
+        // on the net taxable value (coupon discount reduces it, delivery charge increases it).
+        double rawSubtotal = 0;
+        for (OrderItem oi : order.getItems()) {
+            rawSubtotal += oi.getPrice() * oi.getQuantity();
+        }
+        double deliveryCharge = order.getDeliveryCharge() != null ? order.getDeliveryCharge() : 0;
+        double orderTax = order.getTax() != null ? order.getTax() : 0;
+        double couponDiscount = 0;
+        if (rawSubtotal > 0 && order.getTotalAmount() > 0) {
+            couponDiscount = rawSubtotal - order.getTotalAmount() + orderTax + deliveryCharge;
+            if (couponDiscount < 0) couponDiscount = 0;
+            if (couponDiscount > rawSubtotal) couponDiscount = rawSubtotal;
+        }
+        double retainedFactor = rawSubtotal > 0 ? (rawSubtotal - couponDiscount) / rawSubtotal : 0;
+
         for (OrderItem oi : order.getItems()) {
             Product p = oi.getProduct();
             double gstPct = (p != null && p.getGstPercentage() != null) ? p.getGstPercentage() : 12.0;
-            double unitPrice = oi.getPrice();
-            int qty = oi.getQuantity();
-            double taxable = unitPrice * qty;
+            double itemValue = oi.getPrice() * oi.getQuantity();
+            double taxable = itemValue * retainedFactor
+                    + (rawSubtotal > 0 ? deliveryCharge * itemValue / rawSubtotal : 0);
+            taxable = Math.round(taxable * 100.0) / 100.0;
             taxableAmount += taxable;
 
             GstInvoiceItem item = new GstInvoiceItem();
             item.setInvoice(inv);
             item.setProductName(p != null ? p.getName() : "Product");
             item.setHsnCode(p != null && p.getHsnCode() != null ? p.getHsnCode() : "999999");
-            item.setQuantity(qty);
-            item.setUnitPrice(unitPrice);
+            item.setQuantity(oi.getQuantity());
+            item.setUnitPrice(oi.getPrice());
             item.setTaxableValue(taxable);
             item.setUnitOfMeasure("NOS");
 
@@ -252,6 +271,53 @@ public class GstInvoiceService {
                 "Invoice " + saved.getInvoiceNumber() + " generated for order " + orderId, null);
 
         return Map.of("invoice", saved, "message", "Invoice generated successfully");
+    }
+
+    @Transactional
+    public Map<String, Object> bulkGenerateInvoices(List<Long> orderIds, Long userId, String gstin) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            throw new RuntimeException("orderIds are required");
+        }
+        GstComplianceUtil.validateGstin(gstin);
+        int generated = 0;
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (Long orderId : orderIds) {
+            try {
+                Map<String, Object> r = generateInvoiceFromOrder(orderId, userId, gstin, null);
+                GstInvoice inv = (GstInvoice) r.get("invoice");
+                generated++;
+                results.add(Map.of("orderId", orderId, "invoiceNumber", inv.getInvoiceNumber(), "message", r.get("message")));
+            } catch (Exception e) {
+                results.add(Map.of("orderId", orderId, "error", e.getMessage()));
+            }
+        }
+        return Map.of("generated", generated, "total", orderIds.size(), "results", results);
+    }
+
+    public byte[] exportCsv(String[] headers, List<Map<String, Object>> rows) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.join(",", headers)).append("\n");
+        for (Map<String, Object> row : rows) {
+            sb.append(Arrays.stream(headers)
+                    .map(h -> {
+                        Object v = row.get(h);
+                        String s = v != null ? String.valueOf(v) : "";
+                        if (s.contains(",") || s.contains("\"") || s.contains("\n")) {
+                            s = "\"" + s.replace("\"", "\"\"") + "\"";
+                        }
+                        return s;
+                    })
+                    .collect(Collectors.joining(","))).append("\n");
+        }
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    public byte[] exportJson(Object data) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsBytes(data);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize JSON export", e);
+        }
     }
 
     public Map<String, Object> getInvoiceById(Long id, Long userId, String userRole) {
@@ -455,6 +521,8 @@ public class GstInvoiceService {
             entry.put("totalAmount", inv.getTotalAmount());
             entry.put("placeOfSupply", inv.getPlaceOfSupply());
             entry.put("isInterState", inv.getIsInterState());
+            entry.put("invoiceType", inv.getInvoiceType());
+            entry.put("itcEligible", inv.getItcEligible());
             entry.put("irn", inv.getIrn());
             entry.put("status", inv.getStatus());
             gstr1.add(entry);
@@ -532,8 +600,12 @@ public class GstInvoiceService {
     }
 
     private String generateInvoiceNumber(String prefix) {
-        String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String prefixPattern = prefix + "/INV/" + datePart + "/";
+        String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMM"));
+        String safePrefix = prefix != null ? prefix.trim().toUpperCase().replaceAll("[^A-Z0-9]", "") : "CS";
+        if (safePrefix.isEmpty()) safePrefix = "CS";
+        // GSTIN invoice numbers must not exceed 16 chars: prefix (<=9) + yyMM (4) + "/" (1) + seq (5) = 16
+        if (safePrefix.length() > 9) safePrefix = safePrefix.substring(0, 9);
+        String prefixPattern = safePrefix + datePart + "/";
         String maxNum = invoiceRepo.findMaxInvoiceNumberByPrefix(prefixPattern);
         int seq = 1;
         if (maxNum != null) {

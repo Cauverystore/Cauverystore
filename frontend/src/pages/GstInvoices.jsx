@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ChevronDown, ChevronUp, ExternalLink, Eye } from "lucide-react";
+import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ExternalLink, Eye, FileMinus, BarChart3, FileSpreadsheet, FileJson } from "lucide-react";
 import api from "../api/axios";
 
 const GST_DASHBOARD_STYLES = `
@@ -63,6 +63,8 @@ const GST_DASHBOARD_STYLES = `
 const TABS = [
   { id: "dashboard", label: "Dashboard", icon: TrendingUp },
   { id: "invoices", label: "Invoices", icon: FileText },
+  { id: "creditNotes", label: "Credit Notes", icon: FileMinus },
+  { id: "gstr3b", label: "GSTR-3B", icon: BarChart3 },
   { id: "generate", label: "Generate", icon: Plus },
   { id: "summary", label: "GST Summary", icon: Filter },
   { id: "gstr1", label: "GSTR-1", icon: Download },
@@ -75,6 +77,10 @@ const GstInvoices = () => {
   const [stats, setStats] = useState(null);
   const [summary, setSummary] = useState(null);
   const [gstr1, setGstr1] = useState([]);
+  const [gstr3b, setGstr3b] = useState(null);
+  const [creditNotes, setCreditNotes] = useState([]);
+  const [cnTotalPages, setCnTotalPages] = useState(0);
+  const [cnPage, setCnPage] = useState(0);
   const [tcs, setTcs] = useState(null);
   const [configs, setConfigs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,10 +97,12 @@ const GstInvoices = () => {
   useEffect(() => {
     if (activeTab === "dashboard") fetchDashboard();
     else if (activeTab === "invoices") fetchInvoices();
+    else if (activeTab === "creditNotes") fetchCreditNotes();
+    else if (activeTab === "gstr3b") fetchGstr3b();
     else if (activeTab === "summary") fetchSummary();
     else if (activeTab === "gstr1") fetchGstr1();
     else if (activeTab === "tcs") fetchTcs();
-  }, [activeTab, page]);
+  }, [activeTab, page, cnPage]);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -126,6 +134,40 @@ const GstInvoices = () => {
       setSummary(res.data);
     } catch { setSummary(null); }
     setLoading(false);
+  };
+
+  const fetchCreditNotes = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/api/gst/creditnotes", { params: { page: cnPage, size: 20 } });
+      setCreditNotes(res.data.content || []);
+      setCnTotalPages(res.data.totalPages || 0);
+    } catch { setCreditNotes([]); }
+    setLoading(false);
+  };
+
+  const fetchGstr3b = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/api/gst/gstr3b");
+      setGstr3b(res.data);
+    } catch { setGstr3b(null); }
+    setLoading(false);
+  };
+
+  const downloadExport = async (url, filename, format) => {
+    try {
+      const res = await api.get(url, { params: { format }, responseType: "blob" });
+      const blob = new Blob([res.data]);
+      const link = document.createElement("a");
+      const objectUrl = window.URL.createObjectURL(blob);
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch { setError("Failed to export"); }
   };
 
   const fetchGstr1 = async () => {
@@ -249,7 +291,7 @@ const GstInvoices = () => {
               <div className="gst-table-wrap">
                 <table className="gst-table">
                   <thead>
-                    <tr><th>Invoice #</th><th>Order ID</th><th>Date</th><th>Taxable Amt</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th><th>TCS</th><th>IRN</th><th>Status</th><th>Actions</th></tr>
+                    <tr><th>Invoice #</th><th>Order ID</th><th>Date</th><th>Taxable Amt</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th><th>TCS</th><th>ITC</th><th>IRN</th><th>Status</th><th>Actions</th></tr>
                   </thead>
                   <tbody>
                     {invoices.map((inv) => (
@@ -264,6 +306,13 @@ const GstInvoices = () => {
                           <td>&#8377;{(inv.igstAmount || 0).toFixed(2)}</td>
                           <td style={{ fontWeight: 600 }}>&#8377;{(inv.totalAmount || 0).toFixed(2)}</td>
                           <td>&#8377;{(inv.tcsAmount || 0).toFixed(2)}</td>
+                          <td>
+                            {inv.itcEligible ? (
+                              <span className="gst-status gst-status-synced">Eligible</span>
+                            ) : (
+                              <span style={{ color: "#94a3b8", fontSize: "0.75rem" }}>-</span>
+                            )}
+                          </td>
                           <td style={{ fontSize: "0.75rem", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis" }}>{inv.irn || "-"}</td>
                           <td>
                             <span className={`gst-status ${inv.status === "SYNCED" ? "gst-status-synced" : inv.status === "SYNC_FAILED" ? "gst-status-failed" : inv.status === "GENERATED" ? "gst-status-generated" : "gst-status-draft"}`}>
@@ -285,7 +334,7 @@ const GstInvoices = () => {
                           </td>
                         </tr>
                         {expandedInvoice === inv.id && (
-                          <tr><td colSpan={12} style={{ padding: "0.5rem 1rem 1rem", background: "#f8fafc" }}>
+                          <tr><td colSpan={13} style={{ padding: "0.5rem 1rem 1rem", background: "#f8fafc" }}>
                             <div style={{ fontSize: "0.82rem", color: "#475569" }}>
                               <strong>Buyer:</strong> {inv.buyerName} ({inv.buyerGstin}) |
                               <strong> Place of Supply:</strong> {inv.placeOfSupply} |
@@ -315,6 +364,96 @@ const GstInvoices = () => {
                 <button className="gst-btn gst-btn-outline gst-btn-sm" disabled={page <= 0} onClick={() => setPage(page - 1)}>Previous</button>
                 <span style={{ padding: "0.35rem 0.7rem", fontSize: "0.85rem", color: "#64748b" }}>Page {page + 1} of {totalPages}</span>
                 <button className="gst-btn gst-btn-outline gst-btn-sm" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Next</button>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === "creditNotes" && (
+          <>
+            <div className="gst-toolbar">
+              <input className="gst-search" placeholder="Search credit notes..." />
+              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={fetchCreditNotes}><RefreshCw size={14} /> Refresh</button>
+              <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/creditnotes/export", "credit-notes.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/creditnotes/export", "credit-notes.json", "json")}><FileJson size={14} /> JSON</button>
+            </div>
+            {loading ? (
+              <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>Loading credit notes...</p>
+            ) : creditNotes.length === 0 ? (
+              <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>No credit notes yet. They are auto-generated when an order is cancelled, refunded, or a return is approved - with full tax (CGST/SGST/IGST) reversal.</p>
+            ) : (
+              <div className="gst-table-wrap">
+                <table className="gst-table">
+                  <thead>
+                    <tr><th>Credit Note #</th><th>Date</th><th>Order</th><th>Invoice</th><th>Buyer</th><th>Taxable</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th><th>Reason</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody>
+                    {creditNotes.map((cn) => (
+                      <tr key={cn.id}>
+                        <td style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.8rem" }}>{cn.creditNoteNumber}</td>
+                        <td>{cn.creditNoteDate}</td>
+                        <td>#{cn.orderId}</td>
+                        <td style={{ fontSize: "0.78rem" }}>{cn.originalInvoiceNumber || "-"}</td>
+                        <td>{cn.buyerName}</td>
+                        <td>&#8377;{(cn.taxableAmount || 0).toFixed(2)}</td>
+                        <td>&#8377;{(cn.cgstAmount || 0).toFixed(2)}</td>
+                        <td>&#8377;{(cn.sgstAmount || 0).toFixed(2)}</td>
+                        <td>&#8377;{(cn.igstAmount || 0).toFixed(2)}</td>
+                        <td style={{ fontWeight: 600 }}>&#8377;{(cn.totalAmount || 0).toFixed(2)}</td>
+                        <td style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.78rem" }}>{cn.reason || "-"}</td>
+                        <td>
+                          <Link to={`/seller/gst-invoices/credit-note/${cn.id}`} className="gst-btn gst-btn-outline gst-btn-sm" style={{ textDecoration: "none" }}>
+                            <Eye size={12} /> View
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {cnTotalPages > 1 && (
+              <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem", marginTop: "1rem" }}>
+                <button className="gst-btn gst-btn-outline gst-btn-sm" disabled={cnPage <= 0} onClick={() => setCnPage(cnPage - 1)}>Previous</button>
+                <span style={{ padding: "0.35rem 0.7rem", fontSize: "0.85rem", color: "#64748b" }}>Page {cnPage + 1} of {cnTotalPages}</span>
+                <button className="gst-btn gst-btn-outline gst-btn-sm" disabled={cnPage >= cnTotalPages - 1} onClick={() => setCnPage(cnPage + 1)}>Next</button>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === "gstr3b" && (
+          <>
+            <div className="gst-toolbar">
+              <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>GSTR-3B Table 3.1(a) outward taxable supplies (net of credit notes) and ITC summary for the current month.</p>
+              <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr3b/export", "gstr3b.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr3b/export", "gstr3b.json", "json")}><FileJson size={14} /> JSON</button>
+            </div>
+            {loading ? (
+              <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>Loading GSTR-3B...</p>
+            ) : !gstr3b ? (
+              <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>No GSTR-3B data available.</p>
+            ) : (
+              <div className="gst-form" style={{ maxWidth: "100%" }}>
+                <h3>Table 3.1(a) - Outward taxable supplies</h3>
+                <div className="gst-summary-grid">
+                  <div className="gst-summary-item"><div className="gst-summary-label">Taxable Value</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1_outwardSupplies?.taxableValue || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">CGST</div><div className="gst-summary-value" style={{ color: "#2563eb" }}>&#8377;{(gstr3b.table3_1_outwardSupplies?.cgst || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">SGST</div><div className="gst-summary-value" style={{ color: "#7c3aed" }}>&#8377;{(gstr3b.table3_1_outwardSupplies?.sgst || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">IGST</div><div className="gst-summary-value" style={{ color: "#d97706" }}>&#8377;{(gstr3b.table3_1_outwardSupplies?.igst || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Total Tax</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1_outwardSupplies?.totalTax || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Gross Taxable Value</div><div className="gst-summary-value">&#8377;{(gstr3b.grossTaxableValue || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Credit Notes (reduction)</div><div className="gst-summary-value" style={{ color: "#dc2626" }}>&#8377;{(gstr3b.grossCreditNotesValue || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Invoices / Credit Notes</div><div className="gst-summary-value">{gstr3b.invoiceCount || 0} / {gstr3b.creditNoteCount || 0}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Period</div><div className="gst-summary-value">{gstr3b.periodStart} to {gstr3b.periodEnd}</div></div>
+                </div>
+                <h3 style={{ marginTop: "1.5rem" }}>Table 3.1(b) - ITC Eligible (B2B)</h3>
+                <div className="gst-summary-grid">
+                  <div className="gst-summary-item"><div className="gst-summary-label">Taxable Value</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1b_itc?.eligibleTaxableValue || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">CGST</div><div className="gst-summary-value" style={{ color: "#2563eb" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleCgst || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">SGST</div><div className="gst-summary-value" style={{ color: "#7c3aed" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleSgst || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">IGST</div><div className="gst-summary-value" style={{ color: "#d97706" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleIgst || 0).toFixed(2)}</div></div>
+                </div>
               </div>
             )}
           </>
@@ -371,7 +510,11 @@ const GstInvoices = () => {
 
         {activeTab === "gstr1" && (
           <>
-            <p style={{ fontSize: "0.88rem", color: "#64748b", marginBottom: "1rem" }}>GSTR-1 data for the current month. This data can be exported for filing.</p>
+            <div className="gst-toolbar">
+              <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>GSTR-1 data for the current month. This data can be exported for filing.</p>
+              <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.json", "json")}><FileJson size={14} /> JSON</button>
+            </div>
             {gstr1.length === 0 ? (
               <p style={{ color: "#94a3b8" }}>No invoice data available for GSTR-1.</p>
             ) : (

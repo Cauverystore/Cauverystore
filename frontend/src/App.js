@@ -49,6 +49,7 @@ const SellerAnalytics = lazy(() => import("./pages/SellerAnalytics"));
 const SellerRegistration = lazy(() => import("./pages/SellerRegistration"));
 const GstInvoices = lazy(() => import("./pages/GstInvoices"));
 const GstInvoiceView = lazy(() => import("./pages/GstInvoiceView"));
+const CreditNoteView = lazy(() => import("./pages/CreditNoteView"));
 const CustomerInvoice = lazy(() => import("./pages/CustomerInvoice"));
 const ExecutiveLogin = lazy(() => import("./pages/ExecutiveLogin"));
 const AdminLogin = lazy(() => import("./admin/auth/AdminLogin"));
@@ -184,6 +185,7 @@ function App() {
             <Route path="/seller/analytics" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><SellerAnalytics /></ProtectedRoute>} />
             <Route path="/seller/gst-invoices" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><GstInvoices /></ProtectedRoute>} />
             <Route path="/seller/gst-invoices/view/:id" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><GstInvoiceView /></ProtectedRoute>} />
+            <Route path="/seller/gst-invoices/credit-note/:id" element={<ProtectedRoute requiredRole={['SELLER','ADMIN','SUPER_ADMIN']}><CreditNoteView /></ProtectedRoute>} />
           </Route>
 
           <Route path="/admin/login" element={<AdminLogin />} />

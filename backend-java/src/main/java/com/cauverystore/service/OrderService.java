@@ -44,6 +44,7 @@ public class OrderService {
     private final CouponService couponService;
     private final ReturnRequestRepository returnRequestRepo;
     private final PaymentService paymentService;
+    private final CreditNoteService creditNoteService;
 
     public OrderService(OrderRepository orderRepo, OrderItemRepository orderItemRepo,
                         CartRepository cartRepo, ProductRepository productRepo,
@@ -59,7 +60,8 @@ public class OrderService {
                         ProductService productService,
                         CouponService couponService,
                         ReturnRequestRepository returnRequestRepo,
-                        PaymentService paymentService) {
+                        PaymentService paymentService,
+                        CreditNoteService creditNoteService) {
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -81,6 +83,7 @@ public class OrderService {
         this.couponService = couponService;
         this.returnRequestRepo = returnRequestRepo;
         this.paymentService = paymentService;
+        this.creditNoteService = creditNoteService;
     }
 
     private User extractUserFromHeader(String authHeader) {
@@ -500,6 +503,15 @@ public class OrderService {
         notificationService.createNotification(order.getUser().getId(), "ORDER",
                 "Order Cancelled",
                 "Your order #" + orderId + " has been cancelled successfully.");
+
+        // Auto-generate a credit note reversing GST on the cancelled order (best-effort).
+        try {
+            creditNoteService.generateFullCreditNote(orderId,
+                    hadReason ? "Order cancelled: " + reason : "Order cancelled", null);
+        } catch (Exception e) {
+            System.err.println("Auto credit note generation skipped for cancelled order " + orderId + ": " + e.getMessage());
+        }
+
         return saved;
     }
 
@@ -517,7 +529,16 @@ public class OrderService {
 
         paymentService.processRefundForOrder(orderId, order.getTotalAmount(), "Customer requested refund");
 
-        return orderRepo.save(order);
+        Order saved = orderRepo.save(order);
+
+        // Auto-generate a credit note reversing GST on the refunded order (best-effort).
+        try {
+            creditNoteService.generateFullCreditNote(orderId, "Customer requested refund", null);
+        } catch (Exception e) {
+            System.err.println("Auto credit note generation skipped for refunded order " + orderId + ": " + e.getMessage());
+        }
+
+        return saved;
     }
 
     public Order getOrderById(Long orderId) {

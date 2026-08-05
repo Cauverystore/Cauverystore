@@ -3,6 +3,7 @@ package com.cauverystore.controller;
 import com.cauverystore.entities.GstConfiguration;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.repository.UserRepository;
+import com.cauverystore.service.CreditNoteService;
 import com.cauverystore.service.GstInvoiceService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,10 +24,12 @@ import java.util.Map;
 public class GstInvoiceController {
 
     private final GstInvoiceService gstService;
+    private final CreditNoteService creditNoteService;
     private final UserRepository userRepo;
 
-    public GstInvoiceController(GstInvoiceService gstService, UserRepository userRepo) {
+    public GstInvoiceController(GstInvoiceService gstService, CreditNoteService creditNoteService, UserRepository userRepo) {
         this.gstService = gstService;
+        this.creditNoteService = creditNoteService;
         this.userRepo = userRepo;
     }
 
@@ -62,6 +67,200 @@ public class GstInvoiceController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @PostMapping("/invoice")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> generateInvoiceAlias(@RequestBody Map<String, Object> body) {
+        return generateInvoice(body);
+    }
+
+    @PostMapping("/invoices/bulk-generate")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> bulkGenerateInvoices(@RequestBody Map<String, Object> body) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        String gstin = (String) body.get("gstin");
+        if (gstin == null) return ResponseEntity.badRequest().body(Map.of("error", "gstin is required"));
+        Object rawOrderIds = body.get("orderIds");
+        if (!(rawOrderIds instanceof List<?>)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "orderIds (array of order ids) is required"));
+        }
+        List<Long> orderIds = new ArrayList<>();
+        for (Object o : (List<?>) rawOrderIds) {
+            if (o instanceof Number) orderIds.add(((Number) o).longValue());
+        }
+        try {
+            return ResponseEntity.ok(gstService.bulkGenerateInvoices(orderIds, userId, gstin));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/creditnote")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> generateCreditNote(@RequestBody Map<String, Object> body) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        Long invoiceId = body.get("invoiceId") != null ? ((Number) body.get("invoiceId")).longValue() : null;
+        if (invoiceId == null) return ResponseEntity.badRequest().body(Map.of("error", "invoiceId is required"));
+        Double amount = body.get("amount") != null ? ((Number) body.get("amount")).doubleValue() : null;
+        String reason = (String) body.get("reason");
+        try {
+            return ResponseEntity.ok(creditNoteService.generateManualCreditNote(invoiceId, amount, reason, userId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/creditnotes")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> listCreditNotes(@RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "20") int size) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        String role = getCurrentUserRole();
+        return ResponseEntity.ok(creditNoteService.listCreditNotes(userId, role, page, size));
+    }
+
+    @GetMapping("/creditnote/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getCreditNote(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        String role = getCurrentUserRole();
+        try {
+            return ResponseEntity.ok(creditNoteService.getCreditNoteById(id, userId, role));
+        } catch (RuntimeException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("Access denied")) {
+                return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to view this credit note"));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
+        }
+    }
+
+    @GetMapping("/creditnote/{id}/pdf")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> downloadCreditNotePdf(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        String role = getCurrentUserRole();
+        try {
+            creditNoteService.getCreditNoteById(id, userId, role);
+            byte[] pdf = creditNoteService.generateCreditNotePdf(id);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "credit-note-" + id + ".pdf");
+            return ResponseEntity.ok().headers(headers).body(pdf);
+        } catch (RuntimeException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("Access denied")) {
+                return ResponseEntity.status(403).body(Map.of("error", "You do not have permission to download this credit note"));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", msg));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/creditnotes/export")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> exportCreditNotes(@RequestParam(defaultValue = "csv") String format,
+                                               @RequestParam(defaultValue = "0") int page,
+                                               @RequestParam(defaultValue = "1000") int size) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        String role = getCurrentUserRole();
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, Object> data = creditNoteService.listCreditNotes(userId, role, page, size);
+        Object content = data.get("content");
+        if (content instanceof List<?>) {
+            for (Object o : (List<?>) content) {
+                rows.add(toRow(o));
+            }
+        }
+        String[] headers = {"creditNoteNumber", "creditNoteDate", "orderId", "invoiceId", "buyerName", "buyerGstin", "taxableAmount", "cgst", "sgst", "igst", "totalTax", "totalAmount", "reason"};
+        if ("json".equalsIgnoreCase(format)) {
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(gstService.exportJson(rows));
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=credit-notes.csv")
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(gstService.exportCsv(headers, rows));
+    }
+
+    private Map<String, Object> toRow(Object o) {
+        if (o instanceof com.cauverystore.entities.CreditNote cn) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("creditNoteNumber", cn.getCreditNoteNumber());
+            m.put("creditNoteDate", cn.getCreditNoteDate() != null ? cn.getCreditNoteDate().toString() : "");
+            m.put("orderId", cn.getOrderId());
+            m.put("invoiceId", cn.getInvoiceId());
+            m.put("buyerName", cn.getBuyerName());
+            m.put("buyerGstin", cn.getBuyerGstin());
+            m.put("taxableAmount", cn.getTaxableAmount());
+            m.put("cgst", cn.getCgstAmount());
+            m.put("sgst", cn.getSgstAmount());
+            m.put("igst", cn.getIgstAmount());
+            m.put("totalTax", cn.getTotalTax());
+            m.put("totalAmount", cn.getTotalAmount());
+            m.put("reason", cn.getReason());
+            return m;
+        }
+        return Map.of();
+    }
+
+    @GetMapping("/returns/gstr1")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> getGstr1Alias(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return getGstr1(startDate, endDate);
+    }
+
+    @GetMapping("/gstr3b")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> getGstr3b(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(creditNoteService.getGstr3bData(userId, startDate, endDate));
+    }
+
+    @GetMapping("/gstr3b/export")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> exportGstr3b(@RequestParam(defaultValue = "csv") String format,
+                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        List<Map<String, Object>> rows = creditNoteService.getGstr3bRows(userId, startDate, endDate);
+        String[] headers = {"section", "taxableValue", "cgst", "sgst", "igst"};
+        if ("json".equalsIgnoreCase(format)) {
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(gstService.exportJson(creditNoteService.getGstr3bData(userId, startDate, endDate)));
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=gstr3b.csv")
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(gstService.exportCsv(headers, rows));
+    }
+
+    @GetMapping("/gstr1/export")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> exportGstr1(@RequestParam(defaultValue = "csv") String format,
+                                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        List<Map<String, Object>> rows = gstService.getGstr1Data(userId, startDate, endDate);
+        String[] headers = {"invoiceNumber", "invoiceDate", "buyerGstin", "buyerName", "taxableAmount", "cgst", "sgst", "igst", "totalTax", "totalAmount", "placeOfSupply", "isInterState", "invoiceType", "itcEligible", "irn", "status"};
+        if ("json".equalsIgnoreCase(format)) {
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(gstService.exportJson(rows));
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=gstr1.csv")
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(gstService.exportCsv(headers, rows));
     }
 
     @GetMapping("/invoice/{id}")
