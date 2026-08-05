@@ -79,7 +79,6 @@ const PlatformSettings = () => {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editState, setEditState] = useState({ store: false, security: false, payment: false, email: false, tax: false });
-  const [testEmailResult, setTestEmailResult] = useState('');
 
   const flatToNested = (flat) => {
     if (!flat || !Array.isArray(flat)) return initialSettings;
@@ -152,16 +151,6 @@ const PlatformSettings = () => {
     }
   };
 
-  const handleTestEmail = async () => {
-    setTestEmailResult('');
-    try {
-      await api.post('/api/super-admin/settings/email/test', { to: settings.email.fromEmail });
-      setTestEmailResult('Test email sent successfully!');
-    } catch (err) {
-      setTestEmailResult(err.response?.data?.message || 'Failed to send test email');
-    }
-  };
-
   if (loading) {
     return (
       <div>
@@ -226,16 +215,6 @@ const PlatformSettings = () => {
         <SettingField label="SMTP Username" value={settings.email.smtpUser} onChange={updateSetting('email', 'smtpUser')} editing={editState.email} />
         <SettingField label="SMTP Password" value={settings.email.smtpPass} onChange={updateSetting('email', 'smtpPass')} editing={editState.email} type={editState.email ? 'text' : 'password'} />
       </div>
-      {editState.email && (
-        <div style={{ marginTop: '12px' }}>
-          <button className="admin-btn admin-btn-secondary admin-btn-sm" onClick={handleTestEmail}>Send Test Email</button>
-          {testEmailResult && (
-            <span style={{ marginLeft: '12px', fontSize: '0.85rem', color: testEmailResult.includes('success') ? '#16a34a' : '#dc2626' }}>
-              {testEmailResult}
-            </span>
-          )}
-        </div>
-      )}
     </SettingsSection>
   );
 
