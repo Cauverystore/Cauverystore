@@ -12,7 +12,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/support-tickets")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminSupportTicketController {
     private final SupportTicketService ticketService;
     private final AuthService authService;

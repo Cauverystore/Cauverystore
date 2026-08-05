@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import React, { Suspense, lazy, useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { Helmet, HelmetProvider } from "react-helmet-async";
@@ -8,7 +8,17 @@ import CustomerLayout from "./layouts/CustomerLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import ImpersonationBanner from "./components/ImpersonationBanner";
+import PasswordExpiryBanner from "./components/PasswordExpiryBanner";
 import ChatWidget from "./components/ChatWidget";
+import { trackPageView } from "./utils/analytics";
+
+const PageViewTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    trackPageView(location.pathname + location.search, document.title);
+  }, [location.pathname, location.search]);
+  return null;
+};
 
 const Home = lazy(() => import("./pages/Home"));
 const ProductList = lazy(() => import("./pages/ProductList"));
@@ -28,6 +38,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const AddressBook = lazy(() => import("./pages/AddressBook"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
+const Compare = lazy(() => import("./pages/Compare"));
 const CategoryProducts = lazy(() => import("./pages/CategoryProducts"));
 const OffersPage = lazy(() => import("./pages/OffersPage"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
@@ -115,6 +126,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <WishlistProvider>
+        <PageViewTracker />
         <Helmet>
           <title>Cauvery Store - Your One-Stop Shop</title>
           <meta name="description" content="Shop the best products at Cauvery Store. Electronics, fashion, home & kitchen, and more." />
@@ -134,6 +146,7 @@ function App() {
           "address": { "@type": "PostalAddress", "addressCountry": "IN" }
         })}} />
         <ImpersonationBanner />
+        <PasswordExpiryBanner />
         <ChatWidget />
         <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", color: "#94a3b8", fontSize: "0.95rem" }}>Loading...</div>}>
         <Routes>
@@ -145,6 +158,7 @@ function App() {
             <Route path="/category/:category" element={<CategoryProducts />} />
             <Route path="/offers" element={<OffersPage />} />
             <Route path="/offers/:offerId" element={<OffersPage />} />
+            <Route path="/compare" element={<Compare />} />
             <Route path="/about" element={<AboutUs />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/policies" element={<Policies />} />

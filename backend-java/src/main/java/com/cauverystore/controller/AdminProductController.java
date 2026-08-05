@@ -17,7 +17,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/products")
-@CrossOrigin("*")
 @RequiredArgsConstructor
 public class AdminProductController {
 

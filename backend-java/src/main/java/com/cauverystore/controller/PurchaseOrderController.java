@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/purchase-orders")
-@CrossOrigin("*")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'EXECUTIVE')")
 public class PurchaseOrderController {
     private final PurchaseOrderService poService;

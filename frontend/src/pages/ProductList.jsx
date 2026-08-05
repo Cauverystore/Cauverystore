@@ -143,6 +143,48 @@ const ProductList = () => {
         </div>
       </div>
 
+      {mobileFilterOpen && (
+        <div className="pl-drawer-overlay" onClick={() => setMobileFilterOpen(false)}>
+          <div className="pl-drawer" role="dialog" aria-modal="true" aria-label="Product filters" onClick={(e) => e.stopPropagation()}>
+            <div className="pl-drawer-header">
+              <h3 className="pl-drawer-title">Filters</h3>
+              <button className="pl-drawer-close" onClick={() => setMobileFilterOpen(false)} aria-label="Close filters">{"\u2715"}</button>
+            </div>
+            <div className="pl-drawer-body">
+              <div className="pl-sidebar-section">
+                <h3 className="pl-sidebar-title">Category</h3>
+                <div className="pl-sidebar-categories">
+                  <button type="button" className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} aria-pressed={category === ""} onClick={() => { setCategory(""); setPage(1); }}>All Categories</button>
+                  {categories.map((cat) => (
+                    <button type="button" key={categoryValue(cat)} className={`pl-sidebar-cat ${category === categoryValue(cat) ? "active" : ""}`} aria-pressed={category === categoryValue(cat)} onClick={() => { setCategory(categoryValue(cat)); setPage(1); }}>{categoryLabel(cat)}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="pl-sidebar-section">
+                <h3 className="pl-sidebar-title">Sort By</h3>
+                <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sidebar-select" aria-label="Sort products">
+                  <option value="">Default</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="name-asc">Name: A-Z</option>
+                  <option value="name-desc">Name: Z-A</option>
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                </select>
+              </div>
+              <div className="pl-sidebar-section">
+                <h3 className="pl-sidebar-title">Search</h3>
+                <input type="text" placeholder="Search products..." aria-label="Search products" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-sidebar-input" />
+              </div>
+              <button className="pl-sidebar-clear" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>Clear All Filters</button>
+            </div>
+            <div className="pl-drawer-footer">
+              <button className="pl-drawer-apply" onClick={() => setMobileFilterOpen(false)}>Apply Filters</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .pl-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
         .pl-sidebar { width: 240px; flex-shrink: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; position: sticky; top: 110px; }
@@ -185,6 +227,15 @@ const ProductList = () => {
           .pl-mobile-filter-btn { display: inline-flex; }
           .pl-sort-select { flex: 1; }
         }
+        .pl-drawer-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 2000; display: flex; justify-content: flex-end; }
+        .pl-drawer { width: min(320px, 88vw); height: 100%; background: #fff; display: flex; flex-direction: column; box-shadow: -4px 0 16px rgba(0,0,0,0.12); animation: plDrawerSlide 0.25s ease-out; }
+        @keyframes plDrawerSlide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .pl-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #e2e8f0; }
+        .pl-drawer-title { font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0; }
+        .pl-drawer-close { background: none; border: none; font-size: 1rem; color: #475569; cursor: pointer; padding: 0.25rem; }
+        .pl-drawer-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
+        .pl-drawer-footer { padding: 1rem 1.25rem; border-top: 1px solid #e2e8f0; }
+        .pl-drawer-apply { width: 100%; padding: 0.65rem; background: #16a34a; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
       `}</style>
     </div>
   );

@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 public interface EmailOtpRepository extends JpaRepository<EmailOtp, Long> {
 
     EmailOtp findByEmail(String email);
+
+    EmailOtp findByEmailAndPurpose(String email, String purpose);
 }

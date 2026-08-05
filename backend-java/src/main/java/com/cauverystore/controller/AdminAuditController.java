@@ -12,7 +12,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/audit-logs")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminAuditController {
     private final AuditService auditService;
     public AdminAuditController(AuditService auditService) { this.auditService = auditService; }
@@ -28,5 +27,11 @@ public class AdminAuditController {
                 "totalPages", logsPage.getTotalPages(),
                 "currentPage", logsPage.getNumber()
         ));
+    }
+
+    /** Seller-scoped auth/compliance history (login, logout, onboarding steps, password resets). */
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<Map<String, Object>> getForSeller(@PathVariable Long sellerId) {
+        return ResponseEntity.ok(Map.of("sellerId", sellerId, "logs", auditService.getByUser(sellerId)));
     }
 }

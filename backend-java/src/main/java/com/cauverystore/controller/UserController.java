@@ -7,6 +7,9 @@ import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.User;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.AuthService;
+import com.cauverystore.util.CookieUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,16 +20,25 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
-@CrossOrigin("*")
 @RequiredArgsConstructor
 public class UserController {
 
     private final AuthService authService;
     private final UserRepository userRepo;
+    private final CookieUtil cookieUtil;
+
+    private void applyRefreshCookie(HttpServletResponse response, AuthResponse authResponse) {
+        if (authResponse != null && authResponse.getRefreshToken() != null) {
+            cookieUtil.setRefreshTokenCookie(response, authResponse.getRefreshToken());
+            authResponse.setRefreshToken(null);
+        }
+    }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.authenticate(request));
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+        AuthResponse authResponse = authService.authenticate(request);
+        applyRefreshCookie(response, authResponse);
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/register")
@@ -36,13 +48,24 @@ public class UserController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refreshAccessToken(request));
+    public ResponseEntity<AuthResponse> refresh(@RequestBody(required = false) RefreshTokenRequest request, HttpServletRequest http, HttpServletResponse response) {
+        String cookieToken = cookieUtil.readRefreshToken(http);
+        String bodyToken = request != null ? request.getRefreshToken() : null;
+        RefreshTokenRequest effective = new RefreshTokenRequest();
+        effective.setRefreshToken(cookieToken != null ? cookieToken : bodyToken);
+        AuthResponse authResponse = authService.refreshAccessToken(effective);
+        applyRefreshCookie(response, authResponse);
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(@Valid @RequestBody RefreshTokenRequest request) {
-        authService.logout(request.getRefreshToken());
+    public ResponseEntity<Map<String, String>> logout(@RequestBody(required = false) RefreshTokenRequest request, HttpServletRequest http, HttpServletResponse response) {
+        String cookieToken = cookieUtil.readRefreshToken(http);
+        String token = cookieToken != null ? cookieToken : (request != null ? request.getRefreshToken() : null);
+        if (token != null) {
+            authService.logout(token);
+        }
+        cookieUtil.clearRefreshTokenCookie(response);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 

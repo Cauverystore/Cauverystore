@@ -8,7 +8,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/faqs")
-@CrossOrigin("*")
 public class FaqController {
     private final FaqService faqService;
     public FaqController(FaqService faqService) { this.faqService = faqService; }

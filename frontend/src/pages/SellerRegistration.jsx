@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Building2, ShieldCheck, Landmark, UploadCloud, FileText, CheckSquare, ChevronLeft, ChevronRight, Check, AlertTriangle, Upload, Info, ExternalLink, X, Clock } from "lucide-react";
+import { Building2, ShieldCheck, Landmark, UploadCloud, FileText, CheckSquare, ChevronLeft, ChevronRight, Check, AlertTriangle, Upload, Info, ExternalLink, X, Clock, BadgeCheck, BadgeX } from "lucide-react";
 import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 import "../styles/sellerRegistration.css";
 
 const STEPS = [
@@ -38,6 +39,7 @@ const AGREEMENTS = [
 
 const SellerRegistration = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,10 @@ const SellerRegistration = () => {
   const [agreements, setAgreements] = useState({});
   const [compliance, setCompliance] = useState([]);
   const [regData, setRegData] = useState(null);
+  const [verifyingGstin, setVerifyingGstin] = useState(false);
+  const [verifyingBank, setVerifyingBank] = useState(false);
+  const [gstinResult, setGstinResult] = useState(null);
+  const [bankResult, setBankResult] = useState(null);
 
   useEffect(() => {
     api.get("/api/seller-registration/status").then((r) => {
@@ -95,6 +101,14 @@ const SellerRegistration = () => {
           setDocuments(docMap);
         }
         if (r.data.compliance) setCompliance(r.data.compliance);
+      } else {
+        api.post("/api/seller-registration/start").then((s) => {
+          setRegData(s.data.registration);
+          setStep(s.data.step || 1);
+          setMaxStep(s.data.step || 1);
+          setStatus(s.data.status);
+          if (s.data.compliance) setCompliance(s.data.compliance);
+        }).catch(() => {});
       }
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
@@ -127,7 +141,7 @@ const SellerRegistration = () => {
     if (step === 6) {
       setSubmitting(true);
       try {
-        await api.post("/api/seller-registration/step", { ...form, onboardingStep: 6, agreedToTerms: "true" });
+        await api.post("/api/seller-registration/submit");
         setStatus("SUBMITTED");
       } catch (err) { setError(err.response?.data?.error || "Failed to submit registration"); }
       finally { setSubmitting(false); }
@@ -172,8 +186,68 @@ const SellerRegistration = () => {
     input.click();
   };
 
+  const handleVerifyGstin = async () => {
+    if (!form.gstin || form.gstin.trim().length < 15) {
+      setError("Enter a valid 15-character GSTIN before verifying."); return;
+    }
+    setError("");
+    setVerifyingGstin(true);
+    setGstinResult(null);
+    try {
+      const res = await api.post("/api/seller-registration/verify/gstin", { gstin: form.gstin.trim() });
+      setGstinResult(res.data);
+      setRegData((prev) => ({ ...(prev || {}), gstinStatus: res.data.gstinStatus, gstinLegalName: res.data.legalName, gstinStateCode: res.data.stateCode }));
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "GSTIN verification failed");
+    } finally {
+      setVerifyingGstin(false);
+    }
+  };
+
+  const handleVerifyBank = async () => {
+    if (!form.bankAccountNumber || !form.bankIfsc) {
+      setError("Enter your bank account number and IFSC before verifying."); return;
+    }
+    setError("");
+    setVerifyingBank(true);
+    setBankResult(null);
+    try {
+      const res = await api.post("/api/seller-registration/verify/bank", {
+        accountNumber: form.bankAccountNumber,
+        ifsc: form.bankIfsc,
+        accountName: form.bankAccountName,
+      });
+      setBankResult(res.data);
+      setRegData((prev) => ({ ...(prev || {}), bankStatus: res.data.bankStatus }));
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Bank verification failed");
+    } finally {
+      setVerifyingBank(false);
+    }
+  };
+
+  const regGstinStatus = regData?.gstinStatus;
+  const regBankStatus = regData?.bankStatus;
+
   if (loading) {
     return <div className="seller-reg-page" style={{ textAlign: "center", paddingTop: "4rem", color: "#94a3b8" }}>Loading your registration...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="seller-reg-page">
+        <Helmet><title>Seller Registration | Cauvery Store</title></Helmet>
+        <div className="reg-success">
+          <div className="reg-success-icon"><ShieldCheck size={28} color="#2563eb" /></div>
+          <h2>Log in to start selling</h2>
+          <p>You need a Cauvery Store account to complete seller registration. Already have one? Log in and continue your application.</p>
+          <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
+            <button className="reg-btn reg-btn-primary" onClick={() => navigate("/login?redirect=/seller/register")}>Log In</button>
+            <button className="reg-btn reg-btn-outline" onClick={() => navigate("/register")}>Create Account</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (status === "SUBMITTED" || status === "APPROVED" || status === "REJECTED") {
@@ -186,7 +260,21 @@ const SellerRegistration = () => {
           </div>
           <h2>{status === "APPROVED" ? "Registration Approved!" : status === "REJECTED" ? "Registration Rejected" : "Registration Submitted!"}</h2>
           {status === "SUBMITTED" && (
-            <p>Thank you for submitting your seller registration. Our team will review your application and documents. You will be notified via email once approved.</p>
+            <>
+              <p>Thank you for submitting your seller registration. Our team will review your application and documents. You will be notified via email once approved.</p>
+              <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap", marginTop: "0.75rem" }}>
+                {[{ label: "GSTIN", value: regData?.gstinStatus || "—" }, { label: "Bank", value: regData?.bankStatus || "—" }].map((it) => (
+                  <span key={it.label} className={`reg-status-badge ${(it.value === "VERIFIED" ? "approved" : it.value === "FAILED" ? "rejected" : "").toLowerCase()}`} style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                    {it.label}: {it.value}
+                  </span>
+                ))}
+              </div>
+              {regData && ((regData.gstinStatus && regData.gstinStatus !== "VERIFIED") || (regData.bankStatus && regData.bankStatus !== "VERIFIED")) && (
+                <p style={{ fontSize: "0.8rem", color: "#f59e0b", marginTop: "0.75rem" }}>
+                  Note: GSTIN and/or bank verification is still pending. Please complete it so our team can process your approval faster.
+                </p>
+              )}
+            </>
           )}
           {status === "APPROVED" && <p>Congratulations! Your seller account is active. You can now start listing products and selling on Cauvery Store.</p>}
           {status === "REJECTED" && (
@@ -261,7 +349,31 @@ const SellerRegistration = () => {
                 <label>GSTIN <span className="required">*</span>
                   <span className="reg-tooltip"><Info size={12} /><span className="reg-tooltip-text">Goods & Services Tax Identification Number. Required for taxable turnover above the threshold. Format: 22AAAAA0000A1Z5</span></span>
                 </label>
-                <input value={form.gstin} onChange={handleChange("gstin")} placeholder="22AAAAA0000A1Z5" maxLength={15} />
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <input value={form.gstin} onChange={handleChange("gstin")} placeholder="22AAAAA0000A1Z5" maxLength={15} style={{ flex: 1 }} />
+                  <button type="button" className="reg-btn reg-btn-primary" style={{ whiteSpace: "nowrap", padding: "0.5rem 0.9rem", fontSize: "0.8rem" }} onClick={handleVerifyGstin} disabled={verifyingGstin}>
+                    {verifyingGstin ? "Verifying..." : "Verify GSTIN"}
+                  </button>
+                </div>
+                {regGstinStatus && !gstinResult && (
+                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem", color: regGstinStatus === "VERIFIED" ? "#16a34a" : "#dc2626" }}>
+                    {regGstinStatus === "VERIFIED" ? <BadgeCheck size={13} /> : <BadgeX size={13} />}
+                    GSTIN {regGstinStatus === "VERIFIED" ? "verified" : "verification " + regGstinStatus.toLowerCase()}
+                    {regData?.gstinLegalName && <span style={{ color: "#64748b" }}>· {regData.gstinLegalName}</span>}
+                  </div>
+                )}
+                {gstinResult && (
+                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", padding: "0.5rem 0.6rem", borderRadius: "8px", background: gstinResult.gstinStatus === "VERIFIED" ? "#f0fdf4" : "#fef2f2", border: `1px solid ${gstinResult.gstinStatus === "VERIFIED" ? "#bbf7d0" : "#fecaca"}`, color: gstinResult.gstinStatus === "VERIFIED" ? "#166534" : "#991b1b" }}>
+                    <strong>{gstinResult.gstinStatus === "VERIFIED" ? "GSTIN verified successfully" : "GSTIN verification failed"}</strong>
+                    {gstinResult.gstinStatus === "VERIFIED" && (
+                      <div style={{ marginTop: "0.25rem" }}>
+                        {gstinResult.legalName && <div>Legal name: {gstinResult.legalName}</div>}
+                        {gstinResult.stateCode && <div>State code: {gstinResult.stateCode}</div>}
+                        {gstinResult.verificationRef && <div style={{ color: "#64748b" }}>Ref: {gstinResult.verificationRef}</div>}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="reg-field">
                 <label>PAN Number <span className="required">*</span>
@@ -290,6 +402,23 @@ const SellerRegistration = () => {
               <div className="reg-field"><label>IFSC Code <span className="required">*</span></label><input value={form.bankIfsc} onChange={handleChange("bankIfsc")} placeholder="SBIN0001234" maxLength={11} style={{ textTransform: "uppercase" }} /></div>
               <div className="reg-field"><label>Bank Name <span className="required">*</span></label><input value={form.bankName} onChange={handleChange("bankName")} /></div>
               <div className="reg-field"><label>Branch <span className="required">*</span></label><input value={form.bankBranch} onChange={handleChange("bankBranch")} /></div>
+              <div className="reg-field full">
+                <button type="button" className="reg-btn reg-btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={handleVerifyBank} disabled={verifyingBank}>
+                  {verifyingBank ? "Verifying bank account..." : "Verify Bank Account"}
+                </button>
+                {regBankStatus && !bankResult && (
+                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem", color: regBankStatus === "VERIFIED" ? "#16a34a" : "#dc2626" }}>
+                    {regBankStatus === "VERIFIED" ? <BadgeCheck size={13} /> : <BadgeX size={13} />}
+                    Bank account {regBankStatus === "VERIFIED" ? "verified" : "verification " + regBankStatus.toLowerCase()}
+                  </div>
+                )}
+                {bankResult && (
+                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", padding: "0.5rem 0.6rem", borderRadius: "8px", background: bankResult.bankStatus === "VERIFIED" ? "#f0fdf4" : "#fef2f2", border: `1px solid ${bankResult.bankStatus === "VERIFIED" ? "#bbf7d0" : "#fecaca"}`, color: bankResult.bankStatus === "VERIFIED" ? "#166534" : "#991b1b" }}>
+                    <strong>{bankResult.bankStatus === "VERIFIED" ? "Bank account verified successfully" : "Bank account verification failed"}</strong>
+                    {bankResult.bankStatus === "VERIFIED" && bankResult.reference && <div style={{ marginTop: "0.25rem", color: "#64748b" }}>Ref: {bankResult.reference}</div>}
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

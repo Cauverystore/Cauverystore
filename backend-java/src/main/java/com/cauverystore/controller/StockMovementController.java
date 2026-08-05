@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/stock-movements")
 @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class StockMovementController {
     private final StockMovementService svc;
     public StockMovementController(StockMovementService svc) { this.svc = svc; }

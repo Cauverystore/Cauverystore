@@ -1,7 +1,11 @@
 package com.cauverystore.controller;
 
 import com.cauverystore.dto.SellerRegistrationRequest;
+import com.cauverystore.entities.SellerApob;
 import com.cauverystore.repository.UserRepository;
+import com.cauverystore.service.BankVerificationService;
+import com.cauverystore.service.GstinVerificationService;
+import com.cauverystore.service.SellerApprovalService;
 import com.cauverystore.service.SellerRegistrationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,14 +16,23 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/seller-registration")
-@CrossOrigin("*")
 public class SellerRegistrationController {
 
     private final SellerRegistrationService registrationService;
+    private final SellerApprovalService approvalService;
+    private final GstinVerificationService gstinVerificationService;
+    private final BankVerificationService bankVerificationService;
     private final UserRepository userRepo;
 
-    public SellerRegistrationController(SellerRegistrationService registrationService, UserRepository userRepo) {
+    public SellerRegistrationController(SellerRegistrationService registrationService,
+                                        SellerApprovalService approvalService,
+                                        GstinVerificationService gstinVerificationService,
+                                        BankVerificationService bankVerificationService,
+                                        UserRepository userRepo) {
         this.registrationService = registrationService;
+        this.approvalService = approvalService;
+        this.gstinVerificationService = gstinVerificationService;
+        this.bankVerificationService = bankVerificationService;
         this.userRepo = userRepo;
     }
 
@@ -48,6 +61,55 @@ public class SellerRegistrationController {
         Long userId = getCurrentUserId();
         if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
         return ResponseEntity.ok(registrationService.saveStep(userId, req));
+    }
+
+    @PostMapping("/submit")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> submit() {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(registrationService.submitRegistration(userId));
+    }
+
+    @PostMapping("/verify/gstin")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> verifyGstin(@RequestBody Map<String, String> body) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(gstinVerificationService.verifyGstin(userId, body.get("gstin")));
+    }
+
+    @PostMapping("/verify/bank")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> verifyBank(@RequestBody Map<String, String> body) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(bankVerificationService.verifyBank(
+                userId, body.get("accountNumber"), body.get("ifsc"), body.get("accountName")));
+    }
+
+    @GetMapping("/apob")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> listApobs() {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(registrationService.listApobs(userId));
+    }
+
+    @PostMapping("/apob")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> addApob(@RequestBody SellerApob apob) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(registrationService.saveApob(userId, apob));
+    }
+
+    @DeleteMapping("/apob/{apobId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> deleteApob(@PathVariable Long apobId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(registrationService.deleteApob(userId, apobId));
     }
 
     @PostMapping("/document")
@@ -103,4 +165,33 @@ public class SellerRegistrationController {
         String rejectionReason = (String) body.get("rejectionReason");
         return ResponseEntity.ok(registrationService.verifyDocument(adminId, documentId, approved, rejectionReason));
     }
+
+    @GetMapping("/admin/registrations")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> listRegistrations() {
+        return ResponseEntity.ok(Map.of("content", approvalService.listPending()));
+    }
+
+    @GetMapping("/admin/registrations/{registrationId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> registrationDetail(@PathVariable Long registrationId) {
+        return ResponseEntity.ok(approvalService.getDetail(registrationId));
+    }
+
+    @PostMapping("/admin/registrations/{registrationId}/approve")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> approveRegistration(@PathVariable Long registrationId) {
+        Long adminId = getCurrentUserId();
+        if (adminId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(approvalService.approve(adminId, registrationId));
+    }
+
+    @PostMapping("/admin/registrations/{registrationId}/reject")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> rejectRegistration(@PathVariable Long registrationId, @RequestBody Map<String, String> body) {
+        Long adminId = getCurrentUserId();
+        if (adminId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(approvalService.reject(adminId, registrationId, body.get("reason")));
+    }
 }
+

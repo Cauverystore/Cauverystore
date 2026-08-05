@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
 import loadRazorpay from "../utils/loadRazorpay";
+import { trackBeginCheckout } from "../utils/analytics";
 import "../styles/checkout.css";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
@@ -51,6 +52,12 @@ const Checkout = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!loading && cartItems.length > 0) {
+      trackBeginCheckout(cartItems.map((item) => ({ ...(item.product || item), quantity: item.quantity })));
+    }
+  }, [loading, cartItems]);
 
   const handleChange = (e) => {
     setShipping({ ...shipping, [e.target.name]: e.target.value });

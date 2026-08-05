@@ -7,7 +7,6 @@ const IMPERSONATION_STORAGE_KEY = 'impersonation_session';
 
 const STORAGE_KEYS = {
   accessToken: 'accessToken',
-  refreshToken: 'refreshToken',
   user: 'user',
   role: 'role',
   roles: 'roles',
@@ -32,7 +31,6 @@ function isTokenExpired(token) {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [refreshTokenValue, setRefreshTokenValue] = useState(null);
   const [role, setRole] = useState(null);
   const [roles, setRoles] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,12 +41,12 @@ export const AuthProvider = ({ children }) => {
   const [impersonatedUser, setImpersonatedUser] = useState(null);
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [showSessionWarning, setShowSessionWarning] = useState(false);
+  const [pendingMfa, setPendingMfa] = useState(null);
   const timeoutRef = useRef(null);
   const warningRef = useRef(null);
 
   const clearLocalAuth = useCallback(() => {
     localStorage.removeItem(STORAGE_KEYS.accessToken);
-    localStorage.removeItem(STORAGE_KEYS.refreshToken);
     localStorage.removeItem(STORAGE_KEYS.user);
     localStorage.removeItem(STORAGE_KEYS.role);
     localStorage.removeItem(STORAGE_KEYS.roles);
@@ -57,14 +55,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      const storedRefresh = localStorage.getItem(STORAGE_KEYS.refreshToken);
-      if (storedRefresh) {
-        await API.post('/api/auth/logout', { refreshToken: storedRefresh });
-      }
+      await API.post('/api/auth/logout');
     } catch { /* proceed with local logout even if API call fails */ }
     clearLocalAuth();
     setToken(null);
-    setRefreshTokenValue(null);
     setUser(null);
     setRole(null);
     setRoles([]);
@@ -76,19 +70,11 @@ export const AuthProvider = ({ children }) => {
   }, [clearLocalAuth]);
 
   const refreshToken = useCallback(async () => {
-    const storedRefresh = localStorage.getItem(STORAGE_KEYS.refreshToken);
-    if (!storedRefresh) {
-      await logout();
-      throw new Error('No refresh token available');
-    }
     try {
-      const res = await API.post('/api/auth/refresh', { refreshToken: storedRefresh });
+      const res = await API.post('/api/auth/refresh');
       const newAccess = res.data.accessToken || res.data.token;
-      const newRefresh = res.data.refreshToken || storedRefresh;
       localStorage.setItem(STORAGE_KEYS.accessToken, newAccess);
-      localStorage.setItem(STORAGE_KEYS.refreshToken, newRefresh);
       setToken(newAccess);
-      setRefreshTokenValue(newRefresh);
       return newAccess;
     } catch {
       await logout();
@@ -96,33 +82,78 @@ export const AuthProvider = ({ children }) => {
     }
   }, [logout]);
 
-  const login = useCallback(async (email, password, userRole, rememberMe = false) => {
-    setError('');
-    const res = await API.post('/api/auth/login', { email, password, role: userRole });
-    const data = res.data;
-
+  const persistAuth = (data, fallbackUser, rememberMe) => {
     const accessToken = data.accessToken || data.token;
-    const newRefreshToken = data.refreshToken || '';
-    const userData = data.user || { email, fullName: data.username || email };
-    const userRoleFinal = data.role || (userRole ? userRole.toUpperCase() : 'CUSTOMER');
+    const userData = data.user || fallbackUser;
+    const userRoleFinal = data.role || 'CUSTOMER';
     const rolesFinal = Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : [userRoleFinal];
 
     localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
-    localStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
     localStorage.setItem(STORAGE_KEYS.role, userRoleFinal);
     localStorage.setItem(STORAGE_KEYS.roles, JSON.stringify(rolesFinal));
     localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe ? 'true' : 'false');
 
     setToken(accessToken);
-    setRefreshTokenValue(newRefreshToken);
     setUser(userData);
     setRole(userRoleFinal);
     setRoles(rolesFinal);
     setIsAuthenticated(true);
     setLastActivity(Date.now());
 
+    API.get('/api/auth/me')
+      .then((meRes) => {
+        const me = meRes.data;
+        if (me) {
+          setUser(me);
+          localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(me));
+        }
+      })
+      .catch(() => {});
+  };
+
+  const login = useCallback(async (email, password, userRole, rememberMe = false) => {
+    setError('');
+    const res = await API.post('/api/auth/login', { email, password, role: userRole });
+    const data = res.data;
+
+    if (data.mfaRequired) {
+      setPendingMfa({ email, preferredRole: userRole, rememberMe });
+      return data;
+    }
+
+    const fallbackUser = { email, fullName: data.username || email };
+    persistAuth(data, fallbackUser, rememberMe);
     return data;
+  }, []);
+
+  const completeMfaLogin = useCallback(async (otp) => {
+    if (!pendingMfa) throw new Error('Two-factor verification is required before login');
+    setError('');
+    const res = await API.post('/api/auth/login-2fa', { email: pendingMfa.email, otp });
+    const data = res.data;
+    const fallbackUser = { email: pendingMfa.email, fullName: data.username || pendingMfa.email };
+    persistAuth(data, fallbackUser, pendingMfa.rememberMe);
+    setPendingMfa(null);
+    return data;
+  }, [pendingMfa]);
+
+  const cancelMfaLogin = useCallback(() => {
+    setPendingMfa(null);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await API.get('/api/auth/me');
+      const me = res.data;
+      if (me) {
+        setUser(me);
+        localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(me));
+      }
+      return me;
+    } catch {
+      return null;
+    }
   }, []);
 
   const loginWithGoogle = useCallback(async (credential, rememberMe = false) => {
@@ -131,20 +162,17 @@ export const AuthProvider = ({ children }) => {
     const data = res.data;
 
     const accessToken = data.accessToken || data.token;
-    const newRefreshToken = data.refreshToken || '';
     const userData = data.user || { email: data.email, fullName: data.username || data.email };
     const userRoleFinal = data.role || 'CUSTOMER';
     const rolesFinal = Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : [userRoleFinal];
 
     localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
-    localStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
     localStorage.setItem(STORAGE_KEYS.role, userRoleFinal);
     localStorage.setItem(STORAGE_KEYS.roles, JSON.stringify(rolesFinal));
     localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe ? 'true' : 'false');
 
     setToken(accessToken);
-    setRefreshTokenValue(newRefreshToken);
     setUser(userData);
     setRole(userRoleFinal);
     setRoles(rolesFinal);
@@ -186,20 +214,17 @@ export const AuthProvider = ({ children }) => {
     const data = res.data;
 
     const accessToken = data.accessToken || data.token;
-    const newRefreshToken = data.refreshToken || '';
     const userData = data.user || { email: data.email, fullName: data.username || data.email };
     const userRoleFinal = data.role || 'CUSTOMER';
     const rolesFinal = Array.isArray(data.roles) && data.roles.length > 0 ? data.roles : [userRoleFinal];
 
     localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
-    localStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
     localStorage.setItem(STORAGE_KEYS.role, userRoleFinal);
     localStorage.setItem(STORAGE_KEYS.roles, JSON.stringify(rolesFinal));
     localStorage.setItem(STORAGE_KEYS.rememberMe, rememberMe ? 'true' : 'false');
 
     setToken(accessToken);
-    setRefreshTokenValue(newRefreshToken);
     setUser(userData);
     setRole(userRoleFinal);
     setRoles(rolesFinal);
@@ -246,7 +271,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     try {
       const savedAccessToken = localStorage.getItem(STORAGE_KEYS.accessToken);
-      const savedRefreshToken = localStorage.getItem(STORAGE_KEYS.refreshToken);
       const savedUser = localStorage.getItem(STORAGE_KEYS.user);
       const savedRole = localStorage.getItem(STORAGE_KEYS.role);
       const savedRoles = localStorage.getItem(STORAGE_KEYS.roles);
@@ -265,21 +289,17 @@ export const AuthProvider = ({ children }) => {
 
       if (savedAccessToken && !isTokenExpired(savedAccessToken)) {
         setToken(savedAccessToken);
-        setRefreshTokenValue(savedRefreshToken);
         try { setUser(savedUser ? JSON.parse(savedUser) : null); } catch { setUser(null); }
         setRole(savedRole);
         try { setRoles(savedRoles ? JSON.parse(savedRoles) : (savedRole ? [savedRole] : [])); } catch { setRoles(savedRole ? [savedRole] : []); }
         setIsAuthenticated(true);
         setLastActivity(Date.now());
-      } else if (savedAccessToken && savedRefreshToken) {
-        API.post('/api/auth/refresh', { refreshToken: savedRefreshToken })
+      } else if (savedAccessToken) {
+        API.post('/api/auth/refresh')
           .then((res) => {
             const newAccess = res.data.accessToken || res.data.token;
-            const newRefresh = res.data.refreshToken || savedRefreshToken;
             localStorage.setItem(STORAGE_KEYS.accessToken, newAccess);
-            localStorage.setItem(STORAGE_KEYS.refreshToken, newRefresh);
             setToken(newAccess);
-            setRefreshTokenValue(newRefresh);
             try { setUser(savedUser ? JSON.parse(savedUser) : null); } catch { setUser(null); }
             setRole(savedRole);
             try { setRoles(savedRoles ? JSON.parse(savedRoles) : (savedRole ? [savedRole] : [])); } catch { setRoles(savedRole ? [savedRole] : []); }
@@ -333,6 +353,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user, token, role, roles, isAuthenticated, loading, error,
     login, loginWithGoogle, register, logout, refreshToken, getAuthHeaders, isTokenExpired,
+    pendingMfa, completeMfaLogin, cancelMfaLogin, refreshUser,
     requestPasswordReset, resetPassword, completeForcedPasswordReset,
     requestPasswordResetLink, resetPasswordWithLink,
     isImpersonating, impersonationSession, impersonatedUser,

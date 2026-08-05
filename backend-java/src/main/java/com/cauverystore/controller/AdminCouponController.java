@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/coupons")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminCouponController {
     private final CouponService couponService;
     public AdminCouponController(CouponService couponService) { this.couponService = couponService; }

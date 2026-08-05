@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/suppliers")
-@CrossOrigin("*")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'EXECUTIVE')")
 public class SupplierController {
     private final SupplierService supplierService;

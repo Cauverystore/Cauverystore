@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import userService from "../services/userService";
+import securityService from "../services/securityService";
+import { useAuth } from "../context/AuthContext";
 import { getCart, moveToCart } from "../services/cartService";
 import { removeFromWishlist } from "../services/wishlistService";
 import { useWishlist } from "../context/WishlistContext";
@@ -25,7 +27,10 @@ const initialAddr = () => ({
 });
 
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState("personal");
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "personal");
 
   const [profile, setProfile] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -48,6 +53,17 @@ const Profile = () => {
 
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ type: "CARD", maskedNumber: "", cardholderName: "", expiry: "", upiId: "", bankName: "" });
+
+  const [me, setMe] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loadingSecurity, setLoadingSecurity] = useState(false);
+  const [securityMsg, setSecurityMsg] = useState("");
+  const [securityErr, setSecurityErr] = useState("");
+  const [twofaSetup, setTwofaSetup] = useState(null);
+  const [mfaOtp, setMfaOtp] = useState("");
+  const [mfaBusy, setMfaBusy] = useState(false);
+  const [pwForm, setPwForm] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
+  const [sessionBusy, setSessionBusy] = useState(null);
 
   const { refresh: refreshWishlistCtx } = useWishlist();
 
@@ -79,6 +95,21 @@ const Profile = () => {
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  const loadSecurity = useCallback(async () => {
+    setLoadingSecurity(true);
+    try {
+      const [meRes, sessRes] = await Promise.all([
+        securityService.getMe().catch(e => { void e; return { data: null }; }),
+        securityService.getSessions().catch(e => { void e; return { data: [] }; }),
+      ]);
+      setMe(meRes.data);
+      setSessions(Array.isArray(sessRes.data) ? sessRes.data : []);
+    } catch { /* ignore */ }
+    setLoadingSecurity(false);
+  }, []);
+
+  useEffect(() => { loadSecurity(); }, [loadSecurity]);
 
   const notify = (msg, type = "success") => {
     if (type === "error") { setError(msg); setSuccess(""); }
@@ -174,6 +205,79 @@ const Profile = () => {
       notify("Preferences saved");
     } catch (err) { notify("Failed to save preferences", "error"); }
     setSaving(false);
+  };
+
+  const secNotify = (msg, type = "success") => {
+    if (type === "error") { setSecurityErr(msg); setSecurityMsg(""); }
+    else { setSecurityMsg(msg); setSecurityErr(""); }
+    setTimeout(() => { setSecurityErr(""); setSecurityMsg(""); }, 5000);
+  };
+
+  const handleEnable2fa = async () => {
+    setMfaBusy(true); setSecurityErr(""); setSecurityMsg("");
+    try {
+      const res = await securityService.enable2fa();
+      setTwofaSetup(res.data);
+      setMfaOtp("");
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Failed to start 2FA setup", "error"); }
+    setMfaBusy(false);
+  };
+
+  const handleConfirm2fa = async () => {
+    if (!mfaOtp.trim()) { secNotify("Enter the code from your authenticator app", "error"); return; }
+    setMfaBusy(true); setSecurityErr("");
+    try {
+      await securityService.confirm2fa(mfaOtp.trim());
+      setTwofaSetup(null); setMfaOtp("");
+      secNotify("Two-factor authentication enabled");
+      await loadSecurity();
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Invalid code. Try again.", "error"); }
+    setMfaBusy(false);
+  };
+
+  const handleDisable2fa = async () => {
+    if (!mfaOtp.trim()) { secNotify("Enter a current code to disable 2FA", "error"); return; }
+    setMfaBusy(true); setSecurityErr("");
+    try {
+      await securityService.disable2fa(mfaOtp.trim());
+      setMfaOtp("");
+      secNotify("Two-factor authentication disabled");
+      await loadSecurity();
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Invalid code. Try again.", "error"); }
+    setMfaBusy(false);
+  };
+
+  const handleChangePassword = async () => {
+    if (!pwForm.oldPassword || !pwForm.newPassword) { secNotify("Enter your current and new password", "error"); return; }
+    if (pwForm.newPassword.length < 8) { secNotify("New password must be at least 8 characters", "error"); return; }
+    if (pwForm.newPassword !== pwForm.confirmPassword) { secNotify("New passwords do not match", "error"); return; }
+    setMfaBusy(true); setSecurityErr("");
+    try {
+      await securityService.changePassword(pwForm.oldPassword, pwForm.newPassword);
+      setPwForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      secNotify("Password changed successfully");
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Failed to change password", "error"); }
+    setMfaBusy(false);
+  };
+
+  const handleRevokeSession = async (sessionId) => {
+    if (!window.confirm("Sign out this device?")) return;
+    setSessionBusy(sessionId);
+    try {
+      await securityService.revokeSession(sessionId);
+      await loadSecurity();
+      secNotify("Session revoked");
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Failed to revoke session", "error"); }
+    setSessionBusy(null);
+  };
+
+  const handleLogoutAll = async () => {
+    if (!window.confirm("Sign out from all devices? You will be logged out of this device too.")) return;
+    try {
+      await securityService.logoutAll();
+    } catch { /* ignore */ }
+    await logout();
+    navigate("/login");
   };
 
   if (loading) {
@@ -645,70 +749,175 @@ const Profile = () => {
     </div>
   );
 
-  const renderSecurity = () => (
-    <div className="profile-section-card">
-      <div className="profile-card-header"><h3>Security & Settings</h3></div>
+  const renderSecurity = () => {
+    const mfaEnabled = !!me?.mfaEnabled;
+    const now = Date.now();
+    const pwExpiry = me?.passwordExpiresAt ? new Date(me.passwordExpiresAt) : null;
+    const pwDaysLeft = pwExpiry ? Math.ceil((pwExpiry.getTime() - now) / 86400000) : null;
 
-      <h4 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.75rem" }}>Two-Factor Authentication</h4>
-      <div className="pf-toggle-row">
-        <span className="pf-toggle-label">Enable 2FA</span>
-        <label className="pf-switch">
-          <input type="checkbox" checked={preferences?.twoFactorEnabled || false}
-            onChange={(e) => handlePrefsSave({ twoFactorEnabled: e.target.checked })} />
-          <span className="pf-slider"></span>
-        </label>
-      </div>
+    return (
+      <div className="profile-section-card">
+        <div className="profile-card-header"><h3>Security & Settings</h3></div>
 
-      <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>Communication Preferences</h4>
-      <div className="pf-toggle-row">
-        <span className="pf-toggle-label">Email Notifications</span>
-        <label className="pf-switch">
-          <input type="checkbox" checked={preferences?.emailNotifications !== false}
-            onChange={(e) => handlePrefsSave({ emailNotifications: e.target.checked })} />
-          <span className="pf-slider"></span>
-        </label>
-      </div>
-      <div className="pf-toggle-row">
-        <span className="pf-toggle-label">SMS Notifications</span>
-        <label className="pf-switch">
-          <input type="checkbox" checked={preferences?.smsNotifications !== false}
-            onChange={(e) => handlePrefsSave({ smsNotifications: e.target.checked })} />
-          <span className="pf-slider"></span>
-        </label>
-      </div>
-      <div className="pf-toggle-row">
-        <span className="pf-toggle-label">Push Notifications</span>
-        <label className="pf-switch">
-          <input type="checkbox" checked={preferences?.pushNotifications !== false}
-            onChange={(e) => handlePrefsSave({ pushNotifications: e.target.checked })} />
-          <span className="pf-slider"></span>
-        </label>
-      </div>
+        {securityMsg && <div className="profile-notification success">{securityMsg}</div>}
+        {securityErr && <div className="profile-notification error">{securityErr}</div>}
 
-      <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>COD Preference</h4>
-      <div className="pf-toggle-row">
-        <span className="pf-toggle-label">Prefer Cash on Delivery</span>
-        <label className="pf-switch">
-          <input type="checkbox" checked={preferences?.codPreference !== false}
-            onChange={(e) => handlePrefsSave({ codPreference: e.target.checked })} />
-          <span className="pf-slider"></span>
-        </label>
-      </div>
+        {pwDaysLeft !== null && pwDaysLeft <= 7 && (
+          <div style={{ padding: "0.75rem", marginBottom: "1rem", borderRadius: "var(--radius-sm)", background: pwDaysLeft <= 0 ? "#fef2f2" : "#fffbeb", border: `1px solid ${pwDaysLeft <= 0 ? "#fecaca" : "#fde68a"}`, fontSize: "0.85rem", color: pwDaysLeft <= 0 ? "#991b1b" : "#92400e" }}>
+            {pwDaysLeft <= 0 ? "Your password has expired. Please update it to continue using your account securely." : `Your password expires in ${pwDaysLeft} day${pwDaysLeft === 1 ? "" : "s"}. Update it below.`}
+          </div>
+        )}
 
-      <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>Privacy & GDPR</h4>
-      <div className="pf-toggle-row">
-        <span className="pf-toggle-label">I consent to data processing as per GDPR</span>
-        <label className="pf-switch">
-          <input type="checkbox" checked={preferences?.gdprConsent || false}
-            onChange={(e) => handlePrefsSave({ gdprConsent: e.target.checked })} />
-          <span className="pf-slider"></span>
-        </label>
+        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.75rem" }}>Two-Factor Authentication (TOTP)</h4>
+        <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
+          {mfaEnabled
+            ? "Two-factor authentication is enabled. Every sign-in will ask for a code from your authenticator app."
+            : "Add an extra layer of security. Once enabled, sign-in will ask for a 6-digit code from your authenticator app (Google Authenticator, Microsoft Authenticator, Authy, etc.)."}
+        </p>
+
+        {!mfaEnabled && !twofaSetup && (
+          <button className="pf-btn pf-btn-primary" onClick={handleEnable2fa} disabled={mfaBusy}>
+            {mfaBusy ? "Setting up..." : "Enable 2FA"}
+          </button>
+        )}
+
+        {!mfaEnabled && twofaSetup && (
+          <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "1rem", marginBottom: "1rem", background: "var(--color-bg-secondary)" }}>
+            <div style={{ fontWeight: 600, marginBottom: "0.5rem" }}>Step 1: Add the account to your authenticator app</div>
+            <p style={{ fontSize: "0.82rem", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
+              Open your authenticator app and add manually using this secret (or use this otpauth link on a device with a TOTP-capable app):
+            </p>
+            <div style={{ fontSize: "0.82rem", wordBreak: "break-all", marginBottom: "0.5rem" }}>
+              Secret: <strong>{twofaSetup.secret}</strong>
+            </div>
+            {twofaSetup.otpauthUrl && (
+              <div style={{ fontSize: "0.8rem", wordBreak: "break-all", marginBottom: "0.75rem", color: "#2563eb" }}>
+                <a href={twofaSetup.otpauthUrl} rel="noreferrer" target="_blank">Open otpauth link</a>
+              </div>
+            )}
+            <div style={{ fontWeight: 600, marginBottom: "0.5rem" }}>Step 2: Confirm with a code</div>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <input className="pf-input" value={mfaOtp} onChange={(e) => setMfaOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit code" inputMode="numeric" style={{ width: "140px" }} />
+              <button className="pf-btn pf-btn-primary" onClick={handleConfirm2fa} disabled={mfaBusy || mfaOtp.length < 6}>
+                {mfaBusy ? "Confirming..." : "Confirm & Enable"}
+              </button>
+              <button className="pf-btn pf-btn-secondary" onClick={() => { setTwofaSetup(null); setMfaOtp(""); }} disabled={mfaBusy}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {mfaEnabled && (
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+            <input className="pf-input" value={mfaOtp} onChange={(e) => setMfaOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="Current 6-digit code" inputMode="numeric" style={{ width: "160px" }} />
+            <button className="pf-btn pf-btn-secondary" onClick={handleDisable2fa} disabled={mfaBusy || mfaOtp.length < 6}>
+              {mfaBusy ? "Disabling..." : "Disable 2FA"}
+            </button>
+          </div>
+        )}
+
+        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>Change Password</h4>
+        <div className="profile-form-grid two-col">
+          <div className="pf-group">
+            <label className="pf-label">Current Password</label>
+            <input className="pf-input" type="password" value={pwForm.oldPassword}
+              onChange={(e) => setPwForm({ ...pwForm, oldPassword: e.target.value })} />
+          </div>
+          <div className="pf-group">
+            <label className="pf-label">New Password</label>
+            <input className="pf-input" type="password" value={pwForm.newPassword}
+              onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })} placeholder="Min 8 characters" />
+          </div>
+          <div className="pf-group">
+            <label className="pf-label">Confirm New Password</label>
+            <input className="pf-input" type="password" value={pwForm.confirmPassword}
+              onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })} />
+          </div>
+        </div>
+        <div className="profile-form-actions">
+          <button className="pf-btn pf-btn-primary" onClick={handleChangePassword} disabled={mfaBusy}>
+            {mfaBusy ? "Saving..." : "Update Password"}
+          </button>
+        </div>
+
+        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>Active Sessions ({sessions.length})</h4>
+        {loadingSecurity ? (
+          <div style={{ padding: "1rem 0", color: "var(--color-text-secondary)", fontSize: "0.85rem" }}>Loading sessions...</div>
+        ) : sessions.length === 0 ? (
+          <div style={{ padding: "1rem 0", color: "var(--color-text-secondary)", fontSize: "0.85rem" }}>No active sessions found.</div>
+        ) : (
+          <div className="profile-orders-list">
+            {sessions.map((s) => (
+              <div key={s.id} className="profile-order-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: "0.9rem" }}>{s.deviceLabel || "Device"}</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
+                    {s.ipAddress ? `${s.ipAddress} · ` : ""}Signed in {s.createdAt ? new Date(s.createdAt).toLocaleString("en-IN") : ""}
+                    {s.expiresAt ? ` · Expires ${new Date(s.expiresAt).toLocaleString("en-IN")}` : ""}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#16a34a" }}>{s.status}</div>
+                </div>
+                <button className="pf-btn-sm pf-btn-danger" onClick={() => handleRevokeSession(s.id)} disabled={sessionBusy === s.id}>
+                  {sessionBusy === s.id ? "..." : "Sign Out"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="profile-form-actions" style={{ marginTop: "0.75rem" }}>
+          <button className="pf-btn pf-btn-secondary" onClick={handleLogoutAll}>Sign Out of All Devices</button>
+        </div>
+
+        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>Communication Preferences</h4>
+        <div className="pf-toggle-row">
+          <span className="pf-toggle-label">Email Notifications</span>
+          <label className="pf-switch">
+            <input type="checkbox" checked={preferences?.emailNotifications !== false}
+              onChange={(e) => handlePrefsSave({ emailNotifications: e.target.checked })} />
+            <span className="pf-slider"></span>
+          </label>
+        </div>
+        <div className="pf-toggle-row">
+          <span className="pf-toggle-label">SMS Notifications</span>
+          <label className="pf-switch">
+            <input type="checkbox" checked={preferences?.smsNotifications !== false}
+              onChange={(e) => handlePrefsSave({ smsNotifications: e.target.checked })} />
+            <span className="pf-slider"></span>
+          </label>
+        </div>
+        <div className="pf-toggle-row">
+          <span className="pf-toggle-label">Push Notifications</span>
+          <label className="pf-switch">
+            <input type="checkbox" checked={preferences?.pushNotifications !== false}
+              onChange={(e) => handlePrefsSave({ pushNotifications: e.target.checked })} />
+            <span className="pf-slider"></span>
+          </label>
+        </div>
+
+        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>COD Preference</h4>
+        <div className="pf-toggle-row">
+          <span className="pf-toggle-label">Prefer Cash on Delivery</span>
+          <label className="pf-switch">
+            <input type="checkbox" checked={preferences?.codPreference !== false}
+              onChange={(e) => handlePrefsSave({ codPreference: e.target.checked })} />
+            <span className="pf-slider"></span>
+          </label>
+        </div>
+
+        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>Privacy & GDPR</h4>
+        <div className="pf-toggle-row">
+          <span className="pf-toggle-label">I consent to data processing as per GDPR</span>
+          <label className="pf-switch">
+            <input type="checkbox" checked={preferences?.gdprConsent || false}
+              onChange={(e) => handlePrefsSave({ gdprConsent: e.target.checked })} />
+            <span className="pf-slider"></span>
+          </label>
+        </div>
+        <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: "0.75rem", padding: "0.75rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)" }}>
+          Your data is handled in accordance with applicable privacy laws. You may request data deletion by contacting support.
+        </div>
       </div>
-      <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: "0.75rem", padding: "0.75rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)" }}>
-        Your data is handled in accordance with applicable privacy laws. You may request data deletion by contacting support.
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="profile-page">

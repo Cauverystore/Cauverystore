@@ -9,6 +9,9 @@ public class AuthResponse {
     private String role;
     private java.util.List<String> roles;
     private Long userId;
+    private Boolean mfaRequired = false;
+    private String mfaMethod;
+    private String message;
 
     @java.lang.SuppressWarnings("all")
     public String getAccessToken() {
@@ -78,5 +81,35 @@ public class AuthResponse {
     @java.lang.SuppressWarnings("all")
     public void setUserId(final Long userId) {
         this.userId = userId;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public Boolean getMfaRequired() {
+        return this.mfaRequired;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setMfaRequired(final Boolean mfaRequired) {
+        this.mfaRequired = mfaRequired;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getMfaMethod() {
+        return this.mfaMethod;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setMfaMethod(final String mfaMethod) {
+        this.mfaMethod = mfaMethod;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getMessage() {
+        return this.message;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setMessage(final String message) {
+        this.message = message;
     }
 }

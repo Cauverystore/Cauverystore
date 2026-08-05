@@ -12,7 +12,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/content")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminContentController {
     private final ContentService contentService;
     private final PlatformSettingsService platformSettingsService;

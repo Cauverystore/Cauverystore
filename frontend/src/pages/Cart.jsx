@@ -4,6 +4,7 @@ import { Heart, Trash2, Bookmark } from "lucide-react";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
 import { useWishlist } from "../context/WishlistContext";
+import { trackEvent } from "../utils/analytics";
 import "../styles/cart.css";
 
 const Cart = () => {
@@ -35,6 +36,12 @@ const Cart = () => {
   }, []);
 
   useEffect(() => { fetchCart(); }, [fetchCart]);
+
+  useEffect(() => {
+    if (cart?.items?.length) {
+      trackEvent("view_cart", { currency: "INR", value: cart.subtotal || 0, items: cart.items });
+    }
+  }, [cart]);
 
   useEffect(() => {
     const fetchFreq = async () => {

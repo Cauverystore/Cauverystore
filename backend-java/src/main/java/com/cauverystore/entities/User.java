@@ -34,6 +34,10 @@ public class User extends BaseEntity {
     private Integer tokenVersion = 0;
     private Long suspendedBy;
     private java.time.LocalDateTime suspendedAt;
+    private String mfaSecret;
+    private String mfaMethod = "TOTP";
+    private java.time.LocalDateTime passwordChangedAt;
+    private java.time.LocalDateTime passwordExpiresAt;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("user")
     private List<Address> addresses = new ArrayList<>();
@@ -141,6 +145,26 @@ public class User extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
+    public String getMfaSecret() {
+        return this.mfaSecret;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getMfaMethod() {
+        return this.mfaMethod;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public java.time.LocalDateTime getPasswordChangedAt() {
+        return this.passwordChangedAt;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public java.time.LocalDateTime getPasswordExpiresAt() {
+        return this.passwordExpiresAt;
+    }
+
+    @java.lang.SuppressWarnings("all")
     public List<Address> getAddresses() {
         return this.addresses;
     }
@@ -244,6 +268,26 @@ public class User extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setSuspendedAt(final java.time.LocalDateTime suspendedAt) {
         this.suspendedAt = suspendedAt;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setMfaSecret(final String mfaSecret) {
+        this.mfaSecret = mfaSecret;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setMfaMethod(final String mfaMethod) {
+        this.mfaMethod = mfaMethod;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setPasswordChangedAt(final java.time.LocalDateTime passwordChangedAt) {
+        this.passwordChangedAt = passwordChangedAt;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setPasswordExpiresAt(final java.time.LocalDateTime passwordExpiresAt) {
+        this.passwordExpiresAt = passwordExpiresAt;
     }
 
     @JsonIgnoreProperties("user")

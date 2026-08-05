@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/loyalty")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminLoyaltyController {
     private final LoyaltyRuleService svc;
     public AdminLoyaltyController(LoyaltyRuleService svc) { this.svc = svc; }

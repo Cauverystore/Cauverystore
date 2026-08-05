@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/reviews")
 @PreAuthorize("hasAnyRole('ADMIN', 'EXECUTIVE', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminReviewController {
     private final ReviewService reviewService;
     public AdminReviewController(ReviewService reviewService) { this.reviewService = reviewService; }

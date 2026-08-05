@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/orders")
-@CrossOrigin("*")
 @RequiredArgsConstructor
 public class OrderController {
 
@@ -78,6 +77,13 @@ public class OrderController {
     public ResponseEntity<OrderTimelineResponse> getTimeline(@PathVariable Long orderId,
                                                                @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(orderService.getOrderTimeline(orderId, authHeader));
+    }
+
+    @GetMapping("/{orderId}/tracking")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> getTracking(@PathVariable Long orderId,
+                                                             @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(orderService.getOrderTracking(orderId, authHeader));
     }
 
     @PutMapping("/{orderId}/cancel")

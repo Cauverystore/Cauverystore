@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:9091',
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -67,29 +68,12 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const storedRefreshToken = localStorage.getItem('refreshToken');
-
-      if (!storedRefreshToken) {
-        isRefreshing = false;
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('role');
-        localStorage.removeItem('admin_token');
-        return Promise.reject(error);
-      }
-
       try {
-        const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:9091';
-        const res = await axios.post(baseUrl + '/api/auth/refresh', {
-          refreshToken: storedRefreshToken,
-        });
+        const res = await api.post('/api/auth/refresh');
 
         const newAccessToken = res.data.accessToken || res.data.token;
-        const newRefreshToken = res.data.refreshToken || storedRefreshToken;
 
         localStorage.setItem('accessToken', newAccessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
 
         processQueue(null, newAccessToken);
 
@@ -98,7 +82,6 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         localStorage.removeItem('role');
         localStorage.removeItem('admin_token');

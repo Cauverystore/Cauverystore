@@ -1,9 +1,21 @@
-﻿import React from "react";
+﻿import React, { useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import api from "../api/axios";
+import { trackPurchase } from "../utils/analytics";
 
 const OrderSuccess = () => {
   const [params] = useSearchParams();
   const orderId = params.get("id");
+  const tracked = useRef(false);
+
+  useEffect(() => {
+    if (!orderId || tracked.current) return;
+    tracked.current = true;
+    api.get(`/api/orders/${orderId}`)
+      .then((res) => trackPurchase(res.data || {}))
+      .catch(() => trackPurchase({ id: orderId }));
+  }, [orderId]);
+
   return (
     <div style={{ maxWidth: "600px", margin: "3rem auto", textAlign: "center", padding: "2rem" }}>
       <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>&#10003;</div>

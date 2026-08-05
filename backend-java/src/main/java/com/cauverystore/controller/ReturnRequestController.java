@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/returns")
-@CrossOrigin("*")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'EXECUTIVE')")
 public class ReturnRequestController {
     private final ReturnRequestService returnService;

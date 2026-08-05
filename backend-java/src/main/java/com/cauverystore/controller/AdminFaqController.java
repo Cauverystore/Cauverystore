@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/faqs")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminFaqController {
     private final FaqService faqService;
     public AdminFaqController(FaqService faqService) { this.faqService = faqService; }

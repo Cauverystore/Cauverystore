@@ -8,7 +8,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/settings")
-@CrossOrigin("*")
 public class PublicSettingsController {
 
     private final PlatformSettingsService platformSettingsService;

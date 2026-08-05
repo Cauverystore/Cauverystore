@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/brands")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminBrandController {
     private final BrandService brandService;
     public AdminBrandController(BrandService brandService) { this.brandService = brandService; }

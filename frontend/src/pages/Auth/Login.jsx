@@ -34,7 +34,7 @@ const navigateForRole = (navigate, role) => {
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, loginWithGoogle, completeForcedPasswordReset } = useAuth();
+  const { login, loginWithGoogle, completeForcedPasswordReset, completeMfaLogin, cancelMfaLogin } = useAuth();
   const [role, setRole] = useState('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,6 +44,9 @@ const Login = () => {
   const [error, setError] = useState('');
   const [remainingAttempts, setRemainingAttempts] = useState(null);
   const googleButtonRef = useRef(null);
+
+  const [mfaStep, setMfaStep] = useState(null);
+  const [mfaCode, setMfaCode] = useState('');
 
   const [forcedReset, setForcedReset] = useState(null);
   const [newPassword, setNewPassword] = useState('');
@@ -104,7 +107,12 @@ const Login = () => {
     setError('');
     setRemainingAttempts(null);
     try {
-      await login(email, password, role, rememberMe);
+      const data = await login(email, password, role, rememberMe);
+      if (data && data.mfaRequired) {
+        setMfaStep({ email });
+        setLoading(false);
+        return;
+      }
       goAfterLogin(role);
     } catch (err) {
       if (err.response?.data?.passwordResetRequired) {
@@ -119,6 +127,28 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMfaSubmit = async (e) => {
+    e.preventDefault();
+    if (!mfaCode.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const data = await completeMfaLogin(mfaCode.trim());
+      goAfterLogin((data.role || role).toLowerCase());
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || 'Invalid verification code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelMfa = () => {
+    cancelMfaLogin();
+    setMfaStep(null);
+    setMfaCode('');
+    setError('');
   };
 
   const handleCompleteForcedReset = async (e) => {
@@ -136,6 +166,62 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  if (mfaStep) {
+    return (
+      <div className="auth-page">
+        <div className="auth-container">
+          <div className="auth-card">
+            <div className="auth-header">
+              <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #16a34a)" }}>Cauvery Store</div>
+              <h1 className="auth-title">Two-Factor Authentication</h1>
+              <p className="auth-subtitle">Enter the 6-digit code from your authenticator app to continue as {email}.</p>
+            </div>
+
+            {error && (
+              <div className="auth-alert error">
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleMfaSubmit} className="auth-form">
+              <div className="auth-field">
+                <label className="auth-field-label" htmlFor="login-mfa-code">Verification Code</label>
+                <div className="auth-input-wrapper">
+                  <span className="auth-input-icon">&#128274;</span>
+                  <input
+                    id="login-mfa-code"
+                    type="text"
+                    className="auth-input"
+                    placeholder="6-digit code"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    inputMode="numeric"
+                    autoFocus
+                    required
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className={`auth-submit-btn${loading ? ' loading' : ''}`} disabled={loading || mfaCode.length < 6}>
+                {loading ? 'Verifying...' : 'Verify & Sign In'}
+              </button>
+            </form>
+
+            <button
+              type="button"
+              onClick={handleCancelMfa}
+              className="auth-link"
+              style={{ display: 'block', margin: '0.75rem auto 0', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Use a different account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (forcedReset) {
     return (

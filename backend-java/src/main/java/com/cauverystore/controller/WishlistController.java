@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/wishlist")
-@CrossOrigin("*")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('CUSTOMER')")
 public class WishlistController {

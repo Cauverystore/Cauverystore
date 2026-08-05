@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import api from "../api/axios";
 import { getProductById } from "../services/productService";
 import { addToCartOrLogin } from "../utils/cartActions";
+import { trackViewItem } from "../utils/analytics";
 import { imgUrl } from "../utils/images";
 import Breadcrumb from "../components/Breadcrumb";
 import "../styles/productDetails.css";
@@ -39,6 +40,10 @@ const ProductDetails = () => {
     };
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    if (product) trackViewItem(product);
+  }, [product]);
 
   const handleAddToCart = async () => {
     const res = await addToCartOrLogin(navigate, product, quantity);

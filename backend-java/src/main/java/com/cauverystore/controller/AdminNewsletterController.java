@@ -11,7 +11,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/newsletter")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminNewsletterController {
     private final NewsletterService svc;
     public AdminNewsletterController(NewsletterService svc) { this.svc = svc; }

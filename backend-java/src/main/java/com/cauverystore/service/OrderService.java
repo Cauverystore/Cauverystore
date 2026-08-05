@@ -5,6 +5,7 @@ import com.cauverystore.dto.AdminDashboardResponse;
 import com.cauverystore.dto.InvoiceResponse;
 import com.cauverystore.dto.OrderTimelineResponse;
 import com.cauverystore.entities.*;
+import com.cauverystore.exception.InvalidOrderStatusException;
 import com.cauverystore.exception.OrderNotFoundException;
 import com.cauverystore.exception.UserNotFoundException;
 import com.cauverystore.repository.*;
@@ -45,6 +46,7 @@ public class OrderService {
     private final ReturnRequestRepository returnRequestRepo;
     private final PaymentService paymentService;
     private final CreditNoteService creditNoteService;
+    private final CourierTrackingService courierTrackingService;
 
     public OrderService(OrderRepository orderRepo, OrderItemRepository orderItemRepo,
                         CartRepository cartRepo, ProductRepository productRepo,
@@ -61,7 +63,8 @@ public class OrderService {
                         CouponService couponService,
                         ReturnRequestRepository returnRequestRepo,
                         PaymentService paymentService,
-                        CreditNoteService creditNoteService) {
+                        CreditNoteService creditNoteService,
+                        CourierTrackingService courierTrackingService) {
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -84,6 +87,7 @@ public class OrderService {
         this.returnRequestRepo = returnRequestRepo;
         this.paymentService = paymentService;
         this.creditNoteService = creditNoteService;
+        this.courierTrackingService = courierTrackingService;
     }
 
     private User extractUserFromHeader(String authHeader) {
@@ -300,6 +304,14 @@ public class OrderService {
         return m;
     }
 
+    public Map<String, Object> getOrderTracking(Long orderId, String authHeader) {
+        User user = extractUserFromHeader(authHeader);
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        verifyOrderOwnership(order, user.getId());
+        return courierTrackingService.getTrackingInfo(order);
+    }
+
     public InvoiceResponse getInvoice(Long orderId, String authHeader) {
         User user = extractUserFromHeader(authHeader);
         Order order = orderRepo.findById(orderId)
@@ -387,10 +399,17 @@ public class OrderService {
         return orderRepo.findAll();
     }
 
+    public static final Set<String> ALLOWED_ORDER_STATUSES =
+            Set.of("PLACED", "CONFIRMED", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED");
+
     @Transactional
     public Order updateOrderStatus(Long orderId, String status) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+
+        if (status == null || !ALLOWED_ORDER_STATUSES.contains(status)) {
+            throw new InvalidOrderStatusException(status);
+        }
 
         List<String> progression = List.of("PLACED", "CONFIRMED", "PACKED", "SHIPPED", "DELIVERED");
         String current = order.getStatus();

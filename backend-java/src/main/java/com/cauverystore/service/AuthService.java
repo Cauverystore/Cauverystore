@@ -8,6 +8,7 @@ import com.cauverystore.dto.RegisterRequest;
 import com.cauverystore.entities.EmailOtp;
 import com.cauverystore.entities.PasswordResetToken;
 import com.cauverystore.entities.Role;
+import com.cauverystore.entities.Session;
 import com.cauverystore.entities.User;
 import com.cauverystore.exception.AuthenticationFailedException;
 import com.cauverystore.exception.PasswordResetRequiredException;
@@ -15,6 +16,7 @@ import com.cauverystore.exception.TokenException;
 import com.cauverystore.repository.EmailOtpRepository;
 import com.cauverystore.repository.PasswordResetTokenRepository;
 import com.cauverystore.repository.UserRepository;
+import com.cauverystore.util.CryptoUtil;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -31,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @Service
@@ -46,6 +50,11 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepo;
     private final EmailService emailService;
     private final AuditService auditService;
+    private final SessionService sessionService;
+    private final PasswordPolicyService passwordPolicyService;
+    private final TotpService totpService;
+    private final OtpService otpService;
+    private final CryptoUtil cryptoUtil;
 
     @Value("${google.client.id:}")
     private String googleClientId;
@@ -66,6 +75,7 @@ public class AuthService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new RuntimeException("Password is required");
         }
+        passwordPolicyService.validateComplexity(request.getPassword());
         String email = normalizeEmail(request.getEmail());
         if (userRepo.existsByEmail(email)) {
             throw new RuntimeException("Email already registered");
@@ -90,12 +100,13 @@ public class AuthService {
         user.setUsername(username);
         user.setEmail(email);
         user.setPhone(request.getPhone());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.CUSTOMER);
         user.setStatus("ACTIVE");
         user.setActive(true);
         user.setFailedLoginAttempts(0);
         user.setRefreshToken(null);
+        userRepo.save(user);
+        passwordPolicyService.recordNewPassword(user, request.getPassword());
         userRepo.save(user);
         emailService.sendWelcomeEmail(user.getEmail(), user.getFullName());
         return "Registration successful";
@@ -104,6 +115,10 @@ public class AuthService {
     private static final int MAX_LOGIN_ATTEMPTS = 5;
 
     public AuthResponse authenticate(LoginRequest request) {
+        return authenticate(request, null, null);
+    }
+
+    public AuthResponse authenticate(LoginRequest request, String ipAddress, String userAgent) {
         String identifier = request.getEmail() != null ? request.getEmail() : request.getUsername();
         User user = userRepo.findByEmail(normalizeEmail(identifier));
         if (user == null) {
@@ -153,14 +168,42 @@ public class AuthService {
         }
 
         user.setFailedLoginAttempts(0);
+        user.setLastLoginAt(LocalDateTime.now());
 
+        passwordPolicyService.applyExpiry(user);
         if (Boolean.TRUE.equals(user.getMustResetPassword())) {
             userRepo.save(user);
             auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "CUSTOMER", true);
             throw new PasswordResetRequiredException(user.getEmail());
         }
 
-        return issueTokens(user, request.getRole());
+        if (Boolean.TRUE.equals(user.getMfaEnabled())) {
+            userRepo.save(user);
+            return mfaRequiredResponse(user, request.getRole());
+        }
+
+        return issueTokens(user, request.getRole(), ipAddress, userAgent);
+    }
+
+    private AuthResponse mfaRequiredResponse(User user, String preferredRole) {
+        List<String> roles = computeRoles(user);
+        if (preferredRole != null) {
+            String match = roles.stream().filter(r -> r.equalsIgnoreCase(preferredRole)).findFirst().orElse(null);
+            if (match != null) {
+                roles.remove(match);
+                roles.add(0, match);
+            }
+        }
+        AuthResponse response = new AuthResponse();
+        response.setMfaRequired(true);
+        response.setMfaMethod(user.getMfaMethod() != null ? user.getMfaMethod() : "TOTP");
+        response.setUsername(user.getUsername());
+        response.setEmail(user.getEmail());
+        response.setRole(roles.get(0));
+        response.setRoles(roles);
+        response.setUserId(user.getId());
+        response.setMessage("Two-factor verification required. Enter the code from your authenticator app.");
+        return response;
     }
 
     // A user's stored role already reliably means "has this capability" - it's only ever
@@ -183,10 +226,10 @@ public class AuthService {
     }
 
     private AuthResponse issueTokens(User user) {
-        return issueTokens(user, null);
+        return issueTokens(user, null, null, null);
     }
 
-    private AuthResponse issueTokens(User user, String preferredRole) {
+    private AuthResponse issueTokens(User user, String preferredRole, String ipAddress, String userAgent) {
         java.util.List<String> roles = new java.util.ArrayList<>(computeRoles(user));
         if (preferredRole != null) {
             String match = roles.stream().filter(r -> r.equalsIgnoreCase(preferredRole)).findFirst().orElse(null);
@@ -201,7 +244,11 @@ public class AuthService {
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
         user.setRefreshToken(refreshToken);
+        user.setFailedLoginAttempts(0);
+        user.setLastLoginAt(LocalDateTime.now());
         userRepo.save(user);
+
+        sessionService.createSession(user.getId(), refreshToken, ipAddress, userAgent, deriveDeviceLabel(userAgent));
 
         auditService.logLogin(user.getEmail(), roles.get(0), true);
 
@@ -213,7 +260,30 @@ public class AuthService {
         response.setRole(roles.get(0));
         response.setRoles(roles);
         response.setUserId(user.getId());
+        response.setMfaRequired(false);
         return response;
+    }
+
+    private String deriveDeviceLabel(String userAgent) {
+        if (userAgent == null || userAgent.isBlank()) {
+            return "Unknown device";
+        }
+        if (userAgent.contains("Mobile") || userAgent.contains("Android") || userAgent.contains("iPhone")) {
+            return "Mobile";
+        }
+        if (userAgent.contains("Edg")) {
+            return "Edge browser";
+        }
+        if (userAgent.contains("Chrome")) {
+            return "Chrome browser";
+        }
+        if (userAgent.contains("Firefox")) {
+            return "Firefox browser";
+        }
+        if (userAgent.contains("Safari")) {
+            return "Safari browser";
+        }
+        return "Browser";
     }
 
     @Transactional
@@ -228,10 +298,14 @@ public class AuthService {
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new AuthenticationFailedException("Current password is incorrect");
         }
-        user.setPassword(passwordEncoder.encode(newPassword));
+        passwordPolicyService.validateComplexity(newPassword);
+        passwordPolicyService.checkHistory(user, newPassword);
+        passwordPolicyService.recordNewPassword(user, newPassword);
         user.setMustResetPassword(false);
         user.setFailedLoginAttempts(0);
         user.invalidateSessions();
+        sessionService.revokeAllForUser(user.getId());
+        userRepo.save(user);
         auditService.logAccountAction("PASSWORD_RESET_COMPLETED", email, user.getId());
         emailService.sendPasswordResetConfirmation(user.getEmail());
         return issueTokens(user);
@@ -292,6 +366,11 @@ public class AuthService {
 
     @Transactional
     public AuthResponse refreshAccessToken(RefreshTokenRequest request) {
+        return refreshAccessToken(request, null, null);
+    }
+
+    @Transactional
+    public AuthResponse refreshAccessToken(RefreshTokenRequest request, String ipAddress, String userAgent) {
         String token = request.getRefreshToken();
         if (token == null || token.isEmpty()) {
             throw new TokenException("Refresh token is required");
@@ -304,8 +383,16 @@ public class AuthService {
         if (user == null) {
             throw new TokenException("User not found for refresh token");
         }
-        if (!token.equals(user.getRefreshToken())) {
-            throw new TokenException("Refresh token has been revoked or does not match");
+
+        // Authoritative check: the token must belong to an ACTIVE, unexpired session.
+        Session session = sessionService.findActiveByRefreshToken(token);
+        if (session == null) {
+            // Backwards compatibility: sessions created before this feature have no row yet.
+            if (token.equals(user.getRefreshToken())) {
+                session = null;
+            } else {
+                throw new TokenException("Refresh token has been revoked or does not match");
+            }
         }
 
         String newAccessToken = jwtUtil.generateAccessToken(
@@ -313,8 +400,11 @@ public class AuthService {
                 computeRoles(user), user.getTokenVersion());
         String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
-    user.setRefreshToken(newRefreshToken);
-    userRepo.saveAndFlush(user);
+        if (session != null) {
+            sessionService.rotateSession(session, newRefreshToken);
+        }
+        user.setRefreshToken(newRefreshToken);
+        userRepo.saveAndFlush(user);
 
         AuthResponse response = new AuthResponse();
         response.setAccessToken(newAccessToken);
@@ -330,16 +420,31 @@ public class AuthService {
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new RuntimeException("Refresh token is required");
         }
+        Session session = sessionService.findActiveByRefreshToken(refreshToken);
+        if (session != null) {
+            sessionService.revokeSession(session);
+            User user = userRepo.findById(session.getUserId()).orElse(null);
+            if (user != null) {
+                if (refreshToken.equals(user.getRefreshToken())) {
+                    user.setRefreshToken(null);
+                    userRepo.save(user);
+                }
+                auditService.logLogout(user.getEmail());
+            }
+            return;
+        }
         User user = userRepo.findByRefreshToken(refreshToken);
         if (user != null) {
             user.setRefreshToken(null);
             userRepo.save(user);
+            auditService.logLogout(user.getEmail());
         }
     }
 
     public void logoutAll(String email) {
         User user = userRepo.findByEmail(email);
         if (user != null) {
+            sessionService.revokeAllForUser(user.getId());
             user.setRefreshToken(null);
             userRepo.save(user);
         }
@@ -353,8 +458,12 @@ public class AuthService {
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new AuthenticationFailedException("Current password is incorrect");
         }
-        user.setPassword(passwordEncoder.encode(newPassword));
+        passwordPolicyService.validateComplexity(newPassword);
+        passwordPolicyService.checkHistory(user, newPassword);
+        passwordPolicyService.recordNewPassword(user, newPassword);
         userRepo.save(user);
+        auditService.logAccountAction("PASSWORD_CHANGED", email, user.getId());
+        emailService.sendPasswordResetConfirmation(user.getEmail());
     }
 
     private static final long OTP_REQUEST_COOLDOWN_SECONDS = 60;
@@ -367,7 +476,7 @@ public class AuthService {
             throw new RuntimeException("User not found with email: " + email);
         }
 
-        EmailOtp emailOtp = emailOtpRepo.findByEmail(email);
+        EmailOtp emailOtp = emailOtpRepo.findByEmailAndPurpose(email, "PASSWORD_RESET");
         if (emailOtp != null && emailOtp.getLastRequestedAt() != null
                 && emailOtp.getLastRequestedAt().isAfter(LocalDateTime.now().minusSeconds(OTP_REQUEST_COOLDOWN_SECONDS))) {
             throw new AuthenticationFailedException("Please wait a minute before requesting another code.");
@@ -377,6 +486,7 @@ public class AuthService {
         if (emailOtp == null) {
             emailOtp = new EmailOtp();
             emailOtp.setEmail(email);
+            emailOtp.setPurpose("PASSWORD_RESET");
         }
         emailOtp.setOtp(otp);
         emailOtp.setExpiresAt(LocalDateTime.now().plusMinutes(15));
@@ -395,7 +505,7 @@ public class AuthService {
             throw new RuntimeException("User not found");
         }
         log.info("Password reset: id={}, email={}, failedLoginAttemptsBefore={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
-        EmailOtp emailOtp = emailOtpRepo.findByEmail(email);
+        EmailOtp emailOtp = emailOtpRepo.findByEmailAndPurpose(email, "PASSWORD_RESET");
         if (emailOtp == null) {
             throw new AuthenticationFailedException("Invalid OTP");
         }
@@ -417,9 +527,13 @@ public class AuthService {
         emailOtp.setUsed(true);
         emailOtpRepo.save(emailOtp);
 
-        user.setPassword(passwordEncoder.encode(newPassword));
+        passwordPolicyService.validateComplexity(newPassword);
+        passwordPolicyService.checkHistory(user, newPassword);
+        passwordPolicyService.recordNewPassword(user, newPassword);
         user.setFailedLoginAttempts(0);
+        user.setMustResetPassword(false);
         user.invalidateSessions();
+        sessionService.revokeAllForUser(user.getId());
         userRepo.save(user);
         log.info("Password reset: id={}, email={}, failedLoginAttemptsAfterSave={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
         auditService.logAccountAction("PASSWORD_RESET_COMPLETED", email, user.getId());
@@ -478,13 +592,92 @@ public class AuthService {
         resetToken.setUsed(true);
         passwordResetTokenRepo.save(resetToken);
 
-        user.setPassword(passwordEncoder.encode(newPassword));
+        passwordPolicyService.validateComplexity(newPassword);
+        passwordPolicyService.checkHistory(user, newPassword);
+        passwordPolicyService.recordNewPassword(user, newPassword);
         user.setFailedLoginAttempts(0);
+        user.setMustResetPassword(false);
         user.invalidateSessions();
+        sessionService.revokeAllForUser(user.getId());
         userRepo.save(user);
 
         auditService.logAccountAction("PASSWORD_RESET_COMPLETED", resetToken.getEmail(), user.getId());
         emailService.sendPasswordResetConfirmation(user.getEmail());
+    }
+
+    // ---- Two-factor authentication ----
+
+    public Map<String, Object> enableMfa(Long userId) {
+        User user = getUserById(userId);
+        if (Boolean.TRUE.equals(user.getMfaEnabled())) {
+            throw new RuntimeException("Two-factor authentication is already enabled");
+        }
+        String secret = totpService.generateSecret();
+        user.setMfaSecret(cryptoUtil.encrypt(secret));
+        user.setMfaMethod("TOTP");
+        userRepo.save(user);
+        String account = user.getEmail() != null ? user.getEmail() : user.getUsername();
+        return Map.of(
+                "secret", secret,
+                "otpauthUrl", totpService.generateQrUri("Cauvery Store", account, secret),
+                "message", "Scan the QR code with your authenticator app, then confirm with a code");
+    }
+
+    @Transactional
+    public Map<String, Object> confirmMfa(Long userId, String otp) {
+        User user = getUserById(userId);
+        String secret = cryptoUtil.decrypt(user.getMfaSecret());
+        if (!totpService.verify(otp, secret)) {
+            throw new AuthenticationFailedException("Invalid authenticator code");
+        }
+        user.setMfaEnabled(true);
+        userRepo.save(user);
+        auditService.logAccountAction("TWO_FA_ENABLED", user.getEmail(), user.getId());
+        return Map.of("enabled", true, "message", "Two-factor authentication enabled");
+    }
+
+    @Transactional
+    public Map<String, Object> disableMfa(Long userId, String otp) {
+        User user = getUserById(userId);
+        String secret = cryptoUtil.decrypt(user.getMfaSecret());
+        if (!totpService.verify(otp, secret)) {
+            throw new AuthenticationFailedException("Invalid authenticator code");
+        }
+        user.setMfaEnabled(false);
+        user.setMfaSecret(null);
+        userRepo.save(user);
+        auditService.logAccountAction("TWO_FA_DISABLED", user.getEmail(), user.getId());
+        return Map.of("enabled", false, "message", "Two-factor authentication disabled");
+    }
+
+    public AuthResponse loginMfa(String rawEmail, String otp, String ipAddress, String userAgent) {
+        String email = normalizeEmail(rawEmail);
+        User user = userRepo.findByEmail(email);
+        if (user == null) {
+            throw new AuthenticationFailedException("Invalid request");
+        }
+        if (!Boolean.TRUE.equals(user.getMfaEnabled())) {
+            throw new AuthenticationFailedException("Two-factor authentication is not enabled for this account");
+        }
+        if (!totpService.verify(otp, cryptoUtil.decrypt(user.getMfaSecret()))) {
+            auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
+            throw new AuthenticationFailedException("Invalid authenticator code");
+        }
+        return issueTokens(user, null, ipAddress, userAgent);
+    }
+
+    // ---- Sessions ----
+
+    public List<Session> listSessions(Long userId) {
+        return sessionService.listActive(userId);
+    }
+
+    public void revokeSession(Long userId, Long sessionId) {
+        if (!sessionService.isOwner(userId, sessionId)) {
+            throw new RuntimeException("Session does not belong to this user");
+        }
+        sessionService.revokeSession(sessionService.listActive(userId).stream()
+                .filter(s -> s.getId().equals(sessionId)).findFirst().orElse(null));
     }
 
     public User getUserById(Long id) {

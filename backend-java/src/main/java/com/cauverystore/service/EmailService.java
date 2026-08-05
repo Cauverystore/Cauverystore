@@ -70,6 +70,36 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    public void sendEmailVerificationOtp(String to, String otp) {
+        String subject = "Verify Your Email - Cauvery Store";
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Verify Your Email</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Use the following code to verify your email address. This code is valid for 15 minutes.</p>"
+                + "<div style='background:" + BEIGE + ";padding:20px;border-radius:6px;text-align:center;margin:20px 0;'>"
+                + "<span style='font-size:32px;font-weight:bold;letter-spacing:8px;color:" + TEAL + ";'>" + otp + "</span></div>"
+                + "<p style='color:#9ca3af;font-size:12px;'>If you did not request this, please ignore this email.</p>";
+        send(to, subject, wrapBranded(body));
+    }
+
+    public void sendSellerApproved(String to, String businessName) {
+        String subject = "Your Seller Account is Approved - Cauvery Store";
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Welcome on board!</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Congratulations! Your seller account for <strong>" + (businessName != null ? businessName : "your business")
+                + "</strong> has been approved. You can now list products, manage inventory and track your compliance on the seller dashboard.</p>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='https://cauverystore.in/seller/dashboard' style='background:" + TEAL + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Go to Seller Dashboard</a></div>";
+        send(to, subject, wrapBranded(body));
+    }
+
+    public void sendSellerRejected(String to, String businessName, String reason) {
+        String subject = "Update on Your Seller Application - Cauvery Store";
+        String body = "<h2 style='color:" + RED + ";margin-top:0;'>Application Not Approved</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Thank you for applying to sell on Cauvery Store. Unfortunately your application for <strong>"
+                + (businessName != null ? businessName : "your business") + "</strong> could not be approved."
+                + (reason != null ? " Reason: <strong>" + reason + "</strong>" : "")
+                + "</p><p style='color:#4b5563;font-size:14px;'>You can update your details and resubmit for review.</p>";
+        send(to, subject, wrapBranded(body));
+    }
+
     public void sendPasswordResetLink(String to, String resetUrl) {
         String subject = "Reset Your Password - Cauvery Store";
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Reset Your Password</h2>"

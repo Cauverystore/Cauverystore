@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/notifications")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminNotificationController {
     private final NotificationRepository notificationRepo;
     public AdminNotificationController(NotificationRepository notificationRepo) { this.notificationRepo = notificationRepo; }

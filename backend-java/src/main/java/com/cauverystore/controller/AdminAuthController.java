@@ -7,6 +7,8 @@ import com.cauverystore.entities.Role;
 import com.cauverystore.entities.User;
 import com.cauverystore.repository.CategoryRepository;
 import com.cauverystore.service.AuthService;
+import com.cauverystore.util.CookieUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,25 +18,30 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin("*")
 public class AdminAuthController {
 
     private final AuthService authService;
     private final CategoryRepository categoryRepo;
+    private final CookieUtil cookieUtil;
 
-    public AdminAuthController(AuthService authService, CategoryRepository categoryRepo) {
+    public AdminAuthController(AuthService authService, CategoryRepository categoryRepo, CookieUtil cookieUtil) {
         this.authService = authService;
         this.categoryRepo = categoryRepo;
+        this.cookieUtil = cookieUtil;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        AuthResponse response = authService.authenticate(request);
-        User user = authService.getUserByEmail(response.getEmail());
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+        AuthResponse authResponse = authService.authenticate(request);
+        User user = authService.getUserByEmail(authResponse.getEmail());
         if (user.getRole() != Role.ADMIN && user.getRole() != Role.SUPER_ADMIN) {
             throw new RuntimeException("Access denied. Admin credentials required.");
         }
-        return ResponseEntity.ok(response);
+        if (authResponse.getRefreshToken() != null) {
+            cookieUtil.setRefreshTokenCookie(response, authResponse.getRefreshToken());
+            authResponse.setRefreshToken(null);
+        }
+        return ResponseEntity.ok(authResponse);
     }
 
     @GetMapping("/categories")

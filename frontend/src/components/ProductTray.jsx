@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark, ArrowRightCircle, Trash2 } from "lucide-react";
+import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark, ArrowRightCircle, Trash2, GitCompareArrows } from "lucide-react";
 import api from "../api/axios";
 import { useWishlist } from "../context/WishlistContext";
 import { imgUrl } from "../utils/images";
+import { trackSelectItem, trackAddToCart } from "../utils/analytics";
+import { toggleCompare, isCompared } from "../utils/compare";
 import "../styles/product-tray.css";
 
 const PLACEHOLDER = "/images/placeholder.svg";
@@ -70,6 +72,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const [removing, setRemoving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [compared, setCompared] = useState(() => isCompared(product));
 
   const pid = product?.id || product?._id;
   const name = product?.name || "Product";
@@ -92,13 +95,17 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const badge = product?.badge || (discount > 50 ? "Best Seller" : discount > 30 ? "Popular" : "");
   const wishlisted = wishlistIds.has(pid);
 
-  const handleClick = () => navigate(`/product/${pid}`);
+  const handleClick = () => {
+    trackSelectItem(product, "product_list");
+    navigate(`/product/${pid}`);
+  };
 
   const handleAddToCart = async (e) => {
     e.stopPropagation();
     if (adding || !inStock) return;
     setAdding(true);
     try {
+      trackAddToCart(product, 1);
       if (onAddToCart) await onAddToCart(product);
     } catch { /* ignore */ }
     setAdding(false);
@@ -144,6 +151,12 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
     try {
       await navigator.share({ title: name, url: window.location.origin + `/product/${pid}` });
     } catch { /* ignore */ }
+  };
+
+  const handleCompare = (e) => {
+    e.stopPropagation();
+    const next = toggleCompare(product);
+    setCompared(next.some((p) => String(p.id ?? p._id) === String(pid)));
   };
 
   const handleRemove = async (e) => {
@@ -210,6 +223,14 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
             </button>
             <button className="pt-action-btn" onClick={handleShare} aria-label="Share product">
               <Share2 size={16} />
+            </button>
+            <button
+              className={`pt-action-btn ${compared ? "compared" : ""}`}
+              onClick={handleCompare}
+              aria-label={compared ? "Remove from compare" : "Add to compare"}
+              title="Compare"
+            >
+              <GitCompareArrows size={16} />
             </button>
           </div>
         )}

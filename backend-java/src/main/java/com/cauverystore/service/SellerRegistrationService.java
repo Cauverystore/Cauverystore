@@ -18,6 +18,7 @@ public class SellerRegistrationService {
     private final SellerComplianceRepository complianceRepo;
     private final UserRepository userRepo;
     private final SellerStoreRepository storeRepo;
+    private final SellerApobRepository apobRepo;
     private final AuditService auditService;
 
     public SellerRegistrationService(SellerRegistrationRepository regRepo,
@@ -25,12 +26,14 @@ public class SellerRegistrationService {
                                      SellerComplianceRepository complianceRepo,
                                      UserRepository userRepo,
                                      SellerStoreRepository storeRepo,
+                                     SellerApobRepository apobRepo,
                                      AuditService auditService) {
         this.regRepo = regRepo;
         this.docRepo = docRepo;
         this.complianceRepo = complianceRepo;
         this.userRepo = userRepo;
         this.storeRepo = storeRepo;
+        this.apobRepo = apobRepo;
         this.auditService = auditService;
     }
 
@@ -92,10 +95,7 @@ public class SellerRegistrationService {
                 if ("true".equals(req.getAgreedToTerms())) {
                     reg.setStatus("SUBMITTED");
                     reg.setSubmittedAt(LocalDateTime.now());
-                    user.setRole(Role.SELLER);
-                    user.setStatus("ACTIVE");
-                    userRepo.save(user);
-                    createSellerStore(user, reg);
+                    // Role promotion to SELLER now happens only after admin approval.
                 }
                 break;
         }
@@ -106,6 +106,76 @@ public class SellerRegistrationService {
         regRepo.save(reg);
         auditService.log(userId, "seller:" + userId, "REGISTRATION_STEP_" + step, "SellerRegistration", reg.getId(), "Step " + step + " completed", null);
         return Map.of("registration", reg, "step", reg.getOnboardingStep(), "status", reg.getStatus());
+    }
+
+    @Transactional
+    public Map<String, Object> submitRegistration(Long userId) {
+        SellerRegistration reg = regRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Registration not found. Start registration first."));
+        if ("APPROVED".equals(reg.getStatus())) {
+            throw new RuntimeException("Registration is already approved");
+        }
+        if (reg.getBusinessName() == null || reg.getBusinessName().isBlank()) {
+            throw new RuntimeException("Complete business details (step 1) before submitting");
+        }
+        if (reg.getGstin() == null || reg.getGstin().isBlank()) {
+            throw new RuntimeException("GSTIN is required (step 2)");
+        }
+        if (reg.getBankAccountNumber() == null || reg.getBankAccountNumber().isBlank()) {
+            throw new RuntimeException("Bank account details are required (step 3)");
+        }
+        reg.setStatus("SUBMITTED");
+        reg.setSubmittedAt(LocalDateTime.now());
+        reg.setOnboardingStep(5);
+        regRepo.save(reg);
+        auditService.log(userId, "seller:" + userId, "REGISTRATION_SUBMITTED", "SellerRegistration", reg.getId(),
+                "Seller registration submitted for admin approval", null);
+        return Map.of("registration", reg, "step", reg.getOnboardingStep(), "status", reg.getStatus());
+    }
+
+    @Transactional
+    public Map<String, Object> saveApob(Long userId, com.cauverystore.entities.SellerApob apob) {
+        SellerRegistration reg = regRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Registration not found. Start registration first."));
+        if (apob.getAddress() == null || apob.getAddress().isBlank()) {
+            throw new RuntimeException("APOB address is required");
+        }
+        apob.setSellerId(userId);
+        apob.setGstin(reg.getGstin());
+        if (apob.getState() != null && apob.getStateCode() == null) {
+            apob.setStateCode(com.cauverystore.util.StateCodeUtil.stateNameToCode(apob.getState()));
+        }
+        apob.setStatus("PENDING");
+        apobRepo.save(apob);
+        auditService.log(userId, "seller:" + userId, "APOB_ADDED", "SellerApob", apob.getId(), "Added APOB", null);
+        return Map.of("apob", apob, "message", "Additional Place of Business saved");
+    }
+
+    @Transactional
+    public Map<String, Object> verifyApob(Long adminId, Long apobId, boolean approved, String note) {
+        com.cauverystore.entities.SellerApob apob = apobRepo.findById(apobId)
+                .orElseThrow(() -> new RuntimeException("APOB not found"));
+        apob.setStatus(approved ? "VERIFIED" : "REJECTED");
+        apob.setVerifiedAt(LocalDateTime.now());
+        apobRepo.save(apob);
+        auditService.log(adminId, "admin:" + adminId, "APOB_" + (approved ? "VERIFIED" : "REJECTED"), "SellerApob", apobId,
+                note != null ? note : (approved ? "APOB verified" : "APOB rejected"), null);
+        return Map.of("apob", apob, "message", "APOB " + (approved ? "verified" : "rejected"));
+    }
+
+    @Transactional
+    public Map<String, Object> deleteApob(Long userId, Long apobId) {
+        com.cauverystore.entities.SellerApob apob = apobRepo.findById(apobId)
+                .orElseThrow(() -> new RuntimeException("APOB not found"));
+        if (!apob.getSellerId().equals(userId)) {
+            throw new RuntimeException("APOB does not belong to this seller");
+        }
+        apobRepo.delete(apob);
+        return Map.of("message", "APOB deleted");
+    }
+
+    public List<com.cauverystore.entities.SellerApob> listApobs(Long userId) {
+        return apobRepo.findBySellerIdOrderByCreatedAtDesc(userId);
     }
 
     @Transactional
@@ -288,20 +358,5 @@ public class SellerRegistrationService {
             c.setDocumentId(documentId);
             complianceRepo.save(c);
         });
-    }
-
-    private void createSellerStore(User user, SellerRegistration reg) {
-        SellerStore store = storeRepo.findBySellerId(user.getId()).orElseGet(() -> {
-            SellerStore ns = new SellerStore();
-            ns.setSeller(user);
-            return ns;
-        });
-        store.setStoreName(reg.getBusinessName());
-        store.setStoreSlug(reg.getBusinessName().toLowerCase().replaceAll("[^a-z0-9]+", "-"));
-        store.setContactEmail(reg.getBusinessEmail());
-        store.setContactPhone(reg.getBusinessPhone());
-        store.setAddress(reg.getBusinessAddress());
-        store.setStatus("PENDING");
-        storeRepo.save(store);
     }
 }

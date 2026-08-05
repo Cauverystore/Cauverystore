@@ -213,6 +213,13 @@
   transform: translateX(0);
 }
 
+.pt-action-btn.compared {
+  color: #2563eb;
+  border-color: #2563eb;
+  opacity: 1;
+  transform: translateX(0);
+}
+
 /* ─── Card Body ─── */
 .pt-body {
   padding: 12px 14px 14px;

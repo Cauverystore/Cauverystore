@@ -11,7 +11,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/reports")
 @PreAuthorize("hasAnyRole('ADMIN', 'EXECUTIVE', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminReportController {
     private final ReportService reportService;
     public AdminReportController(ReportService reportService) { this.reportService = reportService; }

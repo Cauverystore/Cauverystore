@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/banners")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminBannerController {
     private final BannerService bannerService;
     public AdminBannerController(BannerService bannerService) { this.bannerService = bannerService; }

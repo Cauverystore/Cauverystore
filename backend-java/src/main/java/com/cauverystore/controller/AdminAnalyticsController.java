@@ -11,7 +11,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/analytics")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminAnalyticsController {
     private final AnalyticsService analyticsService;
     public AdminAnalyticsController(AnalyticsService analyticsService) { this.analyticsService = analyticsService; }

@@ -110,4 +110,8 @@ public class AuditService {
     public Page<AuditLog> getPage(Pageable pageable) {
         return auditRepo.findAll(pageable);
     }
+
+    public List<AuditLog> getByUser(Long userId) {
+        return auditRepo.findByUserIdOrderByTimestampDesc(userId);
+    }
 }

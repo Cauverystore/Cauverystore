@@ -20,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/gst")
-@CrossOrigin("*")
 public class GstInvoiceController {
 
     private final GstInvoiceService gstService;

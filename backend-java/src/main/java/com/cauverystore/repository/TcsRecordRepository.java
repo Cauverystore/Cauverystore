@@ -14,6 +14,8 @@ import java.util.Optional;
 public interface TcsRecordRepository extends JpaRepository<TcsRecord, Long> {
     Optional<TcsRecord> findByOrderId(Long orderId);
     Page<TcsRecord> findBySellerIdOrderByTransactionDateDesc(Long sellerId, Pageable pageable);
+    List<TcsRecord> findBySellerIdOrderByTransactionDateDesc(Long sellerId);
+    List<TcsRecord> findBySellerIdAndPeriod(Long sellerId, String period);
     List<TcsRecord> findBySellerGstinAndTransactionDateBetween(String gstin, LocalDate start, LocalDate end);
     List<TcsRecord> findBySellerGstinAndPeriod(String gstin, String period);
     List<TcsRecord> findBySellerGstinAndFilingStatus(String gstin, String filingStatus);

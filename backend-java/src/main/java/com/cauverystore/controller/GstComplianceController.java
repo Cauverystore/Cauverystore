@@ -30,7 +30,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/gst")
-@CrossOrigin("*")
 public class GstComplianceController {
 
     private final GstInvoiceService gstService;
@@ -43,12 +42,14 @@ public class GstComplianceController {
     private final SellerRegistrationRepository sellerRegRepo;
     private final TcsRecordRepository tcsRepo;
     private final UserRepository userRepo;
+    private final com.cauverystore.repository.SellerApobRepository apobRepo;
 
     public GstComplianceController(GstInvoiceService gstService, DebitNoteService debitNoteService,
                                    ComplianceService complianceService, ReconciliationService reconciliationService,
                                    MarketplaceImportService marketplaceImportService, GstnClient gstnClient,
                                    GstInvoiceRepository invoiceRepo, SellerRegistrationRepository sellerRegRepo,
-                                   TcsRecordRepository tcsRepo, UserRepository userRepo) {
+                                   TcsRecordRepository tcsRepo, UserRepository userRepo,
+                                   com.cauverystore.repository.SellerApobRepository apobRepo) {
         this.gstService = gstService;
         this.debitNoteService = debitNoteService;
         this.complianceService = complianceService;
@@ -59,6 +60,7 @@ public class GstComplianceController {
         this.sellerRegRepo = sellerRegRepo;
         this.tcsRepo = tcsRepo;
         this.userRepo = userRepo;
+        this.apobRepo = apobRepo;
     }
 
     private Long getCurrentUserId() {
@@ -298,6 +300,25 @@ public class GstComplianceController {
                 .body(gstService.exportCsv(headers, rows));
     }
 
+    @GetMapping("/compliance/tcs/{sellerId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> getTcsForSeller(@PathVariable Long sellerId,
+                                             @RequestParam(required = false) String period) {
+        List<com.cauverystore.entities.TcsRecord> records = period != null && !period.isBlank()
+                ? tcsRepo.findBySellerIdAndPeriod(sellerId, period)
+                : tcsRepo.findBySellerIdOrderByTransactionDateDesc(sellerId);
+        double totalTcs = records.stream()
+                .mapToDouble(r -> r.getTcsAmount() != null ? r.getTcsAmount() : 0.0).sum();
+        long pending = records.stream().filter(r -> !"FILED".equals(r.getFilingStatus())).count();
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("sellerId", sellerId);
+        resp.put("records", records);
+        resp.put("totalRecords", records.size());
+        resp.put("totalTcsAmount", totalTcs);
+        resp.put("pendingFilingCount", pending);
+        return ResponseEntity.ok(resp);
+    }
+
     @GetMapping("/reports/tcs")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> getTcsRecords(@RequestParam(defaultValue = "0") int page,
@@ -467,12 +488,13 @@ public class GstComplianceController {
     @GetMapping("/seller/{sellerId}/apob")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> getApob(@PathVariable Long sellerId) {
-        return sellerRegRepo.findByUserId(sellerId)
-                .map(sr -> ResponseEntity.ok(Map.of(
-                        "sellerId", sellerId,
-                        "gstin", sr.getGstin(),
-                        "apobList", sr.getApobList() != null ? sr.getApobList() : List.of())))
-                .orElse(ResponseEntity.status(404).body(Map.of("error", "Seller registration not found for user " + sellerId)));
+        List<com.cauverystore.entities.SellerApob> apobs = apobRepo.findBySellerIdOrderByCreatedAtDesc(sellerId);
+        SellerRegistration sr = sellerRegRepo.findByUserId(sellerId).orElse(null);
+        return ResponseEntity.ok(Map.of(
+                "sellerId", sellerId,
+                "gstin", sr != null ? sr.getGstin() : null,
+                "apobs", apobs,
+                "apobList", apobs.stream().map(com.cauverystore.entities.SellerApob::getAddress).toList()));
     }
 
     @PutMapping("/seller/{sellerId}/apob")
@@ -484,17 +506,22 @@ public class GstComplianceController {
         if (!(raw instanceof List<?>)) {
             return ResponseEntity.badRequest().body(Map.of("error", "apobList (array of strings) is required"));
         }
-        List<String> apobs = new ArrayList<>();
+        // Backwards-compatible upsert: each string in apobList becomes a PENDING SellerApob row.
+        List<com.cauverystore.entities.SellerApob> created = new ArrayList<>();
         for (Object o : (List<?>) raw) {
-            if (o != null) apobs.add(String.valueOf(o));
+            if (o == null) continue;
+            com.cauverystore.entities.SellerApob apob = new com.cauverystore.entities.SellerApob();
+            apob.setSellerId(sellerId);
+            apob.setGstin(sr.getGstin());
+            apob.setAddress(String.valueOf(o));
+            apob.setStatus("PENDING");
+            created.add(apobRepo.save(apob));
         }
-        sr.setApobList(apobs);
-        SellerRegistration saved = sellerRegRepo.save(sr);
         return ResponseEntity.ok(Map.of(
                 "sellerId", sellerId,
-                "gstin", saved.getGstin(),
-                "apobList", saved.getApobList() != null ? saved.getApobList() : List.of(),
-                "message", "APOB list updated"));
+                "gstin", sr.getGstin(),
+                "apobs", created,
+                "message", "APOBs saved"));
     }
 
     // ------------------------------------------------------------------

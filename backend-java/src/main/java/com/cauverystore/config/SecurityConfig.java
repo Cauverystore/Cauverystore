@@ -51,6 +51,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/complete-forced-reset").permitAll()
                 .requestMatchers("/api/auth/request-password-reset-link").permitAll()
                 .requestMatchers("/api/auth/reset-password-link").permitAll()
+                .requestMatchers("/api/auth/send-otp").permitAll()
+                .requestMatchers("/api/auth/verify-otp").permitAll()
+                .requestMatchers("/api/auth/login-2fa").permitAll()
                 .requestMatchers("/api/user/login").permitAll()
                 .requestMatchers("/api/user/register").permitAll()
                 .requestMatchers("/api/seller/login").permitAll()
@@ -114,8 +117,8 @@ public class SecurityConfig {
         c.setAllowedOriginPatterns(List.of("http://localhost:*"));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
-        c.setExposedHeaders(List.of("Authorization"));
-        c.setAllowCredentials(false);
+        c.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
+        c.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource s = new UrlBasedCorsConfigurationSource();
         s.registerCorsConfiguration("/**", c);
         return s;

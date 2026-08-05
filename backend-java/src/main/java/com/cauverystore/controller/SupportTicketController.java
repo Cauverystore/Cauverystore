@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/support-tickets")
-@CrossOrigin("*")
 public class SupportTicketController {
     private final SupportTicketService ticketService;
     private final AuthService authService;

@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/shipping")
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-@CrossOrigin("*")
 public class AdminShippingController {
     private final ShippingService shippingService;
     public AdminShippingController(ShippingService shippingService) { this.shippingService = shippingService; }

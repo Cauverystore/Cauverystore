@@ -1,14 +1,12 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Search, Heart, Zap, Shirt, Home as HomeIcon, BookOpen, Smartphone, Laptop, Tv,
-  Sparkles, Cookie, Flame, Star, Store, Landmark, CreditCard, Package,
-  ShoppingCart, Bookmark
+  Zap, Shirt, Home as HomeIcon, BookOpen, Smartphone, Laptop, Tv,
+  Sparkles, Cookie, Flame, Star, Store, Landmark, CreditCard, Package
 } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
-import CartItemImage from "../components/CartItemImage";
-import { useWishlist } from "../context/WishlistContext";
+import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import "../styles/shopnest-home.css";
 
 const BANNERS = [
@@ -54,115 +52,7 @@ function normalizeProduct(p) {
   }
   const rating = p.rating || (p.reviews?.length > 0 ? p.reviews.reduce((s,r)=>s+(r.rating||0),0)/p.reviews.length : 4.0);
   const reviewCount = p.reviews?.length || 0;
-  return { ...p, image: img, price, originalPrice: origPrice, discount: discPct, rating, reviews: reviewCount, delivery: "Free Delivery" };
-}
-
-function Stars({ rating, reviews }) {
-  const full = Math.floor(rating);
-  const half = rating - full >= 0.5;
-  return (
-    <span className="stars" aria-label={`${rating} out of 5 stars`}>
-      {[...Array(5)].map((_, i) => (
-        <span key={i} className={i < full ? "star full" : (i === full && half ? "star half" : "star empty")}>
-          {i < full ? "\u2605" : (i === full && half ? "\u2605" : "\u2606")}
-        </span>
-      ))}
-      {reviews != null && reviews > 0 && <span className="review-count">({reviews.toLocaleString()})</span>}
-    </span>
-  );
-}
-
-function ProductCard({ product, onCart, onBuyNow, adding }) {
-  const navigate = useNavigate();
-  const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
-  const wishlisted = wishlistIds.has(product.id);
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const handleWishlist = (e) => {
-    e.stopPropagation();
-    const isLoggedIn = !!localStorage.getItem("accessToken");
-    if (!isLoggedIn) { navigate("/login"); return; }
-    toggleWishlist(product.id);
-  };
-
-  const handleSaveForLater = async (e) => {
-    e.stopPropagation();
-    const isLoggedIn = !!localStorage.getItem("accessToken");
-    if (!isLoggedIn) { navigate("/login"); return; }
-    if (saving || saved) return;
-    setSaving(true);
-    try {
-      const { data: cartItem } = await api.post(`/api/cart/add?productId=${product.id}&quantity=1`);
-      await api.post(`/api/cart/save-for-later/${cartItem.id}`);
-      setSaved(true);
-    } catch { /* ignore */ }
-    setSaving(false);
-  };
-
-  return (
-    <div
-      className="sn-product-card"
-      onClick={() => navigate(`/product/${product.id}`)}
-      role="button"
-      tabIndex={0}
-      aria-label={`View ${product.name || "Product"}`}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/product/${product.id}`); } }}
-    >
-      <div className="sn-product-image-wrap">
-        <CartItemImage src={product.image} name={product.name} width={200} height={200} className="sn-product-img" />
-        {product.badge && <span className="sn-product-badge">{product.badge}</span>}
-        <div className="sn-card-actions">
-          <button
-            className={`sn-wishlist-btn ${wishlisted ? "active" : ""}`}
-            onClick={handleWishlist}
-            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          >
-            <Heart size={16} fill={wishlisted ? "currentColor" : "none"} />
-          </button>
-          <button
-            className={`sn-wishlist-btn ${saved ? "active" : ""}`}
-            onClick={handleSaveForLater}
-            disabled={saving}
-            aria-label={saved ? "Saved for later" : "Save for later"}
-          >
-            <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
-          </button>
-        </div>
-      </div>
-      <div className="sn-product-info">
-        <h4 className="sn-product-name">{product.name || "Product"}</h4>
-        {product.rating != null && <Stars rating={product.rating} reviews={product.reviews} />}
-        <div className="sn-product-pricing">
-          <span className="sn-price">{"\u20B9"}{(product.price || 0).toLocaleString()}</span>
-          {product.originalPrice > product.price && <span className="sn-original-price">{"\u20B9"}{product.originalPrice.toLocaleString()}</span>}
-          {product.discount > 0 && <span className="sn-discount">{product.discount}% off</span>}
-        </div>
-        <span className="sn-delivery">{product.delivery || "Free Delivery"}</span>
-      </div>
-      <div className="sn-home-btns">
-        <button className="sn-add-cart-btn" onClick={e => { e.stopPropagation(); if (onCart) onCart(product); }} disabled={adding}>
-          {adding ? "Adding..." : "Add to Cart"}
-        </button>
-        <button className="sn-buy-now-btn" onClick={e => { e.stopPropagation(); if (onBuyNow) onBuyNow(product); }}>
-          Buy Now
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SkeletonCard() {
-  return (
-    <div className="sn-product-card sn-skeleton">
-      <div className="sn-skeleton-img" />
-      <div className="sn-skeleton-body">
-        <div className="sn-skel-line w80" />
-        <div className="sn-skel-line w60" />
-        <div className="sn-skel-line w40" />
-      </div>
-    </div>
-  );
+  return { ...p, image: img, price, originalPrice: origPrice, discount: discPct, rating, reviews: reviewCount, stock: p.stock ?? p.stockQuantity ?? (p.active ? 1 : 0) };
 }
 
 function DealCountdown() {
@@ -203,7 +93,6 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [bannerIdx, setBannerIdx] = useState(0);
   const [toast, setToast] = useState(null);
-  const [addingId, setAddingId] = useState(null);
   const [brandStoresEnabled, setBrandStoresEnabled] = useState(false);
 
   useEffect(() => {
@@ -244,14 +133,12 @@ const Home = () => {
   const handleCart = useCallback(async (p) => {
     const isLoggedIn = !!localStorage.getItem("accessToken");
     if (!isLoggedIn) { navigate("/login"); return; }
-    setAddingId(p.id);
     try {
       await addToCart(p.id, 1);
       setToast({ type: "success", text: `${p.name} added to cart!` });
     } catch {
       setToast({ type: "error", text: "Failed to add to cart" });
     }
-    setAddingId(null);
   }, [navigate]);
 
   const handleBuyNow = useCallback(async (p) => {
@@ -324,8 +211,8 @@ const Home = () => {
           </div>
           <div className="sn-product-scroll">
             {productsWithDiscount.length > 0
-              ? productsWithDiscount.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)
-              : (loading ? [...Array(6)].map((_, i) => <SkeletonCard key={i} />) : null)}
+              ? productsWithDiscount.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)
+              : (loading ? [...Array(6)].map((_, i) => <LoadingSkeleton key={i} />) : null)}
           </div>
         </div>
       </section>
@@ -365,10 +252,10 @@ const Home = () => {
             <button className="sn-view-all" onClick={() => navigate("/products")}>View All {"\u2192"}</button>
           </div>
           {loading ? (
-            <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}</div>
+            <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
           ) : normalized.length > 0 ? (
             <div className="sn-product-scroll">
-              {normalized.slice(0, 6).map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)}
+              {normalized.slice(0, 6).map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
             </div>
           ) : (
             <div className="sn-empty-section">No products available</div>
@@ -383,10 +270,10 @@ const Home = () => {
             <button className="sn-view-all" onClick={() => navigate("/products?category=Electronics")}>View All {"\u2192"}</button>
           </div>
           {loading ? (
-            <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}</div>
+            <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
           ) : electronics.length > 0 ? (
             <div className="sn-product-scroll">
-              {electronics.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)}
+              {electronics.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
             </div>
           ) : (
             <div className="sn-empty-section">No products available</div>
@@ -401,10 +288,10 @@ const Home = () => {
             <button className="sn-view-all" onClick={() => navigate("/products?category=Fashion")}>View All {"\u2192"}</button>
           </div>
           {loading ? (
-            <div className="sn-product-scroll">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
+            <div className="sn-product-scroll">{[...Array(4)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
           ) : fashion.length > 0 ? (
             <div className="sn-product-scroll">
-              {fashion.map(p => <ProductCard key={p.id} product={p} onCart={handleCart} onBuyNow={handleBuyNow} adding={addingId === p.id} />)}
+              {fashion.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
             </div>
           ) : (
             <div className="sn-empty-section">No products available</div>
@@ -441,14 +328,8 @@ const Home = () => {
         .sn-toast-success { background: #16a34a; color: #fff; }
         .sn-toast-error { background: #dc2626; color: #fff; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .sn-product-img { width: 200px; height: 200px; object-fit: cover; display: block; }
-        .sn-product-img.cart-item-img-placeholder {
-          display: flex; align-items: center; justify-content: center;
-          background: #f1f5f9; border: 1px dashed #d1d5db;
-          font-size: 0.7rem; color: #64748b; text-align: center; padding: 8px;
-          overflow: hidden; word-break: break-word; line-height: 1.3;
-        }
-        .sn-add-cart-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .sn-product-scroll .pt-card { width: 200px; flex-shrink: 0; }
+        .sn-product-scroll .pt-skeleton { width: 200px; flex-shrink: 0; }
       `}</style>
     </div>
   );

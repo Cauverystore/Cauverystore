@@ -6,6 +6,10 @@ const sellerRegistrationService = {
   uploadDocument: (data) => api.post("/api/seller-registration/document", data),
   getStatus: () => api.get("/api/seller-registration/status"),
   getComplianceAlerts: () => api.get("/api/seller-registration/compliance/alerts"),
+  submit: () => api.post("/api/seller-registration/submit"),
+  verifyGstin: (gstin) => api.post("/api/seller-registration/verify/gstin", { gstin }),
+  verifyBank: (accountNumber, ifsc, accountName) =>
+    api.post("/api/seller-registration/verify/bank", { accountNumber, ifsc, accountName }),
 
   getDashboard: () => api.get("/api/seller/dashboard"),
   getProducts: (params) => api.get("/api/seller/products", { params }),

@@ -45,6 +45,15 @@ public class SellerRegistration {
     private String panNumber;
     private String aadhaarNumber;
 
+    private String gstinStatus = "UNVERIFIED";
+    private LocalDateTime gstinVerifiedAt;
+    private String gstinLegalName;
+    private String gstinStateCode;
+
+    private String bankStatus = "UNVERIFIED";
+    private LocalDateTime bankVerifiedAt;
+    private String bankVerificationRef;
+
     @Column(columnDefinition = "TEXT")
     private String bankAccountName;
 
@@ -119,6 +128,20 @@ public class SellerRegistration {
     public void setBusinessType(String businessType) { this.businessType = businessType; }
     public String getGstin() { return gstin; }
     public void setGstin(String gstin) { this.gstin = gstin; }
+    public String getGstinStatus() { return gstinStatus; }
+    public void setGstinStatus(String gstinStatus) { this.gstinStatus = gstinStatus; }
+    public LocalDateTime getGstinVerifiedAt() { return gstinVerifiedAt; }
+    public void setGstinVerifiedAt(LocalDateTime gstinVerifiedAt) { this.gstinVerifiedAt = gstinVerifiedAt; }
+    public String getGstinLegalName() { return gstinLegalName; }
+    public void setGstinLegalName(String gstinLegalName) { this.gstinLegalName = gstinLegalName; }
+    public String getGstinStateCode() { return gstinStateCode; }
+    public void setGstinStateCode(String gstinStateCode) { this.gstinStateCode = gstinStateCode; }
+    public String getBankStatus() { return bankStatus; }
+    public void setBankStatus(String bankStatus) { this.bankStatus = bankStatus; }
+    public LocalDateTime getBankVerifiedAt() { return bankVerifiedAt; }
+    public void setBankVerifiedAt(LocalDateTime bankVerifiedAt) { this.bankVerifiedAt = bankVerifiedAt; }
+    public String getBankVerificationRef() { return bankVerificationRef; }
+    public void setBankVerificationRef(String bankVerificationRef) { this.bankVerificationRef = bankVerificationRef; }
     public String getPanNumber() { return panNumber; }
     public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
     public String getAadhaarNumber() { return aadhaarNumber; }

@@ -15,6 +15,7 @@ public class EmailOtp extends BaseEntity {
     private boolean used = false;
     private LocalDateTime lastRequestedAt;
     private Integer verifyAttempts = 0;
+    private String purpose = "PASSWORD_RESET";
 
     @java.lang.SuppressWarnings("all")
     public String getEmail() {
@@ -74,5 +75,15 @@ public class EmailOtp extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setVerifyAttempts(final Integer verifyAttempts) {
         this.verifyAttempts = verifyAttempts;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getPurpose() {
+        return this.purpose;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setPurpose(final String purpose) {
+        this.purpose = purpose;
     }
 }
