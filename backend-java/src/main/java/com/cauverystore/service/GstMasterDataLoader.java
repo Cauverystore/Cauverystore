@@ -1,9 +1,11 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.entities.HsnMaster;
 import com.cauverystore.entities.MasterUpdateLog;
 import com.cauverystore.entities.StateMaster;
 import com.cauverystore.entities.UnitMaster;
+import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.HsnMasterRepository;
 import com.cauverystore.repository.MasterUpdateLogRepository;
 import com.cauverystore.repository.StateMasterRepository;
@@ -20,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,9 +48,14 @@ public class GstMasterDataLoader {
     /** Bump when the committed master files are refreshed from the portal. */
     private static final String MASTER_VERSION = "1.0 (portal last-updated 2026-06-24)";
 
+    /** Bump when the rate seed is regenerated from a newer CBIC notification. */
+    private static final String RATE_SOURCE_VERSION =
+            "CBIC Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))";
+
     private final HsnMasterRepository hsnRepo;
     private final UnitMasterRepository unitRepo;
     private final StateMasterRepository stateRepo;
+    private final GstRateMasterRepository rateRepo;
     private final MasterUpdateLogRepository logRepo;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -56,10 +65,12 @@ public class GstMasterDataLoader {
     public GstMasterDataLoader(HsnMasterRepository hsnRepo,
                                UnitMasterRepository unitRepo,
                                StateMasterRepository stateRepo,
+                               GstRateMasterRepository rateRepo,
                                MasterUpdateLogRepository logRepo) {
         this.hsnRepo = hsnRepo;
         this.unitRepo = unitRepo;
         this.stateRepo = stateRepo;
+        this.rateRepo = rateRepo;
         this.logRepo = logRepo;
     }
 
@@ -84,7 +95,79 @@ public class GstMasterDataLoader {
         summary.put("hsn", loadHsn());
         summary.put("unit", loadUnits());
         summary.put("state", loadStates());
+        summary.put("gstRate", loadGstRates());
         return summary;
+    }
+
+    /**
+     * Seeds gst_rate_master from the CBIC Ready Reckoner extract.
+     *
+     * A heading with exactly one published rate is loaded VERIFIED - it is the government's
+     * own stated rate and there is nothing to decide. A heading carrying several rates
+     * (rice 5% vs nil by packaging, apparel 5% vs 18% by price) is loaded UNVERIFIED,
+     * because which one applies depends on the goods rather than the code, and the resolver
+     * must not pick one arbitrarily.
+     *
+     * Only inserts where the (hsn, rate, effectiveFrom) row is absent, so an admin's later
+     * edits and verifications are never overwritten by a restart.
+     */
+    private int loadGstRates() {
+        List<JsonNode> rows = readArray("master-data/gst_rate_seed.json");
+        if (rows.isEmpty()) return 0;
+
+        Map<String, List<GstRateMaster>> existing = new HashMap<>();
+        rateRepo.findAll().forEach(r ->
+                existing.computeIfAbsent(r.getHsnCode(), k -> new ArrayList<>()).add(r));
+
+        List<GstRateMaster> toSave = new ArrayList<>();
+        int inserted = 0, ambiguous = 0;
+        for (JsonNode n : rows) {
+            String hsn = text(n, "hsnCode");
+            JsonNode rateNode = n.get("gstRate");
+            String fromStr = text(n, "effectiveFrom");
+            if (hsn == null || hsn.isBlank() || rateNode == null || fromStr == null) continue;
+
+            double rate = rateNode.asDouble();
+            LocalDate from = LocalDate.parse(fromStr);
+            boolean isAmbiguous = n.hasNonNull("ambiguous") && n.get("ambiguous").asBoolean();
+            if (isAmbiguous) ambiguous++;
+
+            boolean present = existing.getOrDefault(hsn, List.of()).stream()
+                    .anyMatch(r -> Double.compare(r.getGstRate(), rate) == 0
+                            && from.equals(r.getEffectiveFrom()));
+            if (present) continue;
+
+            GstRateMaster r = new GstRateMaster();
+            r.setHsnCode(hsn);
+            r.setGstRate(rate);
+            r.setEffectiveFrom(from);
+            r.setStatus(isAmbiguous ? GstRateMaster.STATUS_UNVERIFIED : GstRateMaster.STATUS_VERIFIED);
+            r.setSource(text(n, "source"));
+            r.setNotes(text(n, "notes"));
+            if (!isAmbiguous) {
+                r.setVerifiedBy("CBIC master data import");
+                r.setVerifiedAt(LocalDateTime.now());
+            }
+            toSave.add(r);
+            inserted++;
+        }
+        if (!toSave.isEmpty()) rateRepo.saveAll(toSave);
+
+        if (inserted > 0) {
+            MasterUpdateLog entry = new MasterUpdateLog();
+            entry.setFileName("gst_rate_seed.json");
+            entry.setVersion(RATE_SOURCE_VERSION);
+            entry.setRowsLoaded(rows.size());
+            entry.setRowsInserted(inserted);
+            entry.setRowsUpdated(0);
+            entry.setStatus("SUCCESS");
+            entry.setChangesDetected(inserted + " rate rows inserted; " + ambiguous
+                    + " left UNVERIFIED because the heading carries more than one rate");
+            logRepo.save(entry);
+        }
+        log.info("GST rates: {} rows in file, {} inserted ({} ambiguous held for review)",
+                rows.size(), inserted, ambiguous);
+        return rows.size();
     }
 
     private int loadHsn() {

@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -37,6 +38,7 @@ class GstInvoiceServiceTest {
     @Mock private AuditService auditService;
     @Mock private GstnClient gstnClient;
     @Mock private TcsRecordRepository tcsRepo;
+    @Mock private GstRateResolver gstRateResolver;
 
     @InjectMocks
     private GstInvoiceService gstService;
@@ -47,6 +49,12 @@ class GstInvoiceServiceTest {
 
     @BeforeEach
     void setUp() {
+        // These tests cover invoice structure - the CGST/SGST vs IGST split, place of supply,
+        // IRN - not where the rate comes from, so pin the resolver at the 12% they were
+        // written against. Rate resolution itself is covered by GstRateResolverTest.
+        lenient().when(gstRateResolver.resolve(any(), anyBoolean(), any()))
+                .thenAnswer(i -> new GstRateResolver.Resolved(12.0, i.getArgument(1), "1006", true));
+
         config = new GstConfiguration();
         config.setGstin(SELLER_GSTIN_TN);
         config.setLegalName("Test Seller Pvt Ltd");

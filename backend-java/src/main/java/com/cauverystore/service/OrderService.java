@@ -49,6 +49,7 @@ public class OrderService {
     private final PaymentRepository paymentRepo;
     private final CreditNoteService creditNoteService;
     private final CourierTrackingService courierTrackingService;
+    private final GstRateResolver gstRateResolver;
 
     public OrderService(OrderRepository orderRepo, OrderItemRepository orderItemRepo,
                         CartRepository cartRepo, ProductRepository productRepo,
@@ -67,7 +68,8 @@ public class OrderService {
                         PaymentService paymentService,
                         PaymentRepository paymentRepo,
                         CreditNoteService creditNoteService,
-                        CourierTrackingService courierTrackingService) {
+                        CourierTrackingService courierTrackingService,
+                        GstRateResolver gstRateResolver) {
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -92,6 +94,34 @@ public class OrderService {
         this.paymentRepo = paymentRepo;
         this.creditNoteService = creditNoteService;
         this.courierTrackingService = courierTrackingService;
+        this.gstRateResolver = gstRateResolver;
+    }
+
+    /**
+     * GST actually payable on the basket, resolved per line item from its HSN code via the
+     * CBIC rate master - replacing the flat 12% this used to charge on everything regardless
+     * of what was being sold (12% is not even a valid slab since GST 2.0 on 22-09-2025).
+     *
+     * Any order-level discount is apportioned across items in proportion to their value, so
+     * each line is taxed on the amount actually charged for it rather than its list price.
+     *
+     * Returns the total only. The CGST/SGST vs IGST split is applied on the invoice, which
+     * knows the place of supply; both sum to the same rate, so the amount charged here is
+     * correct either way.
+     */
+    private double computeGstOnItems(List<OrderItem> items, double subTotal, double discount) {
+        if (items == null || items.isEmpty()) return 0.0;
+        double retainedFactor = subTotal > 0 ? Math.max(subTotal - discount, 0) / subTotal : 0.0;
+
+        double tax = 0.0;
+        for (OrderItem item : items) {
+            double lineValue = item.getPrice() * item.getQuantity();
+            double taxable = Math.round(lineValue * retainedFactor * 100.0) / 100.0;
+            GstRateResolver.Resolved resolved =
+                    gstRateResolver.resolve(item.getProduct(), false, LocalDate.now());
+            tax += Math.round(taxable * resolved.getTotalRate() / 100.0 * 100.0) / 100.0;
+        }
+        return Math.round(tax * 100.0) / 100.0;
     }
 
     private User extractUserFromHeader(String authHeader) {
@@ -184,7 +214,7 @@ public class OrderService {
 
         double deliveryCharge = (appliedCoupon != null && appliedCoupon.isFreeShipping()) || subTotal >= 500 ? 0 : 40;
         double taxableAmount = Math.max(subTotal - discount, 0);
-        double tax = Math.round(taxableAmount * 0.12 * 100.0) / 100.0;
+        double tax = computeGstOnItems(orderItems, subTotal, discount);
         double totalAmount = taxableAmount + tax + deliveryCharge;
 
         order.setItems(orderItems);

@@ -87,12 +87,16 @@ public class GstInvoiceService {
         STATE_CODES.put("19", "West Bengal");
     }
 
+    private final GstRateResolver gstRateResolver;
+
     public GstInvoiceService(GstInvoiceRepository invoiceRepo, GstInvoiceItemRepository itemRepo,
                              GstSyncQueueRepository syncRepo, GstConfigurationRepository configRepo,
                              SellerRegistrationRepository sellerRegRepo,
                              OrderRepository orderRepo, ProductRepository productRepo,
                              UserRepository userRepo, AuditService auditService,
-                             GstnClient gstnClient, TcsRecordRepository tcsRepo) {
+                             GstnClient gstnClient, TcsRecordRepository tcsRepo,
+                             GstRateResolver gstRateResolver) {
+        this.gstRateResolver = gstRateResolver;
         this.invoiceRepo = invoiceRepo;
         this.itemRepo = itemRepo;
         this.syncRepo = syncRepo;
@@ -220,7 +224,16 @@ public class GstInvoiceService {
 
         for (OrderItem oi : order.getItems()) {
             Product p = oi.getProduct();
-            double gstPct = (p != null && p.getGstPercentage() != null) ? p.getGstPercentage() : 12.0;
+            // Rate comes from the CBIC rate master keyed on the product's HSN, resolved as of
+            // the order date, so the invoice declares exactly what checkout charged. It used to
+            // read a free-text per-product percentage defaulting to 12%, which could differ from
+            // the flat 12% checkout applied - meaning an invoice could declare tax that was
+            // never collected.
+            LocalDate supplyDate = order.getCreatedAt() != null
+                    ? order.getCreatedAt().toLocalDate() : LocalDate.now();
+            double gstPct = gstRateResolver
+                    .resolve(p, Boolean.TRUE.equals(inv.getIsInterState()), supplyDate)
+                    .getTotalRate();
             double itemValue = oi.getPrice() * oi.getQuantity();
             double taxable = itemValue * retainedFactor;
             taxable = Math.round(taxable * 100.0) / 100.0;
