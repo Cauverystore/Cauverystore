@@ -46,6 +46,22 @@ public class Product extends BaseEntity {
     private Integer qualityScore;
     private Integer missingFields;
     private String hsnCode;
+
+    /**
+     * Whether this is supplied in pre-packaged and labelled form.
+     *
+     * Staples are taxed on packaging rather than on what they are - rice under 1006 is 5%
+     * pre-packaged and labelled but nil loose, and the same split runs through meat, fish,
+     * dairy and cereals. The HSN code is identical either way, so nothing but this flag can
+     * decide the rate.
+     *
+     * Defaults to true because goods sold and shipped through an online store are packaged
+     * and labelled by definition; loose sale is a counter transaction. It is also the higher
+     * of the two rates, so a seller who leaves it alone errs towards paying more tax rather
+     * than underpaying - the safer direction to be wrong in.
+     */
+    private Boolean prePackagedAndLabelled = Boolean.TRUE;
+
     private String countryOfOrigin;
     private String metaTitle;
     @Column(columnDefinition = "TEXT")
@@ -409,6 +425,14 @@ public class Product extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setHsnCode(final String hsnCode) {
         this.hsnCode = hsnCode;
+    }
+
+    public Boolean getPrePackagedAndLabelled() {
+        return this.prePackagedAndLabelled;
+    }
+
+    public void setPrePackagedAndLabelled(final Boolean prePackagedAndLabelled) {
+        this.prePackagedAndLabelled = prePackagedAndLabelled;
     }
 
     @java.lang.SuppressWarnings("all")

@@ -161,6 +161,41 @@ class ProductServiceTest {
     }
 
     @Test
+    void updateProduct_shouldAllowCorrectingTheFieldsThatDecideGst() {
+        // Neither of these used to be copied, so a mistyped HSN was permanent and the product
+        // kept being taxed at the wrong rate for its whole life.
+        product.setHsnCode("8471");
+        product.setPrePackagedAndLabelled(true);
+        Product update = new Product();
+        update.setHsnCode("1006");
+        update.setPrePackagedAndLabelled(false);
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Product result = productService.updateProduct(1L, update);
+
+        assertEquals("1006", result.getHsnCode());
+        assertEquals(Boolean.FALSE, result.getPrePackagedAndLabelled());
+    }
+
+    @Test
+    void updateProduct_shouldLeaveGstFieldsAlone_whenTheUpdateOmitsThem() {
+        // A partial update of, say, the price must not silently reset the packaging flag to
+        // null and knock the product onto the fallback rate.
+        product.setHsnCode("1006");
+        product.setPrePackagedAndLabelled(true);
+        Product update = new Product();
+        update.setPrice(250.0);
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Product result = productService.updateProduct(1L, update);
+
+        assertEquals("1006", result.getHsnCode());
+        assertEquals(Boolean.TRUE, result.getPrePackagedAndLabelled());
+    }
+
+    @Test
     void updateProduct_shouldEnforceOwnership_whenSeller() {
         setAuthenticatedUser(2L, "SELLER");
         product.setSellerId(1L);

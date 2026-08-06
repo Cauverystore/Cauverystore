@@ -89,6 +89,8 @@ const AdminGstRates = () => {
         `HSN ${rate.hsnCode} closed off on ${date}.`);
   };
 
+  const isValueBanded = form.conditionType === "VALUE_UPTO" || form.conditionType === "VALUE_ABOVE";
+
   const submitNew = (e) => {
     e.preventDefault();
     const payload = {
@@ -97,9 +99,9 @@ const AdminGstRates = () => {
       effectiveFrom: form.effectiveFrom || null,
       effectiveTo: form.effectiveTo || null,
       conditionType: form.conditionType,
-      thresholdAmount: form.conditionType === "NONE" || !form.thresholdAmount
-        ? null : parseFloat(form.thresholdAmount),
-      thresholdUnit: form.conditionType === "NONE" ? null : form.thresholdUnit,
+      thresholdAmount: isValueBanded && form.thresholdAmount
+        ? parseFloat(form.thresholdAmount) : null,
+      thresholdUnit: isValueBanded ? form.thresholdUnit : null,
       conditionText: form.conditionText || null,
       source: form.source || null,
     };
@@ -113,10 +115,20 @@ const AdminGstRates = () => {
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const conditionLabel = (r) => {
-    if (!r.conditionType || r.conditionType === "NONE") return null;
-    const dir = r.conditionType === "VALUE_UPTO" ? "up to" : "above";
-    return `applies ${dir} ₹${r.thresholdAmount} per ${r.thresholdUnit || "piece"}`;
+    switch (r.conditionType) {
+      case "VALUE_UPTO":
+        return `applies up to ₹${r.thresholdAmount} per ${r.thresholdUnit || "piece"}`;
+      case "VALUE_ABOVE":
+        return `applies above ₹${r.thresholdAmount} per ${r.thresholdUnit || "piece"}`;
+      case "PRE_PACKAGED":
+        return "applies when pre-packaged and labelled";
+      case "NOT_PRE_PACKAGED":
+        return "applies when sold loose";
+      default:
+        return null;
+    }
   };
+
 
   return (
     <div>
@@ -182,14 +194,16 @@ const AdminGstRates = () => {
             <div><label style={lbl}>Effective from</label><input name="effectiveFrom" type="date" value={form.effectiveFrom} onChange={change} style={inp} required /></div>
             <div><label style={lbl}>Effective to (blank = still in force)</label><input name="effectiveTo" type="date" value={form.effectiveTo} onChange={change} style={inp} /></div>
             <div>
-              <label style={lbl}>Depends on price?</label>
+              <label style={lbl}>What decides this rate?</label>
               <select name="conditionType" value={form.conditionType} onChange={change} style={inp}>
-                <option value="NONE">No — one rate at any price</option>
-                <option value="VALUE_UPTO">Yes — at or below a threshold</option>
-                <option value="VALUE_ABOVE">Yes — above a threshold</option>
+                <option value="NONE">Nothing — one rate always</option>
+                <option value="VALUE_UPTO">Price at or below a threshold</option>
+                <option value="VALUE_ABOVE">Price above a threshold</option>
+                <option value="PRE_PACKAGED">Sold pre-packaged and labelled</option>
+                <option value="NOT_PRE_PACKAGED">Sold loose</option>
               </select>
             </div>
-            {form.conditionType !== "NONE" && (
+            {isValueBanded && (
               <>
                 <div><label style={lbl}>Threshold (₹)</label><input name="thresholdAmount" type="number" step="0.01" value={form.thresholdAmount} onChange={change} style={inp} required /></div>
                 <div>

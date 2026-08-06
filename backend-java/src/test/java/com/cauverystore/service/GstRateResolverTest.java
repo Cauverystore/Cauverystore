@@ -264,4 +264,74 @@ class GstRateResolverTest {
 
         assertTrue(resolver.findRate("1006", LocalDate.of(2026, 8, 6), 399.0).isEmpty());
     }
+
+    private GstRateMaster packaged(String hsn, double pct, String type) {
+        GstRateMaster r = rate(hsn, pct, LocalDate.of(2025, 9, 22), null);
+        r.setConditionType(type);
+        return r;
+    }
+
+    private void ricePublishedBothWays() {
+        when(rateRepo.findApplicable(eq("1006"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        packaged("1006", 5.0, GstRateMaster.CONDITION_PACKAGED),
+                        packaged("1006", 0.0, GstRateMaster.CONDITION_UNPACKAGED)));
+    }
+
+    @Test
+    void resolve_shouldChargeFivePercent_onPrePackagedRice() {
+        product.setHsnCode("1006");
+        product.setPrePackagedAndLabelled(true);
+        ricePublishedBothWays();
+
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6)).getTotalRate());
+    }
+
+    @Test
+    void resolve_shouldChargeNil_onLooseRice() {
+        product.setHsnCode("1006");
+        product.setPrePackagedAndLabelled(false);
+        ricePublishedBothWays();
+
+        GstRateResolver.Resolved r = resolver.resolve(product, false, LocalDate.of(2026, 8, 6));
+        assertEquals(0.0, r.getTotalRate());
+        assertTrue(r.isFromMaster(), "nil is a real published rate, not a failure to resolve");
+    }
+
+    @Test
+    void resolve_shouldNotGuess_whenPackagingIsUnknown() {
+        // Neither side can be confirmed, and picking one would silently charge the wrong rate.
+        product.setHsnCode("1006");
+        product.setPrePackagedAndLabelled(null);
+        ricePublishedBothWays();
+
+        assertFalse(resolver.resolve(product, false, LocalDate.of(2026, 8, 6)).isFromMaster());
+    }
+
+    @Test
+    void resolve_shouldTakePackagingFromTheProduct_withoutTheCallerPassingIt() {
+        // Price has to be passed in by each caller, but packaging is a property of the product,
+        // so the three-argument resolve must still get it right.
+        product.setHsnCode("1006");
+        product.setPrePackagedAndLabelled(true);
+        ricePublishedBothWays();
+
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 120.0).getTotalRate());
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6)).getTotalRate());
+    }
+
+    @Test
+    void resolve_shouldKeepValueBandsWorking_whenPackagingIsAlsoSet() {
+        // Apparel is banded on price, not packaging; setting the packaging flag (which every
+        // product now carries) must not disturb it.
+        product.setHsnCode("61");
+        product.setPrePackagedAndLabelled(true);
+        when(rateRepo.findApplicable(eq("61"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        conditional("61", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0),
+                        conditional("61", 18.0, GstRateMaster.CONDITION_VALUE_ABOVE, 2500.0)));
+
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 999.0).getTotalRate());
+        assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 4999.0).getTotalRate());
+    }
 }

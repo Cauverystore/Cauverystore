@@ -113,10 +113,11 @@ class GstMasterDataLoaderTest {
     }
 
     @Test
-    void shouldDemoteAHeadingThatCarriesSeveralRates() {
-        // Rice is 5% pre-packaged and nil loose. The code alone cannot say which, so an
-        // earlier blanket approval of 5% has to be withdrawn - price cannot break this tie
-        // the way it does for apparel, so it genuinely needs a human.
+    void shouldDemoteAFlatRateThatTheSeedNowExpressesAsASplit() {
+        // Rice is 5% pre-packaged and nil loose. An earlier seed approved a flat 5% for the
+        // whole heading; the current one publishes the two sides separately and decides
+        // between them from the product's packaging. The flat approval has to go, or it would
+        // sit alongside the split rows charging 5% on loose rice.
         GstRateMaster stale = autoVerified("1006", 5.0);
         when(rateRepo.findAll()).thenReturn(List.of(stale));
 

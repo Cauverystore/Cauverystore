@@ -35,6 +35,10 @@ public class GstRateMaster {
     public static final String CONDITION_VALUE_UPTO = "VALUE_UPTO";
     /** Applies when the unit price is above thresholdAmount. */
     public static final String CONDITION_VALUE_ABOVE = "VALUE_ABOVE";
+    /** Applies when the goods are supplied pre-packaged and labelled. */
+    public static final String CONDITION_PACKAGED = "PRE_PACKAGED";
+    /** Applies when the goods are supplied loose, i.e. not pre-packaged and labelled. */
+    public static final String CONDITION_UNPACKAGED = "NOT_PRE_PACKAGED";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -139,18 +143,48 @@ public class GstRateMaster {
         return conditionType != null && !CONDITION_NONE.equals(conditionType);
     }
 
-    /**
-     * Whether this row applies to an item selling at the given unit price.
-     * An unconditional row applies to everything; a conditional one only to its side of
-     * the threshold. A conditional row with a null price cannot be confirmed, so it does not
-     * apply - better to fail to resolve than to charge the wrong side of the threshold.
-     */
+    /** True when this row's condition is decided by the item's price rather than its packaging. */
+    @Transient
+    public boolean isValueBanded() {
+        return CONDITION_VALUE_UPTO.equals(conditionType) || CONDITION_VALUE_ABOVE.equals(conditionType);
+    }
+
+    /** True when this row's condition is decided by whether the goods are pre-packaged. */
+    @Transient
+    public boolean isPackagingBanded() {
+        return CONDITION_PACKAGED.equals(conditionType) || CONDITION_UNPACKAGED.equals(conditionType);
+    }
+
+    /** @deprecated use {@link #appliesTo(Double, Boolean)}; kept for callers that only know the price. */
+    @Deprecated
     @Transient
     public boolean appliesToUnitPrice(Double unitPrice) {
+        return appliesTo(unitPrice, null);
+    }
+
+    /**
+     * Whether this row applies to an item with the given price and packaging.
+     *
+     * An unconditional row applies to everything; a conditional one only to its own side of
+     * the split. A condition whose input is unknown does NOT apply - failing to resolve sends
+     * the caller to the fallback and logs it, whereas guessing charges the wrong rate and
+     * looks entirely correct until an audit.
+     */
+    @Transient
+    public boolean appliesTo(Double unitPrice, Boolean prePackaged) {
         if (!isConditional()) return true;
-        if (unitPrice == null || thresholdAmount == null) return false;
-        if (CONDITION_VALUE_UPTO.equals(conditionType)) return unitPrice <= thresholdAmount;
-        if (CONDITION_VALUE_ABOVE.equals(conditionType)) return unitPrice > thresholdAmount;
+        if (CONDITION_VALUE_UPTO.equals(conditionType)) {
+            return unitPrice != null && thresholdAmount != null && unitPrice <= thresholdAmount;
+        }
+        if (CONDITION_VALUE_ABOVE.equals(conditionType)) {
+            return unitPrice != null && thresholdAmount != null && unitPrice > thresholdAmount;
+        }
+        if (CONDITION_PACKAGED.equals(conditionType)) {
+            return Boolean.TRUE.equals(prePackaged);
+        }
+        if (CONDITION_UNPACKAGED.equals(conditionType)) {
+            return Boolean.FALSE.equals(prePackaged);
+        }
         return false;
     }
 

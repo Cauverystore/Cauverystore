@@ -53,6 +53,11 @@ public class GstRateAdminService {
         this.authorizationService = authorizationService;
     }
 
+    private static final List<String> KNOWN_CONDITIONS = List.of(
+            GstRateMaster.CONDITION_NONE,
+            GstRateMaster.CONDITION_VALUE_UPTO, GstRateMaster.CONDITION_VALUE_ABOVE,
+            GstRateMaster.CONDITION_PACKAGED, GstRateMaster.CONDITION_UNPACKAGED);
+
     /** Raised when a change would leave the rate table in a state the resolver cannot use. */
     public static class RateReviewException extends RuntimeException {
         public RateReviewException(String message) { super(message); }
@@ -286,13 +291,14 @@ public class GstRateAdminService {
         String type = rate.getConditionType();
         if (type == null || GstRateMaster.CONDITION_NONE.equals(type)) return;
 
-        if (!GstRateMaster.CONDITION_VALUE_UPTO.equals(type)
-                && !GstRateMaster.CONDITION_VALUE_ABOVE.equals(type)) {
-            throw new RateReviewException("Unknown condition type '" + type + "'. Use "
-                    + GstRateMaster.CONDITION_NONE + ", " + GstRateMaster.CONDITION_VALUE_UPTO
-                    + " or " + GstRateMaster.CONDITION_VALUE_ABOVE + ".");
+        if (!KNOWN_CONDITIONS.contains(type)) {
+            throw new RateReviewException("Unknown condition type '" + type + "'. Use one of "
+                    + String.join(", ", KNOWN_CONDITIONS) + ".");
         }
-        if (rate.getThresholdAmount() == null || rate.getThresholdAmount() <= 0) {
+        // Only value bands carry a threshold; a packaging split is decided by the product's
+        // own packaging flag and has nothing to compare against.
+        if (rate.isValueBanded()
+                && (rate.getThresholdAmount() == null || rate.getThresholdAmount() <= 0)) {
             throw new RateReviewException("A value-conditional rate needs a positive threshold "
                     + "amount (for example 2500 per piece).");
         }
@@ -310,9 +316,16 @@ public class GstRateAdminService {
 
         long conditional = rows.stream().filter(GstRateMaster::isConditional).count();
         long unconditional = rows.size() - conditional;
+        long packaging = rows.stream().filter(GstRateMaster::isPackagingBanded).count();
 
         String issue;
-        if (conditional > 0 && unconditional > 0) {
+        if (packaging > 0 && conditional == packaging && unconditional == 0) {
+            issue = packaging > 1
+                    ? "Rate turns only on whether the goods are pre-packaged and labelled, which "
+                      + "each product states, so the resolver chooses on its own."
+                    : "Only one side of the packaging split is published, so nothing covers the "
+                      + "other. Add the missing side before approving.";
+        } else if (conditional > 0 && unconditional > 0) {
             issue = "This heading mixes a flat rate with value-banded rates. Decide which the "
                     + "goods actually attract and close off or remove the rest.";
         } else if (conditional == 1) {

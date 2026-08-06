@@ -405,6 +405,12 @@ public class ProductService {
           if (product.getProductStatus() != null) existing.setProductStatus(product.getProductStatus());
           if (product.getApprovalStatus() != null) existing.setApprovalStatus(product.getApprovalStatus());
           if (product.getOfferPrice() != null) existing.setOfferPrice(product.getOfferPrice());
+          // Both of these decide the GST charged, and neither was previously copied - so a
+          // mistyped HSN could never be corrected and the tax stayed wrong for the product's life.
+          if (product.getHsnCode() != null) existing.setHsnCode(product.getHsnCode());
+          if (product.getPrePackagedAndLabelled() != null) {
+              existing.setPrePackagedAndLabelled(product.getPrePackagedAndLabelled());
+          }
           return productRepo.save(existing);
     }
 

@@ -22,6 +22,7 @@ const AddProduct = () => {
   const [form, setForm] = useState({
     name: "", brand: "", category: "", price: "", stock: "", sku: "",
     description: "", manufacturer: "", modelNumber: "", barcode: "", hsnCode: "",
+    prePackagedAndLabelled: true,
     countryOfOrigin: "India", shortDescription: "", technicalSpecs: "",
     warranty: "1 Year", returnPolicy: "7 Days",
     metaTitle: "", metaDescription: "", keywords: "", slug: "",
@@ -109,6 +110,7 @@ const AddProduct = () => {
         stock: parseInt(form.stock), sku: form.sku, description: form.description,
         manufacturer: form.manufacturer, modelNumber: form.modelNumber,
         barcode: form.barcode, hsnCode: form.hsnCode,
+        prePackagedAndLabelled: form.prePackagedAndLabelled,
         countryOfOrigin: form.countryOfOrigin, shortDescription: form.shortDescription,
         technicalSpecs: form.technicalSpecs, warranty: form.warranty,
         returnPolicy: form.returnPolicy, metaTitle: form.metaTitle,
@@ -262,6 +264,27 @@ const AddProduct = () => {
           {fld("Barcode/UPC", "barcode", "text", null, "12-13 digits")}
           {fld("HSN Code", "hsnCode")}
         </div>
+        {/*
+          Staples are taxed on packaging, not just on what they are - rice is 5% pre-packaged
+          and labelled but nil loose, and the same split runs through meat, dairy and cereals.
+          The HSN code is identical either way, so only this answer can settle the rate.
+        */}
+        <label style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start", margin: "0.5rem 0 0" }}>
+          <input
+            type="checkbox"
+            checked={form.prePackagedAndLabelled}
+            onChange={(e) => setForm({ ...form, prePackagedAndLabelled: e.target.checked })}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            <span style={{ fontWeight: 500, fontSize: "0.9rem" }}>Sold pre-packaged and labelled</span>
+            <span style={{ display: "block", color: "#6b7280", fontSize: "0.78rem" }}>
+              Decides the GST on staples such as rice, flour, dairy and packed meat, which are
+              taxed at 5% packaged and nil loose. Leave ticked for anything shipped in a sealed,
+              labelled pack.
+            </span>
+          </span>
+        </label>
         <div style={S.grid2}>
           {fld("Country of Origin", "countryOfOrigin", null, COUNTRIES)}
           {fld("Warranty", "warranty", null, WARRANTY)}

@@ -120,11 +120,18 @@ public class GstRateResolver {
         return findRate(hsnCode, onDate, null);
     }
 
-    /**
-     * @param unitPrice per-piece selling price, needed only for headings whose rate depends on
-     *                  value (apparel, footwear). Null is fine for everything else.
-     */
     public Optional<Double> findRate(String hsnCode, LocalDate onDate, Double unitPrice) {
+        return findRate(hsnCode, onDate, unitPrice, null);
+    }
+
+    /**
+     * @param unitPrice  per-piece selling price, needed only for headings whose rate depends on
+     *                   value (apparel, footwear). Null is fine for everything else.
+     * @param prePackaged whether the goods are pre-packaged and labelled, needed only for the
+     *                    staples whose rate turns on packaging (rice, meat, dairy, cereals).
+     */
+    public Optional<Double> findRate(String hsnCode, LocalDate onDate,
+                                     Double unitPrice, Boolean prePackaged) {
         if (hsnCode == null || hsnCode.isBlank()) return Optional.empty();
         String hsn = hsnCode.replaceAll("\\s", "");
         LocalDate date = onDate != null ? onDate : LocalDate.now();
@@ -143,7 +150,7 @@ public class GstRateResolver {
             // whole point of the condition. Only if none match do we consider unconditional rows.
             List<GstRateMaster> conditionMatches = hits.stream()
                     .filter(GstRateMaster::isConditional)
-                    .filter(r -> r.appliesToUnitPrice(unitPrice))
+                    .filter(r -> r.appliesTo(unitPrice, prePackaged))
                     .toList();
             if (conditionMatches.size() == 1) {
                 return Optional.of(conditionMatches.get(0).getGstRate());
@@ -166,8 +173,8 @@ public class GstRateResolver {
             // threshold where only the lower band is published). Do not fall through to a
             // broader heading and silently pick an unrelated rate.
             if (!hits.isEmpty()) {
-                log.warn("HSN {} has value-conditional rates but none apply to unit price {} - "
-                        + "leaving unresolved.", candidate, unitPrice);
+                log.warn("HSN {} has conditional rates but none apply to unit price {} / "
+                        + "pre-packaged {} - leaving unresolved.", candidate, unitPrice, prePackaged);
                 return Optional.empty();
             }
         }
@@ -190,7 +197,9 @@ public class GstRateResolver {
      */
     public Resolved resolve(Product product, boolean interState, LocalDate onDate, Double unitPrice) {
         String hsn = product != null ? product.getHsnCode() : null;
-        Optional<Double> rate = findRate(hsn, onDate, unitPrice);
+        // Packaging comes off the product itself - unlike price, no caller has to pass it.
+        Boolean prePackaged = product != null ? product.getPrePackagedAndLabelled() : null;
+        Optional<Double> rate = findRate(hsn, onDate, unitPrice, prePackaged);
 
         if (rate.isPresent()) {
             return new Resolved(rate.get(), interState, hsn, true);
