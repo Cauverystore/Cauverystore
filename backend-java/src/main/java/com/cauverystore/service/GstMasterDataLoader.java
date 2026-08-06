@@ -167,6 +167,8 @@ public class GstMasterDataLoader {
             r.setHsnCode(hsn);
             r.setGstRate(rate);
             r.setEffectiveFrom(from);
+            String toStr = text(n, "effectiveTo");
+            if (toStr != null && !toStr.isBlank()) r.setEffectiveTo(LocalDate.parse(toStr));
             r.setStatus(isAmbiguous ? GstRateMaster.STATUS_UNVERIFIED : GstRateMaster.STATUS_VERIFIED);
             r.setSource(text(n, "source"));
             r.setNotes(text(n, "notes"));
@@ -184,9 +186,10 @@ public class GstMasterDataLoader {
         }
         if (!toSave.isEmpty()) rateRepo.saveAll(toSave);
 
+        int closed = applySeedEndDates(rows, existing);
         int demoted = demoteStaleAutoVerified(existing, seedVerified, seedHeadings);
 
-        if (inserted > 0 || demoted > 0) {
+        if (inserted > 0 || demoted > 0 || closed > 0) {
             MasterUpdateLog entry = new MasterUpdateLog();
             entry.setFileName("gst_rate_seed.json");
             entry.setVersion(RATE_SOURCE_VERSION);
@@ -196,12 +199,59 @@ public class GstMasterDataLoader {
             entry.setStatus("SUCCESS");
             entry.setChangesDetected(inserted + " rate rows inserted; " + ambiguous
                     + " left UNVERIFIED because the heading carries more than one rate; "
-                    + demoted + " previously auto-verified rows demoted for review");
+                    + demoted + " previously auto-verified rows demoted for review; "
+                    + closed + " rows closed off on the date a later notification ended them");
             logRepo.save(entry);
         }
-        log.info("GST rates: {} rows in file, {} inserted ({} ambiguous held for review), {} demoted",
-                rows.size(), inserted, ambiguous, demoted);
+        log.info("GST rates: {} rows in file, {} inserted ({} ambiguous held for review), "
+                        + "{} demoted, {} closed off", rows.size(), inserted, ambiguous, demoted, closed);
         return rows.size();
+    }
+
+    /**
+     * Closes off rows the seed now says stopped applying on a date.
+     *
+     * A rate is never deleted when a later notification ends it, because an invoice raised
+     * while it was in force still has to reprint at it. Instead the row gets an end date and
+     * the resolver stops offering it from the following day - which is also what keeps two
+     * rates for one heading from both looking current and leaving the resolver unable to
+     * choose.
+     *
+     * Only ever fills in an end date that is currently absent. If an admin has already closed
+     * a row off by hand, their date stands: the seed is a starting position, not an authority
+     * over someone who has looked at the notification themselves.
+     */
+    private int applySeedEndDates(List<JsonNode> rows, Map<String, List<GstRateMaster>> existing) {
+        Map<String, LocalDate> endDates = new HashMap<>();
+        for (JsonNode n : rows) {
+            String to = text(n, "effectiveTo");
+            if (to == null || to.isBlank()) continue;
+            String hsn = text(n, "hsnCode");
+            if (hsn == null || n.get("gstRate") == null || text(n, "effectiveFrom") == null) continue;
+            endDates.put(rateKey(hsn, n.get("gstRate").asDouble(),
+                    text(n, "effectiveFrom"), text(n, "conditionType")), LocalDate.parse(to));
+        }
+        if (endDates.isEmpty()) return 0;
+
+        List<GstRateMaster> toClose = new ArrayList<>();
+        for (List<GstRateMaster> perHsn : existing.values()) {
+            for (GstRateMaster r : perHsn) {
+                if (r.getEffectiveTo() != null) continue;
+                LocalDate end = endDates.get(rateKey(r.getHsnCode(), r.getGstRate(),
+                        r.getEffectiveFrom() == null ? null : r.getEffectiveFrom().toString(),
+                        r.getConditionType()));
+                if (end == null) continue;
+                r.setEffectiveTo(end);
+                r.setNotes((r.getNotes() == null || r.getNotes().isBlank() ? "" : r.getNotes() + " | ")
+                        + "Closed off on " + end + " by a later notification.");
+                toClose.add(r);
+            }
+        }
+        if (!toClose.isEmpty()) {
+            rateRepo.saveAll(toClose);
+            log.info("Closed off {} GST rates that a later notification ended.", toClose.size());
+        }
+        return toClose.size();
     }
 
     /**

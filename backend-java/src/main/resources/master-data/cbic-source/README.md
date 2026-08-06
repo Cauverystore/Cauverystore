@@ -42,6 +42,22 @@ authoritative code → (rate, description) map. It does not read the amendments;
 applied to `gst_rate_seed.json` directly and carry the later `effectiveFrom` dates
 (2026-02-01, 2026-05-01), so those legitimately will not match the parser's map.
 
+### Ending a rate
+
+Each seed row carries `effectiveTo` — `null` while the rate is still in force, otherwise the
+last day it applied. A rate is never deleted when a notification ends it, because an invoice
+raised while it was live still has to reprint at it.
+
+Set it whenever an amendment **substitutes** an entry rather than adding one. Notification
+01/2026 replaced the eight-digit beverage codes at Schedule I S.No 150/151 and Schedule III
+S.No 3, so `2202 99 20`, `2202 99 30` and `2202 99 90` end on 2026-04-30 and their finer
+replacements start the next day. Left open they would have gone on resolving alongside the
+codes that replaced them.
+
+Do **not** set it for a carve-out. Notification 19/2025 moved 2401 to 40% but excluded tobacco
+leaves, which stay at 5% — two live rates on one heading, not a supersession, which is why
+2401 correctly has two open rows and needs a human to say which applies.
+
 Extraction uses `pdftotext -table`, which rebuilds the real cell grid. An earlier pass used
 `-layout`, which guesses column positions and slipped on wrapped cells — the exemption list's
 first entry came out as a blank code against "Live asses, mules and hinnies", shifting every

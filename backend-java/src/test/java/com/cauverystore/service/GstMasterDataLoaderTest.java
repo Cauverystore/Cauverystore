@@ -175,4 +175,52 @@ class GstMasterDataLoaderTest {
 
         verify(rateRepo, never()).saveAll(any());
     }
+
+    @Test
+    void shouldCloseOffARateThatALaterNotificationEnded() {
+        // 2202 99 20 was replaced by 2202 99 21 / 29 from 01-05-2026. Left open-ended it would
+        // go on resolving alongside its own replacements.
+        GstRateMaster superseded = autoVerified("22029920", 5.0);
+        when(rateRepo.findAll()).thenReturn(List.of(superseded));
+
+        runAndCaptureSaves();
+
+        assertEquals(LocalDate.of(2026, 4, 30), superseded.getEffectiveTo());
+        assertTrue(superseded.getNotes() != null && superseded.getNotes().contains("Closed off"),
+                "the reason has to be on the row, not only in the log");
+    }
+
+    @Test
+    void shouldNotReopenARateAnAdminAlreadyClosedByHand() {
+        // Someone who has read the notification themselves outranks the seed.
+        GstRateMaster closedByHand = autoVerified("22029920", 5.0);
+        closedByHand.setEffectiveTo(LocalDate.of(2026, 3, 31));
+        when(rateRepo.findAll()).thenReturn(List.of(closedByHand));
+
+        runAndCaptureSaves();
+
+        assertEquals(LocalDate.of(2026, 3, 31), closedByHand.getEffectiveTo());
+    }
+
+    @Test
+    void shouldLeaveRatesStillInForceOpenEnded() {
+        GstRateMaster current = autoVerified("0201", 0.0);
+        when(rateRepo.findAll()).thenReturn(List.of(current));
+
+        runAndCaptureSaves();
+
+        assertNull(current.getEffectiveTo(), "an open rate must not acquire an end date");
+    }
+
+    @Test
+    void shouldCarryTheSeedsEndDateOntoNewlyInsertedRows() {
+        when(rateRepo.findAll()).thenReturn(List.of());
+
+        List<GstRateMaster> saved = runAndCaptureSaves();
+
+        GstRateMaster inserted = saved.stream()
+                .filter(r -> "22029920".equals(r.getHsnCode()))
+                .findFirst().orElseThrow();
+        assertEquals(LocalDate.of(2026, 4, 30), inserted.getEffectiveTo());
+    }
 }
