@@ -15,6 +15,9 @@ const STEPS = [
   { id: 6, label: "Review", icon: FileText },
 ];
 
+// What the business does, as distinct from what it sells. A manufacturer and a retailer can
+// list identical goods and are not the same kind of registrant.
+const BUSINESS_CATEGORIES = ["Retailer", "Wholesaler", "Distributor", "Manufacturer", "Services", "Other"];
 const BUSINESS_TYPES = ["Sole Proprietorship", "Partnership", "Limited Liability Partnership (LLP)", "Private Limited Company", "Public Limited Company", "One Person Company", "Other"];
 
 const DOCUMENT_TYPES = [
@@ -49,6 +52,7 @@ const SellerRegistration = () => {
   const [form, setForm] = useState({
     businessName: "", contactPerson: "", businessEmail: "", businessPhone: "",
     businessAddress: "", city: "", state: "", pincode: "", businessType: "Sole Proprietorship",
+    businessCategory: "", booksBeginningDate: "", signatureImageUrl: "", authorisedSignatory: "",
     website: "", productCategories: "", socialMediaLinks: "",
     gstin: "", panNumber: "", aadhaarNumber: "",
     bankAccountName: "", bankAccountNumber: "", bankIfsc: "", bankName: "", bankBranch: "",
@@ -82,6 +86,10 @@ const SellerRegistration = () => {
             state: reg.state || prev.state,
             pincode: reg.pincode || prev.pincode,
             businessType: reg.businessType || prev.businessType,
+            businessCategory: reg.businessCategory || prev.businessCategory,
+            booksBeginningDate: reg.booksBeginningDate || prev.booksBeginningDate,
+            signatureImageUrl: reg.signatureImageUrl || prev.signatureImageUrl,
+            authorisedSignatory: reg.authorisedSignatory || prev.authorisedSignatory,
             website: reg.website || prev.website,
             productCategories: reg.productCategories || prev.productCategories,
             socialMediaLinks: reg.socialMediaLinks || prev.socialMediaLinks,
@@ -112,6 +120,38 @@ const SellerRegistration = () => {
       }
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
+
+  const [signatureUploading, setSignatureUploading] = useState(false);
+  const [signatureError, setSignatureError] = useState("");
+
+  const handleSignatureUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // A signature that will not render is worse than none - it leaves an invoice looking
+    // unsigned with nobody aware. Catch the obvious cases before it reaches an invoice.
+    if (!file.type.startsWith("image/")) {
+      setSignatureError("That is not an image. Upload a photo or scan of the signature.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSignatureError("That image is over 2 MB. A signature only needs a small, clear scan.");
+      return;
+    }
+    setSignatureError("");
+    setSignatureUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await api.post("/api/uploads/upload-image", fd);
+      const url = res.data?.url || res.data?.imageUrl || res.data;
+      if (typeof url !== "string" || !url) throw new Error("no url returned");
+      setForm((f) => ({ ...f, signatureImageUrl: url }));
+    } catch {
+      setSignatureError("The signature could not be uploaded. Try again, or continue and add it later.");
+    } finally {
+      setSignatureUploading(false);
+    }
+  };
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -335,7 +375,40 @@ const SellerRegistration = () => {
               <div className="reg-field"><label>Pincode <span className="required">*</span></label><input value={form.pincode} onChange={handleChange("pincode")} /></div>
               <div className="reg-field"><label>Website</label><input value={form.website} onChange={handleChange("website")} placeholder="https://" /></div>
               <div className="reg-field"><label>Product Categories</label><input value={form.productCategories} onChange={handleChange("productCategories")} placeholder="e.g. Electronics, Fashion, Home" /></div>
+              <div className="reg-field"><label>Business Category</label><select value={form.businessCategory} onChange={handleChange("businessCategory")}><option value="">Select business category</option>{BUSINESS_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
+              {/*
+                An invoice cannot be dated before the books open - that would put a supply in a
+                period whose return is already filed, or in no period at all. It also anchors
+                the financial year the invoice numbering restarts on.
+              */}
+              <div className="reg-field"><label>Account Books Beginning Date</label><input type="date" value={form.booksBeginningDate} onChange={handleChange("booksBeginningDate")} /></div>
               <div className="reg-field full"><label>Social Media Links</label><input value={form.socialMediaLinks} onChange={handleChange("socialMediaLinks")} placeholder="Instagram, Facebook URLs" /></div>
+
+              {/*
+                Rule 46 requires the supplier's signature on a tax invoice. It is captured onto
+                each invoice when that invoice is raised, so changing it later cannot alter
+                anything already issued.
+              */}
+              <div className="reg-field full">
+                <label>Signature</label>
+                <p className="reg-field-hint">
+                  Printed on your tax invoices, as the rules require. Upload a clear image of
+                  the signature of whoever signs for the business.
+                </p>
+                {form.signatureImageUrl ? (
+                  <div className="reg-signature-preview">
+                    <img src={form.signatureImageUrl} alt="Signature" />
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, signatureImageUrl: "" }))}>
+                      Replace
+                    </button>
+                  </div>
+                ) : (
+                  <input type="file" accept="image/*" onChange={handleSignatureUpload} disabled={signatureUploading} />
+                )}
+                {signatureUploading && <p className="reg-field-hint">Uploading…</p>}
+                {signatureError && <p className="reg-field-error">{signatureError}</p>}
+              </div>
+              <div className="reg-field full"><label>Authorised Signatory</label><input value={form.authorisedSignatory} onChange={handleChange("authorisedSignatory")} placeholder="Name printed beneath the signature" /></div>
             </div>
           </>
         )}

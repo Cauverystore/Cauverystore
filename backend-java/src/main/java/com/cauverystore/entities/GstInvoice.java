@@ -125,6 +125,14 @@ public class GstInvoice {
     private Boolean einvoicingRequired = false;
     @Column(columnDefinition = "TEXT")
     private String supplierSignature;
+
+    /**
+     * The signature image printed on this invoice, copied from the seller's profile when it
+     * was raised rather than looked up later. A seller who changes or removes their signature
+     * must not silently alter every invoice they have already issued.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String supplierSignatureImageUrl;
     @Column(columnDefinition = "TEXT")
     private String signedBy;
     private LocalDate signatureDate;
@@ -274,6 +282,8 @@ public class GstInvoice {
     public void setDeliveryCharge(Double deliveryCharge) { this.deliveryCharge = deliveryCharge; }
     public Boolean getEinvoicingRequired() { return einvoicingRequired; }
     public void setEinvoicingRequired(Boolean einvoicingRequired) { this.einvoicingRequired = einvoicingRequired; }
+    public String getSupplierSignatureImageUrl() { return supplierSignatureImageUrl; }
+    public void setSupplierSignatureImageUrl(String url) { this.supplierSignatureImageUrl = url; }
     public String getSupplierSignature() { return supplierSignature; }
     public void setSupplierSignature(String supplierSignature) { this.supplierSignature = supplierSignature; }
     public String getSignedBy() { return signedBy; }

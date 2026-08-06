@@ -75,6 +75,16 @@ public class SellerRegistrationService {
                 if (req.getState() != null) reg.setState(req.getState());
                 if (req.getPincode() != null) reg.setPincode(req.getPincode());
                 if (req.getBusinessType() != null) reg.setBusinessType(req.getBusinessType());
+                if (req.getBusinessCategory() != null) reg.setBusinessCategory(req.getBusinessCategory());
+                if (req.getSignatureImageUrl() != null) reg.setSignatureImageUrl(req.getSignatureImageUrl());
+                if (req.getAuthorisedSignatory() != null) reg.setAuthorisedSignatory(req.getAuthorisedSignatory());
+                if (req.getBooksBeginningDate() != null && !req.getBooksBeginningDate().isBlank()) {
+                    try {
+                        reg.setBooksBeginningDate(java.time.LocalDate.parse(req.getBooksBeginningDate()));
+                    } catch (java.time.format.DateTimeParseException e) {
+                        throw new RuntimeException("Books beginning date must be a date, as YYYY-MM-DD.");
+                    }
+                }
                 if (req.getWebsite() != null) reg.setWebsite(req.getWebsite());
                 if (req.getProductCategories() != null) reg.setProductCategories(req.getProductCategories());
                 if (req.getSocialMediaLinks() != null) reg.setSocialMediaLinks(req.getSocialMediaLinks());

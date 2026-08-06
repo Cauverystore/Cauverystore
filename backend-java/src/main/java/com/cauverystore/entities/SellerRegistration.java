@@ -41,6 +41,36 @@ public class SellerRegistration {
     @Column(nullable = false)
     private String businessType;
 
+    /**
+     * What the business does - Retailer, Wholesaler, Distributor, Manufacturer, Services.
+     * Distinct from productCategories, which is what they sell: a manufacturer and a retailer
+     * can list the same goods and are not the same kind of registrant.
+     */
+    private String businessCategory;
+
+    /**
+     * The day this seller's books open.
+     *
+     * An invoice cannot be dated before it - doing so would put a supply in a period whose
+     * return has been filed, or in no period at all. It also anchors the financial year that
+     * the invoice numbering series restarts on.
+     */
+    private LocalDate booksBeginningDate;
+
+    /**
+     * Signature of the supplier or their authorised representative, which Rule 46 requires on
+     * a tax invoice. Stored as an uploaded image URL.
+     *
+     * Not the same thing as GstInvoice.supplierSignature, which is a digest binding the
+     * amounts so an invoice cannot be altered unnoticed. That is tamper-evidence; this is the
+     * signature the rule actually asks for. An e-invoice with an IRN needs neither, because
+     * the portal signs it.
+     */
+    private String signatureImageUrl;
+
+    /** Who the signature belongs to, printed beneath it. */
+    private String authorisedSignatory;
+
     private String gstin;
     private String panNumber;
     private String aadhaarNumber;
@@ -126,6 +156,14 @@ public class SellerRegistration {
     public void setPincode(String pincode) { this.pincode = pincode; }
     public String getBusinessType() { return businessType; }
     public void setBusinessType(String businessType) { this.businessType = businessType; }
+    public String getBusinessCategory() { return businessCategory; }
+    public void setBusinessCategory(String businessCategory) { this.businessCategory = businessCategory; }
+    public LocalDate getBooksBeginningDate() { return booksBeginningDate; }
+    public void setBooksBeginningDate(LocalDate booksBeginningDate) { this.booksBeginningDate = booksBeginningDate; }
+    public String getSignatureImageUrl() { return signatureImageUrl; }
+    public void setSignatureImageUrl(String signatureImageUrl) { this.signatureImageUrl = signatureImageUrl; }
+    public String getAuthorisedSignatory() { return authorisedSignatory; }
+    public void setAuthorisedSignatory(String authorisedSignatory) { this.authorisedSignatory = authorisedSignatory; }
     public String getGstin() { return gstin; }
     public void setGstin(String gstin) { this.gstin = gstin; }
     public String getGstinStatus() { return gstinStatus; }

@@ -10,6 +10,10 @@ public class SellerRegistrationRequest {
     private String state;
     private String pincode;
     private String businessType;
+    private String businessCategory;
+    private String booksBeginningDate;
+    private String signatureImageUrl;
+    private String authorisedSignatory;
     private String gstin;
     private String panNumber;
     private String aadhaarNumber;
@@ -42,6 +46,14 @@ public class SellerRegistrationRequest {
     public void setPincode(String pincode) { this.pincode = pincode; }
     public String getBusinessType() { return businessType; }
     public void setBusinessType(String businessType) { this.businessType = businessType; }
+    public String getBusinessCategory() { return businessCategory; }
+    public void setBusinessCategory(String businessCategory) { this.businessCategory = businessCategory; }
+    public String getBooksBeginningDate() { return booksBeginningDate; }
+    public void setBooksBeginningDate(String booksBeginningDate) { this.booksBeginningDate = booksBeginningDate; }
+    public String getSignatureImageUrl() { return signatureImageUrl; }
+    public void setSignatureImageUrl(String signatureImageUrl) { this.signatureImageUrl = signatureImageUrl; }
+    public String getAuthorisedSignatory() { return authorisedSignatory; }
+    public void setAuthorisedSignatory(String authorisedSignatory) { this.authorisedSignatory = authorisedSignatory; }
     public String getGstin() { return gstin; }
     public void setGstin(String gstin) { this.gstin = gstin; }
     public String getPanNumber() { return panNumber; }

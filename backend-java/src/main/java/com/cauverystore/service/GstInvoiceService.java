@@ -389,6 +389,17 @@ public class GstInvoiceService {
         inv.setSignedBy(sellerLegalName);
         inv.setSignatureDate(inv.getInvoiceDate());
 
+        // Rule 46 wants the supplier's actual signature on a tax invoice; the digest above is
+        // tamper-evidence, not that. Copied onto the invoice at the moment it is raised rather
+        // than looked up when it is printed, so a seller changing or removing their signature
+        // later cannot silently alter every invoice they have already issued.
+        sellerRegRepo.findByUserId(inv.getSellerId()).ifPresent(reg -> {
+            inv.setSupplierSignatureImageUrl(reg.getSignatureImageUrl());
+            if (reg.getAuthorisedSignatory() != null && !reg.getAuthorisedSignatory().isBlank()) {
+                inv.setSignedBy(reg.getAuthorisedSignatory());
+            }
+        });
+
         GstInvoice saved = invoiceRepo.save(inv);
 
         // Record TCS for GSTR-8 (1% TCS on taxable value under Section 52)
