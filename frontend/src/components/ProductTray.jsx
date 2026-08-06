@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark, ArrowRightCircle, Trash2, GitCompareArrows } from "lucide-react";
+import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark, ArrowRightCircle, Trash2, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../api/axios";
 import { useWishlist } from "../context/WishlistContext";
 import { imgUrl } from "../utils/images";
@@ -65,6 +65,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const navigate = useNavigate();
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
   const imgErrorFixed = React.useRef(false);
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const [adding, setAdding] = useState(false);
@@ -76,7 +77,8 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
 
   const pid = product?.id || product?._id;
   const name = product?.name || "Product";
-  const brand = (typeof product?.brand === "object" ? product?.brand?.name : product?.brand) || "";
+
+  useEffect(() => { setActiveImg(0); setImgError(false); imgErrorFixed.current = false; }, [pid]);  const brand = (typeof product?.brand === "object" ? product?.brand?.name : product?.brand) || "";
   const price = product?.price || product?.dealPrice || product?.sellingPrice || 0;
   const originalPrice = product?.originalPrice || product?.mrp || price;
   const discount = product?.discount || product?.discountPercent || (originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0);
@@ -87,9 +89,10 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
   const toThumb = (img) => typeof img === "object" && img?.thumbUrl ? img.thumbUrl : "";
   const images = product?.images || (product?.image ? [toUrl(product.image)] : []);
-  const rawImage = images.length > 0 ? toUrl(images[0]) : null;
+  const safeIdx = images.length > 0 ? Math.min(activeImg, images.length - 1) : 0;
+  const rawImage = images.length > 0 ? toUrl(images[safeIdx]) : null;
   const image = rawImage ? imgUrl(rawImage) : PLACEHOLDER;
-  const thumbImage = toThumb(images[0]) ? imgUrl(toThumb(images[0])) : "";
+  const thumbImage = toThumb(images[safeIdx]) ? imgUrl(toThumb(images[safeIdx])) : "";
   const imgSrc = thumbImage && thumbImage !== image ? thumbImage : image;
   const srcSet = thumbImage && thumbImage !== image && image.startsWith("http") ? `${thumbImage} 400w, ${image} 1200w` : undefined;
   const badge = product?.badge || (discount > 50 ? "Best Seller" : discount > 30 ? "Popular" : "");
@@ -98,6 +101,24 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const handleClick = () => {
     trackSelectItem(product, "product_list");
     navigate(`/product/${pid}`);
+  };
+
+  const showImage = (i) => {
+    imgErrorFixed.current = false;
+    setActiveImg(i);
+    setImgError(false);
+  };
+
+  const nextImage = (e) => {
+    e.stopPropagation();
+    if (images.length === 0) return;
+    showImage((safeIdx + 1) % images.length);
+  };
+
+  const prevImage = (e) => {
+    e.stopPropagation();
+    if (images.length === 0) return;
+    showImage((safeIdx - 1 + images.length) % images.length);
   };
 
   const handleAddToCart = async (e) => {
@@ -233,6 +254,28 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               <GitCompareArrows size={16} />
             </button>
           </div>
+        )}
+
+        {images.length > 1 && (
+          <>
+            <button className="pt-gallery-nav pt-gallery-nav-prev" onClick={prevImage} aria-label="Previous image">
+              <ChevronLeft size={18} />
+            </button>
+            <button className="pt-gallery-nav pt-gallery-nav-next" onClick={nextImage} aria-label="Next image">
+              <ChevronRight size={18} />
+            </button>
+            <div className="pt-gallery-dots">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  className={`pt-gallery-dot ${i === safeIdx ? "active" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); showImage(i); }}
+                  aria-label={`View image ${i + 1} of ${images.length}`}
+                />
+              ))}
+            </div>
+            <span className="pt-gallery-count">{safeIdx + 1} / {images.length}</span>
+          </>
         )}
       </div>
 
