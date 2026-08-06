@@ -5,6 +5,7 @@ import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.CreditNoteService;
 import com.cauverystore.service.GstInvoiceService;
+import com.cauverystore.service.Gstr1ExportService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,10 +24,13 @@ import java.util.Map;
 public class GstInvoiceController {
 
     private final GstInvoiceService gstService;
+    private final Gstr1ExportService gstr1ExportService;
     private final CreditNoteService creditNoteService;
     private final UserRepository userRepo;
 
-    public GstInvoiceController(GstInvoiceService gstService, CreditNoteService creditNoteService, UserRepository userRepo) {
+    public GstInvoiceController(GstInvoiceService gstService, CreditNoteService creditNoteService, UserRepository userRepo,
+                                Gstr1ExportService gstr1ExportService) {
+        this.gstr1ExportService = gstr1ExportService;
         this.gstService = gstService;
         this.creditNoteService = creditNoteService;
         this.userRepo = userRepo;
@@ -277,6 +281,43 @@ public class GstInvoiceController {
         }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=gstr1.csv")
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(gstService.exportCsv(headers, rows));
+    }
+
+    /**
+     * GSTR-1 in the offline utility's format, ready to upload.
+     *
+     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7) or hsn (12). Omit it to get
+     * every section as JSON, which is the quickest way to see what a month actually contains
+     * before filing any of it.
+     */
+    @GetMapping("/gstr1/filing")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> gstr1ForFiling(
+            @RequestParam(required = false) String section,
+            @RequestParam(defaultValue = "json") String format,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+
+        Map<String, List<Map<String, Object>>> sections =
+                gstService.getGstr1ForFiling(userId, startDate, endDate);
+        if (section == null || section.isBlank()) {
+            return ResponseEntity.ok(sections);
+        }
+        List<Map<String, Object>> rows = sections.get(section.toLowerCase());
+        if (rows == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs or hsn."));
+        }
+        if ("json".equalsIgnoreCase(format)) return ResponseEntity.ok(rows);
+
+        String[] headers = gstr1ExportService.headersFor(section);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=gstr1-" + section.toLowerCase() + ".csv")
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(gstService.exportCsv(headers, rows));
     }

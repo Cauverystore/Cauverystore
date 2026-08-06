@@ -88,6 +88,7 @@ public class GstInvoiceService {
     }
 
     private final GstRateResolver gstRateResolver;
+    private final Gstr1ExportService gstr1ExportService;
 
     public GstInvoiceService(GstInvoiceRepository invoiceRepo, GstInvoiceItemRepository itemRepo,
                              GstSyncQueueRepository syncRepo, GstConfigurationRepository configRepo,
@@ -95,8 +96,10 @@ public class GstInvoiceService {
                              OrderRepository orderRepo, ProductRepository productRepo,
                              UserRepository userRepo, AuditService auditService,
                              GstnClient gstnClient, TcsRecordRepository tcsRepo,
-                             GstRateResolver gstRateResolver) {
+                             GstRateResolver gstRateResolver,
+                             Gstr1ExportService gstr1ExportService) {
         this.gstRateResolver = gstRateResolver;
+        this.gstr1ExportService = gstr1ExportService;
         this.invoiceRepo = invoiceRepo;
         this.itemRepo = itemRepo;
         this.syncRepo = syncRepo;
@@ -626,6 +629,28 @@ public class GstInvoiceService {
         summary.put("periodStart", (startDate != null ? startDate : LocalDate.now().withDayOfMonth(1)).toString());
         summary.put("periodEnd", (endDate != null ? endDate : LocalDate.now()).toString());
         return summary;
+    }
+
+    /**
+     * GSTR-1 in the offline utility's own format, section by section.
+     *
+     * Distinct from getGstr1Data, which is a readable report keyed on our own field names.
+     * That one is for looking at; this one is for filing, and the utility will only accept
+     * its own column headings.
+     */
+    public Map<String, List<Map<String, Object>>> getGstr1ForFiling(Long sellerId,
+                                                                   LocalDate startDate,
+                                                                   LocalDate endDate) {
+        return gstr1ExportService.allSections(invoicesForPeriod(sellerId, startDate, endDate));
+    }
+
+    private List<GstInvoice> invoicesForPeriod(Long sellerId, LocalDate startDate, LocalDate endDate) {
+        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
+                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
+        return invoiceRepo.findBySellerGstinAndInvoiceDateBetween(
+                sellerGstin,
+                startDate != null ? startDate : LocalDate.now().withDayOfMonth(1),
+                endDate != null ? endDate : LocalDate.now());
     }
 
     public List<Map<String, Object>> getGstr1Data(Long sellerId, LocalDate startDate, LocalDate endDate) {
