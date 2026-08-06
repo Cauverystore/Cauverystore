@@ -75,6 +75,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
 
+    @ExceptionHandler(com.cauverystore.service.HsnClassificationService.UnclassifiedProductException.class)
+    public ResponseEntity<Map<String, String>> handleUnclassifiedProduct(
+            com.cauverystore.service.HsnClassificationService.UnclassifiedProductException ex) {
+        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
         String msg = ex.getMessage();

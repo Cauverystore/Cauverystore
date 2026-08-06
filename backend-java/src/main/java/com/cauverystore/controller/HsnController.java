@@ -42,6 +42,21 @@ public class HsnController {
         return ResponseEntity.ok(service.suggestionsFor(categoryId));
     }
 
+    /**
+     * The published rate lines to choose between for a code, in the notification's own words.
+     *
+     * Empty when there is nothing to ask - one rate applies, or price and packaging already
+     * settle it. The form only puts the question when it genuinely cannot be answered for the
+     * seller.
+     */
+    @GetMapping("/rate-options")
+    public ResponseEntity<List<Map<String, Object>>> rateOptions(
+            @RequestParam("hsnCode") String hsnCode,
+            @RequestParam(required = false) Double unitPrice,
+            @RequestParam(required = false) Boolean prePackaged) {
+        return ResponseEntity.ok(service.rateOptionsFor(hsnCode, unitPrice, prePackaged));
+    }
+
     /** The government's description of one code, for showing next to an already-saved product. */
     @GetMapping("/{hsnCode}")
     public ResponseEntity<Map<String, Object>> describe(@PathVariable String hsnCode) {

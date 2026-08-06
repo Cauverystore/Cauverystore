@@ -62,6 +62,21 @@ public class Product extends BaseEntity {
      */
     private Boolean prePackagedAndLabelled = Boolean.TRUE;
 
+    /**
+     * The specific published rate line the seller says describes these goods.
+     *
+     * Some headings carry several rates that the code alone cannot separate - 0901 is 5%
+     * roasted coffee and nil green beans, both official, both correct. No rate table can
+     * settle that, because the missing fact is what the product actually is, which only the
+     * seller knows. This records their answer as a reference to one GstRateMaster row.
+     *
+     * The row it points at may well be UNVERIFIED, and that is the point: unverified means
+     * "ambiguous for the heading in general", not "wrong". The seller choosing it IS the human
+     * decision, for this product. Null means either the heading was never ambiguous, or nobody
+     * has answered yet - and in the second case the product cannot be published.
+     */
+    private Long gstRateSelectionId;
+
     private String countryOfOrigin;
     private String metaTitle;
     @Column(columnDefinition = "TEXT")
@@ -429,6 +444,14 @@ public class Product extends BaseEntity {
 
     public Boolean getPrePackagedAndLabelled() {
         return this.prePackagedAndLabelled;
+    }
+
+    public Long getGstRateSelectionId() {
+        return this.gstRateSelectionId;
+    }
+
+    public void setGstRateSelectionId(final Long gstRateSelectionId) {
+        this.gstRateSelectionId = gstRateSelectionId;
     }
 
     public void setPrePackagedAndLabelled(final Boolean prePackagedAndLabelled) {

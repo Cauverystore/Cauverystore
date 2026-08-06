@@ -199,6 +199,15 @@ public class GstRateResolver {
         String hsn = product != null ? product.getHsnCode() : null;
         // Packaging comes off the product itself - unlike price, no caller has to pass it.
         Boolean prePackaged = product != null ? product.getPrePackagedAndLabelled() : null;
+
+        // A seller who has picked the published line describing their goods has answered the
+        // question the rate table cannot: 0901 is 5% roasted and nil green, and only they know
+        // which they sell. Their answer wins over the automatic walk below.
+        Optional<Double> chosen = selectedRate(product, onDate);
+        if (chosen.isPresent()) {
+            return new Resolved(chosen.get(), interState, hsn, true);
+        }
+
         Optional<Double> rate = findRate(hsn, onDate, unitPrice, prePackaged);
 
         if (rate.isPresent()) {
@@ -217,6 +226,44 @@ public class GstRateResolver {
                         + "Populate gst_rate_master and enable gst.strict-mode to stop guessing.",
                 productName, hsn, fallbackRate);
         return new Resolved(fallbackRate, interState, hsn, false);
+    }
+
+    /**
+     * The rate from the line the seller picked, if it still stands up.
+     *
+     * Deliberately accepts an UNVERIFIED row. Unverified means "ambiguous for this heading in
+     * general", not "wrong" - it is exactly the state of a line that needs a human, and the
+     * seller picking it is that human. What is still checked is that the row belongs to this
+     * product's code and was in force on the supply date, so a selection cannot outlive the
+     * notification that published it or survive the product being re-coded.
+     */
+    private Optional<Double> selectedRate(Product product, LocalDate onDate) {
+        if (product == null || product.getGstRateSelectionId() == null) return Optional.empty();
+        LocalDate date = onDate != null ? onDate : LocalDate.now();
+
+        Optional<GstRateMaster> row = rateRepo.findById(product.getGstRateSelectionId());
+        if (row.isEmpty()) {
+            log.warn("Product '{}' points at GST rate {} which no longer exists - falling back "
+                    + "to automatic resolution.", product.getName(), product.getGstRateSelectionId());
+            return Optional.empty();
+        }
+        GstRateMaster rate = row.get();
+
+        String hsn = product.getHsnCode() == null ? "" : product.getHsnCode().replaceAll("\s", "");
+        if (!hsn.startsWith(rate.getHsnCode())) {
+            log.warn("Product '{}' (HSN {}) points at a rate published against HSN {} - the code "
+                            + "must have changed since it was chosen. Ignoring the selection.",
+                    product.getName(), hsn, rate.getHsnCode());
+            return Optional.empty();
+        }
+        boolean inForce = !rate.getEffectiveFrom().isAfter(date)
+                && (rate.getEffectiveTo() == null || !rate.getEffectiveTo().isBefore(date));
+        if (!inForce) {
+            log.warn("Product '{}' points at a GST rate that was not in force on {} - a later "
+                    + "notification has moved on. Re-classify it.", product.getName(), date);
+            return Optional.empty();
+        }
+        return Optional.of(rate.getGstRate());
     }
 
     /** Thrown in strict mode when a supply cannot be taxed correctly. */

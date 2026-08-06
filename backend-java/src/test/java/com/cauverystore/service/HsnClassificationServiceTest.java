@@ -1,9 +1,11 @@
 package com.cauverystore.service;
 
 import com.cauverystore.entities.Category;
+import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.entities.HsnAssignment;
 import com.cauverystore.entities.HsnMaster;
 import com.cauverystore.entities.Product;
+import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.HsnAssignmentRepository;
 import com.cauverystore.repository.HsnMasterRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,13 +31,17 @@ class HsnClassificationServiceTest {
 
     @Mock private HsnMasterRepository hsnRepo;
     @Mock private HsnAssignmentRepository assignmentRepo;
+    @Mock private GstRateMasterRepository rateRepo;
+    @Mock private GstRateResolver rateResolver;
 
     private HsnClassificationService service;
     private Product product;
 
     @BeforeEach
     void setUp() {
-        service = new HsnClassificationService(hsnRepo, assignmentRepo);
+        service = new HsnClassificationService(hsnRepo, assignmentRepo, rateRepo, rateResolver);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                service, "requireClassificationToPublish", true);
         product = new Product();
         product.setName("Basmati Rice 5kg");
         when(assignmentRepo.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -160,5 +167,116 @@ class HsnClassificationServiceTest {
         assertTrue(service.search("r").isEmpty());
         assertTrue(service.search(null).isEmpty());
         verify(hsnRepo, never()).search(anyString(), any());
+    }
+
+    private GstRateMaster line(long id, String hsn, double pct, String description) {
+        GstRateMaster r = new GstRateMaster();
+        r.setId(id);
+        r.setHsnCode(hsn);
+        r.setGstRate(pct);
+        r.setEffectiveFrom(LocalDate.of(2025, 9, 22));
+        r.setConditionText(description);
+        return r;
+    }
+
+    private void coffeeIsAmbiguous() {
+        when(rateResolver.findRate(anyString(), any(), any(), any())).thenReturn(Optional.empty());
+        when(rateRepo.findByHsnCodeOrderByEffectiveFromDesc("0901")).thenReturn(List.of(
+                line(1L, "0901", 5.0, "Coffee roasted, whether or not decaffeinated"),
+                line(2L, "0901", 0.0, "Coffee beans, not roasted")));
+    }
+
+    @Test
+    void rateOptions_shouldOfferTheNotificationsOwnWording() {
+        // "5% or nil?" is unanswerable; "roasted or not roasted?" is a question about stock.
+        coffeeIsAmbiguous();
+
+        var options = service.rateOptionsFor("0901", null, null);
+
+        assertEquals(2, options.size());
+        assertEquals("Coffee roasted, whether or not decaffeinated", options.get(0).get("description"));
+        assertEquals("Coffee beans, not roasted", options.get(1).get("description"));
+        assertEquals(1L, options.get(0).get("rateId"));
+    }
+
+    @Test
+    void rateOptions_shouldAskNothingWhenTheRateAlreadyResolves() {
+        // Rice is settled by the packaging flag, so putting the question would be noise.
+        when(rateResolver.findRate(anyString(), any(), any(), any())).thenReturn(Optional.of(5.0));
+
+        assertTrue(service.rateOptionsFor("1006", null, true).isEmpty());
+        verify(rateRepo, never()).findByHsnCodeOrderByEffectiveFromDesc(anyString());
+    }
+
+    @Test
+    void rateOptions_shouldIgnoreALineThatIsNoLongerInForce() {
+        when(rateResolver.findRate(anyString(), any(), any(), any())).thenReturn(Optional.empty());
+        GstRateMaster expired = line(1L, "0901", 5.0, "Old wording");
+        expired.setEffectiveTo(LocalDate.of(2026, 1, 31));
+        when(rateRepo.findByHsnCodeOrderByEffectiveFromDesc("0901"))
+                .thenReturn(List.of(expired, line(2L, "0901", 0.0, "Coffee beans, not roasted")));
+
+        // One live line left, so there is no choice to put to the seller.
+        assertTrue(service.rateOptionsFor("0901", null, null).isEmpty());
+    }
+
+    @Test
+    void assertSellable_shouldRefuseToPublishAnUnclassifiableProduct() {
+        // There is no provisional rate in GST, so the only state issuing no wrong invoice is
+        // not selling yet.
+        product.setHsnCode("0901");
+        product.setProductStatus("published");
+        when(rateResolver.findRate(anyString(), any(), any(), any())).thenReturn(Optional.empty());
+
+        HsnClassificationService.UnclassifiedProductException ex = assertThrows(
+                HsnClassificationService.UnclassifiedProductException.class,
+                () -> service.assertSellable(product));
+        assertTrue(ex.getMessage().contains("0901"));
+        assertTrue(ex.getMessage().toLowerCase().contains("draft"),
+                "the seller must be told their work is kept, not lost");
+    }
+
+    @Test
+    void assertSellable_shouldAllowADraftToBeSavedUnclassified() {
+        // Blocking the save would cost the seller their work; only publishing is gated.
+        product.setHsnCode("0901");
+        product.setProductStatus("draft");
+        when(rateResolver.findRate(anyString(), any(), any(), any())).thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> service.assertSellable(product));
+    }
+
+    @Test
+    void assertSellable_shouldAcceptAProductWhoseSellerHasAnswered() {
+        product.setHsnCode("0901");
+        product.setProductStatus("published");
+        product.setGstRateSelectionId(1L);
+        when(rateResolver.findRate(anyString(), any(), any(), any())).thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> service.assertSellable(product));
+    }
+
+    @Test
+    void assertSellable_shouldRefuseAPublishedProductWithNoCodeAtAll() {
+        product.setHsnCode(null);
+        product.setProductStatus("published");
+
+        HsnClassificationService.UnclassifiedProductException ex = assertThrows(
+                HsnClassificationService.UnclassifiedProductException.class,
+                () -> service.assertSellable(product));
+        assertTrue(ex.getMessage().toLowerCase().contains("no hsn code"));
+    }
+
+    @Test
+    void assertSellable_shouldDoNothingWhileTheRuleIsSwitchedOff() {
+        // Ships inert: turning it on immediately would block a seller editing the price of a
+        // product they never had a chance to classify.
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                service, "requireClassificationToPublish", false);
+        product.setHsnCode("0901");
+        product.setProductStatus("published");
+
+        assertDoesNotThrow(() -> service.assertSellable(product));
+        verifyNoInteractions(rateResolver);
     }
 }

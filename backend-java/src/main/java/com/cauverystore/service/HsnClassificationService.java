@@ -1,16 +1,20 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.entities.HsnAssignment;
 import com.cauverystore.entities.HsnMaster;
 import com.cauverystore.entities.Product;
+import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.HsnAssignmentRepository;
 import com.cauverystore.repository.HsnMasterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,18 +47,85 @@ public class HsnClassificationService {
 
     private static final int MAX_SEARCH_RESULTS = 30;
 
+    /**
+     * Whether an unclassifiable product may be published.
+     *
+     * Ships off. Switching it on immediately would refuse to save any already-live product
+     * whose heading is ambiguous - a seller editing a price would be blocked by a rule about
+     * tax, with a catalogue they had no chance to prepare. The intended order is: see which
+     * live products fail, classify those few, then turn this on so none can appear again.
+     */
+    @Value("${gst.require-classification-to-publish:false}")
+    private boolean requireClassificationToPublish;
+
     private final HsnMasterRepository hsnRepo;
     private final HsnAssignmentRepository assignmentRepo;
+    private final GstRateMasterRepository rateRepo;
+    private final GstRateResolver rateResolver;
 
     public HsnClassificationService(HsnMasterRepository hsnRepo,
-                                    HsnAssignmentRepository assignmentRepo) {
+                                    HsnAssignmentRepository assignmentRepo,
+                                    GstRateMasterRepository rateRepo,
+                                    GstRateResolver rateResolver) {
         this.hsnRepo = hsnRepo;
         this.assignmentRepo = assignmentRepo;
+        this.rateRepo = rateRepo;
+        this.rateResolver = rateResolver;
     }
 
     /** Thrown when a product carries a code that is not in the official master. */
     public static class UnknownHsnException extends RuntimeException {
         public UnknownHsnException(String message) { super(message); }
+    }
+
+    /** Thrown when a product would go on sale without a determinable GST rate. */
+    public static class UnclassifiedProductException extends RuntimeException {
+        public UnclassifiedProductException(String message) { super(message); }
+    }
+
+    /**
+     * The published rate lines a seller has to choose between for a code.
+     *
+     * Returned with the notification's own wording, because the choice is only answerable in
+     * those terms - "Coffee roasted" against "Coffee beans, not roasted" is a question anyone
+     * can answer about their own stock, whereas "5% or nil?" is not.
+     *
+     * Empty when the heading is not ambiguous: either one rate applies, or the resolver can
+     * already settle it from the price or the packaging, and there is nothing to ask.
+     */
+    public List<Map<String, Object>> rateOptionsFor(String hsnCode, Double unitPrice,
+                                                    Boolean prePackaged) {
+        if (hsnCode == null || hsnCode.isBlank()) return List.of();
+        LocalDate today = LocalDate.now();
+        if (rateResolver.findRate(hsnCode, today, unitPrice, prePackaged).isPresent()) {
+            return List.of();   // already decidable - do not ask a question with one answer
+        }
+
+        String hsn = normalise(hsnCode);
+        for (String candidate : List.of(hsn,
+                hsn.length() > 6 ? hsn.substring(0, 6) : hsn,
+                hsn.length() > 4 ? hsn.substring(0, 4) : hsn,
+                hsn.length() > 2 ? hsn.substring(0, 2) : hsn)) {
+            List<GstRateMaster> rows = rateRepo.findByHsnCodeOrderByEffectiveFromDesc(candidate)
+                    .stream()
+                    .filter(r -> !r.getEffectiveFrom().isAfter(today))
+                    .filter(r -> r.getEffectiveTo() == null || !r.getEffectiveTo().isBefore(today))
+                    .toList();
+            if (rows.size() < 2) continue;
+
+            List<Map<String, Object>> options = new ArrayList<>();
+            for (GstRateMaster r : rows) {
+                Map<String, Object> option = new LinkedHashMap<>();
+                option.put("rateId", r.getId());
+                option.put("gstRate", r.getGstRate());
+                option.put("hsnCode", r.getHsnCode());
+                option.put("description", r.getConditionText());
+                option.put("source", r.getSource());
+                options.add(option);
+            }
+            return options;
+        }
+        return List.of();
     }
 
     /** Codes matching a code prefix or a word in the description. */
@@ -111,6 +182,44 @@ public class HsnClassificationService {
                             + "goods by name and pick the code that describes them.");
         }
         product.setHsnCode(normalised);
+    }
+
+    /**
+     * Refuses to put a product on sale when its GST rate cannot be determined.
+     *
+     * There is no provisional rate in GST. Every invoice states an HSN and the rate that
+     * applies, so "decide later" is not a position the law offers - and charging a guessed
+     * rate is its own breach either way: collect too much and it still has to be paid over
+     * while the customer was overcharged, collect too little and the shortfall carries
+     * interest. The only state in which no wrong invoice is issued is not selling yet.
+     *
+     * So an unclassifiable product stays a draft. It is not blocked from being saved - the
+     * seller keeps their work - it simply cannot be published until the question is answered.
+     */
+    public void assertSellable(Product product) {
+        if (product == null || !requireClassificationToPublish) return;
+        if (!"published".equalsIgnoreCase(product.getProductStatus())) return;   // drafts are fine
+
+        String hsn = product.getHsnCode();
+        if (hsn == null || hsn.isBlank()) {
+            throw new UnclassifiedProductException(
+                    "This product has no HSN code, so there is no lawful rate to charge on it. "
+                            + "Pick the code that describes the goods, then publish. It can stay a "
+                            + "draft in the meantime.");
+        }
+        if (product.getGstRateSelectionId() != null) return;   // the seller has answered
+
+        Double unitPrice = product.getOfferPrice() != null ? product.getOfferPrice() : product.getPrice();
+        if (rateResolver.findRate(hsn, LocalDate.now(), unitPrice,
+                product.getPrePackagedAndLabelled()).isPresent()) {
+            return;
+        }
+        throw new UnclassifiedProductException(
+                "HSN " + hsn + " carries more than one published rate, and nothing on this "
+                        + "product says which describes it. Choose the wording that matches the "
+                        + "goods and publish again - or leave it as a draft and come back to it. "
+                        + "It cannot go on sale until then, because every invoice has to state a "
+                        + "rate that is actually correct for what was sold.");
     }
 
     /**

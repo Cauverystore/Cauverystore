@@ -15,6 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -333,5 +334,73 @@ class GstRateResolverTest {
 
         assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 999.0).getTotalRate());
         assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 4999.0).getTotalRate());
+    }
+
+    private GstRateMaster unverifiedLine(long id, String hsn, double pct) {
+        GstRateMaster r = rate(hsn, pct, LocalDate.of(2025, 9, 22), null);
+        r.setId(id);
+        r.setStatus(GstRateMaster.STATUS_UNVERIFIED);
+        return r;
+    }
+
+    @Test
+    void resolve_shouldUseTheLineTheSellerPicked_evenThoughItIsUnverified() {
+        // Unverified means "ambiguous for this heading in general", not "wrong". 0901 is 5%
+        // roasted and nil green - the seller picking one IS the human decision the status was
+        // waiting for, and it applies to their product only.
+        product.setHsnCode("0901");
+        product.setGstRateSelectionId(7L);
+        when(rateRepo.findById(7L)).thenReturn(Optional.of(unverifiedLine(7L, "0901", 5.0)));
+
+        GstRateResolver.Resolved r = resolver.resolve(product, false, LocalDate.of(2026, 8, 7));
+
+        assertEquals(5.0, r.getTotalRate());
+        assertTrue(r.isFromMaster());
+    }
+
+    @Test
+    void resolve_shouldIgnoreASelectionForADifferentHeading() {
+        // The product was re-coded after the choice was made, so the old answer is about
+        // different goods entirely.
+        product.setHsnCode("1006");
+        product.setGstRateSelectionId(7L);
+        when(rateRepo.findById(7L)).thenReturn(Optional.of(unverifiedLine(7L, "0901", 5.0)));
+        when(rateRepo.findApplicable(anyString(), anyString(), any())).thenReturn(List.of());
+
+        assertFalse(resolver.resolve(product, false, LocalDate.of(2026, 8, 7)).isFromMaster());
+    }
+
+    @Test
+    void resolve_shouldIgnoreASelectionThatIsNoLongerInForce() {
+        // A later notification closed the line off; the old choice must not outlive it.
+        product.setHsnCode("0901");
+        product.setGstRateSelectionId(7L);
+        GstRateMaster expired = unverifiedLine(7L, "0901", 5.0);
+        expired.setEffectiveTo(LocalDate.of(2026, 1, 31));
+        when(rateRepo.findById(7L)).thenReturn(Optional.of(expired));
+        when(rateRepo.findApplicable(anyString(), anyString(), any())).thenReturn(List.of());
+
+        assertFalse(resolver.resolve(product, false, LocalDate.of(2026, 8, 7)).isFromMaster());
+    }
+
+    @Test
+    void resolve_shouldIgnoreASelectionPointingAtARowThatIsGone() {
+        product.setHsnCode("0901");
+        product.setGstRateSelectionId(999L);
+        when(rateRepo.findById(999L)).thenReturn(Optional.empty());
+        when(rateRepo.findApplicable(anyString(), anyString(), any())).thenReturn(List.of());
+
+        assertFalse(resolver.resolve(product, false, LocalDate.of(2026, 8, 7)).isFromMaster());
+    }
+
+    @Test
+    void resolve_shouldAcceptASelectionMadeAgainstAParentHeading() {
+        // Rates are published against "61" while a product carries 61091000; a choice made on
+        // the heading still describes the same goods.
+        product.setHsnCode("61091000");
+        product.setGstRateSelectionId(7L);
+        when(rateRepo.findById(7L)).thenReturn(Optional.of(unverifiedLine(7L, "61", 18.0)));
+
+        assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 7)).getTotalRate());
     }
 }

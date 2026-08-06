@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { compressImages } from "../../utils/compressImage";
 import HsnPicker from "./HsnPicker";
+import GstRateChoice from "./GstRateChoice";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -23,7 +24,7 @@ const AddProduct = () => {
   const [form, setForm] = useState({
     name: "", brand: "", category: "", price: "", stock: "", sku: "",
     description: "", manufacturer: "", modelNumber: "", barcode: "", hsnCode: "",
-    prePackagedAndLabelled: true,
+    prePackagedAndLabelled: true, gstRateSelectionId: undefined,
     countryOfOrigin: "India", shortDescription: "", technicalSpecs: "",
     warranty: "1 Year", returnPolicy: "7 Days",
     metaTitle: "", metaDescription: "", keywords: "", slug: "",
@@ -112,6 +113,7 @@ const AddProduct = () => {
         manufacturer: form.manufacturer, modelNumber: form.modelNumber,
         barcode: form.barcode, hsnCode: form.hsnCode,
         prePackagedAndLabelled: form.prePackagedAndLabelled,
+        gstRateSelectionId: form.gstRateSelectionId ?? null,
         countryOfOrigin: form.countryOfOrigin, shortDescription: form.shortDescription,
         technicalSpecs: form.technicalSpecs, warranty: form.warranty,
         returnPolicy: form.returnPolicy, metaTitle: form.metaTitle,
@@ -290,6 +292,13 @@ const AddProduct = () => {
             </span>
           </span>
         </label>
+        <GstRateChoice
+          hsnCode={form.hsnCode}
+          unitPrice={form.price ? parseFloat(form.price) : undefined}
+          prePackaged={form.prePackagedAndLabelled}
+          value={form.gstRateSelectionId}
+          onChange={(rateId) => set("gstRateSelectionId", rateId)}
+        />
         <div style={S.grid2}>
           {fld("Country of Origin", "countryOfOrigin", null, COUNTRIES)}
           {fld("Warranty", "warranty", null, WARRANTY)}

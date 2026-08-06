@@ -228,6 +228,7 @@ public class ProductService {
                     // real sales. This path used to skip validation entirely, which made the
                     // spreadsheet the easiest way to get a bad HSN into the catalogue.
                     hsnClassificationService.validate(p);
+                    hsnClassificationService.assertSellable(p);
                     Product saved = productRepo.save(p);
                     hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
 
@@ -386,6 +387,7 @@ public class ProductService {
         // A code that is not in the official master resolves to no published rate, so the
         // product would be taxed at the fallback on every sale while its invoice looked normal.
         hsnClassificationService.validate(product);
+        hsnClassificationService.assertSellable(product);
         Product saved = productRepo.save(product);
         hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
         return saved;
@@ -434,7 +436,11 @@ public class ProductService {
           if (product.getPrePackagedAndLabelled() != null) {
               existing.setPrePackagedAndLabelled(product.getPrePackagedAndLabelled());
           }
+          if (product.getGstRateSelectionId() != null) {
+              existing.setGstRateSelectionId(product.getGstRateSelectionId());
+          }
           hsnClassificationService.validate(existing);
+          hsnClassificationService.assertSellable(existing);
           Product saved = productRepo.save(existing);
           hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
           return saved;
