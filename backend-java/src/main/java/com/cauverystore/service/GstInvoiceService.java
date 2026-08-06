@@ -28,6 +28,7 @@ import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
+import com.lowagie.text.Image;
 import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
@@ -160,6 +161,7 @@ public class GstInvoiceService {
         inv.setSellerLegalName(sellerLegalName);
         inv.setSellerAddress(sellerAddress);
         inv.setInvoiceDate(LocalDate.now());
+        assertBooksAreOpen(inv.getSellerId(), inv.getInvoiceDate());
 
         boolean isB2b = buyerGstin != null && !buyerGstin.isBlank() && !"URP".equalsIgnoreCase(buyerGstin.trim());
         inv.setBuyerGstin(isB2b ? buyerGstin.toUpperCase() : "URP");
@@ -1187,14 +1189,73 @@ public class GstInvoiceService {
             doc.add(new Paragraph("- Digitally authenticated (SHA-256) and authorized by " + safeStr(inv.getSignedBy())
                     + (inv.getSignatureDate() != null ? " on " + inv.getSignatureDate() : "") + ".", small8));
             doc.add(new Paragraph("Signature Digest (SHA-256): " + inv.getSupplierSignature(), small8));
-            doc.add(new Paragraph("For " + safeStr(inv.getSignedBy()) + ", Authorized Signatory"
-                    + (inv.getSignatureDate() != null ? " | " + inv.getSignatureDate() : ""), bold9));
+        }
+
+        // Rule 46(q) asks for the signature of the supplier or their authorised representative.
+        // The digest above proves the invoice has not been altered; it is not that signature.
+        // An e-invoice carrying an IRN needs neither, because the portal signs it - so say so
+        // rather than printing a "no signature required" line that is only true in that case.
+        boolean eInvoiced = inv.getIrn() != null && !inv.getIrn().isBlank();
+        String signatureImage = inv.getSupplierSignatureImageUrl();
+        if (eInvoiced) {
+            doc.add(new Paragraph("- Registered on the e-invoice portal (IRN " + inv.getIrn()
+                    + "). Digitally signed by the portal; no physical signature is required.", small8));
+        } else if (signatureImage != null && !signatureImage.isBlank()) {
+            doc.add(new Paragraph(" "));
+            try {
+                Image signature = Image.getInstance(new java.net.URL(signatureImage));
+                signature.scaleToFit(140f, 55f);
+                signature.setAlignment(Element.ALIGN_RIGHT);
+                doc.add(signature);
+            } catch (Exception e) {
+                // The invoice still has to print. Say the signature is on file but could not be
+                // rendered, rather than leaving a silent gap that reads as unsigned.
+                log.warn("Could not render the signature on invoice {}: {}",
+                        inv.getInvoiceNumber(), e.getMessage());
+                doc.add(new Paragraph("[Signature on file could not be rendered]", small8));
+            }
+            Paragraph signatory = new Paragraph("For " + safeStr(inv.getSignedBy())
+                    + ", Authorised Signatory"
+                    + (inv.getSignatureDate() != null ? " | " + inv.getSignatureDate() : ""), bold9);
+            signatory.setAlignment(Element.ALIGN_RIGHT);
+            doc.add(signatory);
         } else {
-            doc.add(new Paragraph("- This is a system-generated invoice and does not require a physical signature.", small8));
+            doc.add(new Paragraph("- No signature is on file for this seller. Rule 46 requires the "
+                    + "supplier's signature on a tax invoice unless it is an e-invoice signed by "
+                    + "the portal.", small8));
+            Paragraph signatory = new Paragraph("For " + safeStr(inv.getSignedBy())
+                    + ", Authorised Signatory", bold9);
+            signatory.setAlignment(Element.ALIGN_RIGHT);
+            doc.add(signatory);
         }
 
         doc.close();
         return baos.toByteArray();
+    }
+
+    /**
+     * Refuses to date an invoice before the seller's books open.
+     *
+     * An invoice earlier than that belongs to a period whose return may already be filed, or
+     * to no accounting period at all - either way it cannot be reported honestly, and the
+     * problem only surfaces when the figures fail to reconcile.
+     *
+     * A seller who has not set the date is let through. Most of them registered before the
+     * field existed, and refusing to invoice their orders over a missing profile field would
+     * stop real sales to enforce a rule they were never asked about.
+     */
+    private void assertBooksAreOpen(Long sellerId, LocalDate invoiceDate) {
+        if (sellerId == null || invoiceDate == null) return;
+        sellerRegRepo.findByUserId(sellerId).ifPresent(reg -> {
+            LocalDate booksOpen = reg.getBooksBeginningDate();
+            if (booksOpen != null && invoiceDate.isBefore(booksOpen)) {
+                throw new IllegalStateException(
+                        "This invoice would be dated " + invoiceDate + ", before the seller's books "
+                                + "open on " + booksOpen + ". It would fall in a period that cannot "
+                                + "be reported. Correct the books beginning date on the seller "
+                                + "profile if it is wrong.");
+            }
+        });
     }
 
     private void addBreakupCell(PdfPTable table, String label, String value, Font font) {

@@ -388,26 +388,49 @@ const GstInvoiceView = () => {
                 <li>{invoice.isInterState ? "IGST charged (inter-state supply)." : "CGST + SGST charged (intra-state supply)."}</li>
                 {invoice.reverseCharge && <li>Reverse Charge: Applicable — tax payable by recipient.</li>}
                 <li>HSN/SAC digits: {invoice.hsnDigits || 4} (as per turnover).</li>
-                {invoice.supplierSignature ? (
+                {invoice.supplierSignature && (
                   <li>Digitally authenticated (SHA-256 digest) and authorized by {invoice.signedBy || "Seller"} {invoice.signatureDate ? "on " + invoice.signatureDate : ""}.</li>
-                ) : (
-                  <li>This is a system-generated invoice and does not require a physical signature.</li>
+                )}
+                {/*
+                  "No physical signature required" is only true of an e-invoice, which the
+                  portal signs. Saying it on an ordinary tax invoice states the opposite of
+                  Rule 46, which asks for the supplier's signature.
+                */}
+                {invoice.irn ? (
+                  <li>Registered on the e-invoice portal (IRN {invoice.irn}). Digitally signed by the portal; no physical signature is required.</li>
+                ) : !invoice.supplierSignatureImageUrl && (
+                  <li>No signature is on file for this seller. Rule 46 requires the supplier's signature on a tax invoice unless it is an e-invoice signed by the portal.</li>
                 )}
               </ul>
             </div>
 
-            {invoice.supplierSignature && (
+            {/* Shown whenever there is either a digest or a real signature to display. */}
+            {(invoice.supplierSignature || invoice.supplierSignatureImageUrl) && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "1rem", marginTop: "1rem", flexWrap: "wrap" }}>
                 <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
                   <div style={{ marginBottom: "0.25rem" }}>Signature digest (SHA-256):</div>
                   <div style={{ fontFamily: "monospace", wordBreak: "break-all" }}>{invoice.supplierSignature}</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontFamily: "cursive", fontSize: "1.3rem", color: "#0E5C5C", borderBottom: "1px solid #0E5C5C", padding: "0 0.5rem 0.2rem", marginBottom: "0.35rem" }}>
-                    {invoice.signedBy || "Authorized Signatory"}
+                  {/*
+                    The seller's actual signature, captured when the invoice was raised. It
+                    used to be their name set in a cursive font, which looked handwritten
+                    without anyone having signed anything.
+                  */}
+                  {invoice.supplierSignatureImageUrl ? (
+                    <img
+                      src={invoice.supplierSignatureImageUrl}
+                      alt={`Signature of ${invoice.signedBy || "authorised signatory"}`}
+                      style={{ maxHeight: "56px", maxWidth: "180px", display: "block", marginLeft: "auto", marginBottom: "0.35rem" }}
+                    />
+                  ) : (
+                    <div style={{ borderBottom: "1px solid #cbd5e1", minHeight: "34px", minWidth: "180px", marginBottom: "0.35rem" }} />
+                  )}
+                  <div style={{ fontSize: "0.8rem", color: "#0f172a", fontWeight: 600 }}>
+                    For {invoice.signedBy || "Authorised Signatory"}
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "#475569" }}>
-                    Authorized Signatory {invoice.signatureDate ? "| " + invoice.signatureDate : ""}
+                    Authorised Signatory {invoice.signatureDate ? "| " + invoice.signatureDate : ""}
                   </div>
                 </div>
               </div>

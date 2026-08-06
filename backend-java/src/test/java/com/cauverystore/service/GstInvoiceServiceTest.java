@@ -226,4 +226,78 @@ class GstInvoiceServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> gstService.generateInvoiceFromOrder(1L, 1L, "INVALID-GSTIN"));
     }
+
+    private SellerRegistration sellerWith(java.time.LocalDate booksOpen, String signatureUrl,
+                                          String signatory) {
+        SellerRegistration reg = new SellerRegistration();
+        reg.setBooksBeginningDate(booksOpen);
+        reg.setSignatureImageUrl(signatureUrl);
+        reg.setAuthorisedSignatory(signatory);
+        return reg;
+    }
+
+    @Test
+    void generate_shouldRefuseAnInvoiceDatedBeforeTheSellersBooksOpen() {
+        // Such an invoice belongs to a period whose return may already be filed, or to no
+        // accounting period at all, and only shows up when the figures fail to reconcile.
+        // Stubbed narrowly, not via stubCommonRepos: this path throws before it reaches the
+        // save calls, and Mockito fails the test for stubs that were never used.
+        when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
+        when(invoiceRepo.findByOrderId(1L)).thenReturn(Optional.empty());
+        when(configRepo.findByGstin(SELLER_GSTIN_TN)).thenReturn(Optional.of(config));
+        when(sellerRegRepo.findByUserId(1L)).thenReturn(Optional.of(
+                sellerWith(java.time.LocalDate.now().plusDays(30), null, null)));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN));
+        assertTrue(ex.getMessage().contains("books"),
+                "the message should explain what is wrong, not just refuse");
+    }
+
+    @Test
+    void generate_shouldAllowASellerWhoNeverSetABooksDate() {
+        // Most sellers registered before the field existed. Refusing to invoice their orders
+        // over a missing profile field would stop real sales to enforce a rule they were
+        // never asked about.
+        stubCommonRepos();
+        when(sellerRegRepo.findByUserId(1L)).thenReturn(Optional.of(
+                sellerWith(null, null, null)));
+
+        assertDoesNotThrow(() -> gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN));
+    }
+
+    @Test
+    void generate_shouldAllowAnInvoiceOnOrAfterTheBooksDate() {
+        stubCommonRepos();
+        when(sellerRegRepo.findByUserId(1L)).thenReturn(Optional.of(
+                sellerWith(java.time.LocalDate.now(), null, null)));
+
+        assertDoesNotThrow(() -> gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN));
+    }
+
+    @Test
+    void generate_shouldCopyTheSignatureOntoTheInvoiceAsItStoodWhenRaised() {
+        // Looked up at print time instead, a seller changing their signature would silently
+        // alter every invoice they had already issued.
+        stubCommonRepos();
+        when(sellerRegRepo.findByUserId(1L)).thenReturn(Optional.of(
+                sellerWith(null, "https://cdn.example/sig.png", "R. Krishnan")));
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        assertEquals("https://cdn.example/sig.png", inv.getSupplierSignatureImageUrl());
+        assertEquals("R. Krishnan", inv.getSignedBy(), "the name printed beneath the signature");
+    }
+
+    @Test
+    void generate_shouldLeaveTheSignatureBlank_whenTheSellerHasNotUploadedOne() {
+        stubCommonRepos();
+        when(sellerRegRepo.findByUserId(1L)).thenReturn(Optional.of(
+                sellerWith(null, null, null)));
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+        assertNull(inv.getSupplierSignatureImageUrl());
+    }
 }
