@@ -71,6 +71,27 @@ const TABS = [
   { id: "tcs", label: "TCS", icon: AlertTriangle },
 ];
 
+const INDIAN_STATES = [
+  { code: "01", name: "Jammu & Kashmir" }, { code: "02", name: "Himachal Pradesh" },
+  { code: "03", name: "Punjab" }, { code: "04", name: "Chandigarh" },
+  { code: "05", name: "Uttarakhand" }, { code: "06", name: "Haryana" },
+  { code: "07", name: "Delhi" }, { code: "08", name: "Rajasthan" },
+  { code: "09", name: "Uttar Pradesh" }, { code: "10", name: "Bihar" },
+  { code: "11", name: "Sikkim" }, { code: "12", name: "Arunachal Pradesh" },
+  { code: "13", name: "Nagaland" }, { code: "14", name: "Manipur" },
+  { code: "15", name: "Mizoram" }, { code: "16", name: "Tripura" },
+  { code: "17", name: "Meghalaya" }, { code: "18", name: "Assam" },
+  { code: "19", name: "West Bengal" }, { code: "20", name: "Jharkhand" },
+  { code: "21", name: "Odisha" }, { code: "22", name: "Chhattisgarh" },
+  { code: "23", name: "Madhya Pradesh" }, { code: "24", name: "Gujarat" },
+  { code: "26", name: "Dadra & Nagar Haveli and Daman & Diu" }, { code: "27", name: "Maharashtra" },
+  { code: "29", name: "Karnataka" }, { code: "30", name: "Goa" },
+  { code: "31", name: "Lakshadweep" }, { code: "32", name: "Kerala" },
+  { code: "33", name: "Tamil Nadu" }, { code: "34", name: "Puducherry" },
+  { code: "35", name: "Andaman & Nicobar Islands" }, { code: "36", name: "Telangana" },
+  { code: "37", name: "Andhra Pradesh" }, { code: "38", name: "Ladakh" },
+];
+
 const GstInvoices = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [invoices, setInvoices] = useState([]);
@@ -90,6 +111,7 @@ const GstInvoices = () => {
   const [orderId, setOrderId] = useState("");
   const [selectedGstin, setSelectedGstin] = useState("");
   const [buyerGstin, setBuyerGstin] = useState("");
+  const [deliveryStateCode, setDeliveryStateCode] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genResult, setGenResult] = useState(null);
   const [expandedInvoice, setExpandedInvoice] = useState(null);
@@ -194,10 +216,12 @@ const GstInvoices = () => {
     try {
       const payload = { orderId: parseInt(orderId), gstin: selectedGstin };
       if (buyerGstin && buyerGstin.trim()) payload.buyerGstin = buyerGstin.trim();
+      if (deliveryStateCode) payload.deliveryStateCode = deliveryStateCode;
       const res = await api.post("/api/gst/invoice/generate", payload);
       setGenResult(res.data);
       setOrderId("");
       setBuyerGstin("");
+      setDeliveryStateCode("");
     } catch (err) {
       setError(err.response?.data?.error || "Failed to generate invoice");
     }
@@ -483,6 +507,15 @@ const GstInvoices = () => {
             <div className="gst-field">
               <label>Buyer GSTIN <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional - for B2B invoices)</span></label>
               <input type="text" value={buyerGstin} onChange={(e) => setBuyerGstin(e.target.value)} placeholder="Enter buyer GSTIN for B2B (or leave blank for B2C)" />
+            </div>
+            <div className="gst-field">
+              <label>Delivery State <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional - place of supply; defaults to billing state)</span></label>
+              <select value={deliveryStateCode} onChange={(e) => setDeliveryStateCode(e.target.value)}>
+                <option value="">Use billing state (auto)</option>
+                {INDIAN_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>{s.code} - {s.name}</option>
+                ))}
+              </select>
             </div>
             <button className="gst-btn gst-btn-primary" onClick={handleGenerate} disabled={generating}>
               {generating ? "Generating..." : <><FileText size={16} /> Generate Invoice</>}

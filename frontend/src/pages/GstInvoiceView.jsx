@@ -226,6 +226,19 @@ const GstInvoiceView = () => {
                 <div className="giv-party-gstin">{invoice.buyerGstin === "URP" ? "GSTIN: URP (Unregistered Person)" : "GSTIN: " + invoice.buyerGstin}</div>
                 {invoice.buyerGstin && invoice.buyerGstin !== "URP" && <div className="giv-party-detail" style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "#0E5C5C" }}>ITC Eligible: Yes (B2B)</div>}
               </div>
+              {invoice.deliveryAddress && (
+                <div className="giv-party-box" style={{ borderStyle: "dashed" }}>
+                  <h3>Ship To (Delivery)</h3>
+                  <div className="giv-party-name">{invoice.buyerName}</div>
+                  <div className="giv-party-detail">{invoice.deliveryAddress}</div>
+                  <div className="giv-party-gstin">State: {invoice.deliveryStateCode || invoice.buyerStateCode}</div>
+                  {invoice.deliveryStateCode && invoice.deliveryStateCode !== invoice.buyerStateCode && (
+                    <div className="giv-party-detail" style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "#D93A2A" }}>
+                      Place of supply is the delivery state — {invoice.placeOfSupply}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="giv-identifiers">
@@ -239,6 +252,7 @@ const GstInvoiceView = () => {
               </div></div>
               <div className="giv-id-item"><div className="giv-id-label">HSN Digits</div><div className="giv-id-value">{invoice.hsnDigits || 4}-digit HSN</div></div>
               <div className="giv-id-item"><div className="giv-id-label">Reverse Charge</div><div className="giv-id-value" style={{ color: invoice.reverseCharge ? "#D93A2A" : "#0E5C5C" }}>{invoice.reverseCharge ? "Applicable" : "Not Applicable"}</div></div>
+              <div className="giv-id-item"><div className="giv-id-label">E-Invoice</div><div className="giv-id-value" style={{ color: invoice.einvoicingRequired ? "#0E5C5C" : "#94a3b8" }}>{invoice.einvoicingRequired ? "Required (turnover > ₹5 Cr)" : "Not required"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">IRN</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.irn || "Not generated"}</div></div>
               {invoice.ewayBillNumber && <div className="giv-id-item"><div className="giv-id-label">E-Way Bill</div><div className="giv-id-value">{invoice.ewayBillNumber}{invoice.ewayBillExpiry ? " (exp: " + invoice.ewayBillExpiry + ")" : ""}</div></div>}
               <div className="giv-id-item"><div className="giv-id-label">Ack No.</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.ackNo || "-"}</div></div>
@@ -285,6 +299,18 @@ const GstInvoiceView = () => {
                   <div className="giv-tax-label">Taxable Amount</div>
                   <div className="giv-tax-value">&#8377;{(invoice.taxableAmount || 0).toFixed(2)}</div>
                 </div>
+                {(invoice.discountAmount > 0) && (
+                  <div className="giv-tax-card">
+                    <div className="giv-tax-label">Discount</div>
+                    <div className="giv-tax-value" style={{ color: "#16a34a" }}>-&#8377;{(invoice.discountAmount || 0).toFixed(2)}</div>
+                  </div>
+                )}
+                {(invoice.deliveryCharge > 0) && (
+                  <div className="giv-tax-card">
+                    <div className="giv-tax-label">Delivery Charge</div>
+                    <div className="giv-tax-value">&#8377;{(invoice.deliveryCharge || 0).toFixed(2)}</div>
+                  </div>
+                )}
                 {!invoice.isInterState ? (
                   <>
                     <div className="giv-tax-card">
@@ -316,6 +342,8 @@ const GstInvoiceView = () => {
             <div className="giv-summary">
               <table className="giv-summary-table">
                 <tbody>
+                  {(invoice.discountAmount > 0) && <tr><td>Discount</td><td style={{ color: "#16a34a" }}>-&#8377;{(invoice.discountAmount || 0).toFixed(2)}</td></tr>}
+                  {(invoice.deliveryCharge > 0) && <tr><td>Delivery Charge</td><td>&#8377;{(invoice.deliveryCharge || 0).toFixed(2)}</td></tr>}
                   <tr><td>Taxable Amount</td><td>&#8377;{(invoice.taxableAmount || 0).toFixed(2)}</td></tr>
                   {!invoice.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(invoice.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>SGST</td><td style={{ color: "#7c3aed" }}>&#8377;{(invoice.sgstAmount || 0).toFixed(2)}</td></tr></>}
                   {invoice.isInterState && <tr><td>IGST</td><td style={{ color: "#d97706" }}>&#8377;{(invoice.igstAmount || 0).toFixed(2)}</td></tr>}
@@ -360,9 +388,30 @@ const GstInvoiceView = () => {
                 <li>{invoice.isInterState ? "IGST charged (inter-state supply)." : "CGST + SGST charged (intra-state supply)."}</li>
                 {invoice.reverseCharge && <li>Reverse Charge: Applicable — tax payable by recipient.</li>}
                 <li>HSN/SAC digits: {invoice.hsnDigits || 4} (as per turnover).</li>
-                <li>This is a system-generated invoice and does not require a physical signature.</li>
+                {invoice.supplierSignature ? (
+                  <li>Digitally authenticated (SHA-256 digest) and authorized by {invoice.signedBy || "Seller"} {invoice.signatureDate ? "on " + invoice.signatureDate : ""}.</li>
+                ) : (
+                  <li>This is a system-generated invoice and does not require a physical signature.</li>
+                )}
               </ul>
             </div>
+
+            {invoice.supplierSignature && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "1rem", marginTop: "1rem", flexWrap: "wrap" }}>
+                <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                  <div style={{ marginBottom: "0.25rem" }}>Signature digest (SHA-256):</div>
+                  <div style={{ fontFamily: "monospace", wordBreak: "break-all" }}>{invoice.supplierSignature}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "cursive", fontSize: "1.3rem", color: "#0E5C5C", borderBottom: "1px solid #0E5C5C", padding: "0 0.5rem 0.2rem", marginBottom: "0.35rem" }}>
+                    {invoice.signedBy || "Authorized Signatory"}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#475569" }}>
+                    Authorized Signatory {invoice.signatureDate ? "| " + invoice.signatureDate : ""}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="giv-footer">

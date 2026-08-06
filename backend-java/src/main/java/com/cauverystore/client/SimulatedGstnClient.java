@@ -2,6 +2,7 @@ package com.cauverystore.client;
 
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.util.GstComplianceUtil;
+import com.cauverystore.util.QrCodeUtil;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -34,7 +35,17 @@ public class SimulatedGstnClient implements GstnClient {
         resp.put("ackNo", "ACK-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + String.format("%06d", invoice.getOrderId() % 1000000));
         resp.put("ackDate", LocalDate.now().toString());
         resp.put("signedInvoice", irn + ".json");
-        resp.put("qrCode", java.util.Base64.getEncoder().encodeToString(irn.getBytes(StandardCharsets.UTF_8)));
+        // QR content follows the GSTN e-invoice payload structure:
+        // SellerGSTIN | InvoiceNumber | InvoiceDate(DDMMYYYY) | InvoiceValue | IRN
+        double invoiceValue = invoice.getTotalAmount() != null ? invoice.getTotalAmount() : 0;
+        String qrText = String.join("|",
+                invoice.getSellerGstin(),
+                invoice.getInvoiceNumber(),
+                invoice.getInvoiceDate() != null ? invoice.getInvoiceDate().format(DateTimeFormatter.ofPattern("ddMMyyyy")) : "",
+                String.format("%.2f", invoiceValue),
+                irn);
+        resp.put("qrText", qrText);
+        resp.put("qrCode", QrCodeUtil.generatePngDataUrl(qrText));
         resp.put("simulated", true);
         resp.put("status", "IRN_GENERATED");
         return resp;

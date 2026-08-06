@@ -59,10 +59,11 @@ public class GstInvoiceController {
         Long orderId = body.get("orderId") != null ? ((Number) body.get("orderId")).longValue() : null;
         String gstin = (String) body.get("gstin");
         String buyerGstin = (String) body.get("buyerGstin");
+        String deliveryStateCode = (String) body.get("deliveryStateCode");
         if (orderId == null) return ResponseEntity.badRequest().body(Map.of("error", "orderId is required"));
         if (gstin == null) return ResponseEntity.badRequest().body(Map.of("error", "gstin is required"));
         try {
-            return ResponseEntity.ok(gstService.generateInvoiceFromOrder(orderId, userId, gstin, buyerGstin));
+            return ResponseEntity.ok(gstService.generateInvoiceFromOrder(orderId, userId, gstin, buyerGstin, deliveryStateCode));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

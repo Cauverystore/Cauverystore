@@ -30,7 +30,17 @@ public class OrderController {
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<Map<String, Object>> placeOrder(@RequestBody Map<String, Object> body,
                                                            @RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.ok(orderService.placeOrder(authHeader, body));
+        Map<String, Object> result = orderService.placeOrder(authHeader, body);
+        Object orderId = result.get("id");
+        if (orderId instanceof Long id) {
+            try {
+                orderService.autoGenerateGstInvoice(id);
+            } catch (Exception e) {
+                // Best-effort; a GST invoice generation failure must never fail the order response.
+                System.err.println("Post-order GST invoice generation skipped for order " + id + ": " + e.getMessage());
+            }
+        }
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping

@@ -221,28 +221,8 @@ public class OrderService {
             }
         }
 
-        // Auto-generate GST invoice if possible
-        if (savedOrder.getSellerId() != null) {
-            try {
-                String sellerGstin = null;
-                Optional<GstConfiguration> gstConfig = gstConfigRepo.findBySellerId(savedOrder.getSellerId());
-                if (gstConfig.isPresent()) {
-                    sellerGstin = gstConfig.get().getGstin();
-                } else {
-                    Optional<SellerRegistration> sellerReg = sellerRegRepo.findByUserId(savedOrder.getSellerId());
-                    if (sellerReg.isPresent() && sellerReg.get().getGstin() != null && !sellerReg.get().getGstin().isBlank()) {
-                        sellerGstin = sellerReg.get().getGstin();
-                    }
-                }
-                if (sellerGstin != null) {
-                    gstInvoiceService.generateInvoiceFromOrder(savedOrder.getId(), savedOrder.getSellerId(),
-                            sellerGstin, null);
-                }
-            } catch (Exception e) {
-                // Auto-generation is best-effort; seller can manually generate later
-                System.err.println("Auto GST invoice generation skipped for order " + savedOrder.getId() + ": " + e.getMessage());
-            }
-        }
+        // GST invoice auto-generation is deferred to OrderController (after this order
+        // transaction commits) so a best-effort failure can never roll back the order.
 
         auditService.log(user.getId(), user.getEmail(), "ORDER_PLACED",
                 "Order", savedOrder.getId(),
@@ -584,6 +564,32 @@ public class OrderService {
         result.put("status", order.getStatus());
         result.put("totalAmount", order.getTotalAmount());
         return result;
+    }
+
+    public void autoGenerateGstInvoice(Long orderId) {
+        try {
+            Order order = orderRepo.findById(orderId).orElse(null);
+            if (order == null || order.getSellerId() == null) {
+                return;
+            }
+            Long sellerId = order.getSellerId();
+            String sellerGstin = null;
+            Optional<GstConfiguration> gstConfig = gstConfigRepo.findBySellerId(sellerId);
+            if (gstConfig.isPresent()) {
+                sellerGstin = gstConfig.get().getGstin();
+            } else {
+                Optional<SellerRegistration> sellerReg = sellerRegRepo.findByUserId(sellerId);
+                if (sellerReg.isPresent() && sellerReg.get().getGstin() != null && !sellerReg.get().getGstin().isBlank()) {
+                    sellerGstin = sellerReg.get().getGstin();
+                }
+            }
+            if (sellerGstin != null) {
+                gstInvoiceService.generateInvoiceFromOrder(orderId, sellerId, sellerGstin, null);
+            }
+        } catch (Exception e) {
+            // Auto-generation is best-effort; seller can manually generate later
+            System.err.println("Auto GST invoice generation skipped for order " + orderId + ": " + e.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)

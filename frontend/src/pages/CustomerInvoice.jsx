@@ -260,6 +260,14 @@ const CustomerInvoice = () => {
                   </div>
                 )}
               </div>
+              {invoice.deliveryAddress && (
+                <div className="giv-party-box" style={{ borderStyle: "dashed" }}>
+                  <h3>Ship To (Delivery)</h3>
+                  <div className="giv-party-name">{invoice.buyerName}</div>
+                  <div className="giv-party-detail">{invoice.deliveryAddress}</div>
+                  <div className="giv-party-gstin">State: {invoice.deliveryStateCode || invoice.buyerStateCode}</div>
+                </div>
+              )}
             </div>
 
             <div className="giv-identifiers">
@@ -311,6 +319,18 @@ const CustomerInvoice = () => {
                   <div className="giv-tax-label">Taxable Amount</div>
                   <div className="giv-tax-value">&#8377;{(invoice.taxableAmount || 0).toFixed(2)}</div>
                 </div>
+                {(invoice.discountAmount > 0) && (
+                  <div className="giv-tax-card">
+                    <div className="giv-tax-label">Discount</div>
+                    <div className="giv-tax-value" style={{ color: "#16a34a" }}>-&#8377;{(invoice.discountAmount || 0).toFixed(2)}</div>
+                  </div>
+                )}
+                {(invoice.deliveryCharge > 0) && (
+                  <div className="giv-tax-card">
+                    <div className="giv-tax-label">Delivery Charge</div>
+                    <div className="giv-tax-value">&#8377;{(invoice.deliveryCharge || 0).toFixed(2)}</div>
+                  </div>
+                )}
                 {!invoice.isInterState ? (
                   <>
                     <div className="giv-tax-card">
@@ -342,6 +362,8 @@ const CustomerInvoice = () => {
             <div className="giv-summary">
               <table className="giv-summary-table">
                 <tbody>
+                  {(invoice.discountAmount > 0) && <tr><td>Discount</td><td style={{ color: "#16a34a" }}>-&#8377;{(invoice.discountAmount || 0).toFixed(2)}</td></tr>}
+                  {(invoice.deliveryCharge > 0) && <tr><td>Delivery Charge</td><td>&#8377;{(invoice.deliveryCharge || 0).toFixed(2)}</td></tr>}
                   <tr><td>Taxable Amount</td><td>&#8377;{(invoice.taxableAmount || 0).toFixed(2)}</td></tr>
                   {!invoice.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(invoice.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>SGST</td><td style={{ color: "#7c3aed" }}>&#8377;{(invoice.sgstAmount || 0).toFixed(2)}</td></tr></>}
                   {invoice.isInterState && <tr><td>IGST</td><td style={{ color: "#d97706" }}>&#8377;{(invoice.igstAmount || 0).toFixed(2)}</td></tr>}
@@ -384,9 +406,26 @@ const CustomerInvoice = () => {
                 <li>This is a computer-generated {invoice.invoiceCopyType === "ORIGINAL" ? "Original" : invoice.invoiceCopyType === "DUPLICATE" ? "Duplicate" : "Triplicate"} invoice for {invoice.supplyType === "GOODS" ? "goods" : "services"} as per Rule 46.</li>
                 <li>{invoice.isInterState ? "IGST charged (inter-state supply)." : "CGST + SGST charged (intra-state supply)."}</li>
                 <li>HSN/SAC digits: {invoice.hsnDigits || 4}.</li>
-                <li>This is a system-generated invoice and does not require a physical signature.</li>
+                {invoice.supplierSignature ? (
+                  <li>Authenticated (SHA-256) and authorized by {invoice.signedBy || "Seller"}{invoice.signatureDate ? " on " + invoice.signatureDate : ""}.</li>
+                ) : (
+                  <li>This is a system-generated invoice and does not require a physical signature.</li>
+                )}
               </ul>
             </div>
+
+            {invoice.supplierSignature && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "cursive", fontSize: "1.2rem", color: "#0E5C5C", borderBottom: "1px solid #0E5C5C", padding: "0 0.5rem 0.2rem", marginBottom: "0.35rem" }}>
+                    {invoice.signedBy || "Authorized Signatory"}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "#475569" }}>
+                    Authorized Signatory {invoice.signatureDate ? "| " + invoice.signatureDate : ""}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="giv-footer">

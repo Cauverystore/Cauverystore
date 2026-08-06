@@ -39,8 +39,13 @@ public class GstInvoice {
     private String buyerGstin;
 
     private String buyerName;
+    @Column(columnDefinition = "TEXT")
     private String buyerAddress;
     private String buyerStateCode;
+
+    @Column(columnDefinition = "TEXT")
+    private String deliveryAddress;
+    private String deliveryStateCode;
 
     @Column(nullable = false)
     private LocalDate invoiceDate;
@@ -104,6 +109,13 @@ public class GstInvoice {
     private String invoiceType = "B2C";
     private Boolean itcEligible = false;
 
+    private Double discountAmount;
+    private Double deliveryCharge;
+    private Boolean einvoicingRequired = false;
+    private String supplierSignature;
+    private String signedBy;
+    private LocalDate signatureDate;
+
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("invoice")
     private List<GstInvoiceItem> items = new ArrayList<>();
@@ -155,6 +167,10 @@ public class GstInvoice {
     public void setBuyerAddress(String buyerAddress) { this.buyerAddress = buyerAddress; }
     public String getBuyerStateCode() { return buyerStateCode; }
     public void setBuyerStateCode(String buyerStateCode) { this.buyerStateCode = buyerStateCode; }
+    public String getDeliveryAddress() { return deliveryAddress; }
+    public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
+    public String getDeliveryStateCode() { return deliveryStateCode; }
+    public void setDeliveryStateCode(String deliveryStateCode) { this.deliveryStateCode = deliveryStateCode; }
     public LocalDate getInvoiceDate() { return invoiceDate; }
     public void setInvoiceDate(LocalDate invoiceDate) { this.invoiceDate = invoiceDate; }
     public Double getTaxableAmount() { return taxableAmount; }
@@ -237,4 +253,16 @@ public class GstInvoice {
     public void setInvoiceType(String invoiceType) { this.invoiceType = invoiceType; }
     public Boolean getItcEligible() { return itcEligible; }
     public void setItcEligible(Boolean itcEligible) { this.itcEligible = itcEligible; }
+    public Double getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(Double discountAmount) { this.discountAmount = discountAmount; }
+    public Double getDeliveryCharge() { return deliveryCharge; }
+    public void setDeliveryCharge(Double deliveryCharge) { this.deliveryCharge = deliveryCharge; }
+    public Boolean getEinvoicingRequired() { return einvoicingRequired; }
+    public void setEinvoicingRequired(Boolean einvoicingRequired) { this.einvoicingRequired = einvoicingRequired; }
+    public String getSupplierSignature() { return supplierSignature; }
+    public void setSupplierSignature(String supplierSignature) { this.supplierSignature = supplierSignature; }
+    public String getSignedBy() { return signedBy; }
+    public void setSignedBy(String signedBy) { this.signedBy = signedBy; }
+    public LocalDate getSignatureDate() { return signatureDate; }
+    public void setSignatureDate(LocalDate signatureDate) { this.signatureDate = signatureDate; }
 }

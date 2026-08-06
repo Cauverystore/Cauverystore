@@ -108,21 +108,27 @@ public class GstInvoiceService {
 
     @Transactional
     public Map<String, Object> generateInvoiceFromOrder(Long orderId, Long userId, String gstin) {
-        return generateInvoiceFromOrder(orderId, userId, gstin, null);
+        return generateInvoiceFromOrder(orderId, userId, gstin, null, null);
     }
 
+    @Transactional
     public Map<String, Object> generateInvoiceFromOrder(Long orderId, Long userId, String gstin, String buyerGstin) {
+        return generateInvoiceFromOrder(orderId, userId, gstin, buyerGstin, null);
+    }
+
+    @Transactional
+    public Map<String, Object> generateInvoiceFromOrder(Long orderId, Long userId, String gstin, String buyerGstin, String deliveryStateCode) {
+        GstComplianceUtil.validateGstin(gstin);
+        if (buyerGstin != null && !buyerGstin.isBlank() && !"URP".equalsIgnoreCase(buyerGstin.trim())) {
+            GstComplianceUtil.validateGstin(buyerGstin);
+        }
+
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
         Optional<GstInvoice> existing = invoiceRepo.findByOrderId(orderId);
         if (existing.isPresent()) {
             return Map.of("invoice", existing.get(), "message", "Invoice already exists for this order");
-        }
-
-        GstComplianceUtil.validateGstin(gstin);
-        if (buyerGstin != null && !buyerGstin.isBlank()) {
-            GstComplianceUtil.validateGstin(buyerGstin);
         }
 
         GstConfiguration config = configRepo.findByGstin(gstin).orElse(null);
@@ -151,20 +157,29 @@ public class GstInvoiceService {
         inv.setItcEligible(isB2b);
         inv.setBuyerName(buyer != null ? buyer.getFullName() : "Walk-in Customer");
         Address addr = order.getAddress();
-        inv.setBuyerAddress(addr != null ? String.join(", ", 
-            addr.getStreet() != null ? addr.getStreet() : "",
-            addr.getCity() != null ? addr.getCity() : "",
-            addr.getState() != null ? addr.getState() : "",
-            addr.getPincode() != null ? addr.getPincode() : ""
-        ).replaceAll("^,\\s*|,\\s*$", "").replaceAll(",\\s*,", ",") : "");
 
-        String buyerStateCode = order.getAddress() != null ? getStateCode(order.getAddress().getState()) : "33";
+        // Billing address (Req 3) is taken from the order's saved address. In this marketplace the
+        // checkout collects a single address used for both billing and delivery, so the delivery
+        // address (Req 4) defaults to the same value; callers may pass an explicit delivery state
+        // code when the place of supply differs from the billing state.
+        String buyerAddress = formatAddress(addr);
+        inv.setBuyerAddress(buyerAddress);
+        inv.setDeliveryAddress(buyerAddress);
+
         String sellerStateCode = config != null && config.getStateCode() != null ? config.getStateCode() : "33";
+        String buyerStateCode = addr != null ? getStateCode(addr.getState()) : "33";
+        String resolvedDeliveryStateCode = deliveryStateCode != null && !deliveryStateCode.isBlank()
+                ? deliveryStateCode.trim()
+                : buyerStateCode;
         inv.setBuyerStateCode(buyerStateCode);
-        inv.setPlaceOfSupply(buyerStateCode + "-" + STATE_CODES.getOrDefault(buyerStateCode, "Other"));
-        inv.setIsInterState(!buyerStateCode.equals(sellerStateCode));
+        inv.setDeliveryStateCode(resolvedDeliveryStateCode);
+        // Place of supply (Req 5) is the destination (delivery) state.
+        inv.setPlaceOfSupply(resolvedDeliveryStateCode + "-" + STATE_CODES.getOrDefault(resolvedDeliveryStateCode, "Other"));
+        inv.setIsInterState(!resolvedDeliveryStateCode.equals(sellerStateCode));
 
-        inv.setInvoiceNumber(generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS"));
+        String invoiceNumber = generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS");
+        GstComplianceUtil.validateInvoiceNumber(invoiceNumber);
+        inv.setInvoiceNumber(invoiceNumber);
         inv.setStatus("PENDING_DISPATCH");
         inv.setInvoiceStatus("PENDING");
 
@@ -172,9 +187,9 @@ public class GstInvoiceService {
         double totalCgst = 0, totalSgst = 0, totalIgst = 0;
         List<GstInvoiceItem> items = new ArrayList<>();
 
-        // Product-level discounts are already baked into OrderItem.price. Coupon discounts and
-        // delivery charges are order-level amounts: allocate them across line items so GST applies
-        // on the net taxable value (coupon discount reduces it, delivery charge increases it).
+        // Product-level discounts are already baked into OrderItem.price. Coupon discounts are
+        // order-level amounts: allocate them across the goods lines so GST applies on the net
+        // taxable value after the pre-tax discount (Req 8).
         double rawSubtotal = 0;
         for (OrderItem oi : order.getItems()) {
             rawSubtotal += oi.getPrice() * oi.getQuantity();
@@ -188,13 +203,17 @@ public class GstInvoiceService {
             if (couponDiscount > rawSubtotal) couponDiscount = rawSubtotal;
         }
         double retainedFactor = rawSubtotal > 0 ? (rawSubtotal - couponDiscount) / rawSubtotal : 0;
+        inv.setDiscountAmount(Math.round(couponDiscount * 100.0) / 100.0);
+        inv.setDeliveryCharge(Math.round(deliveryCharge * 100.0) / 100.0);
+
+        double goodsCgstRate = 0.0, goodsSgstRate = 0.0, goodsIgstRate = 0.0;
+        boolean goodsTaxSet = false;
 
         for (OrderItem oi : order.getItems()) {
             Product p = oi.getProduct();
             double gstPct = (p != null && p.getGstPercentage() != null) ? p.getGstPercentage() : 12.0;
             double itemValue = oi.getPrice() * oi.getQuantity();
-            double taxable = itemValue * retainedFactor
-                    + (rawSubtotal > 0 ? deliveryCharge * itemValue / rawSubtotal : 0);
+            double taxable = itemValue * retainedFactor;
             taxable = Math.round(taxable * 100.0) / 100.0;
             taxableAmount += taxable;
 
@@ -223,10 +242,50 @@ public class GstInvoiceService {
                 item.setIgstRate(0.0); item.setIgstAmount(0.0);
             }
 
+            if (!goodsTaxSet) {
+                goodsCgstRate = item.getCgstRate() != null ? item.getCgstRate() : 0.0;
+                goodsSgstRate = item.getSgstRate() != null ? item.getSgstRate() : 0.0;
+                goodsIgstRate = item.getIgstRate() != null ? item.getIgstRate() : 0.0;
+                goodsTaxSet = true;
+            }
+
             item.setTotalAmount(taxable + (item.getIgstAmount() != null ? item.getIgstAmount() : 0)
                     + (item.getCgstAmount() != null ? item.getCgstAmount() : 0)
                     + (item.getSgstAmount() != null ? item.getSgstAmount() : 0));
             items.add(item);
+        }
+
+        // Delivery charge is a supply of services (courier/transport, SAC 996511) and is raised as
+        // a separate line item so the HSN/SAC requirement (Req 7) and the tax split are correct for
+        // goods vs services, instead of being folded into goods lines at the goods rate.
+        if (deliveryCharge > 0) {
+            double deliveryTaxable = Math.round(deliveryCharge * 100.0) / 100.0;
+            taxableAmount += deliveryTaxable;
+            GstInvoiceItem service = new GstInvoiceItem();
+            service.setInvoice(inv);
+            service.setProductName("Delivery Charges (Courier/Transport)");
+            service.setSacCode("996511");
+            service.setQuantity(1);
+            service.setUnitPrice(deliveryCharge);
+            service.setTaxableValue(deliveryTaxable);
+            service.setUnitOfMeasure("NOS");
+            if (Boolean.TRUE.equals(inv.getIsInterState())) {
+                service.setIgstRate(18.0);
+                service.setIgstAmount(Math.round(deliveryTaxable * 18.0 / 100 * 100.0) / 100.0);
+                totalIgst += service.getIgstAmount();
+                service.setCgstRate(0.0); service.setCgstAmount(0.0);
+                service.setSgstRate(0.0); service.setSgstAmount(0.0);
+            } else {
+                service.setCgstRate(9.0);
+                service.setCgstAmount(Math.round(deliveryTaxable * 9.0 / 100 * 100.0) / 100.0);
+                service.setSgstRate(9.0);
+                service.setSgstAmount(Math.round(deliveryTaxable * 9.0 / 100 * 100.0) / 100.0);
+                totalCgst += service.getCgstAmount();
+                totalSgst += service.getSgstAmount();
+                service.setIgstRate(0.0); service.setIgstAmount(0.0);
+            }
+            service.setTotalAmount(deliveryTaxable + service.getIgstAmount() + service.getCgstAmount() + service.getSgstAmount());
+            items.add(service);
         }
 
         inv.setItems(items);
@@ -235,18 +294,20 @@ public class GstInvoiceService {
         inv.setCgstAmount(Math.round(totalCgst * 100.0) / 100.0);
         inv.setSgstAmount(Math.round(totalSgst * 100.0) / 100.0);
         inv.setIgstAmount(Math.round(totalIgst * 100.0) / 100.0);
-        double firstGst = !items.isEmpty() && items.get(0).getCgstRate() != null ? items.get(0).getCgstRate() : 0.0;
-        inv.setCgstRate(firstGst);
-        inv.setSgstRate(Boolean.TRUE.equals(inv.getIsInterState()) ? 0.0 : firstGst);
+        inv.setCgstRate(goodsCgstRate);
+        inv.setSgstRate(Boolean.TRUE.equals(inv.getIsInterState()) ? 0.0 : goodsSgstRate);
+        inv.setIgstRate(Boolean.TRUE.equals(inv.getIsInterState()) ? goodsIgstRate : 0.0);
 
         Double annualTurnover = config != null ? config.getAnnualTurnover() : null;
         inv.setHsnDigits(GstComplianceUtil.determineHsnDigits(annualTurnover));
         inv.setReverseCharge(false);
-        inv.setSupplyType("GOODS");
+        inv.setSupplyType(deliveryCharge > 0 ? "GOODS AND SERVICES" : "GOODS");
         inv.setInvoiceCopyType("ORIGINAL");
 
+        boolean einvoicingApplicable = GstComplianceUtil.requiresEInvoice(annualTurnover);
+        inv.setEinvoicingRequired(einvoicingApplicable);
+
         // Generate IRN and QR code if e-invoicing applies (turnover >= 5Cr)
-        boolean einvoicingApplicable = annualTurnover != null && annualTurnover >= 5_00_00_000;
         if (einvoicingApplicable) {
             Map<String, Object> irnResp = gstnClient.generateIrn(inv);
             inv.setIrn((String) irnResp.get("irn"));
@@ -271,6 +332,13 @@ public class GstInvoiceService {
         inv.setTcsRate(tcsRate);
 
         inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax() + tcsAmount) * 100.0) / 100.0);
+
+        // Supplier signature (Req 11): bind supplier GSTIN + fiscal identity + amounts with a digest
+        // so the invoice cannot be altered without invalidating the recorded signature.
+        inv.setSupplierSignature(sha256Digest(gstin + "|" + inv.getInvoiceNumber() + "|"
+                + inv.getTaxableAmount() + "|" + inv.getTotalTax() + "|" + inv.getTotalAmount()));
+        inv.setSignedBy(sellerLegalName);
+        inv.setSignatureDate(inv.getInvoiceDate());
 
         GstInvoice saved = invoiceRepo.save(inv);
 
@@ -658,6 +726,30 @@ public class GstInvoiceService {
         return "33";
     }
 
+    private String formatAddress(Address addr) {
+        if (addr == null) return "";
+        return String.join(", ",
+            addr.getStreet() != null ? addr.getStreet() : "",
+            addr.getCity() != null ? addr.getCity() : "",
+            addr.getState() != null ? addr.getState() : "",
+            addr.getPincode() != null ? addr.getPincode() : ""
+        ).replaceAll("^,\\s*|,\\s*$", "").replaceAll(",\\s*,", ",");
+    }
+
+    private String sha256Digest(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString().toUpperCase();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public byte[] exportExcel(String sheetName, String[] headers, List<Map<String, Object>> rows) {
         return ExcelExportUtil.toExcel(sheetName, headers, rows);
     }
@@ -764,6 +856,12 @@ public class GstInvoiceService {
         buyCell.addElement(new Paragraph("GSTIN: " + (inv.getBuyerGstin() != null ? inv.getBuyerGstin() : "URP")
                 + (inv.getBuyerGstin() != null && !"URP".equals(inv.getBuyerGstin()) ? " (ITC Eligible: Yes - B2B)" : " (URP)"), normal9));
         buyCell.addElement(new Paragraph("Address: " + safeStr(inv.getBuyerAddress()), small8));
+        buyCell.addElement(new Paragraph("State Code: " + safeStr(inv.getBuyerStateCode()), small8));
+        if (inv.getDeliveryAddress() != null) {
+            buyCell.addElement(new Paragraph("Ship To (Delivery):", bold10));
+            buyCell.addElement(new Paragraph(safeStr(inv.getDeliveryAddress()), small8));
+            buyCell.addElement(new Paragraph("Delivery State: " + safeStr(inv.getDeliveryStateCode()), small8));
+        }
         parties.addCell(buyCell);
         doc.add(parties);
 
@@ -816,7 +914,7 @@ public class GstInvoiceService {
         int sn = 1;
         for (GstInvoiceItem item : items) {
             table.addCell(new Phrase(String.valueOf(sn++), normal9));
-            table.addCell(new Phrase(safeStr(item.getHsnCode()), small8));
+            table.addCell(new Phrase(safeStr(item.getSacCode() != null ? item.getSacCode() : item.getHsnCode()), small8));
             table.addCell(new Phrase(safeStr(item.getProductName()), normal9));
             table.addCell(new Phrase(String.valueOf(item.getQuantity()), normal9));
             table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getUnitPrice() != null ? item.getUnitPrice() : 0), normal9));
@@ -860,6 +958,12 @@ public class GstInvoiceService {
         breakupTable.addCell(bh);
 
         addBreakupCell(breakupTable, "Taxable Amount", "\u20B9" + String.format("%.2f", tx), normal9);
+        if (inv.getDiscountAmount() != null && inv.getDiscountAmount() > 0) {
+            addBreakupCell(breakupTable, "Discount", "-\u20B9" + String.format("%.2f", inv.getDiscountAmount()), normal9);
+        }
+        if (inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0) {
+            addBreakupCell(breakupTable, "Delivery Charge", "\u20B9" + String.format("%.2f", inv.getDeliveryCharge()), normal9);
+        }
         if (Boolean.TRUE.equals(inv.getIsInterState())) {
             addBreakupCell(breakupTable, "IGST @ " + igstRate + "%", "\u20B9" + String.format("%.2f", igst), normal9);
         } else {
@@ -878,6 +982,12 @@ public class GstInvoiceService {
         sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
 
         addSumRow(sumTable, "Taxable Amount", "\u20B9" + String.format("%.2f", tx), normal9);
+        if (inv.getDiscountAmount() != null && inv.getDiscountAmount() > 0) {
+            addSumRow(sumTable, "Discount", "-\u20B9" + String.format("%.2f", inv.getDiscountAmount()), normal9);
+        }
+        if (inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0) {
+            addSumRow(sumTable, "Delivery Charge", "\u20B9" + String.format("%.2f", inv.getDeliveryCharge()), normal9);
+        }
         if (Boolean.TRUE.equals(inv.getIsInterState())) {
             addSumRow(sumTable, "IGST", "\u20B9" + String.format("%.2f", igst), normal9);
         } else {
@@ -912,7 +1022,15 @@ public class GstInvoiceService {
         doc.add(new Paragraph("- This is a computer-generated " + (inv.getInvoiceCopyType() != null ? inv.getInvoiceCopyType().toLowerCase() : "original") + " invoice for " + (inv.getSupplyType() != null && inv.getSupplyType().equals("GOODS") ? "goods" : "services") + " as per Rule 46.", small8));
         doc.add(new Paragraph("- " + (Boolean.TRUE.equals(inv.getIsInterState()) ? "IGST charged (inter-state supply)." : "CGST + SGST charged (intra-state supply)."), small8));
         doc.add(new Paragraph("- HSN/SAC digits: " + (inv.getHsnDigits() != null ? inv.getHsnDigits() : 4) + ".", small8));
-        doc.add(new Paragraph("- This is a system-generated invoice and does not require a physical signature.", small8));
+        if (inv.getSupplierSignature() != null) {
+            doc.add(new Paragraph("- Digitally authenticated (SHA-256) and authorized by " + safeStr(inv.getSignedBy())
+                    + (inv.getSignatureDate() != null ? " on " + inv.getSignatureDate() : "") + ".", small8));
+            doc.add(new Paragraph("Signature Digest (SHA-256): " + inv.getSupplierSignature(), small8));
+            doc.add(new Paragraph("For " + safeStr(inv.getSignedBy()) + ", Authorized Signatory"
+                    + (inv.getSignatureDate() != null ? " | " + inv.getSignatureDate() : ""), bold9));
+        } else {
+            doc.add(new Paragraph("- This is a system-generated invoice and does not require a physical signature.", small8));
+        }
 
         doc.close();
         return baos.toByteArray();
