@@ -117,18 +117,58 @@ public class GstRateResolver {
      * Empty means no verified rate could be found.
      */
     public Optional<Double> findRate(String hsnCode, LocalDate onDate) {
+        return findRate(hsnCode, onDate, null);
+    }
+
+    /**
+     * @param unitPrice per-piece selling price, needed only for headings whose rate depends on
+     *                  value (apparel, footwear). Null is fine for everything else.
+     */
+    public Optional<Double> findRate(String hsnCode, LocalDate onDate, Double unitPrice) {
         if (hsnCode == null || hsnCode.isBlank()) return Optional.empty();
         String hsn = hsnCode.replaceAll("\\s", "");
         LocalDate date = onDate != null ? onDate : LocalDate.now();
 
-        // Exact code, then progressively broader headings (8 -> 6 -> 4).
+        // Exact code, then progressively broader headings (8 -> 6 -> 4 -> 2). Chapter-level
+        // matters here: apparel rates are published against "61", not against 6109.
         for (String candidate : List.of(hsn,
                 hsn.length() > 6 ? hsn.substring(0, 6) : hsn,
-                hsn.length() > 4 ? hsn.substring(0, 4) : hsn)) {
+                hsn.length() > 4 ? hsn.substring(0, 4) : hsn,
+                hsn.length() > 2 ? hsn.substring(0, 2) : hsn)) {
             List<GstRateMaster> hits =
                     rateRepo.findApplicable(candidate, GstRateMaster.STATUS_VERIFIED, date);
+            if (hits.isEmpty()) continue;
+
+            // A row whose value condition matches the item's price wins outright - that is the
+            // whole point of the condition. Only if none match do we consider unconditional rows.
+            List<GstRateMaster> conditionMatches = hits.stream()
+                    .filter(GstRateMaster::isConditional)
+                    .filter(r -> r.appliesToUnitPrice(unitPrice))
+                    .toList();
+            if (conditionMatches.size() == 1) {
+                return Optional.of(conditionMatches.get(0).getGstRate());
+            }
+
+            List<GstRateMaster> unconditional = hits.stream()
+                    .filter(r -> !r.isConditional())
+                    .toList();
+            if (unconditional.size() == 1) {
+                return Optional.of(unconditional.get(0).getGstRate());
+            }
+            if (unconditional.size() > 1) {
+                // Several unconditional rates on one heading: the goods description decides,
+                // which we cannot evaluate. Refuse rather than pick the first.
+                log.warn("HSN {} has {} unconditional verified rates on {} - cannot choose without "
+                        + "the goods description; leaving unresolved.", candidate, unconditional.size(), date);
+                return Optional.empty();
+            }
+            // Conditional rows exist but none matched this price (e.g. footwear over the
+            // threshold where only the lower band is published). Do not fall through to a
+            // broader heading and silently pick an unrelated rate.
             if (!hits.isEmpty()) {
-                return Optional.of(hits.get(0).getGstRate());
+                log.warn("HSN {} has value-conditional rates but none apply to unit price {} - "
+                        + "leaving unresolved.", candidate, unitPrice);
+                return Optional.empty();
             }
         }
         return Optional.empty();
@@ -141,8 +181,16 @@ public class GstRateResolver {
      * @throws GstRateUnresolvedException in strict mode when no verified rate exists
      */
     public Resolved resolve(Product product, boolean interState, LocalDate onDate) {
+        return resolve(product, interState, onDate, null);
+    }
+
+    /**
+     * @param unitPrice the per-piece price actually charged, which decides the rate for
+     *                  value-banded headings such as apparel and footwear
+     */
+    public Resolved resolve(Product product, boolean interState, LocalDate onDate, Double unitPrice) {
         String hsn = product != null ? product.getHsnCode() : null;
-        Optional<Double> rate = findRate(hsn, onDate);
+        Optional<Double> rate = findRate(hsn, onDate, unitPrice);
 
         if (rate.isPresent()) {
             return new Resolved(rate.get(), interState, hsn, true);

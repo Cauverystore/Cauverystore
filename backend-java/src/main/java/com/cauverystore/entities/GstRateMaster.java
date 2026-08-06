@@ -29,6 +29,13 @@ public class GstRateMaster {
     public static final String STATUS_VERIFIED = "VERIFIED";
     public static final String STATUS_UNVERIFIED = "UNVERIFIED";
 
+    /** Rate applies regardless of price. */
+    public static final String CONDITION_NONE = "NONE";
+    /** Applies when the unit price is at or below thresholdAmount. */
+    public static final String CONDITION_VALUE_UPTO = "VALUE_UPTO";
+    /** Applies when the unit price is above thresholdAmount. */
+    public static final String CONDITION_VALUE_ABOVE = "VALUE_ABOVE";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -53,6 +60,26 @@ public class GstRateMaster {
 
     @Column(name = "status", length = 20, nullable = false)
     private String status = STATUS_UNVERIFIED;
+
+    /**
+     * Some rates depend on the item's SELLING PRICE, not just what it is - apparel under
+     * chapters 61-63 is 5% at or below Rs 2500 per piece and 18% above it, footwear likewise
+     * per pair. Such a heading has two rows distinguished only by this condition, so the code
+     * alone cannot decide the rate.
+     */
+    @Column(name = "condition_type", length = 20)
+    private String conditionType = CONDITION_NONE;
+
+    @Column(name = "threshold_amount")
+    private Double thresholdAmount;
+
+    /** "piece", "pair", "unit" - what the threshold is measured per. */
+    @Column(name = "threshold_unit", length = 20)
+    private String thresholdUnit;
+
+    /** The notification's own wording, kept verbatim so a reviewer can tell rows apart. */
+    @Column(name = "condition_text", columnDefinition = "TEXT")
+    private String conditionText;
 
     /** Provenance - e.g. "Notification 09/2025-Central Tax (Rate)" or "CA review 2026-08". */
     @Column(name = "source", columnDefinition = "TEXT")
@@ -106,6 +133,38 @@ public class GstRateMaster {
     public boolean isVerified() {
         return STATUS_VERIFIED.equals(status);
     }
+
+    @Transient
+    public boolean isConditional() {
+        return conditionType != null && !CONDITION_NONE.equals(conditionType);
+    }
+
+    /**
+     * Whether this row applies to an item selling at the given unit price.
+     * An unconditional row applies to everything; a conditional one only to its side of
+     * the threshold. A conditional row with a null price cannot be confirmed, so it does not
+     * apply - better to fail to resolve than to charge the wrong side of the threshold.
+     */
+    @Transient
+    public boolean appliesToUnitPrice(Double unitPrice) {
+        if (!isConditional()) return true;
+        if (unitPrice == null || thresholdAmount == null) return false;
+        if (CONDITION_VALUE_UPTO.equals(conditionType)) return unitPrice <= thresholdAmount;
+        if (CONDITION_VALUE_ABOVE.equals(conditionType)) return unitPrice > thresholdAmount;
+        return false;
+    }
+
+    public String getConditionType() { return conditionType; }
+    public void setConditionType(String conditionType) { this.conditionType = conditionType; }
+
+    public Double getThresholdAmount() { return thresholdAmount; }
+    public void setThresholdAmount(Double thresholdAmount) { this.thresholdAmount = thresholdAmount; }
+
+    public String getThresholdUnit() { return thresholdUnit; }
+    public void setThresholdUnit(String thresholdUnit) { this.thresholdUnit = thresholdUnit; }
+
+    public String getConditionText() { return conditionText; }
+    public void setConditionText(String conditionText) { this.conditionText = conditionText; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

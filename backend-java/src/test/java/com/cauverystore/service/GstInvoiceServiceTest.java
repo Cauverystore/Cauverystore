@@ -52,7 +52,9 @@ class GstInvoiceServiceTest {
         // These tests cover invoice structure - the CGST/SGST vs IGST split, place of supply,
         // IRN - not where the rate comes from, so pin the resolver at the 12% they were
         // written against. Rate resolution itself is covered by GstRateResolverTest.
-        lenient().when(gstRateResolver.resolve(any(), anyBoolean(), any()))
+        // These tests are about invoice structure, not rate sourcing - GstRateResolverTest
+        // covers where the rate comes from. A flat 12% keeps the expected figures readable.
+        lenient().when(gstRateResolver.resolve(any(), anyBoolean(), any(), any()))
                 .thenAnswer(i -> new GstRateResolver.Resolved(12.0, i.getArgument(1), "1006", true));
 
         config = new GstConfiguration();

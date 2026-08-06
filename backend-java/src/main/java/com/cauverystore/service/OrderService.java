@@ -117,8 +117,9 @@ public class OrderService {
         for (OrderItem item : items) {
             double lineValue = item.getPrice() * item.getQuantity();
             double taxable = Math.round(lineValue * retainedFactor * 100.0) / 100.0;
-            GstRateResolver.Resolved resolved =
-                    gstRateResolver.resolve(item.getProduct(), false, LocalDate.now());
+            // Unit price, not line value: apparel/footwear bands are "per piece"/"per pair".
+            GstRateResolver.Resolved resolved = gstRateResolver.resolve(
+                    item.getProduct(), false, LocalDate.now(), item.getPrice());
             tax += Math.round(taxable * resolved.getTotalRate() / 100.0 * 100.0) / 100.0;
         }
         return Math.round(tax * 100.0) / 100.0;

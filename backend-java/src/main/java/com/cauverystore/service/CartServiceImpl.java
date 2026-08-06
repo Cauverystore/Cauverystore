@@ -195,8 +195,10 @@ public class CartServiceImpl implements CartService {
         double cartTax = 0.0;
         for (CartItem item : cart.getItems()) {
             if (item.isSavedForLater()) continue;
-            double lineValue = effectiveUnitPrice(item) * item.getQuantity();
-            double rate = gstRateResolver.resolve(item.getProduct(), false, LocalDate.now()).getTotalRate();
+            double unitPrice = effectiveUnitPrice(item);
+            double lineValue = unitPrice * item.getQuantity();
+            double rate = gstRateResolver
+                    .resolve(item.getProduct(), false, LocalDate.now(), unitPrice).getTotalRate();
             cartTax += Math.round(lineValue * rate / 100.0 * 100.0) / 100.0;
         }
         result.put("tax", Math.round(cartTax * 100.0) / 100.0);

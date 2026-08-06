@@ -179,4 +179,89 @@ class GstRateResolverTest {
 
         assertEquals(r.igstOn(399.75), r.totalTaxOn(399.75), 0.0001);
     }
+
+    private GstRateMaster conditional(String hsn, double pct, String type, double threshold) {
+        GstRateMaster r = rate(hsn, pct, LocalDate.of(2025, 9, 22), null);
+        r.setConditionType(type);
+        r.setThresholdAmount(threshold);
+        r.setThresholdUnit("piece");
+        return r;
+    }
+
+    @Test
+    void resolve_shouldPickLowerBand_whenApparelPriceIsAtOrBelowThreshold() {
+        product.setHsnCode("61");
+        when(rateRepo.findApplicable(eq("61"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        conditional("61", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0),
+                        conditional("61", 18.0, GstRateMaster.CONDITION_VALUE_ABOVE, 2500.0)));
+
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 1499.0).getTotalRate());
+        // exactly on the threshold belongs to the lower band ("not exceeding Rs 2500")
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 2500.0).getTotalRate());
+    }
+
+    @Test
+    void resolve_shouldPickUpperBand_whenApparelPriceIsAboveThreshold() {
+        product.setHsnCode("61");
+        when(rateRepo.findApplicable(eq("61"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        conditional("61", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0),
+                        conditional("61", 18.0, GstRateMaster.CONDITION_VALUE_ABOVE, 2500.0)));
+
+        assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 2500.01).getTotalRate());
+        assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 3999.0).getTotalRate());
+    }
+
+    @Test
+    void resolve_shouldMatchChapterLevelCode_forApparelListedAgainstTwoDigits() {
+        // Rates for apparel are published against "61", but a product carries a full code
+        // like 61091000 - the walk up must reach the two-digit chapter.
+        product.setHsnCode("61091000");
+        when(rateRepo.findApplicable(eq("61091000"), anyString(), any())).thenReturn(List.of());
+        when(rateRepo.findApplicable(eq("610910"), anyString(), any())).thenReturn(List.of());
+        when(rateRepo.findApplicable(eq("6109"), anyString(), any())).thenReturn(List.of());
+        when(rateRepo.findApplicable(eq("61"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        conditional("61", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0),
+                        conditional("61", 18.0, GstRateMaster.CONDITION_VALUE_ABOVE, 2500.0)));
+
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 999.0).getTotalRate());
+    }
+
+    @Test
+    void resolve_shouldNotResolve_whenOnlyOneBandIsPublishedAndPriceFallsOutsideIt() {
+        // Footwear: only the "not exceeding Rs 2500 per pair" band is published. A costlier
+        // pair must NOT silently borrow that rate.
+        product.setHsnCode("64");
+        when(rateRepo.findApplicable(eq("64"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(conditional("64", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0)));
+
+        GstRateResolver.Resolved r = resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 4999.0);
+        assertFalse(r.isFromMaster(), "a price outside the published band must not resolve");
+    }
+
+    @Test
+    void resolve_shouldNotResolve_whenConditionalRateButPriceUnknown() {
+        product.setHsnCode("61");
+        when(rateRepo.findApplicable(eq("61"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        conditional("61", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0),
+                        conditional("61", 18.0, GstRateMaster.CONDITION_VALUE_ABOVE, 2500.0)));
+
+        assertTrue(resolver.findRate("61", LocalDate.of(2026, 8, 6), null).isEmpty(),
+                "without a price neither band can be confirmed");
+    }
+
+    @Test
+    void resolve_shouldNotResolve_whenHeadingHasSeveralUnconditionalRates() {
+        // e.g. rice: 5% pre-packaged vs nil loose. Price cannot tell these apart.
+        product.setHsnCode("1006");
+        when(rateRepo.findApplicable(eq("1006"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        rate("1006", 5.0, LocalDate.of(2025, 9, 22), null),
+                        rate("1006", 0.0, LocalDate.of(2025, 9, 22), null)));
+
+        assertTrue(resolver.findRate("1006", LocalDate.of(2026, 8, 6), 399.0).isEmpty());
+    }
 }

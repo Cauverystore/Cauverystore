@@ -232,7 +232,7 @@ public class GstInvoiceService {
             LocalDate supplyDate = order.getCreatedAt() != null
                     ? order.getCreatedAt().toLocalDate() : LocalDate.now();
             double gstPct = gstRateResolver
-                    .resolve(p, Boolean.TRUE.equals(inv.getIsInterState()), supplyDate)
+                    .resolve(p, Boolean.TRUE.equals(inv.getIsInterState()), supplyDate, oi.getPrice())
                     .getTotalRate();
             double itemValue = oi.getPrice() * oi.getQuantity();
             double taxable = itemValue * retainedFactor;

@@ -37,8 +37,10 @@ import java.util.Map;
  * changed, so restarting does not churn the tables. Every run is recorded in
  * master_update_logs with counts, which is what makes a later code revision traceable.
  *
- * Deliberately does NOT load GST rates - the portal publishes classification codes only,
- * and rates are entered/verified separately (see GstRateMaster).
+ * The classification codes (HSN, units, states) come from the GSTN portal, which does not
+ * publish rates. Rates come from a separate seed extracted from the CBIC notifications and
+ * are loaded here too, but only ever as proposals plus the subset the seed can justify
+ * approving outright - see loadGstRates and demoteStaleAutoVerified.
  */
 @Service
 public class GstMasterDataLoader {
@@ -47,6 +49,9 @@ public class GstMasterDataLoader {
 
     /** Bump when the committed master files are refreshed from the portal. */
     private static final String MASTER_VERSION = "1.0 (portal last-updated 2026-06-24)";
+
+    /** Marks a verification the loader performed itself, so it can withdraw its own later. */
+    private static final String AUTO_VERIFIER = "CBIC master data import";
 
     /** Bump when the rate seed is regenerated from a newer CBIC notification. */
     private static final String RATE_SOURCE_VERSION =
@@ -102,14 +107,15 @@ public class GstMasterDataLoader {
     /**
      * Seeds gst_rate_master from the CBIC Ready Reckoner extract.
      *
-     * A heading with exactly one published rate is loaded VERIFIED - it is the government's
-     * own stated rate and there is nothing to decide. A heading carrying several rates
-     * (rice 5% vs nil by packaging, apparel 5% vs 18% by price) is loaded UNVERIFIED,
-     * because which one applies depends on the goods rather than the code, and the resolver
-     * must not pick one arbitrarily.
+     * A heading is loaded VERIFIED only when the rate can be settled without reading the goods
+     * description: either it publishes a single rate, or it publishes a complete pair of value
+     * bands (apparel is 5% up to Rs 2500 per piece and 18% above, which the resolver decides
+     * from the selling price). Anything else - rice at 5% pre-packaged versus nil loose, or
+     * footwear where only the lower band is published - is loaded UNVERIFIED, because the
+     * resolver must not pick one arbitrarily.
      *
-     * Only inserts where the (hsn, rate, effectiveFrom) row is absent, so an admin's later
-     * edits and verifications are never overwritten by a restart.
+     * Inserts are keyed on (hsn, rate, effectiveFrom, condition), so an admin's later edits
+     * and verifications are never overwritten by a restart.
      */
     private int loadGstRates() {
         List<JsonNode> rows = readArray("master-data/gst_rate_seed.json");
@@ -118,6 +124,19 @@ public class GstMasterDataLoader {
         Map<String, List<GstRateMaster>> existing = new HashMap<>();
         rateRepo.findAll().forEach(r ->
                 existing.computeIfAbsent(r.getHsnCode(), k -> new ArrayList<>()).add(r));
+
+        // Every (hsn, rate, effectiveFrom, condition) the current seed is willing to stand behind.
+        java.util.Set<String> seedVerified = new java.util.HashSet<>();
+        java.util.Set<String> seedHeadings = new java.util.HashSet<>();
+        for (JsonNode n : rows) {
+            String h = text(n, "hsnCode");
+            if (h == null || n.get("gstRate") == null || text(n, "effectiveFrom") == null) continue;
+            seedHeadings.add(h);
+            if (GstRateMaster.STATUS_VERIFIED.equals(text(n, "status"))) {
+                seedVerified.add(rateKey(h, n.get("gstRate").asDouble(),
+                        text(n, "effectiveFrom"), text(n, "conditionType")));
+            }
+        }
 
         List<GstRateMaster> toSave = new ArrayList<>();
         int inserted = 0, ambiguous = 0;
@@ -129,12 +148,19 @@ public class GstMasterDataLoader {
 
             double rate = rateNode.asDouble();
             LocalDate from = LocalDate.parse(fromStr);
-            boolean isAmbiguous = n.hasNonNull("ambiguous") && n.get("ambiguous").asBoolean();
+            // The seed decides status: a heading the resolver can settle on its own (a single
+            // unconditional rate, or a complete value-banded pair) arrives VERIFIED; anything
+            // needing a human to read the goods description arrives UNVERIFIED.
+            boolean isAmbiguous = !GstRateMaster.STATUS_VERIFIED.equals(text(n, "status"));
             if (isAmbiguous) ambiguous++;
 
+            String seedCondition = text(n, "conditionType");
             boolean present = existing.getOrDefault(hsn, List.of()).stream()
                     .anyMatch(r -> Double.compare(r.getGstRate(), rate) == 0
-                            && from.equals(r.getEffectiveFrom()));
+                            && from.equals(r.getEffectiveFrom())
+                            && java.util.Objects.equals(
+                                    r.getConditionType() == null ? GstRateMaster.CONDITION_NONE : r.getConditionType(),
+                                    seedCondition == null ? GstRateMaster.CONDITION_NONE : seedCondition));
             if (present) continue;
 
             GstRateMaster r = new GstRateMaster();
@@ -144,8 +170,13 @@ public class GstMasterDataLoader {
             r.setStatus(isAmbiguous ? GstRateMaster.STATUS_UNVERIFIED : GstRateMaster.STATUS_VERIFIED);
             r.setSource(text(n, "source"));
             r.setNotes(text(n, "notes"));
+            String ctype = text(n, "conditionType");
+            r.setConditionType(ctype != null ? ctype : GstRateMaster.CONDITION_NONE);
+            if (n.hasNonNull("thresholdAmount")) r.setThresholdAmount(n.get("thresholdAmount").asDouble());
+            r.setThresholdUnit(text(n, "thresholdUnit"));
+            r.setConditionText(text(n, "conditionText"));
             if (!isAmbiguous) {
-                r.setVerifiedBy("CBIC master data import");
+                r.setVerifiedBy(AUTO_VERIFIER);
                 r.setVerifiedAt(LocalDateTime.now());
             }
             toSave.add(r);
@@ -153,21 +184,74 @@ public class GstMasterDataLoader {
         }
         if (!toSave.isEmpty()) rateRepo.saveAll(toSave);
 
-        if (inserted > 0) {
+        int demoted = demoteStaleAutoVerified(existing, seedVerified, seedHeadings);
+
+        if (inserted > 0 || demoted > 0) {
             MasterUpdateLog entry = new MasterUpdateLog();
             entry.setFileName("gst_rate_seed.json");
             entry.setVersion(RATE_SOURCE_VERSION);
             entry.setRowsLoaded(rows.size());
             entry.setRowsInserted(inserted);
-            entry.setRowsUpdated(0);
+            entry.setRowsUpdated(demoted);
             entry.setStatus("SUCCESS");
             entry.setChangesDetected(inserted + " rate rows inserted; " + ambiguous
-                    + " left UNVERIFIED because the heading carries more than one rate");
+                    + " left UNVERIFIED because the heading carries more than one rate; "
+                    + demoted + " previously auto-verified rows demoted for review");
             logRepo.save(entry);
         }
-        log.info("GST rates: {} rows in file, {} inserted ({} ambiguous held for review)",
-                rows.size(), inserted, ambiguous);
+        log.info("GST rates: {} rows in file, {} inserted ({} ambiguous held for review), {} demoted",
+                rows.size(), inserted, ambiguous, demoted);
         return rows.size();
+    }
+
+    /**
+     * Withdraws automatic verification from rows an earlier, less careful seed had approved.
+     *
+     * The first seed marked a heading VERIFIED whenever it carried a single published rate.
+     * That was wrong for value-banded goods: footwear (ch. 64) publishes only the "not
+     * exceeding Rs 2500 per pair" band, so a lone 5% row was auto-approved and a Rs 4,999
+     * pair would have been charged 5% instead of 18%. Fixing the seed alone does not help an
+     * already-populated database, because the load is insert-only - the stale approval would
+     * sit there forever, charging the wrong rate.
+     *
+     * Only rows this loader itself approved are touched. A rate a human verified is never
+     * overridden: their sign-off outranks the generator's guess.
+     */
+    private int demoteStaleAutoVerified(Map<String, List<GstRateMaster>> existing,
+                                        java.util.Set<String> seedVerified,
+                                        java.util.Set<String> seedHeadings) {
+        List<GstRateMaster> demote = new ArrayList<>();
+        for (List<GstRateMaster> perHsn : existing.values()) {
+            for (GstRateMaster r : perHsn) {
+                if (!r.isVerified() || !AUTO_VERIFIER.equals(r.getVerifiedBy())) continue;
+                if (!seedHeadings.contains(r.getHsnCode())) continue;
+                String key = rateKey(r.getHsnCode(), r.getGstRate(),
+                        r.getEffectiveFrom() == null ? null : r.getEffectiveFrom().toString(),
+                        r.getConditionType());
+                if (seedVerified.contains(key)) continue;
+
+                r.setStatus(GstRateMaster.STATUS_UNVERIFIED);
+                r.setVerifiedBy(null);
+                r.setVerifiedAt(null);
+                r.setNotes((r.getNotes() == null || r.getNotes().isBlank() ? "" : r.getNotes() + " | ")
+                        + "Auto-verification withdrawn on " + LocalDate.now()
+                        + ": the current CBIC extract no longer supports approving this rate "
+                        + "without review (the heading's rate may depend on sale value or goods description).");
+                demote.add(r);
+            }
+        }
+        if (!demote.isEmpty()) {
+            rateRepo.saveAll(demote);
+            log.warn("Demoted {} auto-verified GST rates to UNVERIFIED - they need review before "
+                    + "they will be charged again.", demote.size());
+        }
+        return demote.size();
+    }
+
+    private static String rateKey(String hsn, double rate, String from, String conditionType) {
+        String cond = (conditionType == null || conditionType.isBlank())
+                ? GstRateMaster.CONDITION_NONE : conditionType;
+        return hsn + "|" + rate + "|" + from + "|" + cond;
     }
 
     private int loadHsn() {
