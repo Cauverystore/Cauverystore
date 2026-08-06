@@ -10,10 +10,25 @@ ended up attached to neighbouring codes, and some were cut off mid-phrase.
 `pdftotext -table` reconstructs the actual cell grid instead, which fixes the drift. This script
 parses that output so the seed can be checked and repaired against it.
 
-Sources (committed under master-data/cbic-source/):
-  09-2025-CTR-eng.pdf  Schedules I-VII, the taxable rates. Rates are CGST halves, so the
-                       total GST is double the schedule rate (Schedule I 2.5% -> 5%).
+Reads the two BASE notifications only:
+  09-2025-CTR-eng.pdf  Schedules I-VI, the taxable rates as at 22-09-2025. Rates are CGST
+                       halves, so the total GST is double the schedule rate (Schedule I
+                       2.5% -> 5%).
   10-2025-CTR-eng.pdf  The exemption list, i.e. everything at nil.
+
+It does NOT read the amending notifications also committed alongside them:
+  19-2025-CTR-Eng.pdf  eff. 01-02-2026. Moved pan masala and tobacco to 40%, added biris at
+                       18%, and omitted Schedule VII entirely.
+  CTR-E-updated.pdf    Notification 01/2026, eff. 01-05-2026. Re-cut the beverage headings
+                       under 2202 into eight-digit codes at 5% and 40%.
+Those are applied to the seed directly, and their rows carry the later effectiveFrom dates.
+So a row dated 2026-02-01 or 2026-05-01 will not match anything here - that is expected, not
+a fault in the seed. Anything else that fails to match is worth looking at.
+
+Also present but NOT a rate notification, and no business of this parser:
+  central-tax-02-gst-10062026.pdf  Notification 02/2026-Central Tax, which empowers the GST
+                       Appellate Tribunal's Principal Bench to hear appeals. Filed here for
+                       provenance only; it sets no rates.
 
 Usage:
     python parse_cbic_notifications.py            # print a summary
@@ -35,9 +50,14 @@ EXEMPTION_PDF = "10-2025-CTR-eng.pdf"
 SCHEDULE_PDF = "09-2025-CTR-eng.pdf"
 
 # Schedule rates are CGST; the customer-facing total is twice that.
+#
+# Schedule VII (14% CGST = 28%) is deliberately absent. Notification 19/2025 clause (c)
+# omitted it outright with effect from 01-02-2026, moving its contents - pan masala and the
+# tobacco headings - into Schedule III at 40%. Parsing it would hand the repair tool a set of
+# 28% descriptions that no longer apply to anything, and 28% is not a GST 2.0 slab at all.
 SCHEDULE_TOTAL_RATE = {
     "I": 5.0, "II": 18.0, "III": 40.0, "IV": 3.0,
-    "V": 0.25, "VI": 1.5, "VII": 28.0,
+    "V": 0.25, "VI": 1.5,
 }
 
 ENTRY_RE = re.compile(r"^\s*(\d+)\.\s+(.*)$")

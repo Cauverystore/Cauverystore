@@ -3,49 +3,25 @@
     "hsnCode": "01012100",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
-    "status": "UNVERIFIED",
+    "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Live horses",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
-  },
-  {
-    "hsnCode": "01012100",
-    "gstRate": 0.0,
-    "effectiveFrom": "2025-09-22",
-    "status": "UNVERIFIED",
-    "conditionType": "NONE",
-    "thresholdAmount": null,
-    "thresholdUnit": null,
-    "conditionText": "Live horses 2.5% 2. 0202, 0203, 0204, 0205, 0206, 0207, 0208, 0209, 0210 All goods, other than fresh or chilled, pre -packaged and labelled 2.5% 3. 0303, 0304, 0305, 0306, 0307, 0308, 0309 All goods, other than fresh or chilled, pre -packaged and labelled 2.5% 4. 0402 Milk and cream, concentrated or",
-    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+    "notes": "Single published rate for this heading once the spurious nil rows from the earlier extraction were removed; nothing to choose between."
   },
   {
     "hsnCode": "010129",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
-    "status": "UNVERIFIED",
+    "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Live horses",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
-  },
-  {
-    "hsnCode": "010129",
-    "gstRate": 0.0,
-    "effectiveFrom": "2025-09-22",
-    "status": "UNVERIFIED",
-    "conditionType": "NONE",
-    "thresholdAmount": null,
-    "thresholdUnit": null,
-    "conditionText": "Live horses 2.5% 2. 0202, 0203, 0204, 0205, 0206, 0207, 0208, 0209, 0210 All goods, other than fresh or chilled, pre -packaged and labelled 2.5% 3. 0303, 0304, 0305, 0306, 0307, 0308, 0309 All goods, other than fresh or chilled, pre -packaged and labelled 2.5% 4. 0402 Milk and cream, concentrated or",
-    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+    "notes": "Single published rate for this heading once the spurious nil rows from the earlier extraction were removed; nothing to choose between."
   },
   {
     "hsnCode": "0102",
