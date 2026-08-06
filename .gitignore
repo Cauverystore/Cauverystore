@@ -12,3 +12,7 @@ frontend/build/
 .vercel
 .env*
 .claude/
+
+# Python bytecode from the master-data tooling
+__pycache__/
+*.pyc
