@@ -11,6 +11,7 @@ const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
 const Checkout = () => {
   const [step, setStep] = useState(0);
   const [cartItems, setCartItems] = useState([]);
+  const [serverTax, setServerTax] = useState(null);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState("");
@@ -41,6 +42,7 @@ const Checkout = () => {
           api.get("/api/users/addresses").catch(() => ({ data: [] }))
         ]);
         setCartItems(cartRes.data?.items || []);
+        setServerTax(typeof cartRes.data?.tax === "number" ? cartRes.data.tax : null);
         const addrs = Array.isArray(addrRes.data) ? addrRes.data : [];
         setSavedAddresses(addrs);
         if (addrs.length > 0) {
@@ -79,7 +81,12 @@ const Checkout = () => {
   const delivery = subtotal >= 500 ? 0 : 40;
   const giftCharge = giftWrap ? 49 : 0;
   const taxableAmount = subtotal - discount;
-  const tax = Math.round(Math.max(taxableAmount, 0) * 0.12 * 100) / 100;
+  // Same as the cart: the server resolves GST per item from its HSN, so display that
+  // rather than a flat rate, or the amount shown here would not be the amount charged.
+  const retained = subtotal > 0 ? Math.max(taxableAmount, 0) / subtotal : 0;
+  const tax = serverTax !== null
+    ? Math.round(serverTax * retained * 100) / 100
+    : Math.round(Math.max(taxableAmount, 0) * 0.12 * 100) / 100;
   const total = Math.max(subtotal - discount + delivery + giftCharge + tax, 0);
 
   const validateStep = () => {
@@ -510,7 +517,7 @@ const Checkout = () => {
               <span>&#8377;{(subtotal - discount).toFixed(2)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-              <span style={{ color: "var(--color-text-secondary)" }}>Tax (12%)</span>
+              <span style={{ color: "var(--color-text-secondary)" }}>GST</span>
               <span>&#8377;{tax.toFixed(2)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>

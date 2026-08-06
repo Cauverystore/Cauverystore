@@ -207,7 +207,14 @@ const Cart = () => {
 
   const delivery = subtotal >= 500 ? 0 : 40;
   const taxableAmount = subtotal - discount;
-  const tax = Math.round(Math.max(taxableAmount, 0) * 0.12 * 100) / 100;
+  // GST comes from the server, which resolves each item's rate from its HSN - the old flat
+  // 12% here was both wrong per-product and no longer a valid GST slab. The server figure
+  // covers the undiscounted basket, so scale it by the share of value actually being paid.
+  const serverTax = typeof cart?.tax === "number" ? cart.tax : null;
+  const retained = subtotal > 0 ? Math.max(taxableAmount, 0) / subtotal : 0;
+  const tax = serverTax !== null
+    ? Math.round(serverTax * retained * 100) / 100
+    : Math.round(Math.max(taxableAmount, 0) * 0.12 * 100) / 100;
   const finalTotal = Math.max(subtotal - discount + delivery + tax, 0);
   const shippingProgress = Math.min((subtotal / 500) * 100, 100);
 
@@ -469,7 +476,7 @@ const Cart = () => {
             </div>
 
             <div className="cart-summary-row">
-              <span className="cart-summary-row-label">Tax (12%)</span>
+              <span className="cart-summary-row-label">GST</span>
               <span className="cart-summary-row-value">&#8377;{tax.toFixed(2)}</span>
             </div>
 

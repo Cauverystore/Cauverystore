@@ -26,15 +26,18 @@ public class CartServiceImpl implements CartService {
     private final UserRepository userRepo;
     private final ProductService productService;
 
+    private final GstRateResolver gstRateResolver;
+
     public CartServiceImpl(CartRepository cartRepo, CartItemRepository cartItemRepo,
                            ProductRepository productRepo, JwtUtil jwtUtil, UserRepository userRepo,
-                           ProductService productService) {
+                           ProductService productService, GstRateResolver gstRateResolver) {
         this.cartRepo = cartRepo;
         this.cartItemRepo = cartItemRepo;
         this.productRepo = productRepo;
         this.jwtUtil = jwtUtil;
         this.userRepo = userRepo;
         this.productService = productService;
+        this.gstRateResolver = gstRateResolver;
     }
 
     // Mirrors OrderService.placeOrder's line-pricing exactly - whatever the cart shows the
@@ -186,7 +189,17 @@ public class CartServiceImpl implements CartService {
         result.put("totalItems", activeItems.stream().mapToInt(i -> (int) i.get("quantity")).sum());
         result.put("totalPrice", activeItems.stream().mapToDouble(i -> (double) i.get("subtotal")).sum());
         result.put("deliveryCharge", activeItems.isEmpty() || (double) result.get("totalPrice") >= 500 ? 0.0 : 40.0);
-        result.put("tax", Math.round((double) result.get("totalPrice") * 0.12 * 100.0) / 100.0);
+        // Tax shown in the cart must be the tax checkout will actually charge, so it is
+        // resolved per item from its HSN via the same rate master OrderService uses rather
+        // than applying a flat percentage to the basket.
+        double cartTax = 0.0;
+        for (CartItem item : cart.getItems()) {
+            if (item.isSavedForLater()) continue;
+            double lineValue = effectiveUnitPrice(item) * item.getQuantity();
+            double rate = gstRateResolver.resolve(item.getProduct(), false, LocalDate.now()).getTotalRate();
+            cartTax += Math.round(lineValue * rate / 100.0 * 100.0) / 100.0;
+        }
+        result.put("tax", Math.round(cartTax * 100.0) / 100.0);
         result.put("finalAmount", Math.round(((double) result.get("totalPrice") + (double) result.get("deliveryCharge") + (double) result.get("tax")) * 100.0) / 100.0);
         result.put("freeDeliveryEligible", (double) result.get("totalPrice") >= 500);
         result.put("deliveryDate", LocalDate.now().plusDays(4).toString());
