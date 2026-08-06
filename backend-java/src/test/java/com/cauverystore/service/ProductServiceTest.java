@@ -34,6 +34,7 @@ class ProductServiceTest {
     @Mock private InventoryRepository inventoryRepo;
     @Mock private ProductDiscountRepository productDiscountRepo;
     @Mock private OrderItemRepository orderItemRepo;
+    @Mock private HsnClassificationService hsnClassificationService;
 
     @InjectMocks
     private ProductService productService;

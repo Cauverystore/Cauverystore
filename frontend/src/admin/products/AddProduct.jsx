@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { compressImages } from "../../utils/compressImage";
+import HsnPicker from "./HsnPicker";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -262,7 +263,11 @@ const AddProduct = () => {
         </div>
         <div style={S.grid2}>
           {fld("Barcode/UPC", "barcode", "text", null, "12-13 digits")}
-          {fld("HSN Code", "hsnCode")}
+          <HsnPicker
+            value={form.hsnCode}
+            onChange={(code) => set("hsnCode", code)}
+            categoryId={form.category || null}
+          />
         </div>
         {/*
           Staples are taxed on packaging, not just on what they are - rice is 5% pre-packaged

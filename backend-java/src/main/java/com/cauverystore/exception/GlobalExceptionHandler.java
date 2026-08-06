@@ -62,6 +62,19 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
+    /**
+     * Declared explicitly rather than left to the RuntimeException handler below, which
+     * replaces any message over 200 characters with "An unexpected error occurred". This one
+     * has to survive intact: it names the offending code and tells the seller how to find the
+     * right one, and swallowing that would leave them staring at a save button that fails for
+     * no stated reason.
+     */
+    @ExceptionHandler(com.cauverystore.service.HsnClassificationService.UnknownHsnException.class)
+    public ResponseEntity<Map<String, String>> handleUnknownHsn(
+            com.cauverystore.service.HsnClassificationService.UnknownHsnException ex) {
+        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
         String msg = ex.getMessage();

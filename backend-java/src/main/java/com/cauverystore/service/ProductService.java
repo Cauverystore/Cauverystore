@@ -43,6 +43,8 @@ public class ProductService {
     private final ProductDiscountRepository productDiscountRepo;
     private final OrderItemRepository orderItemRepo;
 
+    private final HsnClassificationService hsnClassificationService;
+
     public ProductService(ProductRepository productRepo, CategoryRepository catRepo,
                           ProductImageRepository productImageRepo, DiscountRepository discountRepo,
                           ProductVariantRepository variantRepo,
@@ -51,8 +53,10 @@ public class ProductService {
                           WishlistRepository wishlistRepo,
                           InventoryRepository inventoryRepo,
                           ProductDiscountRepository productDiscountRepo,
-                          OrderItemRepository orderItemRepo) {
+                          OrderItemRepository orderItemRepo,
+                          HsnClassificationService hsnClassificationService) {
         this.productRepo = productRepo;
+        this.hsnClassificationService = hsnClassificationService;
         this.catRepo = catRepo;
         this.productImageRepo = productImageRepo;
         this.discountRepo = discountRepo;
@@ -365,7 +369,12 @@ public class ProductService {
                 product.setSlug(slugify(product.getName()));
             }
         }
-        return productRepo.save(product);
+        // A code that is not in the official master resolves to no published rate, so the
+        // product would be taxed at the fallback on every sale while its invoice looked normal.
+        hsnClassificationService.validate(product);
+        Product saved = productRepo.save(product);
+        hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
+        return saved;
     }
 
     public Product getProductForAdmin(Long productId) {
@@ -411,7 +420,10 @@ public class ProductService {
           if (product.getPrePackagedAndLabelled() != null) {
               existing.setPrePackagedAndLabelled(product.getPrePackagedAndLabelled());
           }
-          return productRepo.save(existing);
+          hsnClassificationService.validate(existing);
+          Product saved = productRepo.save(existing);
+          hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
+          return saved;
     }
 
     @Transactional
