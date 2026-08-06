@@ -84,7 +84,11 @@ public class InvoicePdfService {
             totalsTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
             totalsTable.addCell(new Phrase("Subtotal:", normalFont));
             totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getSubtotal()), normalFont));
-            totalsTable.addCell(new Phrase("Tax (12%):", normalFont));
+            // Not "Tax (12%)": an order's lines can carry different rates - 5% on staples, 18%
+            // on electronics - so naming a single rate here stated something untrue on a tax
+            // document. The per-rate breakdown belongs on the GST invoice, which has the HSN
+            // and place of supply to justify it.
+            totalsTable.addCell(new Phrase("GST:", normalFont));
             totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getTax()), normalFont));
             totalsTable.addCell(new Phrase("Delivery:", normalFont));
             totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getDeliveryCharge()), normalFont));

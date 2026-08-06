@@ -110,6 +110,16 @@ public class OrderService {
      * correct either way.
      */
     private double computeGstOnItems(List<OrderItem> items, double subTotal, double discount) {
+        return computeGstOnItems(items, subTotal, discount, LocalDate.now());
+    }
+
+    /**
+     * @param supplyDate the date whose rates apply. Today for a new order; the order's own date
+     *                   when re-deriving tax for an old one, so a reprint cannot silently
+     *                   restate history at rates that came in afterwards.
+     */
+    private double computeGstOnItems(List<OrderItem> items, double subTotal, double discount,
+                                     LocalDate supplyDate) {
         if (items == null || items.isEmpty()) return 0.0;
         double retainedFactor = subTotal > 0 ? Math.max(subTotal - discount, 0) / subTotal : 0.0;
 
@@ -119,7 +129,7 @@ public class OrderService {
             double taxable = Math.round(lineValue * retainedFactor * 100.0) / 100.0;
             // Unit price, not line value: apparel/footwear bands are "per piece"/"per pair".
             GstRateResolver.Resolved resolved = gstRateResolver.resolve(
-                    item.getProduct(), false, LocalDate.now(), item.getPrice());
+                    item.getProduct(), false, supplyDate, item.getPrice());
             tax += Math.round(taxable * resolved.getTotalRate() / 100.0 * 100.0) / 100.0;
         }
         return Math.round(tax * 100.0) / 100.0;
@@ -353,13 +363,23 @@ public class OrderService {
 
         double subtotal = order.getItems().stream()
                 .mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
-        double deliveryCharge = subtotal >= 500 ? 0 : 40;
-        double tax = Math.round(subtotal * 0.12 * 100.0) / 100.0;
+
+        // Report what the customer was actually charged. This used to recompute tax at a flat
+        // 12% and re-add up the total, so the invoice could disagree with the payment - it
+        // ignored the resolved GST rates, any discount, and the delivery charge on the order.
+        LocalDate supplyDate = order.getCreatedAt() != null
+                ? order.getCreatedAt().toLocalDate() : LocalDate.now();
+        double tax = order.getTax() != null
+                ? order.getTax()
+                : computeGstOnItems(order.getItems(), subtotal, 0.0, supplyDate);
+        double deliveryCharge = order.getDeliveryCharge() != null
+                ? order.getDeliveryCharge()
+                : (subtotal >= 500 ? 0 : 40);
 
         invoice.setSubtotal(subtotal);
         invoice.setTax(tax);
         invoice.setDeliveryCharge(deliveryCharge);
-        invoice.setTotalAmount(subtotal + tax + deliveryCharge);
+        invoice.setTotalAmount(order.getTotalAmount());
         invoice.setPaymentMethod(order.getPaymentMethod());
 
         List<Map<String, Object>> items = order.getItems().stream().map(i -> {
