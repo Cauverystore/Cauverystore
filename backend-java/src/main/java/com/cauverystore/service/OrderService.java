@@ -46,6 +46,7 @@ public class OrderService {
     private final CouponService couponService;
     private final ReturnRequestRepository returnRequestRepo;
     private final PaymentService paymentService;
+    private final PaymentRepository paymentRepo;
     private final CreditNoteService creditNoteService;
     private final CourierTrackingService courierTrackingService;
 
@@ -64,6 +65,7 @@ public class OrderService {
                         CouponService couponService,
                         ReturnRequestRepository returnRequestRepo,
                         PaymentService paymentService,
+                        PaymentRepository paymentRepo,
                         CreditNoteService creditNoteService,
                         CourierTrackingService courierTrackingService) {
         this.orderRepo = orderRepo;
@@ -87,6 +89,7 @@ public class OrderService {
         this.couponService = couponService;
         this.returnRequestRepo = returnRequestRepo;
         this.paymentService = paymentService;
+        this.paymentRepo = paymentRepo;
         this.creditNoteService = creditNoteService;
         this.courierTrackingService = courierTrackingService;
     }
@@ -578,6 +581,34 @@ public class OrderService {
             }
             orderRepo.save(order);
         }
+
+        // Online-payment checkouts verify the Razorpay charge (POST /api/payment/verify) BEFORE
+        // this order exists, so the Payment row is saved with order_id still NULL. Link it here by
+        // the Razorpay identifiers the frontend echoes back, or the payment is never associated
+        // with the order - and a later refund (which looks the payment up by order id) would then
+        // silently record "COMPLETED" without ever moving money back.
+        String rzpOrderId = (String) body.get("razorpayOrderId");
+        String rzpPaymentId = (String) body.get("paymentId");
+        if ((rzpOrderId != null && !rzpOrderId.isBlank()) || (rzpPaymentId != null && !rzpPaymentId.isBlank())) {
+            Optional<Payment> paymentOpt = rzpOrderId != null && !rzpOrderId.isBlank()
+                    ? paymentRepo.findByRazorpayOrderId(rzpOrderId) : Optional.empty();
+            if (paymentOpt.isEmpty() && rzpPaymentId != null && !rzpPaymentId.isBlank()) {
+                paymentOpt = paymentRepo.findByRazorpayPaymentId(rzpPaymentId);
+            }
+            if (paymentOpt.isPresent()) {
+                Payment payment = paymentOpt.get();
+                if (Math.abs(payment.getAmount() - order.getTotalAmount()) > 1.0) {
+                    throw new RuntimeException("Paid amount does not match the order total");
+                }
+                if (payment.getOrderId() == null) {
+                    payment.setOrderId(order.getId());
+                    paymentRepo.save(payment);
+                    order.setPaid(true);
+                    orderRepo.save(order);
+                }
+            }
+        }
+
         Map<String, Object> result = new HashMap<>();
         result.put("id", order.getId());
         result.put("status", order.getStatus());

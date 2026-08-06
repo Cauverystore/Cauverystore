@@ -185,9 +185,14 @@ public class PaymentService {
 
         Optional<Payment> paymentOpt = paymentRepo.findByOrderId(orderId);
         if (paymentOpt.isEmpty() || paymentOpt.get().getRazorpayPaymentId() == null) {
-            // Order was never actually charged through Razorpay (e.g. COD) - nothing for the
-            // gateway to reverse, so the bookkeeping record alone is the whole story.
-            refund.setStatus("COMPLETED");
+            // A paid order should always have a Razorpay payment linked to it (placeOrder links the
+            // captured payment to the order). Every caller only invokes this after order.isPaid(),
+            // so reaching here without a linked payment means the linkage is broken - do NOT mark
+            // the refund COMPLETED, or the customer's money is never actually returned while the
+            // books claim it was. Surface it as FAILED for manual intervention instead.
+            refund.setStatus("FAILED");
+            refund.setReason((reason != null ? reason + " " : "")
+                    + "[No linked Razorpay payment found for paid order - refund not executed]");
             return refundRepo.save(refund);
         }
 

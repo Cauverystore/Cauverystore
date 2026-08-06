@@ -43,6 +43,17 @@
             <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- AuthIntegrationTest boots the full Spring context against a real database
+                         (DatabaseConfig requires PG* vars / SPRING_DATASOURCE_URL). Exclude it from
+                         the default `mvn test` run so CI/unit builds stay green; run it explicitly
+                         with `mvn test -Dgroups=integration` against a live database. -->
+                    <excludedGroups>integration</excludedGroups>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
