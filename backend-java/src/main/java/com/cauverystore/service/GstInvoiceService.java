@@ -53,6 +53,9 @@ import java.util.stream.Collectors;
 @Service
 public class GstInvoiceService {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(GstInvoiceService.class);
+
     private final GstInvoiceRepository invoiceRepo;
     private final GstInvoiceItemRepository itemRepo;
     private final GstSyncQueueRepository syncRepo;
@@ -344,11 +347,22 @@ public class GstInvoiceService {
 
         // Generate IRN and QR code if e-invoicing applies (turnover >= 5Cr)
         if (einvoicingApplicable) {
-            Map<String, Object> irnResp = gstnClient.generateIrn(inv);
-            inv.setIrn((String) irnResp.get("irn"));
-            inv.setQrCode((String) irnResp.get("qrCode"));
-            inv.setAckNo((String) irnResp.get("ackNo"));
-            inv.setAckDate((String) irnResp.get("ackDate"));
+            try {
+                Map<String, Object> irnResp = gstnClient.generateIrn(inv);
+                inv.setIrn((String) irnResp.get("irn"));
+                inv.setQrCode((String) irnResp.get("qrCode"));
+                inv.setAckNo((String) irnResp.get("ackNo"));
+                inv.setAckDate((String) irnResp.get("ackDate"));
+            } catch (RuntimeException e) {
+                // The portal being down must not stop the sale or lose the invoice - but the
+                // invoice must not pretend to be registered either. It is stored without an
+                // IRN and queued, so the gap is visible and the scheduler can retry. A
+                // fabricated IRN would look registered to everyone downstream, and a buyer
+                // could claim input credit against a number the portal never issued.
+                log.error("IRN registration failed for invoice {} - storing it unregistered and "
+                        + "queueing for retry: {}", inv.getInvoiceNumber(), e.getMessage());
+                inv.setStatus("PENDING_IRN");
+            }
         }
 
         // Generate e-way bill when the consignment value exceeds ₹50,000 (Rule 138).

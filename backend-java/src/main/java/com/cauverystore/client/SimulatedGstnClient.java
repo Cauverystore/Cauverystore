@@ -3,6 +3,7 @@ package com.cauverystore.client;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.util.QrCodeUtil;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -15,6 +16,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @Component
+// The default. LiveGstnClient takes over only when gstn.simulated is explicitly false, so a
+// missing or malformed setting leaves the store simulating rather than half-talking to the
+// real portal.
+@ConditionalOnProperty(name = "gstn.simulated", havingValue = "true", matchIfMissing = true)
 public class SimulatedGstnClient implements GstnClient {
 
     @Override
