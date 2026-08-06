@@ -18,9 +18,13 @@ public class GstInvoice {
     @Column(nullable = false, unique = true)
     private String invoiceNumber;
 
+    @Column(columnDefinition = "TEXT")
     private String irn;
+    @Column(columnDefinition = "TEXT")
     private String qrCode;
+    @Column(columnDefinition = "TEXT")
     private String ackNo;
+    @Column(columnDefinition = "TEXT")
     private String ackDate;
 
     @Column(nullable = false)
@@ -30,6 +34,7 @@ public class GstInvoice {
 
     private Long customerId;
 
+    @Column(columnDefinition = "TEXT")
     private String customerEmail;
 
     @Column(nullable = false)
@@ -38,6 +43,7 @@ public class GstInvoice {
     @Column(nullable = false)
     private String buyerGstin;
 
+    @Column(columnDefinition = "TEXT")
     private String buyerName;
     @Column(columnDefinition = "TEXT")
     private String buyerAddress;
@@ -73,6 +79,7 @@ public class GstInvoice {
     private Double tcsAmount;
     private Double tcsRate = 1.0;
 
+    @Column(columnDefinition = "TEXT")
     private String placeOfSupply;
     private Boolean isInterState = false;
 
@@ -102,6 +109,7 @@ public class GstInvoice {
     private Boolean reverseCharge = false;
     private String invoiceCopyType;
     private String supplyType = "GOODS";
+    @Column(columnDefinition = "TEXT")
     private String sellerLegalName;
     @Column(columnDefinition = "TEXT")
     private String sellerAddress;
@@ -112,7 +120,9 @@ public class GstInvoice {
     private Double discountAmount;
     private Double deliveryCharge;
     private Boolean einvoicingRequired = false;
+    @Column(columnDefinition = "TEXT")
     private String supplierSignature;
+    @Column(columnDefinition = "TEXT")
     private String signedBy;
     private LocalDate signatureDate;
 
