@@ -437,6 +437,15 @@ public class GstInvoiceController {
         return ResponseEntity.ok(gstService.getGstr1Data(userId, startDate, endDate));
     }
 
+    @GetMapping("/gstr1/segregated")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> getGstr1Segregated(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                                @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(gstService.getGstr1Segregated(userId, startDate, endDate));
+    }
+
     @GetMapping("/tcs")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> getTcsSummary(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

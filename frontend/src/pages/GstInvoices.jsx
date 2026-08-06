@@ -98,6 +98,7 @@ const GstInvoices = () => {
   const [stats, setStats] = useState(null);
   const [summary, setSummary] = useState(null);
   const [gstr1, setGstr1] = useState([]);
+  const [gstr1Seg, setGstr1Seg] = useState(null);
   const [gstr3b, setGstr3b] = useState(null);
   const [creditNotes, setCreditNotes] = useState([]);
   const [cnTotalPages, setCnTotalPages] = useState(0);
@@ -195,8 +196,12 @@ const GstInvoices = () => {
   const fetchGstr1 = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/gst/gstr1");
-      setGstr1(res.data || []);
+      const [flatRes, segRes] = await Promise.allSettled([
+        api.get("/api/gst/gstr1"),
+        api.get("/api/gst/gstr1/segregated"),
+      ]);
+      if (flatRes.status === "fulfilled") setGstr1(flatRes.value.data || []);
+      if (segRes.status === "fulfilled") setGstr1Seg(segRes.value.data);
     } catch { setGstr1([]); }
     setLoading(false);
   };
@@ -549,36 +554,57 @@ const GstInvoices = () => {
         {activeTab === "gstr1" && (
           <>
             <div className="gst-toolbar">
-              <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>GSTR-1 data for the current month. This data can be exported for filing.</p>
+              <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>
+                GSTR-1 for {gstr1Seg ? `${gstr1Seg.periodStart} to ${gstr1Seg.periodEnd}` : "the current month"}, segregated by filing table (4A B2B / 6A B2CL / 6B B2CS / 6C nil-rated). Export the flat ledger for filing.
+              </p>
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.json", "json")}><FileJson size={14} /> JSON</button>
             </div>
-            {gstr1.length === 0 ? (
+            {!gstr1Seg || !gstr1Seg["4A"] ? (
               <p style={{ color: "#94a3b8" }}>No invoice data available for GSTR-1.</p>
             ) : (
-              <div className="gst-table-wrap">
-                <table className="gst-table">
-                  <thead><tr><th>Invoice #</th><th>Date</th><th>Buyer</th><th>GSTIN</th><th>Taxable</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th><th>Place</th><th>Inter</th><th>IRN</th></tr></thead>
-                  <tbody>
-                    {gstr1.map((row, i) => (
-                      <tr key={i}>
-                        <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{row.invoiceNumber}</td>
-                        <td>{row.invoiceDate}</td>
-                        <td>{row.buyerName}</td>
-                        <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{row.buyerGstin}</td>
-                        <td>&#8377;{(row.taxableAmount || 0).toFixed(2)}</td>
-                        <td>&#8377;{(row.cgst || 0).toFixed(2)}</td>
-                        <td>&#8377;{(row.sgst || 0).toFixed(2)}</td>
-                        <td>&#8377;{(row.igst || 0).toFixed(2)}</td>
-                        <td style={{ fontWeight: 600 }}>&#8377;{(row.totalAmount || 0).toFixed(2)}</td>
-                        <td style={{ fontSize: "0.78rem" }}>{row.placeOfSupply}</td>
-                        <td>{row.isInterState ? "Yes" : "No"}</td>
-                        <td style={{ fontSize: "0.72rem" }}>{row.irn || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {["4A", "6A", "6B", "6C"].map((key) => {
+                  const sec = gstr1Seg[key];
+                  return (
+                    <div key={key} style={{ marginBottom: "1.5rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+                        <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600, color: "#0f172a" }}>{key} · {sec.label}</h3>
+                        <span style={{ fontSize: "0.78rem", color: "#64748b", background: "#f1f5f9", borderRadius: 999, padding: "0.15rem 0.6rem" }}>{sec.count} invoices</span>
+                        <span style={{ fontSize: "0.78rem", color: "#0E5C5C", background: "#f0fdfa", borderRadius: 999, padding: "0.15rem 0.6rem" }}>Taxable &#8377;{(sec.totalTaxableAmount || 0).toFixed(2)}</span>
+                        <span style={{ fontSize: "0.78rem", color: "#0E5C5C", background: "#f0fdfa", borderRadius: 999, padding: "0.15rem 0.6rem" }}>Tax &#8377;{(sec.totalTax || 0).toFixed(2)}</span>
+                      </div>
+                      {sec.invoices.length === 0 ? (
+                        <p style={{ color: "#94a3b8", fontSize: "0.85rem" }}>No invoices in this table.</p>
+                      ) : (
+                        <div className="gst-table-wrap">
+                          <table className="gst-table">
+                            <thead><tr><th>Invoice #</th><th>Date</th><th>Buyer</th><th>GSTIN</th><th>Taxable</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th><th>Place</th><th>Inter</th><th>IRN</th></tr></thead>
+                            <tbody>
+                              {sec.invoices.map((row, i) => (
+                                <tr key={i}>
+                                  <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{row.invoiceNumber}</td>
+                                  <td>{row.invoiceDate}</td>
+                                  <td>{row.buyerName}</td>
+                                  <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{row.buyerGstin}</td>
+                                  <td>&#8377;{(row.taxableAmount || 0).toFixed(2)}</td>
+                                  <td>&#8377;{(row.cgst || 0).toFixed(2)}</td>
+                                  <td>&#8377;{(row.sgst || 0).toFixed(2)}</td>
+                                  <td>&#8377;{(row.igst || 0).toFixed(2)}</td>
+                                  <td style={{ fontWeight: 600 }}>&#8377;{(row.totalAmount || 0).toFixed(2)}</td>
+                                  <td style={{ fontSize: "0.78rem" }}>{row.placeOfSupply}</td>
+                                  <td>{row.isInterState ? "Yes" : "No"}</td>
+                                  <td style={{ fontSize: "0.72rem" }}>{row.irn || "-"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
             )}
           </>
         )}

@@ -38,6 +38,11 @@ public class Order extends BaseEntity {
     private Long sellerId;
     private LocalDateTime labelGeneratedAt;
 
+    /** Buyer GSTIN captured at checkout for B2B supplies (null/blank for B2C). */
+    private String buyerGstin;
+    /** Registered legal name supplied with the buyer GSTIN for B2B supplies. */
+    private String buyerLegalName;
+
     @java.lang.SuppressWarnings("all")
     public User getUser() {
         return this.user;
@@ -126,6 +131,16 @@ public class Order extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public LocalDateTime getLabelGeneratedAt() {
         return this.labelGeneratedAt;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getBuyerGstin() {
+        return this.buyerGstin;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getBuyerLegalName() {
+        return this.buyerLegalName;
     }
 
     @JsonIgnoreProperties({"orders", "cart", "addresses", "password", "refreshToken", "role", "email", "phone"})
@@ -219,5 +234,15 @@ public class Order extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setLabelGeneratedAt(final LocalDateTime labelGeneratedAt) {
         this.labelGeneratedAt = labelGeneratedAt;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setBuyerGstin(final String buyerGstin) {
+        this.buyerGstin = buyerGstin;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setBuyerLegalName(final String buyerLegalName) {
+        this.buyerLegalName = buyerLegalName;
     }
 }

@@ -117,6 +117,9 @@ public class GstInvoice {
     private String invoiceType = "B2C";
     private Boolean itcEligible = false;
 
+    /** True for B2C inter-state invoices whose taxable value exceeds ₹1,00,000 (GSTR-1 6A / B2CL). */
+    private Boolean b2cLarge = false;
+
     private Double discountAmount;
     private Double deliveryCharge;
     private Boolean einvoicingRequired = false;
@@ -263,6 +266,8 @@ public class GstInvoice {
     public void setInvoiceType(String invoiceType) { this.invoiceType = invoiceType; }
     public Boolean getItcEligible() { return itcEligible; }
     public void setItcEligible(Boolean itcEligible) { this.itcEligible = itcEligible; }
+    public Boolean getB2cLarge() { return b2cLarge; }
+    public void setB2cLarge(Boolean b2cLarge) { this.b2cLarge = b2cLarge; }
     public Double getDiscountAmount() { return discountAmount; }
     public void setDiscountAmount(Double discountAmount) { this.discountAmount = discountAmount; }
     public Double getDeliveryCharge() { return deliveryCharge; }

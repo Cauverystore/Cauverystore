@@ -9,6 +9,7 @@ import com.cauverystore.exception.InvalidOrderStatusException;
 import com.cauverystore.exception.OrderNotFoundException;
 import com.cauverystore.exception.UserNotFoundException;
 import com.cauverystore.repository.*;
+import com.cauverystore.util.GstComplianceUtil;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -556,9 +557,27 @@ public class OrderService {
         address.setState((String) body.get("state"));
         address.setPincode((String) body.get("pincode"));
 
+        // B2B supply: optional buyer GSTIN + registered legal name captured at checkout. When a
+        // GSTIN is supplied it must be structurally valid, otherwise the B2B classification and
+        // the buyer's ITC claim would rest on a bad identifier.
+        String buyerGstin = (String) body.get("buyerGstin");
+        String buyerLegalName = (String) body.get("buyerLegalName");
+        boolean wantsB2b = buyerGstin != null && !buyerGstin.isBlank()
+                && !"URP".equalsIgnoreCase(buyerGstin.trim());
+        if (wantsB2b) {
+            GstComplianceUtil.validateGstin(buyerGstin);
+        }
+
         String paymentMethod = (String) body.getOrDefault("paymentMethod", "COD");
         String promoCode = (String) body.get("promoCode");
         Order order = placeOrder(user.getUsername(), address, paymentMethod, promoCode);
+        if (wantsB2b) {
+            order.setBuyerGstin(buyerGstin.trim().toUpperCase());
+            if (buyerLegalName != null && !buyerLegalName.isBlank()) {
+                order.setBuyerLegalName(buyerLegalName.trim());
+            }
+            orderRepo.save(order);
+        }
         Map<String, Object> result = new HashMap<>();
         result.put("id", order.getId());
         result.put("status", order.getStatus());
@@ -584,7 +603,13 @@ public class OrderService {
                 }
             }
             if (sellerGstin != null) {
-                gstInvoiceService.generateInvoiceFromOrder(orderId, sellerId, sellerGstin, null);
+                // Pass the buyer GSTIN captured at checkout so auto-generated invoices for B2B
+                // supplies are classified as B2B (ITC-eligible) instead of defaulting to B2C/URP.
+                String buyerGstin = order.getBuyerGstin();
+                if (buyerGstin == null || buyerGstin.isBlank() || "URP".equalsIgnoreCase(buyerGstin.trim())) {
+                    buyerGstin = null;
+                }
+                gstInvoiceService.generateInvoiceFromOrder(orderId, sellerId, sellerGstin, buyerGstin);
             }
         } catch (Exception e) {
             // Auto-generation is best-effort; seller can manually generate later

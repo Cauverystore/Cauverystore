@@ -10,7 +10,11 @@ public class GstComplianceUtil {
     private static final String BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     private static final double E_INVOICE_THRESHOLD = 5_00_00_000;
-    private static final double E_WAYBILL_THRESHOLD = 1_00_000;
+    // E-way bill threshold (Rule 138 CGST Rules, 2017): single consignment > ₹50,000 (Notification 74/2018 – Central Tax).
+    private static final double E_WAYBILL_THRESHOLD = 50_000;
+    // B2C Large (B2CL) threshold for GSTR-1 table 6A: inter-state supplies to unregistered persons
+    // with invoice value exceeding ₹1,00,000 (53rd GST Council / Notification 12/2024 – Central Tax, effective 01-Aug-2024).
+    private static final double B2C_LARGE_THRESHOLD = 1_00_000;
 
     /** Maximum invoice number length permitted under Rule 46 (16 characters). */
     public static final int MAX_INVOICE_NUMBER_LENGTH = 16;
@@ -90,6 +94,32 @@ public class GstComplianceUtil {
             return "B2B";
         }
         return "B2C";
+    }
+
+    /**
+     * Classifies an inter-state B2C invoice as B2C LARGE (B2CL) when its taxable value
+     * exceeds ₹1,00,000, or B2C SMALL (B2CS) otherwise. Only meaningful for B2C, inter-state.
+     */
+    public static boolean isB2cLarge(Boolean isInterState, Double taxableAmount) {
+        return Boolean.TRUE.equals(isInterState)
+                && taxableAmount != null
+                && taxableAmount > B2C_LARGE_THRESHOLD;
+    }
+
+    public static double getB2cLargeThreshold() {
+        return B2C_LARGE_THRESHOLD;
+    }
+
+    /**
+     * Nil-rated / exempt / non-GST supply: a taxable line that carries no output tax.
+     * Reported under GSTR-1 table 6C.
+     */
+    public static boolean isNilRated(Double taxableAmount, Double cgstAmount, Double sgstAmount, Double igstAmount) {
+        if (taxableAmount == null || taxableAmount <= 0) return false;
+        double tax = (cgstAmount != null ? cgstAmount : 0)
+                + (sgstAmount != null ? sgstAmount : 0)
+                + (igstAmount != null ? igstAmount : 0);
+        return tax <= 0;
     }
 
     public static boolean requiresEInvoice(Double annualTurnover) {

@@ -155,7 +155,12 @@ public class GstInvoiceService {
         inv.setBuyerGstin(isB2b ? buyerGstin.toUpperCase() : "URP");
         inv.setInvoiceType(isB2b ? "B2B" : "B2C");
         inv.setItcEligible(isB2b);
-        inv.setBuyerName(buyer != null ? buyer.getFullName() : "Walk-in Customer");
+        // B2B invoices carry the recipient's registered legal name (captured at checkout / manual
+        // generation); B2C invoices use the account holder's name as the consumer.
+        String buyerLegalName = order.getBuyerLegalName();
+        inv.setBuyerName(isB2b && buyerLegalName != null && !buyerLegalName.isBlank()
+                ? buyerLegalName.trim()
+                : (buyer != null ? buyer.getFullName() : "Walk-in Customer"));
         Address addr = order.getAddress();
 
         // Billing address (Req 3) is taken from the order's saved address. In this marketplace the
@@ -167,7 +172,11 @@ public class GstInvoiceService {
         inv.setDeliveryAddress(buyerAddress);
 
         String sellerStateCode = config != null && config.getStateCode() != null ? config.getStateCode() : "33";
-        String buyerStateCode = addr != null ? getStateCode(addr.getState()) : "33";
+        // For B2B the recipient's registered state is the GSTIN state code (authoritative), not the
+        // address field; for B2C it derives from the shipping address state.
+        String buyerStateCode = isB2b
+                ? inv.getBuyerGstin().substring(0, 2)
+                : (addr != null ? getStateCode(addr.getState()) : "33");
         String resolvedDeliveryStateCode = deliveryStateCode != null && !deliveryStateCode.isBlank()
                 ? deliveryStateCode.trim()
                 : buyerStateCode;
@@ -220,7 +229,16 @@ public class GstInvoiceService {
             GstInvoiceItem item = new GstInvoiceItem();
             item.setInvoice(inv);
             item.setProductName(p != null ? p.getName() : "Product");
-            item.setHsnCode(p != null && p.getHsnCode() != null ? p.getHsnCode() : "999999");
+            // Mandatory HSN/SAC classification for every line item (Rule 46 & HSN Annexure, CGST
+            // Rules): refuse to issue the invoice when the product lacks a classification code
+            // instead of silently defaulting to a generic code.
+            String hsn = p != null ? p.getHsnCode() : null;
+            if (hsn == null || hsn.isBlank()) {
+                throw new IllegalArgumentException("HSN/SAC code is mandatory for line item '"
+                        + (p != null ? p.getName() : "Product")
+                        + "'. Set the HSN/SAC on the product in the catalogue before generating the invoice.");
+            }
+            item.setHsnCode(hsn.trim());
             item.setQuantity(oi.getQuantity());
             item.setUnitPrice(oi.getPrice());
             item.setTaxableValue(taxable);
@@ -290,6 +308,7 @@ public class GstInvoiceService {
 
         inv.setItems(items);
         inv.setTaxableAmount(Math.round(taxableAmount * 100.0) / 100.0);
+        inv.setB2cLarge(GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount()));
         inv.setTotalTax(Math.round((totalCgst + totalSgst + totalIgst) * 100.0) / 100.0);
         inv.setCgstAmount(Math.round(totalCgst * 100.0) / 100.0);
         inv.setSgstAmount(Math.round(totalSgst * 100.0) / 100.0);
@@ -316,8 +335,8 @@ public class GstInvoiceService {
             inv.setAckDate((String) irnResp.get("ackDate"));
         }
 
-        // Generate e-way bill if taxable amount exceeds ₹50,000
-        if (taxableAmount > 50000) {
+        // Generate e-way bill when the consignment value exceeds ₹50,000 (Rule 138).
+        if (GstComplianceUtil.requiresEWayBill(taxableAmount)) {
             Map<String, Object> ewbResp = gstnClient.generateEwayBill(inv);
             inv.setEwayBillNumber((String) ewbResp.get("ewayBillNumber"));
             Object validUpto = ewbResp.get("validUpto");
@@ -620,17 +639,96 @@ public class GstInvoiceService {
             entry.put("isInterState", inv.getIsInterState());
             entry.put("invoiceType", inv.getInvoiceType());
             entry.put("itcEligible", inv.getItcEligible());
-            // B2C interstate supplies > ₹2.5L must carry buyer GSTIN and full address (GSTR-1 B2CL / 6B).
+            // B2C interstate supplies > ₹1,00,000 are B2CL (GSTR-1 6A) and must carry buyer GSTIN + full address.
             boolean b2cInterstateAboveLimit = "B2C".equals(inv.getInvoiceType())
                     && Boolean.TRUE.equals(inv.getIsInterState())
-                    && nz(inv.getTaxableAmount()) > 250000;
+                    && nz(inv.getTaxableAmount()) > GstComplianceUtil.getB2cLargeThreshold();
             entry.put("b2cInterstateAboveLimit", b2cInterstateAboveLimit);
             entry.put("requiresBuyerGstin", b2cInterstateAboveLimit);
+            entry.put("b2cLarge", inv.getB2cLarge());
             entry.put("irn", inv.getIrn());
             entry.put("status", inv.getStatus());
             gstr1.add(entry);
         }
         return gstr1;
+    }
+
+    /**
+     * GSTR-1 data segregated into the filing tables that actually matter:
+     * 4A = B2B (recipient has a valid GSTIN, ITC-eligible),
+     * 6A = B2CL (B2C large - inter-state consumer sales above ₹1,00,000),
+     * 6B = B2CS (B2C small - remaining consumer supplies),
+     * 6C = Nil-rated / exempt / non-GST supplies.
+     */
+    public Map<String, Object> getGstr1Segregated(Long sellerId, LocalDate startDate, LocalDate endDate) {
+        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
+                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
+        LocalDate from = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate to = endDate != null ? endDate : LocalDate.now();
+        List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, from, to);
+
+        List<Map<String, Object>> b2b = new ArrayList<>();
+        List<Map<String, Object>> b2cl = new ArrayList<>();
+        List<Map<String, Object>> b2cs = new ArrayList<>();
+        List<Map<String, Object>> nilRated = new ArrayList<>();
+
+        for (GstInvoice inv : invoices) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("invoiceNumber", inv.getInvoiceNumber());
+            row.put("invoiceDate", inv.getInvoiceDate().toString());
+            row.put("buyerGstin", inv.getBuyerGstin());
+            row.put("buyerName", inv.getBuyerName());
+            row.put("taxableAmount", inv.getTaxableAmount());
+            row.put("cgst", inv.getCgstAmount());
+            row.put("sgst", inv.getSgstAmount());
+            row.put("igst", inv.getIgstAmount());
+            row.put("totalTax", inv.getTotalTax());
+            row.put("totalAmount", inv.getTotalAmount());
+            row.put("placeOfSupply", inv.getPlaceOfSupply());
+            row.put("isInterState", inv.getIsInterState());
+            row.put("invoiceType", inv.getInvoiceType());
+            row.put("b2cLarge", inv.getB2cLarge());
+            row.put("irn", inv.getIrn());
+            row.put("status", inv.getStatus());
+
+            boolean isB2b = inv.getBuyerGstin() != null && !"URP".equalsIgnoreCase(inv.getBuyerGstin().trim());
+            if (isB2b) {
+                b2b.add(row);
+            } else if (Boolean.TRUE.equals(inv.getIsInterState())
+                    && nz(inv.getTaxableAmount()) > GstComplianceUtil.getB2cLargeThreshold()) {
+                b2cl.add(row);
+            } else if (GstComplianceUtil.isNilRated(inv.getTaxableAmount(),
+                    inv.getCgstAmount(), inv.getSgstAmount(), inv.getIgstAmount())) {
+                nilRated.add(row);
+            } else {
+                b2cs.add(row);
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("periodStart", from.toString());
+        result.put("periodEnd", to.toString());
+        result.put("sellerGstin", sellerGstin);
+        result.put("4A", gstr1Section("B2B (With GSTIN) - Table 4A", b2b));
+        result.put("6A", gstr1Section("B2CL (B2C Large - inter-state > \u20B91L) - Table 6A", b2cl));
+        result.put("6B", gstr1Section("B2CS (B2C Small) - Table 6B", b2cs));
+        result.put("6C", gstr1Section("Nil-rated / Exempt / Non-GST - Table 6C", nilRated));
+        return result;
+    }
+
+    private Map<String, Object> gstr1Section(String label, List<Map<String, Object>> rows) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("label", label);
+        m.put("invoices", rows);
+        double taxable = 0, tax = 0;
+        for (Map<String, Object> r : rows) {
+            taxable += nz((Double) r.get("taxableAmount"));
+            tax += nz((Double) r.get("totalTax"));
+        }
+        m.put("count", rows.size());
+        m.put("totalTaxableAmount", Math.round(taxable * 100.0) / 100.0);
+        m.put("totalTax", Math.round(tax * 100.0) / 100.0);
+        return m;
     }
 
     public Map<String, Object> getTcsSummary(Long sellerId, LocalDate startDate, LocalDate endDate) {

@@ -22,6 +22,9 @@ const Checkout = () => {
   const [showNewAddr, setShowNewAddr] = useState(false);
   const [emiOption, setEmiOption] = useState(false);
   const [giftWrap, setGiftWrap] = useState(false);
+  const [b2b, setB2b] = useState(false);
+  const [gstin, setGstin] = useState("");
+  const [buyerLegalName, setBuyerLegalName] = useState("");
 
   const [shipping, setShipping] = useState({
     fullName: "", phone: "", street: "", city: "", state: "", pincode: ""
@@ -87,6 +90,12 @@ const Checkout = () => {
       if (!shipping.city?.trim()) return "City is required";
       if (!shipping.state?.trim()) return "State is required";
       if (!shipping.pincode?.trim() || shipping.pincode.length < 5) return "Valid pincode is required";
+      if (b2b) {
+        const g = gstin.trim().toUpperCase();
+        if (g.length !== 15) return "GSTIN must be exactly 15 characters";
+        if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(g)) return "Invalid GSTIN format";
+        if (!buyerLegalName.trim()) return "Registered legal name is required for a GST invoice";
+      }
     }
     return null;
   };
@@ -123,7 +132,9 @@ const Checkout = () => {
       paymentMethod: paymentMethod,
       subtotal, discount, delivery, total,
       ...(promoApplied && { promoCode: promoCode.trim() }),
-      ...(giftWrap && { giftWrap: true })
+      ...(giftWrap && { giftWrap: true }),
+      ...(b2b && gstin.trim() && { buyerGstin: gstin.trim().toUpperCase() }),
+      ...(b2b && buyerLegalName.trim() && { buyerLegalName: buyerLegalName.trim() })
     };
 
     setPlacing(true);
@@ -286,6 +297,36 @@ const Checkout = () => {
                 </button>}
               </div>
             )}
+
+            <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--color-border-light)" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", marginBottom: "0.75rem" }}>
+                <input type="checkbox" checked={b2b} onChange={(e) => setB2b(e.target.checked)} />
+                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>I have a GSTIN (Business / B2B invoice)</span>
+              </label>
+              {b2b && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                    <label htmlFor="shipping-gstin" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>
+                      GSTIN <span style={{ color: "var(--color-error)" }}>*</span>
+                    </label>
+                    <input id="shipping-gstin" name="gstin" value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                      placeholder="22AAAAA0000A1Z5" maxLength={15}
+                      style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none", textTransform: "uppercase" }} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                    <label htmlFor="shipping-legal-name" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>
+                      Registered Legal Name <span style={{ color: "var(--color-error)" }}>*</span>
+                    </label>
+                    <input id="shipping-legal-name" name="buyerLegalName" value={buyerLegalName} onChange={(e) => setBuyerLegalName(e.target.value)}
+                      placeholder="As registered with GST"
+                      style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none" }} />
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>
+                    Your invoice will be issued as a B2B tax invoice in your business name with ITC-eligible tax.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         );
 

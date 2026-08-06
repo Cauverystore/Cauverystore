@@ -77,12 +77,31 @@ class GstComplianceUtilTest {
     }
 
     @Test
-    void requiresEWayBill_shouldUseOneLakhThreshold() {
-        assertFalse(GstComplianceUtil.requiresEWayBill(1_00_000.0));
-        assertFalse(GstComplianceUtil.requiresEWayBill(50_000.0));
+    void requiresEWayBill_shouldUseFiftyThousandThreshold() {
+        assertFalse(GstComplianceUtil.requiresEWayBill(50_000.0));   // at threshold -> not required
+        assertFalse(GstComplianceUtil.requiresEWayBill(49_999.99));
         assertFalse(GstComplianceUtil.requiresEWayBill(null));
-        assertTrue(GstComplianceUtil.requiresEWayBill(1_00_001.0));
+        assertTrue(GstComplianceUtil.requiresEWayBill(50_000.01));
+        assertTrue(GstComplianceUtil.requiresEWayBill(1_00_000.0));
         assertTrue(GstComplianceUtil.requiresEWayBill(2_50_000.0));
+    }
+
+    @Test
+    void isB2cLarge_shouldUseOneLakhInterstateThreshold() {
+        assertFalse(GstComplianceUtil.isB2cLarge(false, 2_00_000.0));  // intra-state never large
+        assertFalse(GstComplianceUtil.isB2cLarge(true, 1_00_000.0));    // at threshold -> not large
+        assertFalse(GstComplianceUtil.isB2cLarge(true, null));
+        assertFalse(GstComplianceUtil.isB2cLarge(null, 2_00_000.0));
+        assertTrue(GstComplianceUtil.isB2cLarge(true, 1_00_000.01));
+        assertTrue(GstComplianceUtil.isB2cLarge(true, 2_50_000.0));
+    }
+
+    @Test
+    void isNilRated_shouldDetectZeroTaxSupplies() {
+        assertTrue(GstComplianceUtil.isNilRated(1_000.0, 0.0, 0.0, 0.0));
+        assertFalse(GstComplianceUtil.isNilRated(1_000.0, 60.0, 60.0, 0.0));
+        assertFalse(GstComplianceUtil.isNilRated(0.0, 0.0, 0.0, 0.0));
+        assertFalse(GstComplianceUtil.isNilRated(null, 0.0, 0.0, 0.0));
     }
 
     @Test
