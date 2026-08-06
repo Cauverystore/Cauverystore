@@ -375,25 +375,25 @@
     "hsnCode": "0303",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
-    "status": "UNVERIFIED",
-    "conditionType": "NONE",
+    "status": "VERIFIED",
+    "conditionType": "PRE_PACKAGED",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods, other than fresh or chilled, pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+    "notes": "Rate depends only on whether the goods are pre-packaged and labelled, which the product record states, so the resolver can choose without a human."
   },
   {
     "hsnCode": "0303",
     "gstRate": 0.0,
     "effectiveFrom": "2025-09-22",
-    "status": "UNVERIFIED",
-    "conditionType": "NONE",
+    "status": "VERIFIED",
+    "conditionType": "NOT_PRE_PACKAGED",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods, other than fresh or chilled, and other than pre- packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+    "notes": "Rate depends only on whether the goods are pre-packaged and labelled, which the product record states, so the resolver can choose without a human."
   },
   {
     "hsnCode": "0304",
@@ -423,25 +423,25 @@
     "hsnCode": "0305",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
-    "status": "UNVERIFIED",
-    "conditionType": "NONE",
+    "status": "VERIFIED",
+    "conditionType": "PRE_PACKAGED",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods, other than fresh or chilled, pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+    "notes": "Rate depends only on whether the goods are pre-packaged and labelled, which the product record states, so the resolver can choose without a human."
   },
   {
     "hsnCode": "0305",
     "gstRate": 0.0,
     "effectiveFrom": "2025-09-22",
-    "status": "UNVERIFIED",
-    "conditionType": "NONE",
+    "status": "VERIFIED",
+    "conditionType": "NOT_PRE_PACKAGED",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods, other than fresh or chilled, and other than pre- packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+    "notes": "Rate depends only on whether the goods are pre-packaged and labelled, which the product record states, so the resolver can choose without a human."
   },
   {
     "hsnCode": "0306",

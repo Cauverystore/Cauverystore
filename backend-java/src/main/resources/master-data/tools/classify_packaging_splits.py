@@ -49,6 +49,13 @@ def strip_packaging(text):
     t = OTHER_THAN_PACK_RE.sub("", text)
     t = PACK_RE.sub("", t)
     t = re.sub(r"[\s,;]+", " ", t)
+    t = t.strip(" ,;")
+    # The two sides are joined differently - "..., pre-packaged and labelled" against
+    # "..., and other than pre-packaged and labelled" - so removing the clause leaves a
+    # dangling conjunction on one side only. That is punctuation, not a difference in the
+    # goods, and treating it as one wrongly held back headings like 0303 and 0305 where
+    # packaging really is the only thing that separates the rates.
+    t = re.sub(r"\s+(and|or)$", "", t)
     return t.strip(" ,;")
 
 
