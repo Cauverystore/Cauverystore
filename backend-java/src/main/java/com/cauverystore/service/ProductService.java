@@ -180,6 +180,9 @@ public class ProductService {
         if (file.isEmpty()) { result.put("error", "File is empty"); return result; }
         int loaded = 0, errors = 0;
         List<String> imageErrors = new ArrayList<>();
+        // Why each row failed, not just how many did. A bare count leaves a seller with a
+        // spreadsheet they cannot correct.
+        List<String> rowErrors = new ArrayList<>();
         try {
             org.apache.poi.ss.usermodel.Workbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook(file.getInputStream());
             org.apache.poi.ss.usermodel.Sheet sheet = wb.getSheetAt(0);
@@ -221,7 +224,12 @@ public class ProductService {
                         p.setBadges(new ArrayList<>(List.of(badgeStr)));
                     }
                     p.setSellerId(sellerId); p.setActive(true); p.setProductStatus("published");
+                    // Bulk rows go straight to "published", so an unchecked code here reaches
+                    // real sales. This path used to skip validation entirely, which made the
+                    // spreadsheet the easiest way to get a bad HSN into the catalogue.
+                    hsnClassificationService.validate(p);
                     Product saved = productRepo.save(p);
+                    hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
 
                     // Handle image URLs from columns 25 (PrimaryImageURL) and 26 (AdditionalImages)
                     boolean firstImage = true;
@@ -251,11 +259,17 @@ public class ProductService {
                     }
 
                     loaded++;
-                } catch (Exception e) { errors++; }
+                } catch (Exception e) {
+                    errors++;
+                    String label = getCell(row, 1);
+                    rowErrors.add("Row " + (r + 1) + (label != null && !label.isBlank() ? " (" + label + ")" : "")
+                            + ": " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+                }
             }
             wb.close();
         } catch (Exception e) { result.put("error", "Invalid file format. Download the template."); return result; }
         result.put("total", loaded); result.put("errors", errors);
+        if (!rowErrors.isEmpty()) result.put("rowErrors", rowErrors);
         result.put("message", "Uploaded " + loaded + " products" + (errors > 0 ? " (" + errors + " errors)" : ""));
         if (!imageErrors.isEmpty()) {
             result.put("imageErrors", imageErrors);

@@ -31,15 +31,22 @@ const BulkUpload = () => {
       const total = data.total || 0;
       const errors = data.errors || 0;
       const imgErrors = data.imageErrors || [];
-      let msg = `Uploaded ${total} product${total !== 1 ? "s" : ""} successfully.`;
+      const rowErrors = data.rowErrors || [];
+      let msg = `Uploaded ${total} product${total !== 1 ? "s" : ""}.`;
+      // Rejected rows are not a warning to bury next to the image notices - those rows are
+      // simply not in the catalogue, and the seller has to fix and re-upload them.
+      if (errors > 0) {
+        msg += ` ${errors} row${errors !== 1 ? "s were" : " was"} rejected and not imported.`;
+      }
       if (imgErrors.length > 0) {
         msg += ` (${imgErrors.length} image warning${imgErrors.length !== 1 ? "s" : ""})`;
       }
       setResult({
-        type: "success",
+        type: errors > 0 ? "partial" : "success",
         message: msg,
         total,
         errors,
+        rowErrors,
         imageErrors: imgErrors,
       });
     } catch (err) {
@@ -131,12 +138,18 @@ const BulkUpload = () => {
           {result && (
             <div style={{
               padding: "12px 16px", borderRadius: "6px", marginBottom: "1rem",
-              background: result.type === "success" ? "#EAF7EE" : "#fef2f2",
-              color: result.type === "success" ? "#146C43" : "#dc2626",
-              border: `1px solid ${result.type === "success" ? "#CFE8D6" : "#fecaca"}`,
+              background: result.type === "success" ? "#EAF7EE" : result.type === "partial" ? "#fffbeb" : "#fef2f2",
+              color: result.type === "success" ? "#146C43" : result.type === "partial" ? "#92400e" : "#dc2626",
+              border: `1px solid ${result.type === "success" ? "#CFE8D6" : result.type === "partial" ? "#fde68a" : "#fecaca"}`,
               fontSize: "0.9rem"
             }}>
-              {result.type === "success" ? "\u2713 " : "\u2717 "}{result.message}
+              {result.type === "success" ? "\u2713 " : result.type === "partial" ? "\u26a0 " : "\u2717 "}{result.message}
+              {result.rowErrors && result.rowErrors.length > 0 && (
+                <div style={{ marginTop: "8px", fontSize: "0.8rem" }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Rows not imported:</div>
+                  {result.rowErrors.map((e, i) => <div key={i}>{e}</div>)}
+                </div>
+              )}
               {result.imageErrors && result.imageErrors.length > 0 && (
                 <div style={{ marginTop: "8px", fontSize: "0.8rem", color: "#b45309" }}>
                   {result.imageErrors.map((e, i) => <div key={i}>{e}</div>)}

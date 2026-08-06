@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -377,5 +378,65 @@ class ProductServiceTest {
         List<Product> result = productService.getFeaturedProducts();
 
         assertEquals(10, result.size());
+    }
+
+    private MultipartFile sheetWith(String name, String hsnCode) throws Exception {
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet();
+            sheet.createRow(0).createCell(0).setCellValue("header");
+            org.apache.poi.ss.usermodel.Row row = sheet.createRow(1);
+            row.createCell(1).setCellValue(name);
+            row.createCell(4).setCellValue("100");
+            row.createCell(5).setCellValue("5");
+            row.createCell(10).setCellValue(hsnCode);
+            wb.write(out);
+            return new org.springframework.mock.web.MockMultipartFile(
+                    "file", "products.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
+    }
+
+    @Test
+    void bulkUpload_shouldRejectARowWhoseHsnIsNotInTheOfficialMaster() throws Exception {
+        // The spreadsheet used to be the easiest way to get a bad code into the catalogue: it
+        // never called addProduct, so it skipped validation entirely - and bulk rows publish
+        // straight away, so the bad code reached real sales.
+        doThrow(new HsnClassificationService.UnknownHsnException("'123' is not an HSN code"))
+                .when(hsnClassificationService).validate(any());
+
+        Map<String, Object> result = productService.bulkUpload(sheetWith("Rice", "123"), 1L);
+
+        assertEquals(0, result.get("total"));
+        assertEquals(1, result.get("errors"));
+        verify(productRepo, never()).save(any());
+    }
+
+    @Test
+    void bulkUpload_shouldSayWhichRowFailedAndWhy() throws Exception {
+        // A bare error count leaves a seller with a spreadsheet they cannot correct.
+        doThrow(new HsnClassificationService.UnknownHsnException("'123' is not an HSN code"))
+                .when(hsnClassificationService).validate(any());
+
+        Map<String, Object> result = productService.bulkUpload(sheetWith("Rice", "123"), 1L);
+
+        @SuppressWarnings("unchecked")
+        List<String> rowErrors = (List<String>) result.get("rowErrors");
+        assertNotNull(rowErrors, "the reasons have to come back, not just the count");
+        assertEquals(1, rowErrors.size());
+        assertTrue(rowErrors.get(0).contains("Row 2"), "should point at the offending row");
+        assertTrue(rowErrors.get(0).contains("Rice"), "should name the product");
+        assertTrue(rowErrors.get(0).contains("123"), "should quote the rejected code");
+    }
+
+    @Test
+    void bulkUpload_shouldRememberTheAssignmentForAcceptedRows() throws Exception {
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetWith("Rice", "1006"), 1L);
+
+        assertEquals(1, result.get("total"));
+        verify(hsnClassificationService).rememberAssignment(any(), any());
     }
 }
