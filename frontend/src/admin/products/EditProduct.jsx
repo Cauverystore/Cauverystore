@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
+import ProductImagesSection from "./ProductImagesSection";
 
 const EditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const role = localStorage.getItem("role") || "";
   const [activeTab, setActiveTab] = useState(0);
   const [form, setForm] = useState({ name: "", description: "", category: "", brand: "", price: "", mrp: "", stock: "", sku: "" });
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ const EditProduct = () => {
         category: form.category ? { id: form.category } : null, brand: form.brand,
         price: parseFloat(form.price), mrp: parseFloat(form.mrp), stock: parseInt(form.stock), sku: form.sku,
       });
-      navigate("/admin/products");
+      navigate(role === "SELLER" ? "/seller/products" : "/admin/products");
     } catch (err) { alert("Failed to update product"); }
   };
 
@@ -96,7 +98,7 @@ const EditProduct = () => {
           <div className="form-group"><label>SKU</label><input name="sku" value={form.sku || ""} onChange={handleChange} style={inputStyle} /></div>
         </div>
       )}
-      {activeTab === 3 && <p style={{ color: "#475569" }}>Manage images from the product images page.</p>}
+      {activeTab === 3 && <ProductImagesSection productId={id} />}
       {activeTab === 4 && <p style={{ color: "#475569" }}>Manage variants from the product variants page.</p>}
       {activeTab === 5 && <p style={{ color: "#475569" }}>Manage discounts from the product discounts page.</p>}
 

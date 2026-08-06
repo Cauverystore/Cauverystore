@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import api from "../api/axios";
 import Pagination from "../components/Pagination";
 import { useNavigate } from "react-router-dom";
+import { imgUrl } from "../utils/images";
 
 const btnBase = {
   padding: "0.55rem 1rem",
@@ -331,7 +332,7 @@ const SellerProducts = () => {
                         />
                       </td>
                       <td style={tdStyle}>
-                        <img src={getImageSrc(p)} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
+                        <img src={imgUrl(getImageSrc(p))} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
                       </td>
                       <td style={{ ...tdStyle, fontWeight: 500 }}>{p.name}</td>
                       <td style={tdStyle}>{p.category?.name || "-"}</td>
