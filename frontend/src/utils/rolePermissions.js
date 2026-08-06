@@ -38,6 +38,7 @@ export function canAccessModule(role, module) {
     categories: ['ADMIN', 'SUPER_ADMIN'],
     brands: ['ADMIN', 'SUPER_ADMIN'],
     coupons: ['ADMIN', 'SUPER_ADMIN'],
+    gstRates: ['ADMIN', 'SUPER_ADMIN'],
     shipping: ['ADMIN', 'SUPER_ADMIN'],
     content: ['ADMIN', 'SUPER_ADMIN'],
     warehouses: ['ADMIN', 'SUPER_ADMIN'],

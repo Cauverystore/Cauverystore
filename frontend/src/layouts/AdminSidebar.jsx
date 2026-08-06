@@ -5,7 +5,7 @@ import { canAccessModule } from "../utils/rolePermissions";
 import {
   LayoutDashboard, BarChart3, Package, Tags, Building2, LayoutList,
   TrendingDown, Warehouse, Truck, FileText, Undo2, Zap,
-  ShoppingCart, CreditCard, Users, ClipboardList, Ticket, Ship,
+  ShoppingCart, CreditCard, Users, ClipboardList, Ticket, Ship, Percent,
   Star, HelpCircle, FileEdit, Bell, FileSpreadsheet, FolderArchive,
   Image, Mail, Trophy, ArrowUpDown, ShieldCheck, Settings, Shield,
 } from "lucide-react";
@@ -28,6 +28,7 @@ const allLinks = [
   { to: "/admin/customers", label: "Customers", icon: Users, module: "customers" },
   { to: "/admin/inventory", label: "Inventory", icon: ClipboardList, module: "inventory" },
   { to: "/admin/coupons", label: "Coupons", icon: Ticket, module: "coupons" },
+  { to: "/admin/gst-rates", label: "GST Rates", icon: Percent, module: "gstRates" },
   { to: "/admin/shipping", label: "Shipping", icon: Ship, module: "shipping" },
   { to: "/admin/reviews", label: "Reviews", icon: Star, module: "reviews" },
   { to: "/admin/qna", label: "Q&A", icon: HelpCircle, module: "qna" },

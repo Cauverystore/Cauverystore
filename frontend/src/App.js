@@ -85,6 +85,7 @@ const AdminCategories = lazy(() => import("./admin/categories/AdminCategories"))
 const AdminBrands = lazy(() => import("./admin/brands/AdminBrands"));
 const AdminInventory = lazy(() => import("./admin/inventory/AdminInventory"));
 const AdminCoupons = lazy(() => import("./admin/coupons/AdminCoupons"));
+const AdminGstRates = lazy(() => import("./admin/gst/AdminGstRates"));
 const AdminShipping = lazy(() => import("./admin/shipping/AdminShipping"));
 const AdminReviews = lazy(() => import("./admin/reviews/AdminReviews"));
 const AdminQna = lazy(() => import("./admin/qna/AdminQna"));
@@ -236,6 +237,7 @@ function App() {
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="brands" element={<AdminBrands />} />
             <Route path="coupons" element={<AdminCoupons />} />
+            <Route path="gst-rates" element={<AdminGstRates />} />
             <Route path="shipping" element={<AdminShipping />} />
             <Route path="reviews" element={<AdminReviews />} />
             <Route path="content" element={<AdminContent />} />
