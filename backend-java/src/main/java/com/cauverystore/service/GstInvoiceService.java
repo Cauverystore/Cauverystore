@@ -396,6 +396,8 @@ public class GstInvoiceService {
         // than looked up when it is printed, so a seller changing or removing their signature
         // later cannot silently alter every invoice they have already issued.
         sellerRegRepo.findByUserId(inv.getSellerId()).ifPresent(reg -> {
+            inv.setSellerBusinessType(reg.getBusinessType());
+            inv.setSellerBusinessCategory(reg.getBusinessCategory());
             inv.setSupplierSignatureImageUrl(reg.getSignatureImageUrl());
             if (reg.getAuthorisedSignatory() != null && !reg.getAuthorisedSignatory().isBlank()) {
                 inv.setSignedBy(reg.getAuthorisedSignatory());
@@ -671,6 +673,59 @@ public class GstInvoiceService {
         return gstr1ExportService.allSections(invoicesForPeriod(sellerId, startDate, endDate));
     }
 
+    /**
+     * GSTR-1 rows narrowed to one trade type and/or category.
+     *
+     * Filters on what was recorded on each invoice, not on the seller's current profile, so a
+     * report run today for last quarter returns the same rows it would have returned then.
+     */
+    public List<Map<String, Object>> getGstr1DataFiltered(Long sellerId, LocalDate startDate,
+                                                          LocalDate endDate, String businessType,
+                                                          String businessCategory) {
+        List<GstInvoice> invoices = invoicesForPeriod(sellerId, startDate, endDate).stream()
+                .filter(inv -> matches(inv.getSellerBusinessType(), businessType))
+                .filter(inv -> matches(inv.getSellerBusinessCategory(), businessCategory))
+                .toList();
+        return toGstr1Rows(invoices);
+    }
+
+    /**
+     * Taxable value and tax collected, grouped by the seller's trade type and category - which
+     * is the question these fields were collected to answer.
+     */
+    public List<Map<String, Object>> getGstBusinessSegmentSummary(Long sellerId, LocalDate startDate,
+                                                                  LocalDate endDate) {
+        Map<String, Map<String, Object>> bySegment = new LinkedHashMap<>();
+        for (GstInvoice inv : invoicesForPeriod(sellerId, startDate, endDate)) {
+            String type = inv.getSellerBusinessType() != null ? inv.getSellerBusinessType() : "Not stated";
+            String category = inv.getSellerBusinessCategory() != null
+                    ? inv.getSellerBusinessCategory() : "Not stated";
+            Map<String, Object> row = bySegment.computeIfAbsent(type + "|" + category, k -> {
+                Map<String, Object> fresh = new LinkedHashMap<>();
+                fresh.put("businessType", type);
+                fresh.put("businessCategory", category);
+                fresh.put("invoiceCount", 0);
+                fresh.put("taxableAmount", 0.0);
+                fresh.put("totalTax", 0.0);
+                return fresh;
+            });
+            row.put("invoiceCount", (Integer) row.get("invoiceCount") + 1);
+            row.put("taxableAmount", round2((Double) row.get("taxableAmount") + nz(inv.getTaxableAmount())));
+            row.put("totalTax", round2((Double) row.get("totalTax") + nz(inv.getTotalTax())));
+        }
+        return new ArrayList<>(bySegment.values());
+    }
+
+    /** Blank filter means "no filter"; otherwise compare ignoring case and spacing. */
+    private boolean matches(String recorded, String filter) {
+        if (filter == null || filter.isBlank()) return true;
+        return recorded != null && recorded.trim().equalsIgnoreCase(filter.trim());
+    }
+
+    private double round2(double v) {
+        return Math.round(v * 100.0) / 100.0;
+    }
+
     private List<GstInvoice> invoicesForPeriod(Long sellerId, LocalDate startDate, LocalDate endDate) {
         String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
@@ -681,12 +736,11 @@ public class GstInvoiceService {
     }
 
     public List<Map<String, Object>> getGstr1Data(Long sellerId, LocalDate startDate, LocalDate endDate) {
-        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
-                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
-        List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(
-                sellerGstin,
-                startDate != null ? startDate : LocalDate.now().withDayOfMonth(1),
-                endDate != null ? endDate : LocalDate.now());
+        return toGstr1Rows(invoicesForPeriod(sellerId, startDate, endDate));
+    }
+
+    /** Turns invoices into the readable GSTR-1 report rows. Shared with the filtered view. */
+    private List<Map<String, Object>> toGstr1Rows(List<GstInvoice> invoices) {
         List<Map<String, Object>> gstr1 = new ArrayList<>();
         for (GstInvoice inv : invoices) {
             Map<String, Object> entry = new LinkedHashMap<>();

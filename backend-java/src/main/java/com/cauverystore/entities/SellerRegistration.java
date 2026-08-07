@@ -39,7 +39,24 @@ public class SellerRegistration {
     private String pincode;
 
     @Column(nullable = false)
+    /**
+     * How the seller trades - Retail, Wholesale, Distributor, Service, Manufacturing, Others.
+     * See BusinessType.
+     *
+     * This column previously held the constitution of the business (Sole Proprietorship,
+     * Partnership, LLP and so on), which is a different question entirely. Those values are
+     * moved to constitutionOfBusiness on startup rather than being overwritten - see
+     * SellerBusinessFieldMigrator.
+     */
     private String businessType;
+
+    /**
+     * The legal constitution: Sole Proprietorship, Partnership, LLP, Private Limited and so on.
+     *
+     * Kept because it is on the GST registration and is not recoverable once lost, even though
+     * the current onboarding form asks for trade type instead.
+     */
+    private String constitutionOfBusiness;
 
     /**
      * What the business does - Retailer, Wholesaler, Distributor, Manufacturer, Services.
@@ -156,6 +173,8 @@ public class SellerRegistration {
     public void setPincode(String pincode) { this.pincode = pincode; }
     public String getBusinessType() { return businessType; }
     public void setBusinessType(String businessType) { this.businessType = businessType; }
+    public String getConstitutionOfBusiness() { return constitutionOfBusiness; }
+    public void setConstitutionOfBusiness(String constitutionOfBusiness) { this.constitutionOfBusiness = constitutionOfBusiness; }
     public String getBusinessCategory() { return businessCategory; }
     public void setBusinessCategory(String businessCategory) { this.businessCategory = businessCategory; }
     public LocalDate getBooksBeginningDate() { return booksBeginningDate; }

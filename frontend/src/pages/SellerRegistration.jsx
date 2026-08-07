@@ -15,10 +15,13 @@ const STEPS = [
   { id: 6, label: "Review", icon: FileText },
 ];
 
-// What the business does, as distinct from what it sells. A manufacturer and a retailer can
-// list identical goods and are not the same kind of registrant.
-const BUSINESS_CATEGORIES = ["Retailer", "Wholesaler", "Distributor", "Manufacturer", "Services", "Other"];
-const BUSINESS_TYPES = ["Sole Proprietorship", "Partnership", "Limited Liability Partnership (LLP)", "Private Limited Company", "Public Limited Company", "One Person Company", "Other"];
+// The legal constitution. This used to be offered as "Business Type", which now means how the
+// seller trades - the two are different questions and were merged by accident.
+const CONSTITUTIONS = ["Sole Proprietorship", "Partnership", "Limited Liability Partnership (LLP)", "Private Limited Company", "Public Limited Company", "One Person Company", "Other"];
+// Business types and categories come from the API rather than being listed here, so the
+// dropdown cannot drift from what the backend will accept and leave a seller picking a value
+// that is rejected on save. These are only the fallback if that call fails.
+const FALLBACK_BUSINESS_TYPES = ["Retail", "Wholesale", "Distributor", "Service", "Manufacturing", "Others"];
 
 const DOCUMENT_TYPES = [
   { type: "GST_CERTIFICATE", name: "GST Certificate", required: true, info: "Issued by GST Department. Required for all registered businesses." },
@@ -53,6 +56,7 @@ const SellerRegistration = () => {
     businessName: "", contactPerson: "", businessEmail: "", businessPhone: "",
     businessAddress: "", city: "", state: "", pincode: "", businessType: "Sole Proprietorship",
     businessCategory: "", booksBeginningDate: "", signatureImageUrl: "", authorisedSignatory: "",
+    constitutionOfBusiness: "Sole Proprietorship",
     website: "", productCategories: "", socialMediaLinks: "",
     gstin: "", panNumber: "", aadhaarNumber: "",
     bankAccountName: "", bankAccountNumber: "", bankIfsc: "", bankName: "", bankBranch: "",
@@ -87,6 +91,7 @@ const SellerRegistration = () => {
             pincode: reg.pincode || prev.pincode,
             businessType: reg.businessType || prev.businessType,
             businessCategory: reg.businessCategory || prev.businessCategory,
+            constitutionOfBusiness: reg.constitutionOfBusiness || prev.constitutionOfBusiness,
             booksBeginningDate: reg.booksBeginningDate || prev.booksBeginningDate,
             signatureImageUrl: reg.signatureImageUrl || prev.signatureImageUrl,
             authorisedSignatory: reg.authorisedSignatory || prev.authorisedSignatory,
@@ -119,6 +124,21 @@ const SellerRegistration = () => {
         }).catch(() => {});
       }
     }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const [businessTypes, setBusinessTypes] = useState(FALLBACK_BUSINESS_TYPES);
+  const [businessCategories, setBusinessCategories] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get("/api/seller-registration/business-options")
+      .then((r) => {
+        if (cancelled) return;
+        if (r.data?.businessTypes?.length) setBusinessTypes(r.data.businessTypes);
+        if (r.data?.businessCategories?.length) setBusinessCategories(r.data.businessCategories);
+      })
+      .catch(() => { /* the fallback list still lets registration continue */ });
+    return () => { cancelled = true; };
   }, []);
 
   const [signatureUploading, setSignatureUploading] = useState(false);
@@ -169,6 +189,11 @@ const SellerRegistration = () => {
 
   const handleNext = async () => {
     if (step === 1) {
+      // Caught here as well as on submit: it is far kinder to say so on the step that asks
+      // than to let someone reach the end and be turned back.
+      if (!form.businessType || !form.businessCategory) {
+        setError("Choose a business type and category - they appear on your invoices and in GST reporting."); return;
+      }
       if (!form.businessName || !form.contactPerson || !form.businessEmail || !form.businessPhone) {
         setError("Please fill in all required business fields."); return;
       }
@@ -366,7 +391,8 @@ const SellerRegistration = () => {
             <div className="reg-form-grid">
               <div className="reg-field full"><label>Business Name <span className="required">*</span></label><input value={form.businessName} onChange={handleChange("businessName")} placeholder="Your registered business name" /></div>
               <div className="reg-field"><label>Contact Person <span className="required">*</span></label><input value={form.contactPerson} onChange={handleChange("contactPerson")} /></div>
-              <div className="reg-field"><label>Business Type <span className="required">*</span></label><select value={form.businessType} onChange={handleChange("businessType")}>{BUSINESS_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div className="reg-field"><label>Business Type <span className="required">*</span></label><select value={form.businessType} onChange={handleChange("businessType")}><option value="">Select business type</option>{businessTypes.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div className="reg-field"><label>Constitution of Business</label><select value={form.constitutionOfBusiness} onChange={handleChange("constitutionOfBusiness")}>{CONSTITUTIONS.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
               <div className="reg-field"><label>Business Email <span className="required">*</span></label><input type="email" value={form.businessEmail} onChange={handleChange("businessEmail")} /></div>
               <div className="reg-field"><label>Business Phone <span className="required">*</span></label><input value={form.businessPhone} onChange={handleChange("businessPhone")} placeholder="+91 98765 43210" /></div>
               <div className="reg-field full"><label>Business Address <span className="required">*</span></label><textarea value={form.businessAddress} onChange={handleChange("businessAddress")} rows={3} /></div>
@@ -375,7 +401,7 @@ const SellerRegistration = () => {
               <div className="reg-field"><label>Pincode <span className="required">*</span></label><input value={form.pincode} onChange={handleChange("pincode")} /></div>
               <div className="reg-field"><label>Website</label><input value={form.website} onChange={handleChange("website")} placeholder="https://" /></div>
               <div className="reg-field"><label>Product Categories</label><input value={form.productCategories} onChange={handleChange("productCategories")} placeholder="e.g. Electronics, Fashion, Home" /></div>
-              <div className="reg-field"><label>Business Category</label><select value={form.businessCategory} onChange={handleChange("businessCategory")}><option value="">Select business category</option>{BUSINESS_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
+              <div className="reg-field"><label>Business Category <span className="required">*</span></label><select value={form.businessCategory} onChange={handleChange("businessCategory")}><option value="">Select business category</option>{businessCategories.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
               {/*
                 An invoice cannot be dated before the books open - that would put a supply in a
                 period whose return is already filed, or in no period at all. It also anchors

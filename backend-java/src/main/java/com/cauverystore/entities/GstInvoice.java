@@ -124,6 +124,18 @@ public class GstInvoice {
     private Double deliveryCharge;
     private Boolean einvoicingRequired = false;
     @Column(columnDefinition = "TEXT")
+    /**
+     * The seller's trade type and category as they stood when this invoice was raised.
+     *
+     * Copied onto the invoice rather than joined from the seller at report time. A seller who
+     * changes trade - a wholesaler who starts retailing - must not retrospectively move every
+     * invoice they have already issued into a different segment, or last quarter's GST
+     * reporting silently stops matching what was filed.
+     */
+    private String sellerBusinessType;
+
+    private String sellerBusinessCategory;
+
     private String supplierSignature;
 
     /**
@@ -282,6 +294,10 @@ public class GstInvoice {
     public void setDeliveryCharge(Double deliveryCharge) { this.deliveryCharge = deliveryCharge; }
     public Boolean getEinvoicingRequired() { return einvoicingRequired; }
     public void setEinvoicingRequired(Boolean einvoicingRequired) { this.einvoicingRequired = einvoicingRequired; }
+    public String getSellerBusinessType() { return sellerBusinessType; }
+    public void setSellerBusinessType(String sellerBusinessType) { this.sellerBusinessType = sellerBusinessType; }
+    public String getSellerBusinessCategory() { return sellerBusinessCategory; }
+    public void setSellerBusinessCategory(String sellerBusinessCategory) { this.sellerBusinessCategory = sellerBusinessCategory; }
     public String getSupplierSignatureImageUrl() { return supplierSignatureImageUrl; }
     public void setSupplierSignatureImageUrl(String url) { this.supplierSignatureImageUrl = url; }
     public String getSupplierSignature() { return supplierSignature; }

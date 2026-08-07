@@ -322,6 +322,31 @@ public class GstInvoiceController {
                 .body(gstService.exportCsv(headers, rows));
     }
 
+    /** GSTR-1 rows narrowed to a trade type and/or category, for compliance segmentation. */
+    @GetMapping("/gstr1/by-business")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> gstr1ByBusiness(
+            @RequestParam(required = false) String businessType,
+            @RequestParam(required = false) String businessCategory,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(gstService.getGstr1DataFiltered(
+                userId, startDate, endDate, businessType, businessCategory));
+    }
+
+    /** Taxable value and tax collected grouped by trade type and category. */
+    @GetMapping("/reports/business-segments")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> businessSegments(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(gstService.getGstBusinessSegmentSummary(userId, startDate, endDate));
+    }
+
     @GetMapping("/invoice/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getInvoice(@PathVariable Long id) {

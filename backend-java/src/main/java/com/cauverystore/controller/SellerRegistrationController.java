@@ -1,6 +1,8 @@
 package com.cauverystore.controller;
 
 import com.cauverystore.dto.SellerRegistrationRequest;
+import com.cauverystore.entities.BusinessCategory;
+import com.cauverystore.entities.BusinessType;
 import com.cauverystore.entities.SellerApob;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.BankVerificationService;
@@ -17,6 +19,20 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/seller-registration")
 public class SellerRegistrationController {
+
+    /**
+     * The permitted business types and categories.
+     *
+     * Served from the enums rather than duplicated in the frontend, so the dropdown cannot
+     * drift from what the API will accept and leave a seller picking a value that is then
+     * rejected on save.
+     */
+    @GetMapping("/business-options")
+    public ResponseEntity<Map<String, Object>> businessOptions() {
+        return ResponseEntity.ok(Map.of(
+                "businessTypes", BusinessType.labels(),
+                "businessCategories", BusinessCategory.labels()));
+    }
 
     private final SellerRegistrationService registrationService;
     private final SellerApprovalService approvalService;

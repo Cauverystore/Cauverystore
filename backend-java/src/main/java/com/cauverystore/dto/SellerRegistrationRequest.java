@@ -11,6 +11,7 @@ public class SellerRegistrationRequest {
     private String pincode;
     private String businessType;
     private String businessCategory;
+    private String constitutionOfBusiness;
     private String booksBeginningDate;
     private String signatureImageUrl;
     private String authorisedSignatory;
@@ -46,6 +47,8 @@ public class SellerRegistrationRequest {
     public void setPincode(String pincode) { this.pincode = pincode; }
     public String getBusinessType() { return businessType; }
     public void setBusinessType(String businessType) { this.businessType = businessType; }
+    public String getConstitutionOfBusiness() { return constitutionOfBusiness; }
+    public void setConstitutionOfBusiness(String constitutionOfBusiness) { this.constitutionOfBusiness = constitutionOfBusiness; }
     public String getBusinessCategory() { return businessCategory; }
     public void setBusinessCategory(String businessCategory) { this.businessCategory = businessCategory; }
     public String getBooksBeginningDate() { return booksBeginningDate; }

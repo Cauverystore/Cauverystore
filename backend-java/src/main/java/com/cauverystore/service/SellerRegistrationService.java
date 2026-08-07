@@ -74,8 +74,23 @@ public class SellerRegistrationService {
                 if (req.getCity() != null) reg.setCity(req.getCity());
                 if (req.getState() != null) reg.setState(req.getState());
                 if (req.getPincode() != null) reg.setPincode(req.getPincode());
-                if (req.getBusinessType() != null) reg.setBusinessType(req.getBusinessType());
-                if (req.getBusinessCategory() != null) reg.setBusinessCategory(req.getBusinessCategory());
+                if (req.getBusinessType() != null) {
+                    reg.setBusinessType(BusinessType.from(req.getBusinessType())
+                            .map(BusinessType::getLabel)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "'" + req.getBusinessType() + "' is not a business type. Choose "
+                                            + "one of: " + String.join(", ", BusinessType.labels()) + ".")));
+                }
+                if (req.getBusinessCategory() != null) {
+                    reg.setBusinessCategory(BusinessCategory.from(req.getBusinessCategory())
+                            .map(BusinessCategory::getLabel)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "'" + req.getBusinessCategory() + "' is not a business category. "
+                                            + "Choose one from the list.")));
+                }
+                if (req.getConstitutionOfBusiness() != null) {
+                    reg.setConstitutionOfBusiness(req.getConstitutionOfBusiness());
+                }
                 if (req.getSignatureImageUrl() != null) reg.setSignatureImageUrl(req.getSignatureImageUrl());
                 if (req.getAuthorisedSignatory() != null) reg.setAuthorisedSignatory(req.getAuthorisedSignatory());
                 if (req.getBooksBeginningDate() != null && !req.getBooksBeginningDate().isBlank()) {
@@ -103,6 +118,17 @@ public class SellerRegistrationService {
                 break;
             case 5:
                 if ("true".equals(req.getAgreedToTerms())) {
+                    // Checked at submission rather than on every step, so a half-finished draft
+                    // still saves. Both feed invoice metadata and the GST reports segmented by
+                    // them, so an application cannot be completed without them.
+                    if (reg.getBusinessType() == null || reg.getBusinessType().isBlank()) {
+                        throw new RuntimeException("Choose a business type before submitting - it "
+                                + "appears on your invoices and in GST reporting.");
+                    }
+                    if (reg.getBusinessCategory() == null || reg.getBusinessCategory().isBlank()) {
+                        throw new RuntimeException("Choose a business category before submitting - "
+                                + "it appears on your invoices and in GST reporting.");
+                    }
                     reg.setStatus("SUBMITTED");
                     reg.setSubmittedAt(LocalDateTime.now());
                     // Role promotion to SELLER now happens only after admin approval.
