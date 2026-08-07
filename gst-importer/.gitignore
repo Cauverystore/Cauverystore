@@ -1,0 +1,9 @@
+.env
+!.env.example
+data/
+build/
+dist/
+logs/
+__pycache__/
+*.pyc
+*.pyo

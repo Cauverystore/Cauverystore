@@ -115,14 +115,45 @@ const AdminGstRates = () => {
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Standalone importer API (optional). When set, the button runs the Python
+  // importer via VITE_GST_IMPORTER_URL/update-gst-master first and only falls
+  // back to the store's own refresh endpoint if it is unreachable.
+  const IMPORTER_URL = (import.meta.env.VITE_GST_IMPORTER_URL || "").replace(/\/+$/, "");
+  const IMPORTER_TOKEN = import.meta.env.VITE_GST_IMPORTER_TOKEN || "";
+
   /**
-   * Re-applies the committed GST master files (HSN, units, states, rates) to the database.
-   * The backend returns the fresh summary plus the import log so we can say what moved.
+   * Re-applies the GST master files (HSN, units, states, rates) to the database.
+   * Tries the standalone importer API first, then the backend's own refresh -
+   * the backend returns the fresh summary plus the import log so we can say what moved.
    */
   const refreshMaster = async () => {
     setError(""); setNotice("");
     setRefreshing(true);
+    let importerNote = "";
     try {
+      if (IMPORTER_URL) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 120000);
+          const res = await fetch(`${IMPORTER_URL}/update-gst-master`, {
+            method: "POST",
+            headers: IMPORTER_TOKEN ? { Authorization: `Bearer ${IMPORTER_TOKEN}` } : {},
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          const body = await res.json().catch(() => ({}));
+          if (res.ok && body.status === "success") {
+            setNotice(body.summary
+              ? `GST Master Codes updated via importer — ${body.summary}`
+              : "GST Master Codes updated via importer.");
+            return;
+          }
+          throw new Error(body.error || `Importer API responded ${res.status}`);
+        } catch (impErr) {
+          importerNote = `Importer API unreachable (${impErr.message}) — fell back to the store's own refresh.`;
+        }
+      }
+
       const res = await api.post("/api/admin/gst-rates/refresh");
       setSummary(res.data.summary);
       const lines = (res.data.imports || [])
@@ -133,7 +164,7 @@ const AdminGstRates = () => {
         ? "Master codes updated — " + lines.join(" · ")
         : "Master codes are up to date — nothing changed.");
     } catch (e) {
-      setError(e?.response?.data?.error || "Could not refresh master codes.");
+      setError((importerNote ? importerNote + " " : "") + (e?.response?.data?.error || "Could not refresh master codes."));
     } finally {
       setRefreshing(false);
     }
