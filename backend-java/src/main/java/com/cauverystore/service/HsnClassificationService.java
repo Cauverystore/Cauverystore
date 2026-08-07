@@ -9,7 +9,6 @@ import com.cauverystore.repository.HsnAssignmentRepository;
 import com.cauverystore.repository.HsnMasterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,17 +45,6 @@ public class HsnClassificationService {
     private static final Logger log = LoggerFactory.getLogger(HsnClassificationService.class);
 
     private static final int MAX_SEARCH_RESULTS = 30;
-
-    /**
-     * Whether an unclassifiable product may be published.
-     *
-     * Ships off. Switching it on immediately would refuse to save any already-live product
-     * whose heading is ambiguous - a seller editing a price would be blocked by a rule about
-     * tax, with a catalogue they had no chance to prepare. The intended order is: see which
-     * live products fail, classify those few, then turn this on so none can appear again.
-     */
-    @Value("${gst.require-classification-to-publish:false}")
-    private boolean requireClassificationToPublish;
 
     private final HsnMasterRepository hsnRepo;
     private final HsnAssignmentRepository assignmentRepo;
@@ -195,9 +183,11 @@ public class HsnClassificationService {
      *
      * So an unclassifiable product stays a draft. It is not blocked from being saved - the
      * seller keeps their work - it simply cannot be published until the question is answered.
+     * This is not configurable: a switch to disable it would be a switch to sell goods the
+     * system knows it cannot tax correctly.
      */
     public void assertSellable(Product product) {
-        if (product == null || !requireClassificationToPublish) return;
+        if (product == null) return;
         if (!"published".equalsIgnoreCase(product.getProductStatus())) return;   // drafts are fine
 
         String hsn = product.getHsnCode();

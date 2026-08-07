@@ -13,6 +13,9 @@ import java.util.List;
 public class GstInvoice {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public static final String COMPLIANCE_VERIFIED = "RATES_VERIFIED";
+    public static final String COMPLIANCE_FALLBACK = "FALLBACK_USED";
+
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -132,6 +135,16 @@ public class GstInvoice {
      * invoice they have already issued into a different segment, or last quarter's GST
      * reporting silently stops matching what was filed.
      */
+    /**
+     * Whether every line on this invoice was taxed at a rate published by CBIC.
+     *
+     * FALLBACK_USED means at least one line could not be resolved and was charged the fallback
+     * rate instead - which is not a lawful rate for anything. Recorded so those invoices can be
+     * found and corrected. Without it a wrongly-taxed invoice is indistinguishable from a
+     * correct one, which is the worst property a tax record can have: the errors are invisible.
+     */
+    private String taxComplianceStatus = COMPLIANCE_VERIFIED;
+
     private String sellerBusinessType;
 
     private String sellerBusinessCategory;
@@ -294,6 +307,13 @@ public class GstInvoice {
     public void setDeliveryCharge(Double deliveryCharge) { this.deliveryCharge = deliveryCharge; }
     public Boolean getEinvoicingRequired() { return einvoicingRequired; }
     public void setEinvoicingRequired(Boolean einvoicingRequired) { this.einvoicingRequired = einvoicingRequired; }
+    public String getTaxComplianceStatus() { return taxComplianceStatus; }
+    public void setTaxComplianceStatus(String s) { this.taxComplianceStatus = s; }
+
+    /** True when a line on this invoice was taxed at the fallback rather than a published rate. */
+    @Transient
+    public boolean usedFallbackRate() { return COMPLIANCE_FALLBACK.equals(taxComplianceStatus); }
+
     public String getSellerBusinessType() { return sellerBusinessType; }
     public void setSellerBusinessType(String sellerBusinessType) { this.sellerBusinessType = sellerBusinessType; }
     public String getSellerBusinessCategory() { return sellerBusinessCategory; }

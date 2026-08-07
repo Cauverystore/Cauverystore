@@ -31,6 +31,13 @@ public class GstInvoiceItem {
     private Double igstAmount;
     private Double totalAmount;
 
+    /**
+     * False when this line's rate came from the fallback rather than a published CBIC rate.
+     * Kept per line, because one unresolvable product taints an otherwise correct invoice and
+     * the correction needs to name which line.
+     */
+    private Boolean rateFromMaster = Boolean.TRUE;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public GstInvoice getInvoice() { return invoice; }
@@ -61,6 +68,8 @@ public class GstInvoiceItem {
     public void setIgstRate(Double igstRate) { this.igstRate = igstRate; }
     public Double getIgstAmount() { return igstAmount; }
     public void setIgstAmount(Double igstAmount) { this.igstAmount = igstAmount; }
+    public Boolean getRateFromMaster() { return rateFromMaster; }
+    public void setRateFromMaster(Boolean rateFromMaster) { this.rateFromMaster = rateFromMaster; }
     public Double getTotalAmount() { return totalAmount; }
     public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
 }

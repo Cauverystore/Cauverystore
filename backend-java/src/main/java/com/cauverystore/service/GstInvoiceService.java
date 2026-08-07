@@ -239,9 +239,15 @@ public class GstInvoiceService {
             // never collected.
             LocalDate supplyDate = order.getCreatedAt() != null
                     ? order.getCreatedAt().toLocalDate() : LocalDate.now();
-            double gstPct = gstRateResolver
-                    .resolve(p, Boolean.TRUE.equals(inv.getIsInterState()), supplyDate, oi.getPrice())
-                    .getTotalRate();
+            GstRateResolver.Resolved resolved = gstRateResolver
+                    .resolve(p, Boolean.TRUE.equals(inv.getIsInterState()), supplyDate, oi.getPrice());
+            double gstPct = resolved.getTotalRate();
+            // One unresolvable line taints the whole invoice, so the flag is set per line AND
+            // raised to the header - the correction has to name the line, but anyone hunting
+            // for bad invoices searches the header.
+            if (!resolved.isFromMaster()) {
+                inv.setTaxComplianceStatus(GstInvoice.COMPLIANCE_FALLBACK);
+            }
             double itemValue = oi.getPrice() * oi.getQuantity();
             double taxable = itemValue * retainedFactor;
             taxable = Math.round(taxable * 100.0) / 100.0;
@@ -263,6 +269,7 @@ public class GstInvoiceService {
             item.setQuantity(oi.getQuantity());
             item.setUnitPrice(oi.getPrice());
             item.setTaxableValue(taxable);
+            item.setRateFromMaster(resolved.isFromMaster());
             item.setUnitOfMeasure("NOS");
 
             if (Boolean.TRUE.equals(inv.getIsInterState())) {

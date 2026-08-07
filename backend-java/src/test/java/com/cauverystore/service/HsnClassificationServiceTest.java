@@ -40,8 +40,6 @@ class HsnClassificationServiceTest {
     @BeforeEach
     void setUp() {
         service = new HsnClassificationService(hsnRepo, assignmentRepo, rateRepo, rateResolver);
-        org.springframework.test.util.ReflectionTestUtils.setField(
-                service, "requireClassificationToPublish", true);
         product = new Product();
         product.setName("Basmati Rice 5kg");
         when(assignmentRepo.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -268,15 +266,11 @@ class HsnClassificationServiceTest {
     }
 
     @Test
-    void assertSellable_shouldDoNothingWhileTheRuleIsSwitchedOff() {
-        // Ships inert: turning it on immediately would block a seller editing the price of a
-        // product they never had a chance to classify.
-        org.springframework.test.util.ReflectionTestUtils.setField(
-                service, "requireClassificationToPublish", false);
-        product.setHsnCode("0901");
-        product.setProductStatus("published");
-
-        assertDoesNotThrow(() -> service.assertSellable(product));
-        verifyNoInteractions(rateResolver);
+    void assertSellable_shouldHaveNoSwitchToDisableIt() {
+        // There is deliberately no flag. One would be a switch to sell goods the system knows
+        // it cannot tax correctly, which is the thing this exists to prevent.
+        assertTrue(java.util.Arrays.stream(HsnClassificationService.class.getDeclaredFields())
+                        .noneMatch(f -> f.getName().toLowerCase().contains("require")),
+                "no configurable escape hatch may exist on this guard");
     }
 }

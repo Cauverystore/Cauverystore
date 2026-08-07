@@ -5,7 +5,6 @@ import com.cauverystore.entities.Product;
 import com.cauverystore.repository.GstRateMasterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -25,9 +24,11 @@ import java.util.Optional;
  *   2. Verified rate for the parent heading (8-digit -> 6-digit -> 4-digit)
  *   3. Unresolved
  *
- * On "unresolved" the caller decides: strict mode refuses the sale, lenient mode falls back
- * to the legacy rate and logs loudly. It never silently guesses a plausible rate, because a
- * wrong rate looks exactly like a right one until an audit.
+ * There is deliberately no fallback rate. A rate that cannot be determined is not charged at
+ * all - the supply is refused - because every figure on a tax invoice has to be one CBIC
+ * published for those goods. The old behaviour, charging a default when nothing resolved, put
+ * an unlawful rate on real invoices and left no trace that anything had gone wrong; a wrong
+ * rate looks exactly like a right one until an audit.
  */
 @Service
 public class GstRateResolver {
@@ -36,24 +37,8 @@ public class GstRateResolver {
 
     private final GstRateMasterRepository rateRepo;
 
-    /**
-     * When true, a product without a resolvable verified rate cannot be sold or invoiced.
-     * Defaults to false so that enabling this system cannot take an existing store offline;
-     * turn it on once gst_rate_master has been populated and signed off.
-     */
-    @Value("${gst.strict-mode:false}")
-    private boolean strictMode;
-
-    /** Rate applied when nothing resolves and strict mode is off. Matches historic behaviour. */
-    @Value("${gst.fallback-rate:12.0}")
-    private double fallbackRate;
-
     public GstRateResolver(GstRateMasterRepository rateRepo) {
         this.rateRepo = rateRepo;
-    }
-
-    public boolean isStrictMode() {
-        return strictMode;
     }
 
     /** The GST split that applies to one supply. */
@@ -85,7 +70,11 @@ public class GstRateResolver {
         public double getSgstRate() { return sgstRate; }
         public double getIgstRate() { return igstRate; }
         public String getHsnCode() { return hsnCode; }
-        /** False when this came from the fallback rather than a verified master row. */
+        /**
+         * Always true now that there is no fallback - every resolved rate is a published one.
+         * Kept because invoices raised before the fallback was removed recorded it, and those
+         * still have to be findable.
+         */
         public boolean isFromMaster() { return fromMaster; }
 
         public double taxOn(double taxableValue) {
@@ -214,18 +203,18 @@ public class GstRateResolver {
             return new Resolved(rate.get(), interState, hsn, true);
         }
 
+        // There is no fallback. Every rate charged has to be one CBIC published for these
+        // goods, so when none can be determined the supply does not proceed. Charging a
+        // plausible-looking rate instead would put an unlawful figure on a tax invoice and
+        // leave no trace that anything was wrong.
         String productName = product != null ? product.getName() : "unknown";
-        if (strictMode) {
-            throw new GstRateUnresolvedException(
-                    "No verified GST rate for product '" + productName + "'"
-                            + (hsn == null || hsn.isBlank() ? " (no HSN code set)" : " (HSN " + hsn + ")")
-                            + ". Set the HSN and a verified rate in the GST master before selling it.");
-        }
-
-        log.warn("GST rate unresolved for product '{}' (HSN {}) - falling back to {}%. "
-                        + "Populate gst_rate_master and enable gst.strict-mode to stop guessing.",
-                productName, hsn, fallbackRate);
-        return new Resolved(fallbackRate, interState, hsn, false);
+        throw new GstRateUnresolvedException(
+                "No published GST rate could be determined for '" + productName + "'"
+                        + (hsn == null || hsn.isBlank()
+                            ? " because it has no HSN code."
+                            : " under HSN " + hsn + ".")
+                        + " It cannot be sold or invoiced until that is settled - open the product "
+                        + "and choose the code, or the published wording, that describes the goods.");
     }
 
     /**

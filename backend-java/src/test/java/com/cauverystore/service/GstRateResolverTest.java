@@ -33,9 +33,6 @@ class GstRateResolverTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(resolver, "strictMode", false);
-        ReflectionTestUtils.setField(resolver, "fallbackRate", 12.0);
-
         product = new Product();
         product.setName("Basmati Rice 5kg");
         product.setHsnCode("10063010");
@@ -91,35 +88,39 @@ class GstRateResolverTest {
     }
 
     @Test
-    void resolve_shouldIgnoreUnverifiedRates() {
-        // Only VERIFIED rows are ever queried, so an unverified proposal must not be charged.
+    void resolve_shouldRefuse_whenOnlyUnverifiedRatesExist() {
+        // Only VERIFIED rows are ever queried, so an unverified proposal is never charged -
+        // and with no fallback that means the supply cannot proceed at all.
         when(rateRepo.findApplicable(anyString(), eq(GstRateMaster.STATUS_VERIFIED), any()))
                 .thenReturn(List.of());
-
-        GstRateResolver.Resolved r = resolver.resolve(product, false, LocalDate.of(2026, 8, 6));
-
-        assertFalse(r.isFromMaster(), "an unverified rate must not be treated as authoritative");
-        assertEquals(12.0, r.getTotalRate(), "should have used the configured fallback");
-    }
-
-    @Test
-    void resolve_shouldThrowInStrictMode_whenRateUnresolvable() {
-        ReflectionTestUtils.setField(resolver, "strictMode", true);
-        when(rateRepo.findApplicable(anyString(), anyString(), any())).thenReturn(List.of());
 
         assertThrows(GstRateResolver.GstRateUnresolvedException.class,
                 () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 6)));
     }
 
     @Test
-    void resolve_shouldThrowInStrictMode_whenProductHasNoHsn() {
-        ReflectionTestUtils.setField(resolver, "strictMode", true);
+    void resolve_shouldNeverChargeAFallbackRate() {
+        // The old behaviour charged 12% when nothing resolved. That is not a lawful rate for
+        // anything, and it left no trace on the invoice that it had happened.
+        when(rateRepo.findApplicable(anyString(), anyString(), any())).thenReturn(List.of());
+
+        GstRateResolver.GstRateUnresolvedException ex = assertThrows(
+                GstRateResolver.GstRateUnresolvedException.class,
+                () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 6)));
+        assertTrue(ex.getMessage().contains("Basmati Rice 5kg"), "should name the product");
+        assertTrue(ex.getMessage().contains("10063010"), "should name the code it tried");
+    }
+
+    @Test
+    void resolve_shouldRefuse_whenProductHasNoHsn() {
         product.setHsnCode(null);
 
         GstRateResolver.GstRateUnresolvedException ex =
                 assertThrows(GstRateResolver.GstRateUnresolvedException.class,
                         () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 6)));
-        assertTrue(ex.getMessage().contains("no HSN code set"));
+        assertTrue(ex.getMessage().contains("no HSN code"),
+                "the refusal has to say what is missing, not just that it failed");
+        assertTrue(ex.getMessage().contains("Basmati Rice 5kg"), "and which product");
     }
 
     @Test
@@ -238,8 +239,9 @@ class GstRateResolverTest {
         when(rateRepo.findApplicable(eq("64"), eq(GstRateMaster.STATUS_VERIFIED), any()))
                 .thenReturn(List.of(conditional("64", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0)));
 
-        GstRateResolver.Resolved r = resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 4999.0);
-        assertFalse(r.isFromMaster(), "a price outside the published band must not resolve");
+        assertThrows(GstRateResolver.GstRateUnresolvedException.class,
+                () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 4999.0),
+                "a price outside the published band must not be taxed at all");
     }
 
     @Test
@@ -306,7 +308,8 @@ class GstRateResolverTest {
         product.setPrePackagedAndLabelled(null);
         ricePublishedBothWays();
 
-        assertFalse(resolver.resolve(product, false, LocalDate.of(2026, 8, 6)).isFromMaster());
+        assertThrows(GstRateResolver.GstRateUnresolvedException.class,
+                () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 6)));
     }
 
     @Test
@@ -367,7 +370,8 @@ class GstRateResolverTest {
         when(rateRepo.findById(7L)).thenReturn(Optional.of(unverifiedLine(7L, "0901", 5.0)));
         when(rateRepo.findApplicable(anyString(), anyString(), any())).thenReturn(List.of());
 
-        assertFalse(resolver.resolve(product, false, LocalDate.of(2026, 8, 7)).isFromMaster());
+        assertThrows(GstRateResolver.GstRateUnresolvedException.class,
+                () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 7)));
     }
 
     @Test
@@ -380,7 +384,8 @@ class GstRateResolverTest {
         when(rateRepo.findById(7L)).thenReturn(Optional.of(expired));
         when(rateRepo.findApplicable(anyString(), anyString(), any())).thenReturn(List.of());
 
-        assertFalse(resolver.resolve(product, false, LocalDate.of(2026, 8, 7)).isFromMaster());
+        assertThrows(GstRateResolver.GstRateUnresolvedException.class,
+                () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 7)));
     }
 
     @Test
@@ -390,7 +395,8 @@ class GstRateResolverTest {
         when(rateRepo.findById(999L)).thenReturn(Optional.empty());
         when(rateRepo.findApplicable(anyString(), anyString(), any())).thenReturn(List.of());
 
-        assertFalse(resolver.resolve(product, false, LocalDate.of(2026, 8, 7)).isFromMaster());
+        assertThrows(GstRateResolver.GstRateUnresolvedException.class,
+                () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 7)));
     }
 
     @Test
