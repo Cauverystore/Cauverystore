@@ -75,7 +75,7 @@ public class ShippingLabelService {
         Font normal9 = FontFactory.getFont(FontFactory.HELVETICA, 9);
         Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
 
-        doc.add(PdfBrandingUtil.buildBrandHeader(40f, 13f, 8f));
+        doc.add(PdfBrandingUtil.buildBrandHeader(34f, 12f, 7.5f));
         doc.add(PdfBrandingUtil.buildDivider());
 
         // COD banner, slim so it never costs a page on its own.
@@ -104,28 +104,28 @@ public class ShippingLabelService {
         addresses.setSpacingBefore(4);
 
         PdfPCell fromCell = new PdfPCell();
-        fromCell.setPadding(4);
+        fromCell.setPadding(3);
         fromCell.setBackgroundColor(PdfBrandingUtil.BEIGE);
-        fromCell.addElement(new Paragraph("RETURN ADDRESS", bold9));
+        fromCell.addElement(p("RETURN ADDRESS", bold9));
         if (seller != null) {
-            fromCell.addElement(new Paragraph(safe(seller.getBusinessName()), normal9));
-            fromCell.addElement(new Paragraph(safe(seller.getBusinessAddress()), small8));
-            fromCell.addElement(new Paragraph("Ph: " + safe(seller.getBusinessPhone()), small8));
+            fromCell.addElement(p(safe(seller.getBusinessName()), normal9));
+            fromCell.addElement(p(safe(seller.getBusinessAddress()), small8));
+            fromCell.addElement(p("Ph: " + safe(seller.getBusinessPhone()), small8));
         } else {
-            fromCell.addElement(new Paragraph("Cauvery Store Fulfillment Center", normal9));
+            fromCell.addElement(p("Cauvery Store Fulfillment Center", normal9));
         }
         addresses.addCell(fromCell);
 
         PdfPCell toCell = new PdfPCell();
-        toCell.setPadding(4);
-        toCell.addElement(new Paragraph("SHIP TO", bold9));
+        toCell.setPadding(3);
+        toCell.addElement(p("SHIP TO", bold9));
         if (addr != null) {
-            toCell.addElement(new Paragraph(safe(addr.getFullName()), bold11));
-            toCell.addElement(new Paragraph(safe(addr.getStreet()), normal9));
-            toCell.addElement(new Paragraph(safe(addr.getCity()) + ", " + safe(addr.getState()) + " - " + safe(addr.getPincode()), normal9));
-            toCell.addElement(new Paragraph("Ph: " + safe(addr.getPhone()), small8));
+            toCell.addElement(p(safe(addr.getFullName()), bold11));
+            toCell.addElement(p(safe(addr.getStreet()), normal9));
+            toCell.addElement(p(safe(addr.getCity()) + ", " + safe(addr.getState()) + " - " + safe(addr.getPincode()), normal9));
+            toCell.addElement(p("Ph: " + safe(addr.getPhone()), small8));
         } else {
-            toCell.addElement(new Paragraph("Address not available", normal9));
+            toCell.addElement(p("Address not available", normal9));
         }
         addresses.addCell(toCell);
         doc.add(addresses);
@@ -180,7 +180,7 @@ public class ShippingLabelService {
 
         for (int i = 0; i < Math.min(itemCount, 3); i++) {
             OrderItem item = items.get(i);
-            String name = item.getProduct() != null ? item.getProduct().getName() : "Item";
+            String name = truncate(item.getProduct() != null ? item.getProduct().getName() : "Item", 42);
             PdfPCell nameCell = new PdfPCell(new Phrase(safe(name), small8));
             nameCell.setPadding(2);
             itemsTable.addCell(nameCell);
@@ -209,14 +209,14 @@ public class ShippingLabelService {
             }
             if (deliveryInstructions != null && !deliveryInstructions.isBlank()) {
                 if (parts.length() > 0) parts.append("   ");
-                parts.append(deliveryInstructions);
+                parts.append(truncate(deliveryInstructions, 60));
             }
             PdfPTable noteTable = new PdfPTable(1);
             noteTable.setWidthPercentage(100);
             noteTable.setSpacingBefore(4);
-            PdfPCell noteCell = new PdfPCell(new Phrase(parts.toString(),
+            PdfPCell noteCell = new PdfPCell(p(parts.toString(),
                     FontFactory.getFont(FontFactory.HELVETICA, 8, Color.DARK_GRAY)));
-            noteCell.setPadding(3);
+            noteCell.setPadding(2);
             noteCell.setBorderColor(PdfBrandingUtil.RED);
             noteCell.setBorderWidth(0.6f);
             noteTable.addCell(noteCell);
@@ -272,16 +272,16 @@ public class ShippingLabelService {
     private PdfPCell buildBarcodeCell(PdfContentByte cb, String label, String code, Font labelFont, Font smallFont) {
         Barcode128 barcode = new Barcode128();
         barcode.setCode(code);
-        barcode.setBarHeight(20f);
-        barcode.setSize(5f);
-        barcode.setBaseline(5f);
+        barcode.setBarHeight(16f);
+        barcode.setSize(4.5f);
+        barcode.setBaseline(4f);
         barcode.setTextAlignment(Element.ALIGN_CENTER);
         Image barcodeImage = barcode.createImageWithBarcode(cb, null, null);
 
         PdfPCell cell = new PdfPCell();
         cell.setPadding(3);
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        cell.addElement(new Paragraph(label, labelFont));
+        cell.addElement(p(label, labelFont));
         com.lowagie.text.Chunk imageChunk = new com.lowagie.text.Chunk(barcodeImage, 0, 0);
         Paragraph imgParagraph = new Paragraph();
         imgParagraph.add(imageChunk);
@@ -292,10 +292,22 @@ public class ShippingLabelService {
 
     private void addIdCell(PdfPTable table, String label, String value, Font labelFont, Font valueFont) {
         PdfPCell cell = new PdfPCell();
-        cell.setPadding(4);
-        cell.addElement(new Paragraph(label, labelFont));
-        cell.addElement(new Paragraph(value, valueFont));
+        cell.setPadding(3);
+        cell.addElement(p(label, labelFont));
+        cell.addElement(p(value, valueFont));
         table.addCell(cell);
+    }
+
+    /** Compact paragraph - leading set to 1.15x the font size so the label stays dense. */
+    private Paragraph p(String text, Font font) {
+        return new Paragraph(font.getCalculatedLeading(1.15f), text, font);
+    }
+
+    private String truncate(String s, int max) {
+        if (s == null || s.length() <= max) {
+            return safe(s);
+        }
+        return s.substring(0, max - 3) + "...";
     }
 
     private String safe(String s) {
