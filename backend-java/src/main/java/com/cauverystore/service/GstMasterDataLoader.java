@@ -61,6 +61,28 @@ public class GstMasterDataLoader {
     /** Marks a verification the loader performed itself, so it can withdraw its own later. */
     private static final String AUTO_VERIFIER = "CBIC master data import";
 
+    /**
+     * Codes an earlier seed published that are not real HSN headings at all.
+     *
+     * Deleting such a row from the seed is not enough. The load is insert-only, and
+     * demoteStaleAutoVerified deliberately skips headings the seed does not mention so that a
+     * rate an admin added by hand is never demoted by a generator that has never heard of it.
+     * That guard is right, but it also means a heading withdrawn from the seed would survive in
+     * an already-populated database, still VERIFIED, on the strength of an extraction bug.
+     *
+     * So a withdrawal has to be stated rather than implied. These are retracted outright,
+     * whoever verified them - unlike a demotion, this is not "needs a second look", it is "no
+     * such heading exists", and a human sign-off cannot make it exist.
+     *
+     * 1200: chapter 12 runs 1201-1214. The row carried heading 2101's own wording ("Extracts,
+     * essences and concentrates of coffee...") at 2101's own 5%, so the code cell was mangled
+     * during extraction. 2101 is in the seed and unaffected; nothing is lost by retracting it.
+     */
+    private static final Map<String, String> RETRACTED_CODES = Map.of(
+            "1200", "Not a real HSN heading - chapter 12 runs 1201-1214. Introduced by a "
+                    + "mis-parsed code cell; the goods it described belong to heading 2101, "
+                    + "which carries the same 5% and is unaffected.");
+
     /** Bump when the rate seed is regenerated from a newer CBIC notification. */
     private static final String RATE_SOURCE_VERSION =
             "CBIC Notif. 09/2025-CT(Rate) as amended by 19/2025-CT(Rate) (eff. 01-02-2026) and 01/2026-CT(Rate) (eff. 01-05-2026)";
@@ -212,8 +234,9 @@ public class GstMasterDataLoader {
 
         int closed = applySeedEndDates(rows, existing);
         int demoted = demoteStaleAutoVerified(existing, seedVerified, seedHeadings);
+        int retracted = retractFabricatedCodes(existing);
 
-        if (inserted > 0 || demoted > 0 || closed > 0) {
+        if (inserted > 0 || demoted > 0 || closed > 0 || retracted > 0) {
             MasterUpdateLog entry = new MasterUpdateLog();
             entry.setFileName("gst_rate_seed.json");
             entry.setVersion(RATE_SOURCE_VERSION);
@@ -224,7 +247,8 @@ public class GstMasterDataLoader {
             entry.setChangesDetected(inserted + " rate rows inserted; " + ambiguous
                     + " left UNVERIFIED because the heading carries more than one rate; "
                     + demoted + " previously auto-verified rows demoted for review; "
-                    + closed + " rows closed off on the date a later notification ended them");
+                    + closed + " rows closed off on the date a later notification ended them; "
+                    + retracted + " rows retracted as not being real HSN headings");
             logRepo.save(entry);
         }
         log.info("GST rates: {} rows in file, {} inserted ({} ambiguous held for review), "
@@ -320,6 +344,42 @@ public class GstMasterDataLoader {
                     + "they will be charged again.", demote.size());
         }
         return demote.size();
+    }
+
+    /**
+     * Retracts rows for codes that are not real HSN headings.
+     *
+     * Closed off rather than deleted: an invoice may already have been raised against one, and
+     * destroying the row it cited would leave that invoice unexplainable. Closing it yesterday
+     * takes it out of every future resolution while keeping the history readable.
+     */
+    private int retractFabricatedCodes(Map<String, List<GstRateMaster>> existing) {
+        List<GstRateMaster> retract = new ArrayList<>();
+        LocalDate closeOn = LocalDate.now().minusDays(1);
+        for (Map.Entry<String, String> e : RETRACTED_CODES.entrySet()) {
+            for (GstRateMaster r : existing.getOrDefault(e.getKey(), List.of())) {
+                boolean alreadyClosed = r.getEffectiveTo() != null
+                        && !r.getEffectiveTo().isAfter(closeOn);
+                if (alreadyClosed && !r.isVerified()) continue;
+
+                r.setStatus(GstRateMaster.STATUS_UNVERIFIED);
+                r.setVerifiedBy(null);
+                r.setVerifiedAt(null);
+                // Never extend an end date someone set earlier - only bring it forward.
+                if (r.getEffectiveTo() == null || r.getEffectiveTo().isAfter(closeOn)) {
+                    r.setEffectiveTo(closeOn);
+                }
+                r.setNotes((r.getNotes() == null || r.getNotes().isBlank() ? "" : r.getNotes() + " | ")
+                        + "Retracted on " + LocalDate.now() + ": " + e.getValue());
+                retract.add(r);
+            }
+        }
+        if (!retract.isEmpty()) {
+            rateRepo.saveAll(retract);
+            log.warn("Retracted {} GST rate row(s) for codes that are not real HSN headings: {}",
+                    retract.size(), RETRACTED_CODES.keySet());
+        }
+        return retract.size();
     }
 
     private static String rateKey(String hsn, double rate, String from, String conditionType) {

@@ -222,6 +222,60 @@ class GstMasterDataLoaderTest {
     }
 
     @Test
+    void shouldRetractACodeThatIsNotARealHsnHeading() {
+        // 1200 came from a mis-parsed code cell - chapter 12 runs 1201-1214. Removing it from
+        // the seed does not reach a populated database, because the load is insert-only and the
+        // demotion pass deliberately skips headings the seed no longer mentions.
+        GstRateMaster fabricated = autoVerified("1200", 5.0);
+        when(rateRepo.findAll()).thenReturn(List.of(fabricated));
+
+        runAndCaptureSaves();
+
+        assertEquals(GstRateMaster.STATUS_UNVERIFIED, fabricated.getStatus());
+        assertNotNull(fabricated.getEffectiveTo(), "it has to stop resolving, not merely need review");
+        assertTrue(fabricated.getEffectiveTo().isBefore(LocalDate.now()));
+        assertTrue(fabricated.getNotes() != null && fabricated.getNotes().contains("Retracted"));
+    }
+
+    @Test
+    void shouldRetractAFabricatedCodeEvenWhenAHumanVerifiedIt() {
+        // Unlike a demotion, this is not "needs a second look" - no sign-off can make a heading
+        // exist that the tariff does not contain.
+        GstRateMaster signedOff = autoVerified("1200", 5.0);
+        signedOff.setVerifiedBy("CA review 2026-08");
+        when(rateRepo.findAll()).thenReturn(List.of(signedOff));
+
+        runAndCaptureSaves();
+
+        assertEquals(GstRateMaster.STATUS_UNVERIFIED, signedOff.getStatus());
+        assertNull(signedOff.getVerifiedBy());
+    }
+
+    @Test
+    void retractionShouldNotExtendAnEndDateSomeoneSetEarlier() {
+        // Pushing the date forward would revive the row for the days in between.
+        GstRateMaster closedEarlier = autoVerified("1200", 5.0);
+        closedEarlier.setEffectiveTo(LocalDate.of(2026, 1, 31));
+        when(rateRepo.findAll()).thenReturn(List.of(closedEarlier));
+
+        runAndCaptureSaves();
+
+        assertEquals(LocalDate.of(2026, 1, 31), closedEarlier.getEffectiveTo());
+    }
+
+    @Test
+    void shouldNotInsertTheFabricatedCodeFromTheSeedAtAll() {
+        // The belt to the retraction's braces: it must be gone from the committed seed too.
+        when(rateRepo.findAll()).thenReturn(List.of());
+
+        List<GstRateMaster> saved = runAndCaptureSaves();
+
+        assertTrue(saved.stream().noneMatch(r -> "1200".equals(r.getHsnCode())));
+        assertTrue(saved.stream().anyMatch(r -> "2101".equals(r.getHsnCode())),
+                "the goods it described belong to 2101, which must still be seeded");
+    }
+
+    @Test
     void shouldCarryTheSeedsEndDateOntoNewlyInsertedRows() {
         when(rateRepo.findAll()).thenReturn(List.of());
 

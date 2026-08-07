@@ -2080,19 +2080,6 @@
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
   },
   {
-    "hsnCode": "1200",
-    "gstRate": 5.0,
-    "effectiveFrom": "2025-09-22",
-    "effectiveTo": null,
-    "status": "VERIFIED",
-    "conditionType": "NONE",
-    "thresholdAmount": null,
-    "thresholdUnit": null,
-    "conditionText": "Extracts, essences and concentrates of coffee, and preparations with a basis of these extracts, essences or concentrates or with a basis of coffee",
-    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": ""
-  },
-  {
     "hsnCode": "1201",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
