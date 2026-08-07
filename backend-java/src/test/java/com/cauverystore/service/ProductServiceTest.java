@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
@@ -381,6 +382,14 @@ class ProductServiceTest {
     }
 
     private MultipartFile sheetWith(String name, String hsnCode) throws Exception {
+        return sheetWith(name, hsnCode, null);
+    }
+
+    private MultipartFile sheetWithPackaging(String name, String hsnCode, String packaged) throws Exception {
+        return sheetWith(name, hsnCode, packaged);
+    }
+
+    private MultipartFile sheetWith(String name, String hsnCode, String packaged) throws Exception {
         try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
              java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
             org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet();
@@ -390,6 +399,7 @@ class ProductServiceTest {
             row.createCell(4).setCellValue("100");
             row.createCell(5).setCellValue("5");
             row.createCell(10).setCellValue(hsnCode);
+            if (packaged != null) row.createCell(27).setCellValue(packaged);
             wb.write(out);
             return new org.springframework.mock.web.MockMultipartFile(
                     "file", "products.xlsx",
@@ -438,5 +448,30 @@ class ProductServiceTest {
 
         assertEquals(1, result.get("total"));
         verify(hsnClassificationService).rememberAssignment(any(), any());
+    }
+
+    @Test
+    void bulkUpload_shouldTakePrePackagedFromTheTemplate() throws Exception {
+        // Rice is 5% pre-packaged and nil loose, so the seller's spreadsheet answer decides the rate.
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetWithPackaging("Rice", "1006", "No"), 1L);
+
+        assertEquals(1, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertEquals(Boolean.FALSE, captor.getValue().getPrePackagedAndLabelled());
+    }
+
+    @Test
+    void bulkUpload_shouldRejectAPrePackagedColumnThatIsNotYesOrNo() throws Exception {
+        Map<String, Object> result = productService.bulkUpload(sheetWithPackaging("Rice", "1006", "Maybe"), 1L);
+
+        assertEquals(0, result.get("total"));
+        assertEquals(1, result.get("errors"));
+        @SuppressWarnings("unchecked")
+        List<String> rowErrors = (List<String>) result.get("rowErrors");
+        assertNotNull(rowErrors);
+        assertTrue(rowErrors.get(0).contains("Yes or No"), "should explain the bad value");
     }
 }

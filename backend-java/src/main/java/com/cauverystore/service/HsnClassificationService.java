@@ -197,7 +197,10 @@ public class HsnClassificationService {
                             + "Pick the code that describes the goods, then publish. It can stay a "
                             + "draft in the meantime.");
         }
-        if (product.getGstRateSelectionId() != null) return;   // the seller has answered
+        if (product.getGstRateSelectionId() != null) {
+            validateRateSelection(product);   // the seller has answered - and it has to be a real line
+            return;
+        }
 
         Double unitPrice = product.getOfferPrice() != null ? product.getOfferPrice() : product.getPrice();
         if (rateResolver.findRate(hsn, LocalDate.now(), unitPrice,
@@ -210,6 +213,43 @@ public class HsnClassificationService {
                         + "goods and publish again - or leave it as a draft and come back to it. "
                         + "It cannot go on sale until then, because every invoice has to state a "
                         + "rate that is actually correct for what was sold.");
+    }
+
+    /**
+     * Checks the published-rate line a product points at is one the rate file actually backs.
+     *
+     * A rate line id means nothing on its own - it only names a rate if it is one of the rows
+     * loaded from the CBIC notifications into the rate master, and it only settles the product
+     * if that row belongs to this product's code and was still in force when the question was
+     * answered. A picked line that fails any of that is treated as not answered: the product
+     * cannot publish, because the resolver would not have charged from it either.
+     */
+    public void validateRateSelection(Product product) {
+        if (product == null || product.getGstRateSelectionId() == null) return;
+
+        Optional<GstRateMaster> row = rateRepo.findById(product.getGstRateSelectionId());
+        if (row.isEmpty()) {
+            throw new UnclassifiedProductException(
+                    "GST rate line " + product.getGstRateSelectionId() + " is not in the "
+                            + "published rate file. Pick a rate line that still exists and publish "
+                            + "again.");
+        }
+        GstRateMaster rate = row.get();
+        String hsn = product.getHsnCode() == null ? "" : product.getHsnCode().replaceAll("\\s", "");
+        if (!hsn.startsWith(rate.getHsnCode())) {
+            throw new UnclassifiedProductException(
+                    "GST rate line " + product.getGstRateSelectionId() + " is published against "
+                            + "HSN " + rate.getHsnCode() + ", not " + hsn + ". It cannot settle "
+                            + "this product - re-pick the line that describes the goods.");
+        }
+        LocalDate today = LocalDate.now();
+        boolean inForce = !rate.getEffectiveFrom().isAfter(today)
+                && (rate.getEffectiveTo() == null || !rate.getEffectiveTo().isBefore(today));
+        if (!inForce) {
+            throw new UnclassifiedProductException(
+                    "GST rate line " + product.getGstRateSelectionId() + " was not in force on "
+                            + today + " - a later notification has moved on. Re-classify the product.");
+        }
     }
 
     /**

@@ -250,8 +250,63 @@ class HsnClassificationServiceTest {
         product.setProductStatus("published");
         product.setGstRateSelectionId(1L);
         when(rateResolver.findRate(anyString(), any(), any(), any())).thenReturn(Optional.empty());
+        when(rateRepo.findById(1L)).thenReturn(Optional.of(inForceRateLine("0901", 5.0)));
 
         assertDoesNotThrow(() -> service.assertSellable(product));
+    }
+
+    @Test
+    void assertSellable_shouldRejectARateLineThatIsNotInTheRateFile() {
+        // An id that names nothing must not let the product through: the resolver would not
+        // charge from it either, so treating it as "the seller answered" would publish a
+        // product that cannot actually be sold.
+        product.setHsnCode("0901");
+        product.setProductStatus("published");
+        product.setGstRateSelectionId(999L);
+        when(rateRepo.findById(999L)).thenReturn(Optional.empty());
+
+        HsnClassificationService.UnclassifiedProductException ex = assertThrows(
+                HsnClassificationService.UnclassifiedProductException.class,
+                () -> service.assertSellable(product));
+        assertTrue(ex.getMessage().contains("not in the"), "should say the line is missing");
+    }
+
+    @Test
+    void assertSellable_shouldRejectARateLinePublishedAgainstAnotherHsn() {
+        product.setHsnCode("0901");
+        product.setProductStatus("published");
+        product.setGstRateSelectionId(1L);
+        when(rateRepo.findById(1L)).thenReturn(Optional.of(inForceRateLine("0903", 5.0)));
+
+        HsnClassificationService.UnclassifiedProductException ex = assertThrows(
+                HsnClassificationService.UnclassifiedProductException.class,
+                () -> service.assertSellable(product));
+        assertTrue(ex.getMessage().contains("0903"), "should name the wrong code");
+    }
+
+    @Test
+    void assertSellable_shouldRejectARateLineThatHasExpired() {
+        product.setHsnCode("0901");
+        product.setProductStatus("published");
+        product.setGstRateSelectionId(1L);
+        GstRateMaster expired = inForceRateLine("0901", 5.0);
+        expired.setEffectiveFrom(LocalDate.now().minusDays(20));
+        expired.setEffectiveTo(LocalDate.now().minusDays(1));
+        when(rateRepo.findById(1L)).thenReturn(Optional.of(expired));
+
+        HsnClassificationService.UnclassifiedProductException ex = assertThrows(
+                HsnClassificationService.UnclassifiedProductException.class,
+                () -> service.assertSellable(product));
+        assertTrue(ex.getMessage().toLowerCase().contains("not in force"), "should say the line lapsed");
+    }
+
+    private GstRateMaster inForceRateLine(String hsn, double pct) {
+        GstRateMaster r = new GstRateMaster();
+        r.setId(1L);
+        r.setHsnCode(hsn);
+        r.setGstRate(pct);
+        r.setEffectiveFrom(LocalDate.now().minusDays(30));
+        return r;
     }
 
     @Test

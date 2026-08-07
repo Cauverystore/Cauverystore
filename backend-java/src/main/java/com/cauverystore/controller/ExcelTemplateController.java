@@ -25,6 +25,7 @@ public class ExcelTemplateController {
     private static final String[] RETURN_POLICY = {"7 Days","10 Days","15 Days","No Returns"};
     private static final String[] SHIPPING_CLASS = {"Standard","Express","Heavy","Fragile"};
     private static final String[] BADGES = {"None","New Arrival","Best Seller","Limited Offer","Discount"};
+    private static final String[] PRE_PACKAGED = {"Yes","No"};
     private static final String[] HEADERS = {
         "Product Code", "Product Name", "Brand", "Category", "Price (₹)", "Stock Quantity",
         "Description", "Manufacturer", "Model Number", "Barcode/UPC", "HSN Code",
@@ -32,7 +33,8 @@ public class ExcelTemplateController {
         "Warranty", "Return Policy", "Meta Title", "Meta Description",
         "Keywords", "Slug", "Weight (kg)", "Dimensions (LxWxH cm)",
         "Shipping Class", "Delivery Days", "Badges",
-        "Primary Image URL", "Additional Images"
+        "Primary Image URL", "Additional Images",
+        "Pre-Packaged and Labelled", "GST Rate Line ID"
     };
 
     public ExcelTemplateController(CategoryRepository categoryRepo) {
@@ -71,7 +73,8 @@ public class ExcelTemplateController {
              "1 Year","7 Days","Samsung Galaxy S24 Ultra - Best Price Online","Shop Samsung Galaxy S24 Ultra at the best price with free delivery. 200MP camera, S Pen, AI features included.",
              "samsung,s24,ultra,smartphone,5g,ai","samsung-galaxy-s24-ultra","0.233","16.2x7.9x0.86",
              "Standard","3","Best Seller",
-             "https://picsum.photos/seed/s24ultra/400/400","https://picsum.photos/seed/s24ultra2/400/400,https://picsum.photos/seed/s24ultra3/400/400"},
+             "https://picsum.photos/seed/s24ultra/400/400","https://picsum.photos/seed/s24ultra2/400/400,https://picsum.photos/seed/s24ultra3/400/400",
+             "Yes",""},
 
             {"XIA-14-002","Xiaomi 14 Pro","Xiaomi","Electronics","69999","30",
              "Xiaomi 14 Pro with Leica optics, Snapdragon 8 Gen 3, 120W charging",
@@ -80,7 +83,8 @@ public class ExcelTemplateController {
              "1 Year","7 Days","Xiaomi 14 Pro - Leica Camera Phone at Best Price","Buy Xiaomi 14 Pro with Leica optics, Snapdragon 8 Gen 3 processor, and 120W hypercharge online.",
              "xiaomi,14pro,leica,smartphone,5g","xiaomi-14-pro","0.223","16.1x7.5x0.85",
              "Standard","2","New Arrival",
-             "https://picsum.photos/seed/xiaomi14/400/400","https://picsum.photos/seed/xiaomi14a/400/400"},
+             "https://picsum.photos/seed/xiaomi14/400/400","https://picsum.photos/seed/xiaomi14a/400/400",
+             "Yes",""},
 
             {"SNY-WH5-003","Sony WH-1000XM5 Headphones","Sony","Electronics","29990","60",
              "Industry-leading noise cancellation with Auto NC Optimizer, crystal clear hands-free calling",
@@ -89,7 +93,8 @@ public class ExcelTemplateController {
              "1 Year","10 Days","Sony WH-1000XM5 Wireless Headphones - Best ANC","Shop Sony WH-1000XM5 industry-leading noise cancellation headphones. 30hr battery, crystal clear calls.",
              "sony,headphones,noise-cancelling,wireless,anc","sony-wh1000xm5","0.250","18x15x8",
              "Standard","4","Best Seller",
-             "https://picsum.photos/seed/sonywh5/400/400", ""},
+             "https://picsum.photos/seed/sonywh5/400/400", "",
+             "Yes",""},
 
             {"LG-OLED-004","LG C4 65-inch OLED TV","LG","Electronics","164990","12",
              "LG C4 OLED evo 4K Smart TV with α9 AI Processor, Dolby Vision, Dolby Atmos",
@@ -98,7 +103,8 @@ public class ExcelTemplateController {
              "1 Year","7 Days","LG C4 65 inch OLED TV - Lowest Price Guaranteed","Buy LG C4 65-inch OLED evo 4K Smart TV. α9 AI Processor, Dolby Vision, Free Delivery.",
              "lg,oled,tv,4k,smart,65inch","lg-c4-65-oled-tv","24.5","144.1x82.6x4.6",
              "Heavy","7","Limited Offer",
-             "https://picsum.photos/seed/lgc4/400/400", ""},
+             "https://picsum.photos/seed/lgc4/400/400", "",
+             "Yes",""},
 
             {"PHL-TRIM-005","Philips OneBlade Trimmer","Philips","Electronics","5499","100",
              "Philips OneBlade Hybrid trimmer and shaver, 45 min battery, washable",
@@ -107,7 +113,8 @@ public class ExcelTemplateController {
              "2 Years","15 Days","Philips OneBlade Trimmer - Shave & Trim Easily","Philips OneBlade hybrid trimmer shaver. 45-min battery, washable, perfect for face and body grooming.",
              "philips,trimmer,shaver,grooming,oneblade","philips-oneblade-trimmer","0.160","12x5x4",
              "Standard","3","Discount",
-             "https://picsum.photos/seed/philips1/400/400", "https://picsum.photos/seed/philips2/400/400"},
+             "https://picsum.photos/seed/philips1/400/400", "https://picsum.photos/seed/philips2/400/400",
+             "Yes",""},
         };
 
         for (int r = 0; r < samples.length; r++) {
@@ -120,7 +127,7 @@ public class ExcelTemplateController {
         }
 
         // Column widths
-        int[] widths = {3200,5000,3000,4000,3000,2800,8000,4000,3500,3500,3000,3500,5000,6000,2800,2800,6000,7000,4000,4000,2500,3500,3000,2800,5000,7000,7000};
+        int[] widths = {3200,5000,3000,4000,3000,2800,8000,4000,3500,3500,3000,3500,5000,6000,2800,2800,6000,7000,4000,4000,2500,3500,3000,2800,5000,7000,7000,3200,3200};
         for (int i = 0; i < widths.length && i < HEADERS.length; i++) {
             sheet.setColumnWidth(i, widths[i]);
         }
@@ -134,6 +141,7 @@ public class ExcelTemplateController {
         addDropdown(sheet, dv, RETURN_POLICY, 1, 1000, 15, 15, "Select return policy");
         addDropdown(sheet, dv, SHIPPING_CLASS, 1, 1000, 22, 22, "Select shipping class");
         addDropdown(sheet, dv, BADGES, 1, 1000, 24, 24, "Select badge");
+        addDropdown(sheet, dv, PRE_PACKAGED, 1, 1000, 27, 27, "Select Yes/No");
 
         // Freeze top row
         sheet.createFreezePane(0, 1);
@@ -159,8 +167,10 @@ public class ExcelTemplateController {
             "11. Slug should be lowercase with hyphens (auto-generated from product name).",
              "12. Primary Image URL (Column Y) is optional — provide a direct URL to the product image (JPG/PNG/WebP). Images will be downloaded and stored automatically.",
              "13. Additional Images (Column Z) is optional — add comma-separated URLs for extra product images.",
-             "14. Save the file as .xlsx format before uploading.",
-             "15. Maximum 1000 products per upload.",
+             "14. Pre-Packaged and Labelled (Column AA) is required — answer Yes or No. It decides the GST rate for staples such as rice, flour and dairy, which are taxed at 5% when sold pre-packaged and labelled but nil (or at another rate) when loose. Answer Yes for anything shipped in a sealed, labelled pack.",
+             "15. GST Rate Line ID (Column AB) is optional — leave blank unless the GST screen told you a specific published rate line for an HSN taxed at more than one rate, and gives you its id.",
+             "16. Save the file as .xlsx format before uploading.",
+             "17. Maximum 1000 products per upload.",
              ""
         };
         for (int r = 0; r < instructionsText.length; r++) {

@@ -560,6 +560,15 @@ const GstInvoices = () => {
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.json", "json")}><FileJson size={14} /> JSON</button>
             </div>
+            <div className="gst-toolbar" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "0.6rem 0.75rem" }}>
+              <p style={{ margin: 0, flex: 1, fontSize: "0.82rem", color: "#475569" }}>
+                <strong>Offline utility format</strong> — download each GSTR-1 table as the CSV the GSTN offline tool accepts, ready to upload for filing.
+              </p>
+              <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2b", "gstr1-b2b.csv", "csv")}><FileText size={14} /> 4A B2B</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2cl", "gstr1-b2cl.csv", "csv")}><FileText size={14} /> 5A B2CL</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2cs", "gstr1-b2cs.csv", "csv")}><FileText size={14} /> 7 B2CS</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn", "gstr1-hsn.csv", "csv")}><FileText size={14} /> 12 HSN</button>
+            </div>
             {!gstr1Seg || !gstr1Seg["4A"] ? (
               <p style={{ color: "#94a3b8" }}>No invoice data available for GSTR-1.</p>
             ) : (

@@ -205,6 +205,27 @@ public class ProductService {
                     p.setDescription(getCell(row, 6)); p.setManufacturer(getCell(row, 7));
                     p.setModelNumber(getCell(row, 8)); p.setBarcode(getCell(row, 9));
                     p.setHsnCode(getCell(row, 10)); p.setCountryOfOrigin(getCell(row, 11));
+                    // Packaging decides the GST rate for staples (rice 5% pre-packaged, nil loose),
+                    // so the spreadsheet lets the seller answer it instead of leaving the product
+                    // unresolved at sale time.
+                    String packagedStr = getCell(row, 27);
+                    if (packagedStr != null && !packagedStr.isBlank()) {
+                        if ("yes".equalsIgnoreCase(packagedStr)) p.setPrePackagedAndLabelled(Boolean.TRUE);
+                        else if ("no".equalsIgnoreCase(packagedStr)) p.setPrePackagedAndLabelled(Boolean.FALSE);
+                        else throw new RuntimeException(
+                                "Pre-Packaged and Labelled must be Yes or No, got '" + packagedStr + "'");
+                    }
+                    // Optional: the id of the specific published rate line the seller picked for an
+                    // HSN taxed at more than one rate (same id the GST rate picker on the product form saves).
+                    String rateLineId = getCell(row, 28);
+                    if (rateLineId != null && !rateLineId.isBlank()) {
+                        try {
+                            p.setGstRateSelectionId(Long.parseLong(rateLineId.trim()));
+                        } catch (NumberFormatException e) {
+                            throw new RuntimeException(
+                                    "GST Rate Line ID must be a number, got '" + rateLineId + "'");
+                        }
+                    }
                     p.setShortDescription(getCell(row, 12)); p.setTechnicalSpecs(getCell(row, 13));
                     p.setWarranty(getCell(row, 14)); p.setReturnPolicy(getCell(row, 15));
                     p.setMetaTitle(getCell(row, 16)); p.setMetaDescription(getCell(row, 17));
