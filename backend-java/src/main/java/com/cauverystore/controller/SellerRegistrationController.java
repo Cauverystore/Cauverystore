@@ -27,6 +27,36 @@ public class SellerRegistrationController {
      * drift from what the API will accept and leave a seller picking a value that is then
      * rejected on save.
      */
+    /**
+     * The seller identity the billing engine consumes, in the agreed payload shape.
+     *
+     * Deliberately not the SellerRegistration entity, which the status endpoint returns - that
+     * carries bank details, Aadhaar and document URLs, none of which belongs in a billing
+     * payload.
+     */
+    @GetMapping("/billing-profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> myBillingProfile() {
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        }
+        return registrationService.getBillingProfile(userId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().body(Map.of(
+                        "error", "No seller registration exists for this account.")));
+    }
+
+    /** The same payload for any seller, for admins and the billing engine. */
+    @GetMapping("/{sellerId}/billing-profile")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EXECUTIVE', 'SUPER_ADMIN')")
+    public ResponseEntity<?> billingProfile(@PathVariable Long sellerId) {
+        return registrationService.getBillingProfile(sellerId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().body(Map.of(
+                        "error", "No seller registration exists for seller " + sellerId + ".")));
+    }
+
     @GetMapping("/business-options")
     public ResponseEntity<Map<String, Object>> businessOptions() {
         return ResponseEntity.ok(Map.of(

@@ -1,5 +1,6 @@
 package com.cauverystore.service;
 
+import com.cauverystore.dto.SellerBillingProfileResponse;
 import com.cauverystore.dto.SellerRegistrationRequest;
 import com.cauverystore.entities.*;
 import com.cauverystore.repository.*;
@@ -248,6 +249,17 @@ public class SellerRegistrationService {
         auditService.log(adminId, "admin:" + adminId, "DOCUMENT_" + (approved ? "VERIFIED" : "REJECTED"), "SellerDocument", documentId,
                 (approved ? "Verified " : "Rejected ") + doc.getDocumentType() + (rejectionReason != null ? ": " + rejectionReason : ""), null);
         return Map.of("status", doc.getStatus(), "message", "Document " + (approved ? "verified" : "rejected"));
+    }
+
+    /**
+     * The seller identity the billing engine consumes.
+     *
+     * Empty when there is no registration, rather than a blank profile - billing must be able
+     * to tell "this seller has not registered" from "this seller registered and left the
+     * fields empty", because only the second is safe to invoice against.
+     */
+    public java.util.Optional<SellerBillingProfileResponse> getBillingProfile(Long userId) {
+        return regRepo.findByUserId(userId).map(SellerBillingProfileResponse::from);
     }
 
     public Map<String, Object> getRegistrationStatus(Long userId) {

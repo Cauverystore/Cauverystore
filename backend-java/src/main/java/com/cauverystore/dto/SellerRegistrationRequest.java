@@ -1,21 +1,37 @@
 package com.cauverystore.dto;
 
+/**
+ * Accepts both the camelCase the screens send and the snake_case of the published payload
+ * contract, via @JsonAlias. One name would have meant either breaking the existing frontend or
+ * refusing the documented shape.
+ */
 public class SellerRegistrationRequest {
+    @com.fasterxml.jackson.annotation.JsonAlias("business_name")
     private String businessName;
     private String contactPerson;
+    @com.fasterxml.jackson.annotation.JsonAlias("business_email")
     private String businessEmail;
+    @com.fasterxml.jackson.annotation.JsonAlias("business_phone")
     private String businessPhone;
+    @com.fasterxml.jackson.annotation.JsonAlias("business_address")
     private String businessAddress;
     private String city;
     private String state;
     private String pincode;
+    @com.fasterxml.jackson.annotation.JsonAlias("business_type")
     private String businessType;
+    @com.fasterxml.jackson.annotation.JsonAlias("business_category")
     private String businessCategory;
+    @com.fasterxml.jackson.annotation.JsonAlias("constitution_of_business")
     private String constitutionOfBusiness;
+    @com.fasterxml.jackson.annotation.JsonAlias("books_beginning_date")
     private String booksBeginningDate;
+    @com.fasterxml.jackson.annotation.JsonAlias("signature_image_url")
     private String signatureImageUrl;
+    @com.fasterxml.jackson.annotation.JsonAlias("authorised_signatory")
     private String authorisedSignatory;
     private String gstin;
+    @com.fasterxml.jackson.annotation.JsonAlias("pan_number")
     private String panNumber;
     private String aadhaarNumber;
     private String bankAccountName;
