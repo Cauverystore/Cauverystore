@@ -7,6 +7,7 @@ import com.cauverystore.entities.Product;
 import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.SellerRegistrationRepository;
 import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.parser.PdfTextExtractor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +19,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -108,6 +111,55 @@ class ShippingLabelServiceTest {
     private int pageCount(byte[] pdf) throws Exception {
         try (PdfReader reader = new PdfReader(pdf)) {
             return reader.getNumberOfPages();
+        }
+    }
+
+    /**
+     * Page count alone would pass even if the cap dropped items without saying so, which is the
+     * one way this could quietly go wrong: a picker holding a label for a 3-item parcel that
+     * actually contains 8.
+     */
+    @Test
+    void anOrderPastTheCapShouldSayHowManyItemsAreNotListed() throws Exception {
+        Order order = orderWith(8, "PREPAID", false, false);
+        when(orderRepo.findById(order.getId())).thenReturn(Optional.of(order));
+
+        String text = textOf(service.generateLabelPdf(order.getId()));
+
+        assertTrue(text.contains("+ 5 more items"),
+                "eight items, three shown - the label has to account for the other five");
+        assertTrue(text.contains("see invoice"), "and point at where they are listed");
+    }
+
+    @Test
+    void anOrderInsideTheCapShouldNotClaimThereIsMore() throws Exception {
+        Order order = orderWith(3, "PREPAID", false, false);
+        when(orderRepo.findById(order.getId())).thenReturn(Optional.of(order));
+
+        String text = textOf(service.generateLabelPdf(order.getId()));
+
+        assertFalse(text.contains("more item"), "all three fit, so nothing is outstanding");
+    }
+
+    @Test
+    void aSingleExtraItemShouldReadAsOneItem_notOneItems() throws Exception {
+        Order order = orderWith(4, "PREPAID", false, false);
+        when(orderRepo.findById(order.getId())).thenReturn(Optional.of(order));
+
+        String text = textOf(service.generateLabelPdf(order.getId()));
+
+        assertTrue(text.contains("+ 1 more item"), text);
+        assertFalse(text.contains("+ 1 more items"), "singular, not plural");
+    }
+
+    private String textOf(byte[] pdf) throws Exception {
+        try (PdfReader reader = new PdfReader(pdf)) {
+            StringBuilder sb = new StringBuilder();
+            PdfTextExtractor extractor = new PdfTextExtractor(reader);
+            for (int page = 1; page <= reader.getNumberOfPages(); page++) {
+                sb.append(extractor.getTextFromPage(page)).append(System.lineSeparator());
+            }
+            return sb.toString();
         }
     }
 }

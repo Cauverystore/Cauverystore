@@ -62,9 +62,14 @@ public class ShippingLabelService {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         // Single-page standard: a 4x6 inch courier label (72pt/inch), portrait, 12pt margins.
-        // Every section below is bounded - the item list shows at most three lines and folds
-        // the rest into a "+N more" note - so the label always fits one page whatever the order
-        // contains. The price of fitting is compactness, not omission: nothing is dropped.
+        //
+        // Every section is bounded so the label fits one page whatever the order contains - a
+        // courier label that runs to two pages is a label that gets separated from its parcel.
+        //
+        // That bound does cost detail, deliberately: past the third item the rest collapse into
+        // a "+N more" line, and long product names are truncated. A label exists to get the
+        // parcel to the right door, and the packing list it points at is the invoice. Anything
+        // the recipient needs to check contents against belongs there, not here.
         Document doc = new Document(new Rectangle(4 * 72f, 6 * 72f), 12, 12, 12, 12);
         PdfWriter writer = PdfWriter.getInstance(doc, out);
         doc.open();
