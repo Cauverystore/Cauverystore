@@ -42,15 +42,18 @@ public class GstRateAdminService {
     private final HsnMasterRepository hsnRepo;
     private final MasterUpdateLogRepository logRepo;
     private final AuthorizationService authorizationService;
+    private final GstMasterDataLoader masterDataLoader;
 
     public GstRateAdminService(GstRateMasterRepository rateRepo,
                                HsnMasterRepository hsnRepo,
                                MasterUpdateLogRepository logRepo,
-                               AuthorizationService authorizationService) {
+                               AuthorizationService authorizationService,
+                               GstMasterDataLoader masterDataLoader) {
         this.rateRepo = rateRepo;
         this.hsnRepo = hsnRepo;
         this.logRepo = logRepo;
         this.authorizationService = authorizationService;
+        this.masterDataLoader = masterDataLoader;
     }
 
     private static final List<String> KNOWN_CONDITIONS = List.of(
@@ -106,6 +109,23 @@ public class GstRateAdminService {
 
     public List<MasterUpdateLog> importHistory() {
         return logRepo.findTop50ByOrderByCreatedAtDesc();
+    }
+
+    /**
+     * Re-applies the committed master files (HSN, units, states, GST rates) to the database.
+     *
+     * The files themselves change only when a developer runs the fetch/parse tools and commits
+     * the result, so this is how a freshly deployed master takes effect without waiting for a
+     * restart. The load is insert-only and idempotent - rates an admin has since verified or
+     * closed off are never overwritten - and every change is recorded in master_update_logs.
+     * Returns the fresh summary and import history so the caller can show what actually moved.
+     */
+    public Map<String, Object> refreshMaster() {
+        masterDataLoader.loadAll();
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("summary", summary());
+        out.put("imports", importHistory());
+        return out;
     }
 
     // ---------------------------------------------------------------- writing

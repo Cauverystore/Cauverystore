@@ -1,6 +1,7 @@
 package com.cauverystore.service;
 
 import com.cauverystore.entities.GstRateMaster;
+import com.cauverystore.entities.MasterUpdateLog;
 import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.HsnMasterRepository;
 import com.cauverystore.repository.MasterUpdateLogRepository;
@@ -15,6 +16,7 @@ import org.mockito.quality.Strictness;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,12 +32,13 @@ class GstRateAdminServiceTest {
     @Mock private HsnMasterRepository hsnRepo;
     @Mock private MasterUpdateLogRepository logRepo;
     @Mock private AuthorizationService authorizationService;
+    @Mock private GstMasterDataLoader masterDataLoader;
 
     private GstRateAdminService service;
 
     @BeforeEach
     void setUp() {
-        service = new GstRateAdminService(rateRepo, hsnRepo, logRepo, authorizationService);
+        service = new GstRateAdminService(rateRepo, hsnRepo, logRepo, authorizationService, masterDataLoader);
         when(authorizationService.getCurrentUserEmail()).thenReturn("admin@cauverystore.in");
         when(rateRepo.save(any())).thenAnswer(i -> i.getArgument(0));
         when(hsnRepo.findById(anyString())).thenReturn(Optional.empty());
@@ -231,5 +234,21 @@ class GstRateAdminServiceTest {
         assertEquals(1, review.size(), "one heading, not two separate rows");
         assertEquals(2, ((List<?>) review.get(0).get("rates")).size());
         assertTrue(((String) review.get(0).get("reviewNote")).contains("Several flat rates"));
+    }
+
+    @Test
+    void refreshMaster_shouldReloadMasterDataAndReturnFreshSummaryAndImports() {
+        MasterUpdateLog log = new MasterUpdateLog();
+        log.setFileName("gst_rate_seed.json");
+        log.setRowsInserted(3);
+        log.setRowsUpdated(2);
+        when(logRepo.findTop50ByOrderByCreatedAtDesc()).thenReturn(List.of(log));
+        when(rateRepo.findByStatusOrderByHsnCodeAsc(anyString())).thenReturn(List.of());
+
+        Map<String, Object> result = service.refreshMaster();
+
+        verify(masterDataLoader).loadAll();
+        assertEquals(0L, ((Map<?, ?>) result.get("summary")).get("verified"));
+        assertEquals(log, ((List<?>) result.get("imports")).get(0));
     }
 }

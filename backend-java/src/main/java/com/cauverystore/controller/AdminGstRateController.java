@@ -54,6 +54,12 @@ public class AdminGstRateController {
         return ResponseEntity.ok(service.importHistory());
     }
 
+    /** Re-applies the committed GST master files (HSN, units, states, rates) to the database. */
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, Object>> refresh() {
+        return ResponseEntity.ok(service.refreshMaster());
+    }
+
     @PostMapping("/{id}/verify")
     public ResponseEntity<GstRateMaster> verify(@PathVariable Long id,
                                                 @RequestBody(required = false) Map<String, String> body) {

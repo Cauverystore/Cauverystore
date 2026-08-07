@@ -28,6 +28,7 @@ const AdminGstRates = () => {
   const [notice, setNotice] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyRate);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,6 +115,30 @@ const AdminGstRates = () => {
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  /**
+   * Re-applies the committed GST master files (HSN, units, states, rates) to the database.
+   * The backend returns the fresh summary plus the import log so we can say what moved.
+   */
+  const refreshMaster = async () => {
+    setError(""); setNotice("");
+    setRefreshing(true);
+    try {
+      const res = await api.post("/api/admin/gst-rates/refresh");
+      setSummary(res.data.summary);
+      const lines = (res.data.imports || [])
+        .filter((l) => l.rowsInserted > 0 || l.rowsUpdated > 0)
+        .slice(0, 4)
+        .map((l) => `${l.fileName}: ${l.rowsInserted || 0} inserted, ${l.rowsUpdated || 0} updated`);
+      setNotice(lines.length
+        ? "Master codes updated — " + lines.join(" · ")
+        : "Master codes are up to date — nothing changed.");
+    } catch (e) {
+      setError(e?.response?.data?.error || "Could not refresh master codes.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const conditionLabel = (r) => {
     switch (r.conditionType) {
       case "VALUE_UPTO":
@@ -139,11 +164,19 @@ const AdminGstRates = () => {
             Only approved rates are charged. Anything waiting here is being taxed at the fallback rate.
           </p>
         </div>
-        <button
-          onClick={() => { setShowForm(!showForm); setForm(emptyRate); }}
-          style={{ ...btn, background: "#16a34a", color: "#fff", padding: "0.5rem 1rem", fontSize: "0.85rem" }}>
-          {showForm ? "Cancel" : "Add Rate"}
-        </button>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            onClick={refreshMaster}
+            disabled={refreshing}
+            style={{ ...btn, background: "#2563eb", color: "#fff", padding: "0.5rem 1rem", fontSize: "0.85rem", opacity: refreshing ? 0.6 : 1 }}>
+            {refreshing ? "Updating…" : "Update GST Master Codes"}
+          </button>
+          <button
+            onClick={() => { setShowForm(!showForm); setForm(emptyRate); }}
+            style={{ ...btn, background: "#16a34a", color: "#fff", padding: "0.5rem 1rem", fontSize: "0.85rem" }}>
+            {showForm ? "Cancel" : "Add Rate"}
+          </button>
+        </div>
       </div>
 
       {error && (
