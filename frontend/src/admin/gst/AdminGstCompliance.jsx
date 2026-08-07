@@ -20,6 +20,7 @@ const AdminGstCompliance = () => {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -45,6 +46,28 @@ const AdminGstCompliance = () => {
   useEffect(() => { load(); }, [load]);
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  // CBIC's notification API needs credentials nobody here has, so this cannot be polled. The
+  // honest substitute is a named, dated check - which is what this records.
+  const confirmRatesCurrent = async () => {
+    const note = window.prompt(
+      "Confirm the GST rates are current.\n\n" +
+      "Check taxinformation.cbic.gov.in for any Central Tax (Rate) notification issued since " +
+      (readiness?.rateFreshness?.newestNotification || "the ones applied") + ".\n\n" +
+      "Anything to note about the check?");
+    if (note === null) return;
+    setVerifying(true);
+    setError("");
+    try {
+      await api.post("/api/admin/gst/rate-freshness/verify", { note });
+      setNotice("Recorded. The rates are confirmed current as of today.");
+      await load();
+    } catch (err) {
+      setError(err?.response?.data?.error || "The verification could not be recorded.");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const save = async (e) => {
     e.preventDefault();
@@ -72,6 +95,14 @@ const AdminGstCompliance = () => {
   const blockers = readiness?.blockingProducts || [];
   const gaps = readiness?.marketplaceGaps || [];
   const badInvoices = readiness?.invoicesTaxedByFallback || [];
+  const freshness = readiness?.rateFreshness;
+  const pendingNotifications = readiness?.pendingRateNotifications || [];
+  const freshnessTone = {
+    CURRENT: { border: "#bbf7d0", bg: "#f0fdf4", fg: "#15803d" },
+    DUE: { border: "#fde68a", bg: "#fffbeb", fg: "#92400e" },
+    OVERDUE: { border: "#fecaca", bg: "#fef2f2", fg: "#b91c1c" },
+    NEVER_VERIFIED: { border: "#fecaca", bg: "#fef2f2", fg: "#b91c1c" },
+  }[freshness?.status] || { border: "#e5e7eb", bg: "#fff", fg: "#374151" };
 
   return (
     <div>
@@ -105,6 +136,54 @@ const AdminGstCompliance = () => {
           {readiness?.summary}
         </p>
       </div>
+
+      {freshness && (
+        <div style={{ ...card, borderColor: freshnessTone.border, background: freshnessTone.bg, marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", alignItems: "flex-start" }}>
+            <div style={{ flex: "1 1 22rem" }}>
+              <h3 style={{ marginTop: 0, marginBottom: 4, fontSize: "1.05rem", fontWeight: 600, color: freshnessTone.fg }}>
+                {freshness.status === "CURRENT" ? "Rates confirmed current"
+                  : freshness.status === "DUE" ? "Rate check is due"
+                  : freshness.status === "OVERDUE" ? "Rate check is overdue"
+                  : "Rates have never been checked"}
+              </h3>
+              <p style={{ margin: 0, fontSize: "0.87rem", color: "#374151" }}>{freshness.message}</p>
+              {freshness.lastVerifiedBy && (
+                <p style={{ ...hint, marginTop: 6 }}>
+                  Last confirmed by {freshness.lastVerifiedBy}
+                  {freshness.daysSinceVerified != null && ` — ${freshness.daysSinceVerified} day(s) ago`}
+                </p>
+              )}
+              <p style={{ ...hint, marginTop: 6 }}>{freshness.checkAt}</p>
+            </div>
+            <button type="button" onClick={confirmRatesCurrent} disabled={verifying}
+                    style={{ ...btn, background: "#0f172a", color: "#fff", whiteSpace: "nowrap" }}>
+              {verifying ? "Recording…" : "I have checked CBIC"}
+            </button>
+          </div>
+
+          {pendingNotifications.length > 0 && (
+            <div style={{ marginTop: "0.9rem", paddingTop: "0.8rem", borderTop: "1px solid rgba(0,0,0,0.08)" }}>
+              <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "#b91c1c" }}>
+                Published but not applied
+              </div>
+              <ul style={{ fontSize: "0.85rem", color: "#374151", paddingLeft: "1.1rem", marginTop: 4 }}>
+                {pendingNotifications.map((n) => (
+                  <li key={n.notificationNumber} style={{ marginBottom: 3 }}>
+                    <strong>{n.notificationNumber}</strong>
+                    {n.effectiveFrom && ` — effective ${n.effectiveFrom}`}
+                    {n.description && `. ${n.description}`}
+                  </li>
+                ))}
+              </ul>
+              <p style={{ ...hint, marginTop: 4 }}>
+                Invoices are being raised at superseded rates until the rate seed is regenerated
+                from these.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {gaps.length > 0 && (
         <div style={{ ...card, marginBottom: "1.5rem" }}>

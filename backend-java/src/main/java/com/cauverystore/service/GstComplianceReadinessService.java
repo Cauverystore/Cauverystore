@@ -37,17 +37,20 @@ public class GstComplianceReadinessService {
     private final GstRateResolver rateResolver;
     private final GstInvoiceRepository invoiceRepo;
     private final GstConfigurationRepository configRepo;
+    private final GstRateFreshnessService freshnessService;
 
     public GstComplianceReadinessService(ProductRepository productRepo,
                                          HsnMasterRepository hsnRepo,
                                          GstRateResolver rateResolver,
                                          GstInvoiceRepository invoiceRepo,
-                                         GstConfigurationRepository configRepo) {
+                                         GstConfigurationRepository configRepo,
+                                         GstRateFreshnessService freshnessService) {
         this.productRepo = productRepo;
         this.hsnRepo = hsnRepo;
         this.rateResolver = rateResolver;
         this.invoiceRepo = invoiceRepo;
         this.configRepo = configRepo;
+        this.freshnessService = freshnessService;
     }
 
     /** Why one product cannot be taxed correctly, and what fixes it. */
@@ -161,6 +164,10 @@ public class GstComplianceReadinessService {
         out.put("blockingProductCount", blockers.size());
         out.put("blockingProducts", blockers);
         out.put("marketplaceGaps", marketplaceGaps);
+        // Rate freshness is reported alongside, because a store whose products all resolve is
+        // still not compliant if the rates they resolve to were superseded months ago.
+        out.put("rateFreshness", freshnessService.status());
+        out.put("pendingRateNotifications", freshnessService.pendingNotifications());
         out.put("invoicesTaxedByFallbackCount", badInvoices.size());
         out.put("invoicesTaxedByFallback", badInvoices);
         return out;

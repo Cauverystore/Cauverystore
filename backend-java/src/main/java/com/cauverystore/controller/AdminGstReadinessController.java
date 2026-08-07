@@ -1,9 +1,12 @@
 package com.cauverystore.controller;
 
 import com.cauverystore.service.GstComplianceReadinessService;
+import com.cauverystore.service.GstRateFreshnessService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,9 +25,12 @@ import java.util.Map;
 public class AdminGstReadinessController {
 
     private final GstComplianceReadinessService service;
+    private final GstRateFreshnessService freshnessService;
 
-    public AdminGstReadinessController(GstComplianceReadinessService service) {
+    public AdminGstReadinessController(GstComplianceReadinessService service,
+                                       GstRateFreshnessService freshnessService) {
         this.service = service;
+        this.freshnessService = freshnessService;
     }
 
     @GetMapping("/readiness")
@@ -36,6 +42,59 @@ public class AdminGstReadinessController {
     @GetMapping("/readiness/blocking-products")
     public ResponseEntity<List<GstComplianceReadinessService.Blocker>> blocking() {
         return ResponseEntity.ok(service.blockingProducts());
+    }
+
+    /**
+     * How current the rates are: which notification they are built from, when a human last
+     * confirmed nothing newer exists, and how stale that is.
+     */
+    @GetMapping("/rate-freshness")
+    public ResponseEntity<Map<String, Object>> rateFreshness() {
+        return ResponseEntity.ok(freshnessService.status());
+    }
+
+    /**
+     * Records that someone has checked CBIC and found no newer Central Tax (Rate) notification.
+     *
+     * This is the only way the clock resets. It cannot be automated, because CBIC's notification
+     * API requires credentials we do not have - so the honest alternative is to make the check a
+     * named, dated act rather than pretend a scraper is doing it.
+     */
+    @PostMapping("/rate-freshness/verify")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> verifyRates(@RequestBody(required = false) Map<String, String> body) {
+        String by = currentUserEmail();
+        String note = body == null ? null : body.get("note");
+        try {
+            return ResponseEntity.ok(freshnessService.recordVerification(by, note));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Records a notification seen at CBIC that the rate seed does not yet reflect. */
+    @PostMapping("/rate-freshness/pending")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> recordPending(@RequestBody Map<String, String> body) {
+        try {
+            return ResponseEntity.ok(freshnessService.recordPendingNotification(
+                    body.get("notificationNumber"),
+                    parseDate(body.get("notificationDate")),
+                    parseDate(body.get("effectiveFrom")),
+                    body.get("description")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private java.time.LocalDate parseDate(String raw) {
+        return raw == null || raw.isBlank() ? null : java.time.LocalDate.parse(raw);
+    }
+
+    private String currentUserEmail() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        return auth != null ? auth.getName() : null;
     }
 
     /**
