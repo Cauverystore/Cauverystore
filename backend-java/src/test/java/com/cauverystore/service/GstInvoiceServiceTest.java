@@ -18,6 +18,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -40,6 +41,7 @@ class GstInvoiceServiceTest {
     @Mock private TcsRecordRepository tcsRepo;
     @Mock private GstRateResolver gstRateResolver;
     @Mock private StateMasterRepository stateRepo;
+    @Mock private PincodeStateRangeRepository pincodeRepo;
 
     @InjectMocks
     private GstInvoiceService gstService;
@@ -116,6 +118,10 @@ class GstInvoiceServiceTest {
         lenient().when(stateRepo.findById("33")).thenReturn(Optional.of(state("33", "Tamil Nadu")));
         lenient().when(stateRepo.findById("27")).thenReturn(Optional.of(state("27", "Maharashtra")));
         // The reverse lookup (state name -> code) scans the master, so it needs the whole list.
+        // 600001 is Chennai, which the range map puts in Tamil Nadu (600-643).
+        lenient().when(pincodeRepo.findByPrefixFromLessThanEqualAndPrefixToGreaterThanEqual(
+                anyInt(), anyInt())).thenReturn(List.of(
+                        new PincodeStateRange("33", "TAMIL NADU", 600, 643)));
         lenient().when(stateRepo.findAll()).thenReturn(List.of(
                 state("33", "TAMIL NADU"), state("27", "MAHARASHTRA")));
         when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
@@ -344,5 +350,55 @@ class GstInvoiceServiceTest {
         order.getAddress().setState("tamil  nadu");
 
         assertDoesNotThrow(() -> gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN));
+    }
+
+    @Test
+    void generate_shouldTakeTheStateFromThePincode_whenTheStateNameIsUnusable() {
+        // Place of supply must be right, but refusing the sale over a mistyped state when the
+        // pincode on the same address names the state unambiguously would be unhelpful.
+        stubCommonRepos();
+        order.getAddress().setState("Tamilnaadu");   // not a match
+        order.getAddress().setPincode("600001");
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        assertEquals("33", inv.getDeliveryStateCode());
+        assertTrue(inv.getPlaceOfSupply().startsWith("33-"));
+    }
+
+    @Test
+    void generate_shouldPreferTheStatedState_whenThePincodeDisagrees() {
+        // A pincode can legitimately sit in two states' published ranges, so a disagreement is
+        // not proof of error. The typed state wins and the mismatch is logged.
+        stubCommonRepos();
+        when(pincodeRepo.findByPrefixFromLessThanEqualAndPrefixToGreaterThanEqual(anyInt(), anyInt()))
+                .thenReturn(List.of(new PincodeStateRange("27", "MAHARASHTRA", 400, 445)));
+        order.getAddress().setState("Tamil Nadu");
+        order.getAddress().setPincode("400001");
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        assertEquals("33", inv.getDeliveryStateCode(), "the stated state wins");
+    }
+
+    @Test
+    void generate_shouldNotGuess_whenAPincodeSpansMoreThanOneState() {
+        // 396 belongs to both Gujarat and Dadra and Nagar Haveli, so it settles nothing.
+        when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
+        when(invoiceRepo.findByOrderId(1L)).thenReturn(Optional.empty());
+        when(configRepo.findByGstin(SELLER_GSTIN_TN)).thenReturn(Optional.of(config));
+        when(sellerRegRepo.findByUserId(1L)).thenReturn(Optional.empty());
+        when(stateRepo.findAll()).thenReturn(List.of(state("33", "TAMIL NADU")));
+        when(pincodeRepo.findByPrefixFromLessThanEqualAndPrefixToGreaterThanEqual(anyInt(), anyInt()))
+                .thenReturn(List.of(
+                        new PincodeStateRange("24", "GUJARAT", 360, 396),
+                        new PincodeStateRange("26", "DADRA AND NAGAR HAVELI", 396, 396)));
+        order.getAddress().setState("Atlantis");
+        order.getAddress().setPincode("396001");
+
+        assertThrows(IllegalStateException.class,
+                () -> gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN));
     }
 }

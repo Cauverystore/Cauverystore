@@ -1,5 +1,13 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.CountryMaster;
+import com.cauverystore.repository.CountryMasterRepository;
+import com.cauverystore.entities.CurrencyMaster;
+import com.cauverystore.repository.CurrencyMasterRepository;
+import com.cauverystore.entities.PortMaster;
+import com.cauverystore.repository.PortMasterRepository;
+import com.cauverystore.entities.PincodeStateRange;
+import com.cauverystore.repository.PincodeStateRangeRepository;
 import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.entities.HsnMaster;
 import com.cauverystore.entities.MasterUpdateLog;
@@ -62,6 +70,10 @@ public class GstMasterDataLoader {
     private final StateMasterRepository stateRepo;
     private final GstRateMasterRepository rateRepo;
     private final MasterUpdateLogRepository logRepo;
+    private final CountryMasterRepository countryRepo;
+    private final CurrencyMasterRepository currencyRepo;
+    private final PortMasterRepository portRepo;
+    private final PincodeStateRangeRepository pincodeRepo;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gst.master-data.load-on-startup:true}")
@@ -71,12 +83,20 @@ public class GstMasterDataLoader {
                                UnitMasterRepository unitRepo,
                                StateMasterRepository stateRepo,
                                GstRateMasterRepository rateRepo,
-                               MasterUpdateLogRepository logRepo) {
+                               MasterUpdateLogRepository logRepo,
+                               CountryMasterRepository countryRepo,
+                               CurrencyMasterRepository currencyRepo,
+                               PortMasterRepository portRepo,
+                               PincodeStateRangeRepository pincodeRepo) {
         this.hsnRepo = hsnRepo;
         this.unitRepo = unitRepo;
         this.stateRepo = stateRepo;
         this.rateRepo = rateRepo;
         this.logRepo = logRepo;
+        this.countryRepo = countryRepo;
+        this.currencyRepo = currencyRepo;
+        this.portRepo = portRepo;
+        this.pincodeRepo = pincodeRepo;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -100,6 +120,10 @@ public class GstMasterDataLoader {
         summary.put("hsn", loadHsn());
         summary.put("unit", loadUnits());
         summary.put("state", loadStates());
+        summary.put("country", loadCountries());
+        summary.put("currency", loadCurrencies());
+        summary.put("port", loadPorts());
+        summary.put("pincodeRange", loadPincodeRanges());
         summary.put("gstRate", loadGstRates());
         return summary;
     }
@@ -359,6 +383,137 @@ public class GstMasterDataLoader {
         }
         if (!toSave.isEmpty()) unitRepo.saveAll(toSave);
         recordLog("unit_master.json", rows.size(), inserted, updated);
+        return rows.size();
+    }
+
+    /**
+     * Code lists the IRP validates an e-invoice against - countries, currencies and ports.
+     *
+     * Loaded the same way as the rest: insert what is missing, update a changed description,
+     * leave everything else alone, so a restart does not churn the tables. Only needed once
+     * exports begin, but a rejected e-invoice at that point is a blocked shipment.
+     */
+    private int loadCountries() {
+        List<JsonNode> rows = readArray("master-data/country_master.json");
+        if (rows.isEmpty()) return 0;
+
+        Map<String, CountryMaster> existing = new HashMap<>();
+        countryRepo.findAll().forEach(c -> existing.put(c.getCountryCode(), c));
+
+        List<CountryMaster> toSave = new ArrayList<>();
+        int inserted = 0, updated = 0;
+        for (JsonNode n : rows) {
+            String code = text(n, "code");
+            String name = text(n, "name");
+            if (code == null || code.isBlank()) continue;
+            CountryMaster cur = existing.get(code);
+            if (cur == null) {
+                toSave.add(new CountryMaster(code, name));
+                inserted++;
+            } else if (name != null && !name.equals(cur.getCountryName())) {
+                cur.setCountryName(name);
+                toSave.add(cur);
+                updated++;
+            }
+        }
+        if (!toSave.isEmpty()) countryRepo.saveAll(toSave);
+        recordLog("country_master.json", rows.size(), inserted, updated);
+        return rows.size();
+    }
+
+    private int loadCurrencies() {
+        List<JsonNode> rows = readArray("master-data/currency_master.json");
+        if (rows.isEmpty()) return 0;
+
+        Map<String, CurrencyMaster> existing = new HashMap<>();
+        currencyRepo.findAll().forEach(c -> existing.put(c.getCurrencyCode(), c));
+
+        List<CurrencyMaster> toSave = new ArrayList<>();
+        int inserted = 0, updated = 0;
+        for (JsonNode n : rows) {
+            String code = text(n, "code");
+            String name = text(n, "name");
+            if (code == null || code.isBlank()) continue;
+            CurrencyMaster cur = existing.get(code);
+            if (cur == null) {
+                toSave.add(new CurrencyMaster(code, name));
+                inserted++;
+            } else if (name != null && !name.equals(cur.getCurrencyName())) {
+                cur.setCurrencyName(name);
+                toSave.add(cur);
+                updated++;
+            }
+        }
+        if (!toSave.isEmpty()) currencyRepo.saveAll(toSave);
+        recordLog("currency_master.json", rows.size(), inserted, updated);
+        return rows.size();
+    }
+
+    private int loadPorts() {
+        List<JsonNode> rows = readArray("master-data/port_master.json");
+        if (rows.isEmpty()) return 0;
+
+        Map<String, PortMaster> existing = new HashMap<>();
+        portRepo.findAll().forEach(p -> existing.put(p.getPortCode(), p));
+
+        List<PortMaster> toSave = new ArrayList<>();
+        int inserted = 0, updated = 0;
+        for (JsonNode n : rows) {
+            String code = text(n, "code");
+            String name = text(n, "name");
+            if (code == null || code.isBlank()) continue;
+            PortMaster cur = existing.get(code);
+            if (cur == null) {
+                toSave.add(new PortMaster(code, name));
+                inserted++;
+            } else if (name != null && !name.equals(cur.getPortName())) {
+                cur.setPortName(name);
+                toSave.add(cur);
+                updated++;
+            }
+        }
+        if (!toSave.isEmpty()) portRepo.saveAll(toSave);
+        recordLog("port_master.json", rows.size(), inserted, updated);
+        return rows.size();
+    }
+
+    /**
+     * Pincode prefix ranges, parsed from the portal's "781 - 788" wording into two numbers so
+     * they can be compared rather than string-matched.
+     *
+     * Replaced wholesale rather than merged. There are only 42 rows, they have no natural key -
+     * a state legitimately appears several times - and matching them up to decide what changed
+     * would be more code than simply reloading the table.
+     */
+    private int loadPincodeRanges() {
+        List<JsonNode> rows = readArray("master-data/pincode_state_map.json");
+        if (rows.isEmpty()) return 0;
+
+        List<PincodeStateRange> parsed = new ArrayList<>();
+        for (JsonNode n : rows) {
+            String stateCode = text(n, "stateCode");
+            String stateName = text(n, "stateName");
+            String range = text(n, "pincodeRange");
+            if (stateCode == null || range == null) continue;
+
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("(\\d{3})\\s*-\\s*(\\d{3})").matcher(range);
+            if (!m.find()) {
+                log.warn("Could not read the pincode range '{}' for state {} - skipped.",
+                        range, stateCode);
+                continue;
+            }
+            parsed.add(new PincodeStateRange(stateCode, stateName,
+                    Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2))));
+        }
+        if (parsed.isEmpty()) return 0;
+
+        long before = pincodeRepo.count();
+        if (before == parsed.size()) return rows.size();   // already loaded; leave it alone
+
+        pincodeRepo.deleteAll();
+        pincodeRepo.saveAll(parsed);
+        recordLog("pincode_state_map.json", rows.size(), parsed.size(), 0);
         return rows.size();
     }
 

@@ -30,6 +30,14 @@ public final class PdfBrandingUtil {
      * Add this as the first element of the document.
      */
     public static PdfPTable buildBrandHeader() {
+        return buildBrandHeader(60f, 16f, 9f);
+    }
+
+    /**
+     * The same header at a smaller size, for pages where height is tight (e.g. the 4x6 inch
+     * shipping label). Logo and fonts scale together so the identity stays intact.
+     */
+    public static PdfPTable buildBrandHeader(float logoSize, float brandSize, float taglineSize) {
         PdfPTable header = new PdfPTable(2);
         header.setWidthPercentage(100);
         try {
@@ -42,7 +50,7 @@ public final class PdfBrandingUtil {
         try (InputStream is = PdfBrandingUtil.class.getResourceAsStream("/branding/logo.jpg")) {
             if (is != null) {
                 Image logo = Image.getInstance(is.readAllBytes());
-                logo.scaleToFit(60, 60);
+                logo.scaleToFit(logoSize, logoSize);
                 logoCell.addElement(logo);
             }
         } catch (Exception ignored) {
@@ -53,8 +61,8 @@ public final class PdfBrandingUtil {
         PdfPCell textCell = new PdfPCell();
         textCell.setBorder(Rectangle.NO_BORDER);
         textCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        Font brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, TEAL);
-        Font taglineFont = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 9, GOLD);
+        Font brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, brandSize, TEAL);
+        Font taglineFont = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, taglineSize, GOLD);
         textCell.addElement(new Paragraph("Cauvery Store", brandFont));
         textCell.addElement(new Paragraph("Everyday Essentials, Delivered", taglineFont));
         header.addCell(textCell);

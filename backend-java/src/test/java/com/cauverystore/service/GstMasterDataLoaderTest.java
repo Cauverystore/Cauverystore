@@ -2,6 +2,10 @@ package com.cauverystore.service;
 
 import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.repository.GstRateMasterRepository;
+import com.cauverystore.repository.CountryMasterRepository;
+import com.cauverystore.repository.CurrencyMasterRepository;
+import com.cauverystore.repository.PortMasterRepository;
+import com.cauverystore.repository.PincodeStateRangeRepository;
 import com.cauverystore.repository.HsnMasterRepository;
 import com.cauverystore.repository.MasterUpdateLogRepository;
 import com.cauverystore.repository.StateMasterRepository;
@@ -39,12 +43,17 @@ class GstMasterDataLoaderTest {
     @Mock private StateMasterRepository stateRepo;
     @Mock private GstRateMasterRepository rateRepo;
     @Mock private MasterUpdateLogRepository logRepo;
+    @Mock private CountryMasterRepository countryRepo;
+    @Mock private CurrencyMasterRepository currencyRepo;
+    @Mock private PortMasterRepository portRepo;
+    @Mock private PincodeStateRangeRepository pincodeRepo;
 
     private GstMasterDataLoader loader;
 
     @BeforeEach
     void setUp() {
-        loader = new GstMasterDataLoader(hsnRepo, unitRepo, stateRepo, rateRepo, logRepo);
+        loader = new GstMasterDataLoader(hsnRepo, unitRepo, stateRepo, rateRepo, logRepo,
+                countryRepo, currencyRepo, portRepo, pincodeRepo);
     }
 
     private GstRateMaster autoVerified(String hsn, double rate) {

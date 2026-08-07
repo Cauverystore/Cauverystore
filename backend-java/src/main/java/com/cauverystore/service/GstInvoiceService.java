@@ -4,6 +4,8 @@ import com.cauverystore.client.GstnClient;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.GstInvoiceItem;
 import com.cauverystore.entities.GstSyncQueue;
+import com.cauverystore.entities.PincodeStateRange;
+import com.cauverystore.repository.PincodeStateRangeRepository;
 import com.cauverystore.entities.StateMaster;
 import com.cauverystore.repository.StateMasterRepository;
 import com.cauverystore.entities.GstConfiguration;
@@ -71,6 +73,7 @@ public class GstInvoiceService {
     private final GstnClient gstnClient;
     private final TcsRecordRepository tcsRepo;
     private final StateMasterRepository stateRepo;
+    private final PincodeStateRangeRepository pincodeRepo;
 
 
     private final GstRateResolver gstRateResolver;
@@ -83,6 +86,7 @@ public class GstInvoiceService {
                              UserRepository userRepo, AuditService auditService,
                              GstnClient gstnClient, TcsRecordRepository tcsRepo,
                              StateMasterRepository stateRepo,
+                             PincodeStateRangeRepository pincodeRepo,
                              GstRateResolver gstRateResolver,
                              Gstr1ExportService gstr1ExportService) {
         this.gstRateResolver = gstRateResolver;
@@ -99,6 +103,7 @@ public class GstInvoiceService {
         this.gstnClient = gstnClient;
         this.tcsRepo = tcsRepo;
         this.stateRepo = stateRepo;
+        this.pincodeRepo = pincodeRepo;
     }
 
     @Transactional
@@ -172,7 +177,7 @@ public class GstInvoiceService {
         // address field; for B2C it derives from the shipping address state.
         String buyerStateCode = isB2b
                 ? inv.getBuyerGstin().substring(0, 2)
-                : (addr != null ? getStateCode(addr.getState()) : "33");
+                : resolveDeliveryState(addr);
         String resolvedDeliveryStateCode = deliveryStateCode != null && !deliveryStateCode.isBlank()
                 ? deliveryStateCode.trim()
                 : buyerStateCode;
@@ -1038,6 +1043,63 @@ public class GstInvoiceService {
         throw new IllegalStateException("'" + stateName + "' is not a state in the official GST "
                 + "master, so the place of supply cannot be determined. Correct the delivery "
                 + "address.");
+    }
+
+    /**
+     * The state code for a delivery address, from the state name or, failing that, the pincode.
+     *
+     * The pincode fallback is the point of holding the range map: place of supply must be right,
+     * and an address whose state is mistyped or missing would otherwise refuse the sale outright.
+     * The pincode sits on the same address, is six digits with no spelling to get wrong, and
+     * names the state on its own.
+     *
+     * When both are present and disagree, the typed state wins and the mismatch is logged. A
+     * pincode can legitimately sit in two states' published ranges - 396 belongs to both Gujarat
+     * and Dadra and Nagar Haveli - so treating a disagreement as proof of error would reject
+     * correct addresses.
+     */
+    private String resolveDeliveryState(Address addr) {
+        if (addr == null) {
+            throw new IllegalStateException(
+                    "This order has no delivery address, so there is no place of supply and the "
+                            + "invoice cannot say whether IGST or CGST+SGST applies.");
+        }
+        String fromPincode = stateCodeFromPincode(addr.getPincode());
+
+        try {
+            String fromName = getStateCode(addr.getState());
+            if (fromPincode != null && !fromPincode.equals(fromName)) {
+                log.warn("Delivery address states '{}' (code {}) but its pincode {} belongs to "
+                                + "state {}. Using the stated state; check the address if the "
+                                + "invoice looks wrong.",
+                        addr.getState(), fromName, addr.getPincode(), fromPincode);
+            }
+            return fromName;
+        } catch (IllegalStateException stateUnresolvable) {
+            if (fromPincode != null) {
+                log.info("Delivery state '{}' could not be matched, so it was taken from pincode "
+                        + "{} as state {}.", addr.getState(), addr.getPincode(), fromPincode);
+                return fromPincode;
+            }
+            throw stateUnresolvable;
+        }
+    }
+
+    /**
+     * The state a pincode belongs to, or null when it is missing, unrecognised, or shared by
+     * more than one state - in which case it settles nothing and should not pretend to.
+     */
+    private String stateCodeFromPincode(String pincode) {
+        if (pincode == null || pincode.isBlank()) return null;
+        String digits = pincode.replaceAll("\\D", "");
+        if (digits.length() < 3) return null;
+        int prefix = Integer.parseInt(digits.substring(0, 3));
+
+        java.util.Set<String> matches = pincodeRepo
+                .findByPrefixFromLessThanEqualAndPrefixToGreaterThanEqual(prefix, prefix)
+                .stream().map(PincodeStateRange::getStateCode)
+                .collect(java.util.stream.Collectors.toSet());
+        return matches.size() == 1 ? matches.iterator().next() : null;
     }
 
     private String normaliseStateName(String name) {

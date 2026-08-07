@@ -61,45 +61,50 @@ public class ShippingLabelService {
         }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        // Standard 4x6 inch courier label (72pt/inch), portrait - the thermal-printer default.
-        Document doc = new Document(new Rectangle(4 * 72f, 6 * 72f), 14, 14, 14, 14);
+        // Single-page standard: a 4x6 inch courier label (72pt/inch), portrait, 12pt margins.
+        // Every section below is bounded - the item list shows at most three lines and folds
+        // the rest into a "+N more" note - so the label always fits one page whatever the order
+        // contains. The price of fitting is compactness, not omission: nothing is dropped.
+        Document doc = new Document(new Rectangle(4 * 72f, 6 * 72f), 12, 12, 12, 12);
         PdfWriter writer = PdfWriter.getInstance(doc, out);
         doc.open();
 
-        Font bold14 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
+        Font bold13 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13);
         Font bold11 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
         Font bold9 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font normal9 = FontFactory.getFont(FontFactory.HELVETICA, 9);
         Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
 
-        doc.add(PdfBrandingUtil.buildBrandHeader());
+        doc.add(PdfBrandingUtil.buildBrandHeader(40f, 13f, 8f));
         doc.add(PdfBrandingUtil.buildDivider());
-        doc.add(new Paragraph(" "));
 
-        // COD badge, in brand red, only when relevant
+        // COD banner, slim so it never costs a page on its own.
         if ("COD".equalsIgnoreCase(order.getPaymentMethod())) {
             PdfPTable codBadge = new PdfPTable(1);
             codBadge.setWidthPercentage(100);
-            PdfPCell codCell = new PdfPCell(new Phrase("CASH ON DELIVERY", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Color.WHITE)));
+            codBadge.setSpacingBefore(4);
+            PdfPCell codCell = new PdfPCell(new Phrase("CASH ON DELIVERY",
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, Color.WHITE)));
             codCell.setBackgroundColor(PdfBrandingUtil.RED);
             codCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            codCell.setPadding(5);
+            codCell.setPadding(3);
             codBadge.addCell(codCell);
             doc.add(codBadge);
-            doc.add(new Paragraph(" "));
         }
 
         // Ship From (Return Address) / Ship To
-        PdfPTable addresses = new PdfPTable(2);
-        addresses.setWidthPercentage(100);
-        addresses.setWidths(new float[]{50, 50});
-
         SellerRegistration seller = order.getSellerId() != null
                 ? sellerRegRepo.findByUserId(order.getSellerId()).orElse(null)
                 : null;
+        Address addr = order.getAddress();
+
+        PdfPTable addresses = new PdfPTable(2);
+        addresses.setWidthPercentage(100);
+        addresses.setWidths(new float[]{50, 50});
+        addresses.setSpacingBefore(4);
 
         PdfPCell fromCell = new PdfPCell();
-        fromCell.setPadding(6);
+        fromCell.setPadding(4);
         fromCell.setBackgroundColor(PdfBrandingUtil.BEIGE);
         fromCell.addElement(new Paragraph("RETURN ADDRESS", bold9));
         if (seller != null) {
@@ -112,8 +117,7 @@ public class ShippingLabelService {
         addresses.addCell(fromCell);
 
         PdfPCell toCell = new PdfPCell();
-        toCell.setPadding(6);
-        Address addr = order.getAddress();
+        toCell.setPadding(4);
         toCell.addElement(new Paragraph("SHIP TO", bold9));
         if (addr != null) {
             toCell.addElement(new Paragraph(safe(addr.getFullName()), bold11));
@@ -126,49 +130,25 @@ public class ShippingLabelService {
         addresses.addCell(toCell);
         doc.add(addresses);
 
-        doc.add(new Paragraph(" "));
-
         // Order ID / Service type
         PdfPTable idTable = new PdfPTable(2);
         idTable.setWidthPercentage(100);
         idTable.setWidths(new float[]{50, 50});
-        addIdCell(idTable, "Order ID", "#" + order.getId(), bold9, bold14);
+        idTable.setSpacingBefore(4);
+        addIdCell(idTable, "Order ID", "#" + order.getId(), bold9, bold13);
         String serviceType = "COD".equalsIgnoreCase(order.getPaymentMethod()) ? "COD" : "Prepaid - Standard";
-        addIdCell(idTable, "Service Type", serviceType, bold9, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11));
+        addIdCell(idTable, "Service Type", serviceType, bold9, bold11);
         doc.add(idTable);
 
-        doc.add(new Paragraph(" "));
-
-        // Itemized product list
+        // Itemized product list - capped at three rows so a large order cannot push the label
+        // onto a second page; the rest folds into a "+N more" line.
         List<OrderItem> items = order.getItems();
-        PdfPTable itemsTable = new PdfPTable(2);
-        itemsTable.setWidthPercentage(100);
-        itemsTable.setWidths(new float[]{75, 25});
-        Font tableHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE);
-        PdfPCell itemHeader1 = new PdfPCell(new Phrase("Product", tableHeaderFont));
-        itemHeader1.setBackgroundColor(PdfBrandingUtil.TEAL);
-        itemHeader1.setPadding(3);
-        PdfPCell itemHeader2 = new PdfPCell(new Phrase("Qty", tableHeaderFont));
-        itemHeader2.setBackgroundColor(PdfBrandingUtil.TEAL);
-        itemHeader2.setPadding(3);
-        itemHeader2.setHorizontalAlignment(Element.ALIGN_CENTER);
-        itemsTable.addCell(itemHeader1);
-        itemsTable.addCell(itemHeader2);
-
+        int itemCount = items == null ? 0 : items.size();
         double totalWeight = 0;
         boolean anyWeight = false;
         boolean anyFragile = false;
         if (items != null) {
             for (OrderItem item : items) {
-                String name = item.getProduct() != null ? item.getProduct().getName() : "Item";
-                PdfPCell nameCell = new PdfPCell(new Phrase(safe(name), small8));
-                nameCell.setPadding(3);
-                itemsTable.addCell(nameCell);
-                PdfPCell qtyCell = new PdfPCell(new Phrase(String.valueOf(item.getQuantity()), small8));
-                qtyCell.setPadding(3);
-                qtyCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                itemsTable.addCell(qtyCell);
-
                 if (item.getProduct() != null) {
                     Double w = item.getProduct().getPackageWeight() != null ? item.getProduct().getPackageWeight() : item.getProduct().getWeight();
                     if (w != null) {
@@ -182,42 +162,73 @@ public class ShippingLabelService {
                 }
             }
         }
+
+        PdfPTable itemsTable = new PdfPTable(2);
+        itemsTable.setWidthPercentage(100);
+        itemsTable.setWidths(new float[]{75, 25});
+        itemsTable.setSpacingBefore(4);
+        Font tableHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, Color.WHITE);
+        PdfPCell itemHeader1 = new PdfPCell(new Phrase("Product", tableHeaderFont));
+        itemHeader1.setBackgroundColor(PdfBrandingUtil.TEAL);
+        itemHeader1.setPadding(2);
+        PdfPCell itemHeader2 = new PdfPCell(new Phrase("Qty", tableHeaderFont));
+        itemHeader2.setBackgroundColor(PdfBrandingUtil.TEAL);
+        itemHeader2.setPadding(2);
+        itemHeader2.setHorizontalAlignment(Element.ALIGN_CENTER);
+        itemsTable.addCell(itemHeader1);
+        itemsTable.addCell(itemHeader2);
+
+        for (int i = 0; i < Math.min(itemCount, 3); i++) {
+            OrderItem item = items.get(i);
+            String name = item.getProduct() != null ? item.getProduct().getName() : "Item";
+            PdfPCell nameCell = new PdfPCell(new Phrase(safe(name), small8));
+            nameCell.setPadding(2);
+            itemsTable.addCell(nameCell);
+            PdfPCell qtyCell = new PdfPCell(new Phrase(String.valueOf(item.getQuantity()), small8));
+            qtyCell.setPadding(2);
+            qtyCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            itemsTable.addCell(qtyCell);
+        }
+        if (itemCount > 3) {
+            PdfPCell moreCell = new PdfPCell(new Phrase(
+                    "+ " + (itemCount - 3) + " more item" + (itemCount - 3 > 1 ? "s" : "") + " - see invoice", small8));
+            moreCell.setColspan(2);
+            moreCell.setPadding(2);
+            itemsTable.addCell(moreCell);
+        }
         doc.add(itemsTable);
 
-        if (anyWeight) {
-            Paragraph weightLine = new Paragraph("Package Weight: " + String.format("%.2f kg", totalWeight), normal9);
-            weightLine.setSpacingBefore(4);
-            doc.add(weightLine);
-        }
-
-        // Shipping instructions (optional)
+        // Weight / fragile / delivery instructions share one banner line, keeping them off page two.
         String deliveryInstructions = addr != null ? addr.getDeliveryInstructions() : null;
-        if (anyFragile || (deliveryInstructions != null && !deliveryInstructions.isBlank())) {
-            doc.add(new Paragraph(" "));
-            PdfPTable instrTable = new PdfPTable(1);
-            instrTable.setWidthPercentage(100);
-            PdfPCell instrCell = new PdfPCell();
-            instrCell.setPadding(5);
-            instrCell.setBorderColor(PdfBrandingUtil.RED);
-            instrCell.setBorderWidth(1f);
-            StringBuilder instr = new StringBuilder();
-            if (anyFragile) instr.append("FRAGILE - HANDLE WITH CARE");
-            if (deliveryInstructions != null && !deliveryInstructions.isBlank()) {
-                if (instr.length() > 0) instr.append("  |  ");
-                instr.append(deliveryInstructions);
+        if (anyWeight || anyFragile || (deliveryInstructions != null && !deliveryInstructions.isBlank())) {
+            StringBuilder parts = new StringBuilder();
+            if (anyWeight) parts.append("Weight: ").append(String.format("%.2f kg", totalWeight));
+            if (anyFragile) {
+                if (parts.length() > 0) parts.append("   ");
+                parts.append("FRAGILE - HANDLE WITH CARE");
             }
-            instrCell.addElement(new Paragraph(instr.toString(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, PdfBrandingUtil.RED)));
-            instrTable.addCell(instrCell);
-            doc.add(instrTable);
+            if (deliveryInstructions != null && !deliveryInstructions.isBlank()) {
+                if (parts.length() > 0) parts.append("   ");
+                parts.append(deliveryInstructions);
+            }
+            PdfPTable noteTable = new PdfPTable(1);
+            noteTable.setWidthPercentage(100);
+            noteTable.setSpacingBefore(4);
+            PdfPCell noteCell = new PdfPCell(new Phrase(parts.toString(),
+                    FontFactory.getFont(FontFactory.HELVETICA, 8, Color.DARK_GRAY)));
+            noteCell.setPadding(3);
+            noteCell.setBorderColor(PdfBrandingUtil.RED);
+            noteCell.setBorderWidth(0.6f);
+            noteTable.addCell(noteCell);
+            doc.add(noteTable);
         }
-
-        doc.add(new Paragraph(" "));
 
         // Barcodes - order barcode for internal tracking, tracking barcode for courier scanning
         PdfContentByte cb = writer.getDirectContent();
         PdfPTable barcodeTable = new PdfPTable(2);
         barcodeTable.setWidthPercentage(100);
         barcodeTable.setWidths(new float[]{50, 50});
+        barcodeTable.setSpacingBefore(4);
 
         barcodeTable.addCell(buildBarcodeCell(cb, "ORDER BARCODE", "ORD" + order.getId(), bold9, small8));
 
@@ -227,7 +238,7 @@ public class ShippingLabelService {
             barcodeTable.addCell(buildBarcodeCell(cb, "COURIER: " + courier, tracking, bold9, small8));
         } else {
             PdfPCell pendingCell = new PdfPCell();
-            pendingCell.setPadding(6);
+            pendingCell.setPadding(4);
             pendingCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
             pendingCell.setHorizontalAlignment(Element.ALIGN_CENTER);
             pendingCell.addElement(new Paragraph("TRACKING", bold9));
@@ -261,14 +272,14 @@ public class ShippingLabelService {
     private PdfPCell buildBarcodeCell(PdfContentByte cb, String label, String code, Font labelFont, Font smallFont) {
         Barcode128 barcode = new Barcode128();
         barcode.setCode(code);
-        barcode.setBarHeight(28f);
-        barcode.setSize(7f);
-        barcode.setBaseline(7f);
+        barcode.setBarHeight(20f);
+        barcode.setSize(5f);
+        barcode.setBaseline(5f);
         barcode.setTextAlignment(Element.ALIGN_CENTER);
         Image barcodeImage = barcode.createImageWithBarcode(cb, null, null);
 
         PdfPCell cell = new PdfPCell();
-        cell.setPadding(4);
+        cell.setPadding(3);
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
         cell.addElement(new Paragraph(label, labelFont));
         com.lowagie.text.Chunk imageChunk = new com.lowagie.text.Chunk(barcodeImage, 0, 0);
