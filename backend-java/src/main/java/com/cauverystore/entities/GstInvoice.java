@@ -86,6 +86,14 @@ public class GstInvoice {
     private String placeOfSupply;
     private Boolean isInterState = false;
 
+    /**
+     * True when this intra-state supply came from a Union Territory without a legislature and so
+     * carried UTGST instead of SGST. The state component is still stored in the state-tax fields
+     * - GSTN reports UTGST under "State/UT Tax" in every return and e-invoice - but the face of
+     * the invoice must name it UTGST.
+     */
+    private Boolean utgstApplied = false;
+
     private String ewayBillNumber;
     private LocalDate ewayBillExpiry;
 
@@ -245,6 +253,8 @@ public class GstInvoice {
     public void setPlaceOfSupply(String placeOfSupply) { this.placeOfSupply = placeOfSupply; }
     public Boolean getIsInterState() { return isInterState; }
     public void setIsInterState(Boolean isInterState) { this.isInterState = isInterState; }
+    public Boolean getUtgstApplied() { return utgstApplied; }
+    public void setUtgstApplied(Boolean utgstApplied) { this.utgstApplied = utgstApplied; }
     public String getEwayBillNumber() { return ewayBillNumber; }
     public void setEwayBillNumber(String ewayBillNumber) { this.ewayBillNumber = ewayBillNumber; }
     public LocalDate getEwayBillExpiry() { return ewayBillExpiry; }

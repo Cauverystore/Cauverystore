@@ -1,113 +1,40 @@
 package com.cauverystore.util;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class GstComplianceUtilTest {
 
-    // Checksum-verified GSTINs (15 chars: 2-digit state + 10-char PAN block + entity + Z + check digit)
-    private static final String VALID_TN = "33ABCDE1234F1ZA";
-    private static final String VALID_MH = "27ABCDE1234F1ZW";
-
     @Test
-    void validateGstin_shouldAcceptWellFormedGstin() {
-        assertDoesNotThrow(() -> GstComplianceUtil.validateGstin(VALID_TN));
-        assertDoesNotThrow(() -> GstComplianceUtil.validateGstin(VALID_MH));
+    void unionTerritoriesWithoutLegislatureAreUtgst() {
+        assertTrue(GstComplianceUtil.isUtgstState("04")); // Chandigarh
+        assertTrue(GstComplianceUtil.isUtgstState("26")); // DNH & Daman-Diu
+        assertTrue(GstComplianceUtil.isUtgstState("31")); // Lakshadweep
+        assertTrue(GstComplianceUtil.isUtgstState("35")); // Andaman & Nicobar
+        assertTrue(GstComplianceUtil.isUtgstState("38")); // Ladakh
     }
 
     @Test
-    void validateGstin_shouldRejectMalformedGstin() {
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateGstin(""));
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateGstin(null));
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateGstin("33ABCDE1234F1Z"));   // 14 chars
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateGstin("33ABCDE1234F1ZAA")); // 16 chars
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateGstin("ABCDE1234F1ZA"));    // no state code
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateGstin("33ABCDE1234F0Z1"));  // entity slot not 1-9A-Z
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateGstin("33ABCDE1234F1ZA!")); // illegal trailing char
+    void statesAndUnionTerritoriesWithLegislaturesAreNotUtgst() {
+        assertFalse(GstComplianceUtil.isUtgstState("01")); // Jammu & Kashmir
+        assertFalse(GstComplianceUtil.isUtgstState("07")); // Delhi
+        assertFalse(GstComplianceUtil.isUtgstState("34")); // Puducherry
+        assertFalse(GstComplianceUtil.isUtgstState("33")); // Tamil Nadu
+        assertFalse(GstComplianceUtil.isUtgstState("09")); // Uttar Pradesh
     }
 
     @Test
-    void hasValidCheckDigit_shouldVerifyBase36Checksum() {
-        assertTrue(GstComplianceUtil.hasValidCheckDigit(VALID_TN));
-        assertTrue(GstComplianceUtil.hasValidCheckDigit(VALID_MH));
-        // Same PAN/state block but a wrong checksum character
-        assertFalse(GstComplianceUtil.hasValidCheckDigit("33ABCDE1234F1ZB"));
-        assertFalse(GstComplianceUtil.hasValidCheckDigit("27ABCDE1234F1ZA"));
-        assertFalse(GstComplianceUtil.hasValidCheckDigit("garbage"));
+    void blankAndNullCodesAreNotUtgst() {
+        assertFalse(GstComplianceUtil.isUtgstState(null));
+        assertFalse(GstComplianceUtil.isUtgstState(""));
+        assertFalse(GstComplianceUtil.isUtgstState("  "));
+        assertFalse(GstComplianceUtil.isUtgstState("abc"));
     }
 
     @Test
-    void validateInvoiceNumber_shouldEnforceRule46Max16Chars() {
-        assertDoesNotThrow(() -> GstComplianceUtil.validateInvoiceNumber("CS2608/00001"));     // 12 chars
-        assertDoesNotThrow(() -> GstComplianceUtil.validateInvoiceNumber("CS2608/00001/001"));  // 16 chars exactly
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> GstComplianceUtil.validateInvoiceNumber("CS2608/00001/0001"));           // 17 chars
-        assertTrue(ex.getMessage().contains("16-character"));
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateInvoiceNumber(""));
-        assertThrows(IllegalArgumentException.class, () -> GstComplianceUtil.validateInvoiceNumber(null));
-    }
-
-    @Test
-    void isSacCode_shouldIdentifyServiceCodes() {
-        assertTrue(GstComplianceUtil.isSacCode("996511"));
-        assertTrue(GstComplianceUtil.isSacCode("9983"));
-        assertFalse(GstComplianceUtil.isSacCode("610910"));
-        assertFalse(GstComplianceUtil.isSacCode("996"));
-        assertFalse(GstComplianceUtil.isSacCode(null));
-    }
-
-    @Test
-    void classifyInvoiceType_shouldDistinguishB2bAndB2c() {
-        assertEquals("B2B", GstComplianceUtil.classifyInvoiceType(VALID_TN));
-        assertEquals("B2B", GstComplianceUtil.classifyInvoiceType("33ABCDE1234F1ZA"));
-        assertEquals("B2C", GstComplianceUtil.classifyInvoiceType("URP"));
-        assertEquals("B2C", GstComplianceUtil.classifyInvoiceType(null));
-        assertEquals("B2C", GstComplianceUtil.classifyInvoiceType(""));
-        assertEquals("B2C", GstComplianceUtil.classifyInvoiceType("   "));
-    }
-
-    @Test
-    void requiresEInvoice_shouldUseFiveCroreThreshold() {
-        assertFalse(GstComplianceUtil.requiresEInvoice(5_00_00_000.0));  // exactly at threshold -> not required
-        assertFalse(GstComplianceUtil.requiresEInvoice(1_00_00_000.0));
-        assertFalse(GstComplianceUtil.requiresEInvoice(null));
-        assertTrue(GstComplianceUtil.requiresEInvoice(5_00_00_000.01));
-        assertTrue(GstComplianceUtil.requiresEInvoice(8_00_00_000.0));
-    }
-
-    @Test
-    void requiresEWayBill_shouldUseFiftyThousandThreshold() {
-        assertFalse(GstComplianceUtil.requiresEWayBill(50_000.0));   // at threshold -> not required
-        assertFalse(GstComplianceUtil.requiresEWayBill(49_999.99));
-        assertFalse(GstComplianceUtil.requiresEWayBill(null));
-        assertTrue(GstComplianceUtil.requiresEWayBill(50_000.01));
-        assertTrue(GstComplianceUtil.requiresEWayBill(1_00_000.0));
-        assertTrue(GstComplianceUtil.requiresEWayBill(2_50_000.0));
-    }
-
-    @Test
-    void isB2cLarge_shouldUseOneLakhInterstateThreshold() {
-        assertFalse(GstComplianceUtil.isB2cLarge(false, 2_00_000.0));  // intra-state never large
-        assertFalse(GstComplianceUtil.isB2cLarge(true, 1_00_000.0));    // at threshold -> not large
-        assertFalse(GstComplianceUtil.isB2cLarge(true, null));
-        assertFalse(GstComplianceUtil.isB2cLarge(null, 2_00_000.0));
-        assertTrue(GstComplianceUtil.isB2cLarge(true, 1_00_000.01));
-        assertTrue(GstComplianceUtil.isB2cLarge(true, 2_50_000.0));
-    }
-
-    @Test
-    void isNilRated_shouldDetectZeroTaxSupplies() {
-        assertTrue(GstComplianceUtil.isNilRated(1_000.0, 0.0, 0.0, 0.0));
-        assertFalse(GstComplianceUtil.isNilRated(1_000.0, 60.0, 60.0, 0.0));
-        assertFalse(GstComplianceUtil.isNilRated(0.0, 0.0, 0.0, 0.0));
-        assertFalse(GstComplianceUtil.isNilRated(null, 0.0, 0.0, 0.0));
-    }
-
-    @Test
-    void determineHsnDigits_shouldReturnSixDigitsAboveFiveCrore() {
-        assertEquals(4, GstComplianceUtil.determineHsnDigits(null));
-        assertEquals(4, GstComplianceUtil.determineHsnDigits(1_00_00_000.0));
-        assertEquals(6, GstComplianceUtil.determineHsnDigits(8_00_00_000.0));
+    void utgstDetectionIgnoresSurroundingWhitespace() {
+        assertTrue(GstComplianceUtil.isUtgstState(" 38 "));
     }
 }

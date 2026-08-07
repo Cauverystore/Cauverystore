@@ -205,7 +205,7 @@ const DebitNoteView = () => {
 
             <div className="giv-identifiers">
               <div className="giv-id-item"><div className="giv-id-label">Place of Supply</div><div className="giv-id-value">{dn.placeOfSupply || "-"}</div></div>
-              <div className="giv-id-item"><div className="giv-id-label">Supply Type</div><div className="giv-id-value">{dn.isInterState ? "Inter-State (IGST)" : "Intra-State (CGST+SGST)"}</div></div>
+              <div className="giv-id-item"><div className="giv-id-label">Supply Type</div><div className="giv-id-value">{dn.isInterState ? "Inter-State (IGST)" : dn.utgstApplied ? "Intra-State (CGST+UTGST)" : "Intra-State (CGST+SGST)"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">Invoice Type</div><div className="giv-id-value">{dn.invoiceType || "B2C"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">Order</div><div className="giv-id-value">#{dn.orderId}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">Reference</div><div className="giv-id-value">{dn.referenceType || "-"}</div></div>
@@ -222,7 +222,7 @@ const DebitNoteView = () => {
                     <th style={{ textAlign: "right" }}>Qty</th>
                     <th style={{ textAlign: "right" }}>Unit Price</th>
                     <th style={{ textAlign: "right" }}>Taxable Value</th>
-                    {!dn.isInterState && <><th style={{ textAlign: "right" }}>CGST</th><th style={{ textAlign: "right" }}>SGST</th></>}
+                    {!dn.isInterState && <><th style={{ textAlign: "right" }}>CGST</th><th style={{ textAlign: "right" }}>{dn.utgstApplied ? "UTGST" : "SGST"}</th></>}
                     {dn.isInterState && <th style={{ textAlign: "right" }}>IGST</th>}
                     <th style={{ textAlign: "right" }}>Total</th>
                   </tr>
@@ -249,7 +249,7 @@ const DebitNoteView = () => {
               <table className="giv-summary-table">
                 <tbody>
                   <tr><td>Taxable Amount</td><td>&#8377;{(dn.taxableAmount || 0).toFixed(2)}</td></tr>
-                  {!dn.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(dn.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>SGST</td><td style={{ color: "#7c3aed" }}>&#8377;{(dn.sgstAmount || 0).toFixed(2)}</td></tr></>}
+                  {!dn.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(dn.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>{dn.utgstApplied ? "UTGST" : "SGST"}</td><td style={{ color: "#7c3aed" }}>&#8377;{(dn.sgstAmount || 0).toFixed(2)}</td></tr></>}
                   {dn.isInterState && <tr><td>IGST</td><td style={{ color: "#d97706" }}>&#8377;{(dn.igstAmount || 0).toFixed(2)}</td></tr>}
                   <tr><td>Total Tax</td><td>&#8377;{(dn.totalTax || 0).toFixed(2)}</td></tr>
                   {dn.tcsAmount > 0 && <tr><td>TCS</td><td style={{ color: "#dc2626" }}>&#8377;{(dn.tcsAmount || 0).toFixed(2)}</td></tr>}

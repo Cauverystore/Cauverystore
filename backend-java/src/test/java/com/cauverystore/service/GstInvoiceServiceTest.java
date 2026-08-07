@@ -39,6 +39,7 @@ class GstInvoiceServiceTest {
     @Mock private GstnClient gstnClient;
     @Mock private TcsRecordRepository tcsRepo;
     @Mock private GstRateResolver gstRateResolver;
+    @Mock private StateMasterRepository stateRepo;
 
     @InjectMocks
     private GstInvoiceService gstService;
@@ -101,8 +102,22 @@ class GstInvoiceServiceTest {
         order.setStatus("PLACED");
     }
 
+    private StateMaster state(String code, String name) {
+        StateMaster s = new StateMaster();
+        s.setStateCode(code);
+        s.setStateName(name);
+        return s;
+    }
+
     /** Stubs the repositories the generation path touches. Not called by tests that fail validation first. */
     private void stubCommonRepos() {
+        // Place of supply now reads the official state master rather than a map kept in the
+        // service, which had drifted - it still listed 28 for Andhra Pradesh and lacked 37.
+        lenient().when(stateRepo.findById("33")).thenReturn(Optional.of(state("33", "Tamil Nadu")));
+        lenient().when(stateRepo.findById("27")).thenReturn(Optional.of(state("27", "Maharashtra")));
+        // The reverse lookup (state name -> code) scans the master, so it needs the whole list.
+        lenient().when(stateRepo.findAll()).thenReturn(List.of(
+                state("33", "TAMIL NADU"), state("27", "MAHARASHTRA")));
         when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
         when(invoiceRepo.findByOrderId(1L)).thenReturn(Optional.empty());
         when(configRepo.findByGstin(SELLER_GSTIN_TN)).thenReturn(Optional.of(config));
@@ -299,5 +314,35 @@ class GstInvoiceServiceTest {
         GstInvoice inv = (GstInvoice) gstService
                 .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
         assertNull(inv.getSupplierSignatureImageUrl());
+    }
+
+    @Test
+    void generate_shouldRefuseAnUnknownDeliveryState_ratherThanDefaultToTamilNadu() {
+        // The reverse lookup used to return "33" for anything it did not recognise, including
+        // null. One unrecognised spelling made an inter-state supply look intra-state, charging
+        // CGST+SGST where IGST was due and sending the money to the wrong government.
+        // Stubbed narrowly: this throws before it reaches the save calls, and Mockito fails
+        // the test for stubs that were never used.
+        when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
+        when(invoiceRepo.findByOrderId(1L)).thenReturn(Optional.empty());
+        when(configRepo.findByGstin(SELLER_GSTIN_TN)).thenReturn(Optional.of(config));
+        when(sellerRegRepo.findByUserId(1L)).thenReturn(Optional.empty());
+        when(stateRepo.findAll()).thenReturn(List.of(state("33", "TAMIL NADU")));
+        order.getAddress().setState("Atlantis");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN));
+        assertTrue(ex.getMessage().contains("Atlantis"), "should name the state it could not place");
+        assertTrue(ex.getMessage().toLowerCase().contains("place of supply"));
+    }
+
+    @Test
+    void generate_shouldMatchAStateNameDespiteCaseAndPunctuation() {
+        // A customer-typed address will not match the gazette spelling exactly, and refusing it
+        // on that would be pedantry rather than compliance.
+        stubCommonRepos();
+        order.getAddress().setState("tamil  nadu");
+
+        assertDoesNotThrow(() -> gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN));
     }
 }

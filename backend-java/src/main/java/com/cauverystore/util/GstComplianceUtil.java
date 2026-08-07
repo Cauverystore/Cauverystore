@@ -7,6 +7,14 @@ public class GstComplianceUtil {
     private static final Pattern GSTIN_PATTERN =
             Pattern.compile("^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$");
 
+    /**
+     * GST state codes of the Union Territories without a state legislature - the only places a
+     * supplier charges UTGST instead of SGST on intra-state supplies. Delhi, Puducherry and
+     * Jammu &amp; Kashmir have legislatures, so SGST applies there and they are deliberately absent.
+     */
+    private static final java.util.Set<String> UTGST_STATES =
+            java.util.Set.of("04", "26", "31", "35", "38");
+
     private static final String BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     private static final double E_INVOICE_THRESHOLD = 5_00_00_000;
@@ -113,6 +121,20 @@ public class GstComplianceUtil {
             return "B2B";
         }
         return "B2C";
+    }
+
+    /**
+     * True when the state component of an intra-state supply from this supplier state is UTGST
+     * rather than SGST.
+     *
+     * UTGST applies only to supplies made within a Union Territory that has no legislature -
+     * Andaman &amp; Nicobar Islands (35), Chandigarh (04), Dadra &amp; Nagar Haveli and Daman &amp; Diu
+     * (26), Lakshadweep (31) and Ladakh (38). GSTN reports UTGST in the same "State/UT Tax"
+     * bucket as SGST in every return and in the e-invoice schema, so the amount stays in the
+     * state-tax fields - only the name on the face of the invoice changes.
+     */
+    public static boolean isUtgstState(String stateCode) {
+        return stateCode != null && UTGST_STATES.contains(stateCode.trim());
     }
 
     /**

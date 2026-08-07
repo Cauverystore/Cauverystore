@@ -1,0 +1,4246 @@
+[
+  {
+    "code": "INABG1",
+    "name": "Alibag"
+  },
+  {
+    "code": "INACH1",
+    "name": "Achra"
+  },
+  {
+    "code": "INADA6",
+    "name": "Ahmedabad Adalaj"
+  },
+  {
+    "code": "INADI1",
+    "name": "Androth Island"
+  },
+  {
+    "code": "INAGI1",
+    "name": "Agatti Island"
+  },
+  {
+    "code": "INAGR4",
+    "name": "Agra"
+  },
+  {
+    "code": "INAGR5",
+    "name": "FPO AGRA"
+  },
+  {
+    "code": "INAGR6",
+    "name": "Agra"
+  },
+  {
+    "code": "INAGTB",
+    "name": "Agartala"
+  },
+  {
+    "code": "INAGX4",
+    "name": "Agatti Island"
+  },
+  {
+    "code": "INAHD6",
+    "name": "ICD SANAND"
+  },
+  {
+    "code": "INAIG6",
+    "name": "GE PVT. LTD."
+  },
+  {
+    "code": "INAII6",
+    "name": "M/S IGATE GS LTD."
+  },
+  {
+    "code": "INAIK6",
+    "name": "IBRAHIMPURICD KHURJA"
+  },
+  {
+    "code": "INAIR6",
+    "name": "SP PVT. LTD."
+  },
+  {
+    "code": "INAJE6",
+    "name": "WLSPUN ANJAR SEZ"
+  },
+  {
+    "code": "INAJJ6",
+    "name": "Arakkonam Melpakkam"
+  },
+  {
+    "code": "INAJL4",
+    "name": "Aizawl"
+  },
+  {
+    "code": "INAJM6",
+    "name": "MUNDRA PORT SEZ"
+  },
+  {
+    "code": "INAKB6",
+    "name": "BIACPL SEZ"
+  },
+  {
+    "code": "INAKD4",
+    "name": "Akola"
+  },
+  {
+    "code": "INAKP6",
+    "name": "APIICL SEZ"
+  },
+  {
+    "code": "INAKR6",
+    "name": "RPCIPL SEZ"
+  },
+  {
+    "code": "INAKV6",
+    "name": "Ankleshwar ICD"
+  },
+  {
+    "code": "INALA1",
+    "name": "ALANG SBY"
+  },
+  {
+    "code": "INALF1",
+    "name": "Allepey"
+  },
+  {
+    "code": "INAMD4",
+    "name": "Ahmedabad"
+  },
+  {
+    "code": "INAMD5",
+    "name": "Ahmedabad"
+  },
+  {
+    "code": "INAMD6",
+    "name": "Ahmedabad"
+  },
+  {
+    "code": "INAMG6",
+    "name": "Amingaon (Gauhati)"
+  },
+  {
+    "code": "INAMI1",
+    "name": "Amini Island"
+  },
+  {
+    "code": "INAMK6",
+    "name": "KSITIL/SEZ/ALAPPUZHA"
+  },
+  {
+    "code": "INANG1",
+    "name": "Anijengo"
+  },
+  {
+    "code": "INANL1",
+    "name": "Arnala"
+  },
+  {
+    "code": "INAPI6",
+    "name": "AAP-SEZ AHMEDABAD"
+  },
+  {
+    "code": "INAPL6",
+    "name": "Dadri ACPL CFS"
+  },
+  {
+    "code": "INAPT6",
+    "name": "Anaparti"
+  },
+  {
+    "code": "INARR6",
+    "name": "Aroor"
+  },
+  {
+    "code": "INASR2",
+    "name": "Amritsar Railway Stn"
+  },
+  {
+    "code": "INASR6",
+    "name": "Amritsar"
+  },
+  {
+    "code": "INATQ4",
+    "name": "Amritsar"
+  },
+  {
+    "code": "INATQ6",
+    "name": "Amritsar"
+  },
+  {
+    "code": "INATRB",
+    "name": "Attari Road"
+  },
+  {
+    "code": "INATT2",
+    "name": "Attari Railway Stat"
+  },
+  {
+    "code": "INAWM6",
+    "name": "SEZ, SHENDRA"
+  },
+  {
+    "code": "INAWS6",
+    "name": "SOMANI SEZ BHIWADI"
+  },
+  {
+    "code": "INAWW6",
+    "name": "WIDL AEZ, AURANGABAD"
+  },
+  {
+    "code": "INAZK1",
+    "name": "Azhikkal"
+  },
+  {
+    "code": "INBAG6",
+    "name": "GEM&JEWEL-SEZ/ULWE"
+  },
+  {
+    "code": "INBAI6",
+    "name": "IT/ITES-B-SEZ/ULWE"
+  },
+  {
+    "code": "INBAM6",
+    "name": "MULTISERVCE-SEZ/ULWE"
+  },
+  {
+    "code": "INBAP6",
+    "name": "MULTISERVICEDRONAGIR"
+  },
+  {
+    "code": "INBAT6",
+    "name": "IT/ITES-C SEZ/UIWE"
+  },
+  {
+    "code": "INBAU6",
+    "name": "IT/ITES-A-SEZ/ULWE"
+  },
+  {
+    "code": "INBAW6",
+    "name": "ICD BAWAL"
+  },
+  {
+    "code": "INBBI4",
+    "name": "Bhubaneswar"
+  },
+  {
+    "code": "INBBM6",
+    "name": "Bari Brahamna ICD"
+  },
+  {
+    "code": "INBBP1",
+    "name": "Bahabal Pur"
+  },
+  {
+    "code": "INBBS6",
+    "name": "SEZ, OIIDC, BHUBANES"
+  },
+  {
+    "code": "INBCH6",
+    "name": "HARI SEZ VARANASI"
+  },
+  {
+    "code": "INBCO6",
+    "name": "EURO MULTIVISION SEZ"
+  },
+  {
+    "code": "INBCP6",
+    "name": "PRITECH/SEZ/BANGLORE"
+  },
+  {
+    "code": "INBDB6",
+    "name": "PRECIOUSCARGOCUSTOMS"
+  },
+  {
+    "code": "INBDG1",
+    "name": "Badagara"
+  },
+  {
+    "code": "INBDH6",
+    "name": "ICD BADOHI"
+  },
+  {
+    "code": "INBDI6",
+    "name": "ICD BADDI,"
+  },
+  {
+    "code": "INBDM6",
+    "name": "ICD, PANCHI, SONIPAT"
+  },
+  {
+    "code": "INBDQ1",
+    "name": "Vadodara"
+  },
+  {
+    "code": "INBDR1",
+    "name": "Baindur"
+  },
+  {
+    "code": "INBED1",
+    "name": "Bedi"
+  },
+  {
+    "code": "INBEK4",
+    "name": "Bareilly"
+  },
+  {
+    "code": "INBEP4",
+    "name": "Bellary"
+  },
+  {
+    "code": "INBET1",
+    "name": "Betul"
+  },
+  {
+    "code": "INBEY1",
+    "name": "Beypore"
+  },
+  {
+    "code": "INBFR6",
+    "name": "M/S GRFL, ICD, BALLA"
+  },
+  {
+    "code": "INBGK6",
+    "name": "Bhagat ki Kothi Jodh"
+  },
+  {
+    "code": "INBGMB",
+    "name": "Baghmara"
+  },
+  {
+    "code": "INBGQ6",
+    "name": "QUEST SEZ BELGAUM"
+  },
+  {
+    "code": "INBGUB",
+    "name": "Bairgania"
+  },
+  {
+    "code": "INBGW1",
+    "name": "Bhagwa"
+  },
+  {
+    "code": "INBHC6",
+    "name": "JUBILANT/SEZ/VILAYAT"
+  },
+  {
+    "code": "INBHD6",
+    "name": "DAHEZ SEZ"
+  },
+  {
+    "code": "INBHJ4",
+    "name": "Bhuj"
+  },
+  {
+    "code": "INBHL6",
+    "name": "Bhilwara"
+  },
+  {
+    "code": "INBHM1",
+    "name": "Bheemunipatnam"
+  },
+  {
+    "code": "INBHO4",
+    "name": "Bhopal"
+  },
+  {
+    "code": "INBHS6",
+    "name": "STERLING BHARUCH"
+  },
+  {
+    "code": "INBHU1",
+    "name": "Bhavanagar"
+  },
+  {
+    "code": "INBHU4",
+    "name": "Bhavanagar"
+  },
+  {
+    "code": "INBKB4",
+    "name": "Bikaner"
+  },
+  {
+    "code": "INBKR1",
+    "name": "Belekeri"
+  },
+  {
+    "code": "INBKT1",
+    "name": "Bankot"
+  },
+  {
+    "code": "INBLC6",
+    "name": "CESSNA/SEZ/BANGALORE"
+  },
+  {
+    "code": "INBLE6",
+    "name": "CONCOR ICD BALASORE"
+  },
+  {
+    "code": "INBLJ6",
+    "name": "Agra"
+  },
+  {
+    "code": "INBLK1",
+    "name": "Belekeri"
+  },
+  {
+    "code": "INBLM1",
+    "name": "Bilimora"
+  },
+  {
+    "code": "INBLP1",
+    "name": "Belapur"
+  },
+  {
+    "code": "INBLR4",
+    "name": "Bangalore"
+  },
+  {
+    "code": "INBLR5",
+    "name": "Bangalore"
+  },
+  {
+    "code": "INBLR6",
+    "name": "Bangalore"
+  },
+  {
+    "code": "INBLTB",
+    "name": "Balet"
+  },
+  {
+    "code": "INBLV6",
+    "name": "VTV/SEZ/BANGALORE"
+  },
+  {
+    "code": "INBMA6",
+    "name": "APIIC PRAKASHAM"
+  },
+  {
+    "code": "INBMR2",
+    "name": "Barmer Railway Stati"
+  },
+  {
+    "code": "INBNC6",
+    "name": "KBITS SEZ BANGALORE"
+  },
+  {
+    "code": "INBND1",
+    "name": "Bandra"
+  },
+  {
+    "code": "INBNG6",
+    "name": "MAHAGAON ICD, THANE"
+  },
+  {
+    "code": "INBNK6",
+    "name": "KOLKATA IT PARK"
+  },
+  {
+    "code": "INBNP1",
+    "name": "Bheemunipatnam"
+  },
+  {
+    "code": "INBNRB",
+    "name": "Bhimnagar"
+  },
+  {
+    "code": "INBNT6",
+    "name": "TCS"
+  },
+  {
+    "code": "INBNW6",
+    "name": "WIPRO SEZ"
+  },
+  {
+    "code": "INBNX6",
+    "name": "CANDOR ONE HTSPL,SEZ"
+  },
+  {
+    "code": "INBNYB",
+    "name": "Berhni"
+  },
+  {
+    "code": "INBOK6",
+    "name": "BORKHEDI ICD NAGPUR"
+  },
+  {
+    "code": "INBOLB",
+    "name": "Bolanganj"
+  },
+  {
+    "code": "INBOM1",
+    "name": "Mumbai (Ex Bombay)"
+  },
+  {
+    "code": "INBOM4",
+    "name": "Mumbai (Ex Bombay)"
+  },
+  {
+    "code": "INBOM5",
+    "name": "Mumbai (Ex Bombay)"
+  },
+  {
+    "code": "INBOM6",
+    "name": "Mumbai(EPZ/SEZ)"
+  },
+  {
+    "code": "INBPL5",
+    "name": "BHOPAL FPO"
+  },
+  {
+    "code": "INBPS5",
+    "name": "APSO MUMBAI"
+  },
+  {
+    "code": "INBRAB",
+    "name": "Barsora"
+  },
+  {
+    "code": "INBRC6",
+    "name": "Baroda"
+  },
+  {
+    "code": "INBRH1",
+    "name": "Broach"
+  },
+  {
+    "code": "INBRI6",
+    "name": "RNBIPL SEZ BIKANER"
+  },
+  {
+    "code": "INBRL6",
+    "name": "L & T/SEZ/VADODARA"
+  },
+  {
+    "code": "INBRM1",
+    "name": "Borlai &#xBF; Mandla"
+  },
+  {
+    "code": "INBRS6",
+    "name": "S E & C/SEZ/WAGHODIA"
+  },
+  {
+    "code": "INBRY1",
+    "name": "Borya"
+  },
+  {
+    "code": "INBSAB",
+    "name": "Banbasa"
+  },
+  {
+    "code": "INBSB6",
+    "name": "Varanasi"
+  },
+  {
+    "code": "INBSL6",
+    "name": "Bhusaval ICD"
+  },
+  {
+    "code": "INBSN1",
+    "name": "Bassein"
+  },
+  {
+    "code": "INBSR1",
+    "name": "Bulsar"
+  },
+  {
+    "code": "INBSW6",
+    "name": "AFS KAPASHERA"
+  },
+  {
+    "code": "INBTK1",
+    "name": "Bhatkal"
+  },
+  {
+    "code": "INBTMB",
+    "name": "Bhithamore(Sursnad)"
+  },
+  {
+    "code": "INBTR1",
+    "name": "Bitra Island"
+  },
+  {
+    "code": "INBUD1",
+    "name": "Budge-Budge"
+  },
+  {
+    "code": "INBUL6",
+    "name": "AN FTWZ BULANDSHAHR"
+  },
+  {
+    "code": "INBUP4",
+    "name": "Bhatinda"
+  },
+  {
+    "code": "INBUP6",
+    "name": "Bhatinda"
+  },
+  {
+    "code": "INBVC6",
+    "name": "CONCR-ICD/BALLABGARH"
+  },
+  {
+    "code": "INBWD6",
+    "name": "Bhiwadi"
+  },
+  {
+    "code": "INBWN1",
+    "name": "Bhiwandi"
+  },
+  {
+    "code": "INBXR6",
+    "name": "DLF LTD., SEZ"
+  },
+  {
+    "code": "INBYT1",
+    "name": "Beyt"
+  },
+  {
+    "code": "INCAG6",
+    "name": "TATA STEEL SEZGANJAM"
+  },
+  {
+    "code": "INCAM1",
+    "name": "Cambay"
+  },
+  {
+    "code": "INCAP1",
+    "name": "Calingapatam"
+  },
+  {
+    "code": "INCAR1",
+    "name": "Carijam"
+  },
+  {
+    "code": "INCAS6",
+    "name": "SAPL SEZ/ GANJAM"
+  },
+  {
+    "code": "INCBC6",
+    "name": "CHIPL SEZ/ COIMBATOR"
+  },
+  {
+    "code": "INCBD4",
+    "name": "Car Nicobar"
+  },
+  {
+    "code": "INCBDB",
+    "name": "Changrabandh"
+  },
+  {
+    "code": "INCBE6",
+    "name": "COIMBATORE"
+  },
+  {
+    "code": "INCBL1",
+    "name": "Chandbali"
+  },
+  {
+    "code": "INCBS6",
+    "name": "SE&C COIMBATORE"
+  },
+  {
+    "code": "INCCH6",
+    "name": "Chinchwad ICD"
+  },
+  {
+    "code": "INCCI6",
+    "name": "WIPRO SEZ HINJEWADI"
+  },
+  {
+    "code": "INCCJ1",
+    "name": "Kozhikode (ex Calicu"
+  },
+  {
+    "code": "INCCJ4",
+    "name": "Kozhikode (ex Calicu"
+  },
+  {
+    "code": "INCCP6",
+    "name": "PEPPL SEZ, CHINCHWAD"
+  },
+  {
+    "code": "INCCQ6",
+    "name": "M/S QB PARK LTD."
+  },
+  {
+    "code": "INCCT6",
+    "name": "KINFRAFP SEZ"
+  },
+  {
+    "code": "INCCU1",
+    "name": "Calcutta"
+  },
+  {
+    "code": "INCCU4",
+    "name": "Calcutta"
+  },
+  {
+    "code": "INCCU5",
+    "name": "Calcutta"
+  },
+  {
+    "code": "INCCW6",
+    "name": "WIPRO LTD."
+  },
+  {
+    "code": "INCDC6",
+    "name": "RGT PARK (PHASE-II)"
+  },
+  {
+    "code": "INCDD6",
+    "name": "RGT PARK (PHASE-I)"
+  },
+  {
+    "code": "INCDL1",
+    "name": "Cuddalore"
+  },
+  {
+    "code": "INCDP1",
+    "name": "Coondapur (Ganguly)"
+  },
+  {
+    "code": "INCDP4",
+    "name": "Cuddapah"
+  },
+  {
+    "code": "INCDP6",
+    "name": "M/S APIIC LTD SEZ."
+  },
+  {
+    "code": "INCDQ6",
+    "name": "QUARKCITY/SEZ/MOHALI"
+  },
+  {
+    "code": "INCDR6",
+    "name": "SUN PHARMACEUTICALS"
+  },
+  {
+    "code": "INCEC6",
+    "name": "L&T AE IT SEZ PVT."
+  },
+  {
+    "code": "INCGA6",
+    "name": "MWCD APARELS CHENGPA"
+  },
+  {
+    "code": "INCGE6",
+    "name": "ETA TECH. PVT. LTD."
+  },
+  {
+    "code": "INCGI6",
+    "name": "MWCD SEZ CHENGALPATU"
+  },
+  {
+    "code": "INCGL6",
+    "name": "MWCD AUTO ANCILARIES"
+  },
+  {
+    "code": "INCHE6",
+    "name": "Tiruppur-Chettipalay"
+  },
+  {
+    "code": "INCHJ6",
+    "name": "ICD WARDHA"
+  },
+  {
+    "code": "INCHL1",
+    "name": "Colachel"
+  },
+  {
+    "code": "INCHMB",
+    "name": "Chamurchi"
+  },
+  {
+    "code": "INCHN6",
+    "name": "Vadodara Chhani CFS"
+  },
+  {
+    "code": "INCHPB",
+    "name": "Champai"
+  },
+  {
+    "code": "INCHR1",
+    "name": "Chapora"
+  },
+  {
+    "code": "INCJA6",
+    "name": "L&T AE IT SEZ"
+  },
+  {
+    "code": "INCJB4",
+    "name": "Coimbatore"
+  },
+  {
+    "code": "INCJB6",
+    "name": "Coimbatore"
+  },
+  {
+    "code": "INCJC6",
+    "name": "NCTL (ENGG.) SEZ/ KA"
+  },
+  {
+    "code": "INCJD6",
+    "name": "DLF INFOCITY DEV."
+  },
+  {
+    "code": "INCJE6",
+    "name": "ECTN KANCHEEPURAM"
+  },
+  {
+    "code": "INCJF6",
+    "name": "FTIL SRIPERUMBUDUR"
+  },
+  {
+    "code": "INCJH6",
+    "name": "ICD WARDHA"
+  },
+  {
+    "code": "INCJI6",
+    "name": "ETL IS LTD."
+  },
+  {
+    "code": "INCJJ6",
+    "name": "J M FTZ/SEZ/MANNUR"
+  },
+  {
+    "code": "INCJN6",
+    "name": "NIPL SEZ SRIPERUMBUD"
+  },
+  {
+    "code": "INCJO6",
+    "name": "SIPCOT ORAGADAM SRIP"
+  },
+  {
+    "code": "INCJS6",
+    "name": "SIPCOT SRIPERUMBUDUR"
+  },
+  {
+    "code": "INCLK6",
+    "name": "KSITIL/SEZ/KOZHIKODE"
+  },
+  {
+    "code": "INCLU6",
+    "name": "ULCCS/SEZ/KOZHIKODE"
+  },
+  {
+    "code": "INCLX6",
+    "name": "Chirala"
+  },
+  {
+    "code": "INCMB1",
+    "name": "Cambay"
+  },
+  {
+    "code": "INCML6",
+    "name": "KATHUWAS ICD ALWAR"
+  },
+  {
+    "code": "INCNB1",
+    "name": "Car-Nicobar"
+  },
+  {
+    "code": "INCNC6",
+    "name": "NCT PVT. LTD. SEZ"
+  },
+  {
+    "code": "INCNN1",
+    "name": "Cannanore"
+  },
+  {
+    "code": "INCOA6",
+    "name": "KAKINADA SEZ KAKINAD"
+  },
+  {
+    "code": "INCOH4",
+    "name": "Cooch Behar"
+  },
+  {
+    "code": "INCOK1",
+    "name": "Cochin"
+  },
+  {
+    "code": "INCOK4",
+    "name": "Cochin"
+  },
+  {
+    "code": "INCOK6",
+    "name": "Cochin(EPZ/SEZ)"
+  },
+  {
+    "code": "INCOL1",
+    "name": "Colochel"
+  },
+  {
+    "code": "INCOO1",
+    "name": "Coondapur (Ganguly)"
+  },
+  {
+    "code": "INCOP6",
+    "name": "PARRY SEZ KAKINADA"
+  },
+  {
+    "code": "INCPC6",
+    "name": "Kanpur Chakeri"
+  },
+  {
+    "code": "INCPL6",
+    "name": "Dadri CGML"
+  },
+  {
+    "code": "INCPR6",
+    "name": "ICD CHAWAPAYAL"
+  },
+  {
+    "code": "INCRL6",
+    "name": "RGA SEZ CHIKKANKANNE"
+  },
+  {
+    "code": "INCRN1",
+    "name": "Cornwallis"
+  },
+  {
+    "code": "INCRW6",
+    "name": "WIPRO/SEZ/BANGALORE"
+  },
+  {
+    "code": "INCRXB",
+    "name": "LOKSAN LCS"
+  },
+  {
+    "code": "INCSP6",
+    "name": "SI PVT. LTD."
+  },
+  {
+    "code": "INCSV6",
+    "name": "SPVL SEZ COIMBATORE"
+  },
+  {
+    "code": "INCTI1",
+    "name": "Chetlat Island"
+  },
+  {
+    "code": "INCUM1",
+    "name": "Cutch Mandvi"
+  },
+  {
+    "code": "INDAE4",
+    "name": "Daparizo"
+  },
+  {
+    "code": "INDAH1",
+    "name": "Dahej"
+  },
+  {
+    "code": "INDAI4",
+    "name": "Darjeeling"
+  },
+  {
+    "code": "INDAM1",
+    "name": "Daman"
+  },
+  {
+    "code": "INDAM4",
+    "name": "Daman"
+  },
+  {
+    "code": "INDAR6",
+    "name": "ARTHA SEZ GR. NOIDA"
+  },
+  {
+    "code": "INDBD4",
+    "name": "Dhanbad"
+  },
+  {
+    "code": "INDBS6",
+    "name": "SANTA-SEZ/ViII-MUPPI"
+  },
+  {
+    "code": "INDDL6",
+    "name": "PSWC ICD DHANDARIKAL"
+  },
+  {
+    "code": "INDEA6",
+    "name": "AS PVT. LTD."
+  },
+  {
+    "code": "INDED4",
+    "name": "Dehra Dun"
+  },
+  {
+    "code": "INDEF6",
+    "name": "INFOSYS SEZ DADRI"
+  },
+  {
+    "code": "INDEG1",
+    "name": "Deogad"
+  },
+  {
+    "code": "INDEH6",
+    "name": "HCL TECH. LTD. DEV."
+  },
+  {
+    "code": "INDEI6",
+    "name": "IVR SEZ NOIDA"
+  },
+  {
+    "code": "INDEJ6",
+    "name": "JUBILANT SEZ NOIDA"
+  },
+  {
+    "code": "INDEL4",
+    "name": "Delhi"
+  },
+  {
+    "code": "INDEL5",
+    "name": "Delhi"
+  },
+  {
+    "code": "INDEM6",
+    "name": "MOSERBAER/SEZ/NOIDA"
+  },
+  {
+    "code": "INDEN6",
+    "name": "M/S NIIT TECH. LTD."
+  },
+  {
+    "code": "INDEP4",
+    "name": "Deparizo"
+  },
+  {
+    "code": "INDER6",
+    "name": "Dadri"
+  },
+  {
+    "code": "INDES6",
+    "name": "M/S SEAVIEW DEV. LTD"
+  },
+  {
+    "code": "INDET6",
+    "name": "UNITECH HITECH NOIDA"
+  },
+  {
+    "code": "INDEU6",
+    "name": "UNITECHINFRA NOIDA"
+  },
+  {
+    "code": "INDEW6",
+    "name": "M/S WIPRO LTD."
+  },
+  {
+    "code": "INDGI6",
+    "name": "GALLANT SEZ NOIDA"
+  },
+  {
+    "code": "INDGT6",
+    "name": "GOLDEN SEZ NOIDA"
+  },
+  {
+    "code": "INDHA6",
+    "name": "Indore-Dhannad"
+  },
+  {
+    "code": "INDHBB",
+    "name": "Dhubri Steamerghat"
+  },
+  {
+    "code": "INDHLB",
+    "name": "Dhalaighat"
+  },
+  {
+    "code": "INDHM4",
+    "name": "Dharamsala"
+  },
+  {
+    "code": "INDHN1",
+    "name": "Dahanu"
+  },
+  {
+    "code": "INDHP1",
+    "name": "Dabhol Port"
+  },
+  {
+    "code": "INDHR1",
+    "name": "Dholera"
+  },
+  {
+    "code": "INDHU1",
+    "name": "Dahanu"
+  },
+  {
+    "code": "INDIB4",
+    "name": "Dibrugarh"
+  },
+  {
+    "code": "INDID6",
+    "name": "SEZ, MIDC, NANDED"
+  },
+  {
+    "code": "INDIG1",
+    "name": "Dighi Port"
+  },
+  {
+    "code": "INDIG6",
+    "name": "Dighi (Pune)"
+  },
+  {
+    "code": "INDIT6",
+    "name": "ANSAL IT/SEZ/NOIDA"
+  },
+  {
+    "code": "INDIU1",
+    "name": "Diu"
+  },
+  {
+    "code": "INDIU4",
+    "name": "Diu"
+  },
+  {
+    "code": "INDIV1",
+    "name": "Div"
+  },
+  {
+    "code": "INDLAB",
+    "name": "Dharchula"
+  },
+  {
+    "code": "INDLH6",
+    "name": "APLLP SEZ BENGALURU"
+  },
+  {
+    "code": "INDLI2",
+    "name": "Delhi Railway Statio"
+  },
+  {
+    "code": "INDLOB",
+    "name": "BIRPARA LCS"
+  },
+  {
+    "code": "INDLUB",
+    "name": "Dalu"
+  },
+  {
+    "code": "INDMA1",
+    "name": "DHAMRA"
+  },
+  {
+    "code": "INDMRB",
+    "name": "Demagir"
+  },
+  {
+    "code": "INDMT1",
+    "name": "Dharamtar"
+  },
+  {
+    "code": "INDMU4",
+    "name": "Dimapur"
+  },
+  {
+    "code": "INDPC4",
+    "name": "DPC BKC Mumbai"
+  },
+  {
+    "code": "INDPR6",
+    "name": "DAPPER"
+  },
+  {
+    "code": "INDRC6",
+    "name": "RCIPL SEZ NOIDA"
+  },
+  {
+    "code": "INDRGB",
+    "name": "Darranga"
+  },
+  {
+    "code": "INDRK1",
+    "name": "Dwarka (Rupen)"
+  },
+  {
+    "code": "INDRL1",
+    "name": "Dabolim"
+  },
+  {
+    "code": "INDRU6",
+    "name": "Belgaum Desur"
+  },
+  {
+    "code": "INDSK1",
+    "name": "Dhanu-shkodi"
+  },
+  {
+    "code": "INDSM6",
+    "name": "SMRTPL SEZ NOIDA"
+  },
+  {
+    "code": "INDTW1",
+    "name": "Dantiwara"
+  },
+  {
+    "code": "INDUR6",
+    "name": "ICD Durgapur"
+  },
+  {
+    "code": "INDWA1",
+    "name": "Dwarka"
+  },
+  {
+    "code": "INDWKB",
+    "name": "Dawki"
+  },
+  {
+    "code": "INDWN6",
+    "name": "ICD SAMALKHA PANIPAT"
+  },
+  {
+    "code": "INDWR6",
+    "name": "INFOSYS SEZ HUBLI"
+  },
+  {
+    "code": "INENR1",
+    "name": "KAMARAJAR PORT LTD"
+  },
+  {
+    "code": "INERP6",
+    "name": "PUTHUVYPEEN SEZ"
+  },
+  {
+    "code": "INERV6",
+    "name": "VALLARPADOM SEZ"
+  },
+  {
+    "code": "INESH1",
+    "name": "Elphinstone Harbour"
+  },
+  {
+    "code": "INFBD6",
+    "name": "ICD Faridabad"
+  },
+  {
+    "code": "INFBE6",
+    "name": "ESPIRE SEZ FARIDABAD"
+  },
+  {
+    "code": "INFBM6",
+    "name": "METRO SEZ GURGAON"
+  },
+  {
+    "code": "INFBP6",
+    "name": "PERPETUAL FARIDABAD"
+  },
+  {
+    "code": "INFBRB",
+    "name": "Fulbari LCS"
+  },
+  {
+    "code": "INFBS6",
+    "name": "SELECTOSEZ FARIDABAD"
+  },
+  {
+    "code": "INFCH5",
+    "name": "FPO(SEA) CHENNAI"
+  },
+  {
+    "code": "INFLT6",
+    "name": "Falta(SEZ)"
+  },
+  {
+    "code": "INFMA6",
+    "name": "APIICL MEDAK"
+  },
+  {
+    "code": "INFMH6",
+    "name": "HGSEZL RANGA REDDY"
+  },
+  {
+    "code": "INFMJ6",
+    "name": "M/S J.T. SEZ, RANGAR"
+  },
+  {
+    "code": "INFMS6",
+    "name": "M/S STARGAZE, SEZ"
+  },
+  {
+    "code": "INGAIB",
+    "name": "Gauriphanta"
+  },
+  {
+    "code": "INGALB",
+    "name": "Galgalia"
+  },
+  {
+    "code": "INGAO6",
+    "name": "OPGS POWER GUJARAT"
+  },
+  {
+    "code": "INGAS6",
+    "name": "ANSAL SEZ GURGAON"
+  },
+  {
+    "code": "INGAU1",
+    "name": "Gauhati (Panidi)"
+  },
+  {
+    "code": "INGAU2",
+    "name": "Gauhati (Panidi)"
+  },
+  {
+    "code": "INGAU4",
+    "name": "Gauhati (Panidi)"
+  },
+  {
+    "code": "INGAU5",
+    "name": "FPO GUWAHATI"
+  },
+  {
+    "code": "INGAW2",
+    "name": "Guwahati"
+  },
+  {
+    "code": "INGAY4",
+    "name": "Gaya"
+  },
+  {
+    "code": "INGDL6",
+    "name": "DLF CYBERCITY SEZ,"
+  },
+  {
+    "code": "INGDM6",
+    "name": "MF PARK PVT. LTD."
+  },
+  {
+    "code": "INGDP6",
+    "name": "FLLPL SEZ THIRUVALUR"
+  },
+  {
+    "code": "INGED2",
+    "name": "Gede Railway Station"
+  },
+  {
+    "code": "INGGA1",
+    "name": "Gogha"
+  },
+  {
+    "code": "INGGB6",
+    "name": "SBPL SEZ GURGAON"
+  },
+  {
+    "code": "INGGC6",
+    "name": "ORIENT SEZ GURGAON"
+  },
+  {
+    "code": "INGGD6",
+    "name": "DLF LTD."
+  },
+  {
+    "code": "INGGE6",
+    "name": "AEPL SEZ GURGAON"
+  },
+  {
+    "code": "INGGF6",
+    "name": "FRESH SEZ GURGAON"
+  },
+  {
+    "code": "INGGG6",
+    "name": "GHI SEZ GURGAON"
+  },
+  {
+    "code": "INGGI6",
+    "name": "GIL SEZ, GURGAON"
+  },
+  {
+    "code": "INGGL6",
+    "name": "LUXOR SEZ GURGAON"
+  },
+  {
+    "code": "INGGM6",
+    "name": "MIPPL SEZ GURGAON"
+  },
+  {
+    "code": "INGGN2",
+    "name": "Gurgaon"
+  },
+  {
+    "code": "INGGO6",
+    "name": "ORIENTCRAFT SEZ GGN"
+  },
+  {
+    "code": "INGGP6",
+    "name": "SUNWISE SEZ GURGAON"
+  },
+  {
+    "code": "INGGS6",
+    "name": "SUNCITY SEZ GURGAON"
+  },
+  {
+    "code": "INGGU6",
+    "name": "URP LTD."
+  },
+  {
+    "code": "INGGV1",
+    "name": "GANGAVARAM PORT"
+  },
+  {
+    "code": "INGHA1",
+    "name": "Ghogha"
+  },
+  {
+    "code": "INGHC6",
+    "name": "ASF INSIGNIA SEZ"
+  },
+  {
+    "code": "INGHPB",
+    "name": "Ghasuapara"
+  },
+  {
+    "code": "INGHR6",
+    "name": "Garhi Harsaru Gurgao"
+  },
+  {
+    "code": "INGHWB",
+    "name": "Gauhati Steamerghat"
+  },
+  {
+    "code": "INGID6",
+    "name": "MID PLTD SEZ GURGAON"
+  },
+  {
+    "code": "INGIN6",
+    "name": "Gandhidham"
+  },
+  {
+    "code": "INGJIB",
+    "name": "Gunji"
+  },
+  {
+    "code": "INGJXB",
+    "name": "Ghojadanga"
+  },
+  {
+    "code": "INGKJ2",
+    "name": "Golakganj Railway St"
+  },
+  {
+    "code": "INGKJB",
+    "name": "Golakganj LCS"
+  },
+  {
+    "code": "INGLY6",
+    "name": "APIIC MAHABOOBNAGAR"
+  },
+  {
+    "code": "INGMI6",
+    "name": "MID PVT LTD."
+  },
+  {
+    "code": "INGNA6",
+    "name": "APPL, SEZ"
+  },
+  {
+    "code": "INGNC6",
+    "name": "GIFT SEZ LTD"
+  },
+  {
+    "code": "INGNG6",
+    "name": "GIDC, SEZ"
+  },
+  {
+    "code": "INGNL6",
+    "name": "LOMA ITPARK GHANSOLI"
+  },
+  {
+    "code": "INGNP6",
+    "name": "GPRPL SEZ GURGAON"
+  },
+  {
+    "code": "INGNR6",
+    "name": "LIPL/MARRIPLEMGUNTUR"
+  },
+  {
+    "code": "INGNT6",
+    "name": "TCSL, SEZ"
+  },
+  {
+    "code": "INGOI4",
+    "name": "Goa"
+  },
+  {
+    "code": "INGOP4",
+    "name": "Gorakhpur"
+  },
+  {
+    "code": "INGPB6",
+    "name": "PROGRESSIVE GURGAON"
+  },
+  {
+    "code": "INGPR1",
+    "name": "Gopalpur"
+  },
+  {
+    "code": "INGRD6",
+    "name": "Mumbai DP-II"
+  },
+  {
+    "code": "INGRL6",
+    "name": "GPRL SEZ GURGAON"
+  },
+  {
+    "code": "INGRN6",
+    "name": "RELIANCE SEZ GURGAON"
+  },
+  {
+    "code": "INGRR6",
+    "name": "Mumbai DP-I"
+  },
+  {
+    "code": "INGRS6",
+    "name": "RAHEJA SEZ GURGAON"
+  },
+  {
+    "code": "INGRW6",
+    "name": "APM ICD BHAMBOLIKHED"
+  },
+  {
+    "code": "INGTGB",
+    "name": "Gitaldah road"
+  },
+  {
+    "code": "INGTI6",
+    "name": "INFOSYS TECH. LTD."
+  },
+  {
+    "code": "INGTR2",
+    "name": "Guntur"
+  },
+  {
+    "code": "INGTS6",
+    "name": "SP PVT. LTD."
+  },
+  {
+    "code": "INGTZB",
+    "name": "Getandah"
+  },
+  {
+    "code": "INGUX4",
+    "name": "Guna"
+  },
+  {
+    "code": "INGWL4",
+    "name": "Gwalior"
+  },
+  {
+    "code": "INGWL6",
+    "name": "Malanpuri (Gwalior)"
+  },
+  {
+    "code": "INGWM4",
+    "name": "VIJAYAWADA AIRPORT"
+  },
+  {
+    "code": "INHAL1",
+    "name": "Haldia"
+  },
+  {
+    "code": "INHAN6",
+    "name": "HINDAUN ICD KARAULI"
+  },
+  {
+    "code": "INHAO6",
+    "name": "OPTOINFRA/SEZ/HASSAN"
+  },
+  {
+    "code": "INHAS6",
+    "name": "HASSAN ICD"
+  },
+  {
+    "code": "INHBB6",
+    "name": "SDPL SEZ BENGALURU"
+  },
+  {
+    "code": "INHBX4",
+    "name": "Hubli"
+  },
+  {
+    "code": "INHDD6",
+    "name": "SIDCUL ICD PANTNAGAR"
+  },
+  {
+    "code": "INHEB6",
+    "name": "GOCL SEZ BENGALURU"
+  },
+  {
+    "code": "INHEI6",
+    "name": "INFOSYS/SEZ/MYSORE"
+  },
+  {
+    "code": "INHEM6",
+    "name": "MEBP/SEZ/BANGALORE"
+  },
+  {
+    "code": "INHGLB",
+    "name": "Hingalganj"
+  },
+  {
+    "code": "INHGT1",
+    "name": "Hangarkatta"
+  },
+  {
+    "code": "INHIR6",
+    "name": "SHB ICD SURAT"
+  },
+  {
+    "code": "INHJR4",
+    "name": "Khajuraho"
+  },
+  {
+    "code": "INHLD2",
+    "name": "Haldibari Railway St"
+  },
+  {
+    "code": "INHLE6",
+    "name": "INFY SEZ BEGURHOBLI"
+  },
+  {
+    "code": "INHLIB",
+    "name": "Hilli"
+  },
+  {
+    "code": "INHND1",
+    "name": "HEMNAGAR PORT"
+  },
+  {
+    "code": "INHON1",
+    "name": "Honavar"
+  },
+  {
+    "code": "INHPI6",
+    "name": "SANDKHERA ICD KASHIP"
+  },
+  {
+    "code": "INHRN1",
+    "name": "Harnai"
+  },
+  {
+    "code": "INHSF6",
+    "name": "KIADBFP SEZ HASSAN"
+  },
+  {
+    "code": "INHSP6",
+    "name": "KIADBP SEZ HASSAN"
+  },
+  {
+    "code": "INHSS4",
+    "name": "Hissar"
+  },
+  {
+    "code": "INHST6",
+    "name": "KIADBT SEZ HASSAN"
+  },
+  {
+    "code": "INHSU6",
+    "name": "ICD HOSUR"
+  },
+  {
+    "code": "INHTSB",
+    "name": "Hatisar"
+  },
+  {
+    "code": "INHUR6",
+    "name": "M/S RASSI, SEZ"
+  },
+  {
+    "code": "INHWR1",
+    "name": "Honawar"
+  },
+  {
+    "code": "INHYB6",
+    "name": "LHT PARK PVT. LTD."
+  },
+  {
+    "code": "INHYD4",
+    "name": "Hyderabad"
+  },
+  {
+    "code": "INHYD5",
+    "name": "FPO HYDERABAD"
+  },
+  {
+    "code": "INHYD6",
+    "name": "Hyderabad"
+  },
+  {
+    "code": "INHZA1",
+    "name": "HAZIRA, SURAT"
+  },
+  {
+    "code": "INHZA6",
+    "name": "Hazira SEZ, Surat"
+  },
+  {
+    "code": "INIDR4",
+    "name": "Indore"
+  },
+  {
+    "code": "INIDR6",
+    "name": "Indore(EPZ/SEZ)"
+  },
+  {
+    "code": "INIGU6",
+    "name": "Coimbatore Irugur IC"
+  },
+  {
+    "code": "INILP6",
+    "name": "Tiruvallur-ILP ICD"
+  },
+  {
+    "code": "INIMF4",
+    "name": "Imphal"
+  },
+  {
+    "code": "ININB6",
+    "name": "CRYSTAL IT PARK, SEZ"
+  },
+  {
+    "code": "ININD6",
+    "name": "ICD Pithampur"
+  },
+  {
+    "code": "ININI6",
+    "name": "IMPETUS INFOTECH SEZ"
+  },
+  {
+    "code": "ININN6",
+    "name": "INFOSYS SEZ INDORE"
+  },
+  {
+    "code": "ININT6",
+    "name": "TCS SEZ INDORE"
+  },
+  {
+    "code": "INISK4",
+    "name": "Nasik"
+  },
+  {
+    "code": "INISK6",
+    "name": "Nasik"
+  },
+  {
+    "code": "INIXA4",
+    "name": "Agartala"
+  },
+  {
+    "code": "INIXB4",
+    "name": "Bagdogra"
+  },
+  {
+    "code": "INIXC4",
+    "name": "Chandigarh"
+  },
+  {
+    "code": "INIXD4",
+    "name": "Allahabad"
+  },
+  {
+    "code": "INIXE1",
+    "name": "Mangalore"
+  },
+  {
+    "code": "INIXE4",
+    "name": "Mangalore"
+  },
+  {
+    "code": "INIXG4",
+    "name": "Belgaum"
+  },
+  {
+    "code": "INIXH4",
+    "name": "Kailashahar"
+  },
+  {
+    "code": "INIXI4",
+    "name": "Lilabari"
+  },
+  {
+    "code": "INIXJ4",
+    "name": "Jammu"
+  },
+  {
+    "code": "INIXK4",
+    "name": "Keshod"
+  },
+  {
+    "code": "INIXL4",
+    "name": "Leh"
+  },
+  {
+    "code": "INIXL5",
+    "name": "FPO LEH"
+  },
+  {
+    "code": "INIXM4",
+    "name": "Madurai"
+  },
+  {
+    "code": "INIXM6",
+    "name": "MaduraiICD"
+  },
+  {
+    "code": "INIXN4",
+    "name": "Khowai"
+  },
+  {
+    "code": "INIXP4",
+    "name": "Pathankot"
+  },
+  {
+    "code": "INIXQ4",
+    "name": "Kamalpur"
+  },
+  {
+    "code": "INIXR4",
+    "name": "Ranchi"
+  },
+  {
+    "code": "INIXS4",
+    "name": "Silchar"
+  },
+  {
+    "code": "INIXT4",
+    "name": "Pasighat"
+  },
+  {
+    "code": "INIXU4",
+    "name": "AURANGABAD"
+  },
+  {
+    "code": "INIXW4",
+    "name": "Jamshedpur"
+  },
+  {
+    "code": "INIXW6",
+    "name": "Jamshedpur ICD"
+  },
+  {
+    "code": "INIXY1",
+    "name": "Kandla"
+  },
+  {
+    "code": "INIXY4",
+    "name": "Kandla"
+  },
+  {
+    "code": "INIXY6",
+    "name": "Kandla SEZ"
+  },
+  {
+    "code": "INIXZ1",
+    "name": "Port Blair"
+  },
+  {
+    "code": "INIXZ4",
+    "name": "Port Blair"
+  },
+  {
+    "code": "INJAI4",
+    "name": "Jaipur"
+  },
+  {
+    "code": "INJAI5",
+    "name": "Jaipur"
+  },
+  {
+    "code": "INJAI6",
+    "name": "Jaipur"
+  },
+  {
+    "code": "INJAK1",
+    "name": "Jakhau"
+  },
+  {
+    "code": "INJAL6",
+    "name": "Jalgaon"
+  },
+  {
+    "code": "INJAYB",
+    "name": "Jayanagar"
+  },
+  {
+    "code": "INJBD1",
+    "name": "Jafrabad"
+  },
+  {
+    "code": "INJBL6",
+    "name": "E-COMPLEX SEZ/Amreli"
+  },
+  {
+    "code": "INJBNB",
+    "name": "JOGBANI"
+  },
+  {
+    "code": "INJDA1",
+    "name": "Jodia"
+  },
+  {
+    "code": "INJDH4",
+    "name": "Jodhpur"
+  },
+  {
+    "code": "INJDH6",
+    "name": "Jodhpur"
+  },
+  {
+    "code": "INJGA4",
+    "name": "Jamnagar"
+  },
+  {
+    "code": "INJGB4",
+    "name": "Jagdalpur"
+  },
+  {
+    "code": "INJGD1",
+    "name": "Jaigad"
+  },
+  {
+    "code": "INJGI6",
+    "name": "GENPACT SEZ JAIPUR"
+  },
+  {
+    "code": "INJHA6",
+    "name": "VEDANTA ALU. LTD."
+  },
+  {
+    "code": "INJHOB",
+    "name": "Jhulaghat (Pithoraga"
+  },
+  {
+    "code": "INJHV6",
+    "name": "VEDANTASEZJHARSUGUDA"
+  },
+  {
+    "code": "INJIGB",
+    "name": "Jaigaon"
+  },
+  {
+    "code": "INJJK6",
+    "name": "ICD JSL JAJPUR"
+  },
+  {
+    "code": "INJKA6",
+    "name": "SACHANA ICD VIRAMGAM"
+  },
+  {
+    "code": "INJLR4",
+    "name": "Jabalpur"
+  },
+  {
+    "code": "INJNJ6",
+    "name": "NEWFOUND SEZ THANE"
+  },
+  {
+    "code": "INJNR4",
+    "name": "Nashik-Janori ACC"
+  },
+  {
+    "code": "INJNR6",
+    "name": "Nashik-Janori ICD"
+  },
+  {
+    "code": "INJPGB",
+    "name": "Jalpaiguri"
+  },
+  {
+    "code": "INJPI6",
+    "name": "RIICO SEZ 1 SITAPUR"
+  },
+  {
+    "code": "INJPV6",
+    "name": "VATIKA SEZ JAIPUR"
+  },
+  {
+    "code": "INJPW6",
+    "name": "MWC JAIPUR LTD."
+  },
+  {
+    "code": "INJRH4",
+    "name": "Jorhat"
+  },
+  {
+    "code": "INJSA4",
+    "name": "Jaisalmer"
+  },
+  {
+    "code": "INJSG6",
+    "name": "CONCOR JHARSUGUDA"
+  },
+  {
+    "code": "INJSM6",
+    "name": "ADANI POWER SEZ"
+  },
+  {
+    "code": "INJSZ6",
+    "name": "JAIPUR SEZ"
+  },
+  {
+    "code": "INJTP1",
+    "name": "Jaitapur"
+  },
+  {
+    "code": "INJUC6",
+    "name": "Jalandhar"
+  },
+  {
+    "code": "INJUX6",
+    "name": "Basni Jodhpur ICD"
+  },
+  {
+    "code": "INJWAB",
+    "name": "Jarwa"
+  },
+  {
+    "code": "INKAK1",
+    "name": "Kakinada"
+  },
+  {
+    "code": "INKAK6",
+    "name": "Kakinada"
+  },
+  {
+    "code": "INKAL1",
+    "name": "Kallai"
+  },
+  {
+    "code": "INKAP6",
+    "name": "Kapadra (Surat)"
+  },
+  {
+    "code": "INKAR6",
+    "name": "Karur ICD"
+  },
+  {
+    "code": "INKAT1",
+    "name": "KATTUPALLI PORT"
+  },
+  {
+    "code": "INKBC6",
+    "name": "ICD HAZIRA"
+  },
+  {
+    "code": "INKBT1",
+    "name": "Khambhat"
+  },
+  {
+    "code": "INKCG6",
+    "name": "NSL SEZ PVT. LTD."
+  },
+  {
+    "code": "INKDD6",
+    "name": "Karedu"
+  },
+  {
+    "code": "INKDI1",
+    "name": "Kadmat Island"
+  },
+  {
+    "code": "INKDL6",
+    "name": "KANDLA SEZ"
+  },
+  {
+    "code": "INKDN1",
+    "name": "Kodinar(Muldwarka)"
+  },
+  {
+    "code": "INKDP1",
+    "name": "Kondiapetnam"
+  },
+  {
+    "code": "INKELB",
+    "name": "Kel Sahar Subdivisio"
+  },
+  {
+    "code": "INKGG6",
+    "name": "GLOBAL/SEZ/BANGALORE"
+  },
+  {
+    "code": "INKGJ1",
+    "name": "KARIMGANJ STEAMERGHA"
+  },
+  {
+    "code": "INKHD6",
+    "name": "ICD Kheda-Dhar"
+  },
+  {
+    "code": "INKIW1",
+    "name": "Kelwa"
+  },
+  {
+    "code": "INKJA6",
+    "name": "APP/SEZ/DODAKANAHALI"
+  },
+  {
+    "code": "INKJB6",
+    "name": "BAGMAN/SEZ/BANGALORE"
+  },
+  {
+    "code": "INKJD6",
+    "name": "DIVYA/SEZ/BANGALORE"
+  },
+  {
+    "code": "INKJG6",
+    "name": "GOPALAN/SEZ/BANGALOR"
+  },
+  {
+    "code": "INKJH6",
+    "name": "HCL/SEZ/BANGALORE"
+  },
+  {
+    "code": "INKJIB",
+    "name": "PIPRAUN LCS"
+  },
+  {
+    "code": "INKJM6",
+    "name": "BD SEZ BENGALURU"
+  },
+  {
+    "code": "INKJR6",
+    "name": "BBREL KUNDALAHALLI"
+  },
+  {
+    "code": "INKKR1",
+    "name": "Kilakari"
+  },
+  {
+    "code": "INKKU6",
+    "name": "Kanakpura Jaipur ICD"
+  },
+  {
+    "code": "INKLB6",
+    "name": "BLUE/SEZ/ERNAKULAM"
+  },
+  {
+    "code": "INKLC6",
+    "name": "CARB/SEZ/ERNAKULAM"
+  },
+  {
+    "code": "INKLG6",
+    "name": "SGS/SEZ/ERNAKULAM"
+  },
+  {
+    "code": "INKLH4",
+    "name": "Kohlapur"
+  },
+  {
+    "code": "INKLI6",
+    "name": "INFOPARK/SEZ/EKM"
+  },
+  {
+    "code": "INKLK6",
+    "name": "KINFRA KANAYANNOOR"
+  },
+  {
+    "code": "INKLM6",
+    "name": "MULTISERVCEKALAMBOLI"
+  },
+  {
+    "code": "INKLN6",
+    "name": "IT/ITES/SEZ/KALAMBOL"
+  },
+  {
+    "code": "INKLS6",
+    "name": "SMART CITY SEZ KOCHI"
+  },
+  {
+    "code": "INKLY1",
+    "name": "Kalyan"
+  },
+  {
+    "code": "INKMAB",
+    "name": "KULKULI LCS"
+  },
+  {
+    "code": "INKMB1",
+    "name": "Kumbharu"
+  },
+  {
+    "code": "INKMI6",
+    "name": "INFO SEZ ERNAKULAM"
+  },
+  {
+    "code": "INKML6",
+    "name": "DEIPL KURUBARAPALLI"
+  },
+  {
+    "code": "INKND1",
+    "name": "Kankudy"
+  },
+  {
+    "code": "INKNK6",
+    "name": "INFOPARK SEZ KORATTY"
+  },
+  {
+    "code": "INKNLB",
+    "name": "Kunauli"
+  },
+  {
+    "code": "INKNU4",
+    "name": "Kanpur"
+  },
+  {
+    "code": "INKNU5",
+    "name": "FPO KANPUR"
+  },
+  {
+    "code": "INKNU6",
+    "name": "Kanpur"
+  },
+  {
+    "code": "INKOC5",
+    "name": "Kochi"
+  },
+  {
+    "code": "INKOD1",
+    "name": "Kodinar"
+  },
+  {
+    "code": "INKOI1",
+    "name": "Koilthottum"
+  },
+  {
+    "code": "INKOK1",
+    "name": "Koka"
+  },
+  {
+    "code": "INKON1",
+    "name": "Konarak"
+  },
+  {
+    "code": "INKPK6",
+    "name": "CONCOR ICD MIHAN"
+  },
+  {
+    "code": "INKRI1",
+    "name": "Krishnapatnam"
+  },
+  {
+    "code": "INKRK1",
+    "name": "Karaikal"
+  },
+  {
+    "code": "INKRM6",
+    "name": "MADC LTD."
+  },
+  {
+    "code": "INKRN1",
+    "name": "Karanja"
+  },
+  {
+    "code": "INKRP1",
+    "name": "Kiranpani"
+  },
+  {
+    "code": "INKRW1",
+    "name": "Karwar"
+  },
+  {
+    "code": "INKSG1",
+    "name": "Kasargod"
+  },
+  {
+    "code": "INKSH1",
+    "name": "Kelshi"
+  },
+  {
+    "code": "INKSP1",
+    "name": "Kulasekarapatnam"
+  },
+  {
+    "code": "INKTD1",
+    "name": "Kotda"
+  },
+  {
+    "code": "INKTGB",
+    "name": "Katarniyaghat"
+  },
+  {
+    "code": "INKTI1",
+    "name": "Kiltan Island"
+  },
+  {
+    "code": "INKTRB",
+    "name": "Kathihar"
+  },
+  {
+    "code": "INKTT6",
+    "name": "Kota"
+  },
+  {
+    "code": "INKTU4",
+    "name": "Kota"
+  },
+  {
+    "code": "INKTU6",
+    "name": "Kota"
+  },
+  {
+    "code": "INKTW1",
+    "name": "Koteshwar"
+  },
+  {
+    "code": "INKTY6",
+    "name": "CHEYYAR POCHAMPALLI"
+  },
+  {
+    "code": "INKUK1",
+    "name": "KOLLAM PORT"
+  },
+  {
+    "code": "INKUK6",
+    "name": "KSITIL/SEZ/KOLLAM"
+  },
+  {
+    "code": "INKUR6",
+    "name": "OIIDC SEZ KHURDA"
+  },
+  {
+    "code": "INKUU4",
+    "name": "Kulu"
+  },
+  {
+    "code": "INKVI1",
+    "name": "Kavi"
+  },
+  {
+    "code": "INKVL1",
+    "name": "Kovalam"
+  },
+  {
+    "code": "INKVR6",
+    "name": "WFPML SEZ KOVVUR"
+  },
+  {
+    "code": "INKVT1",
+    "name": "Kavaratti Island"
+  },
+  {
+    "code": "INKWAB",
+    "name": "Khunwa"
+  },
+  {
+    "code": "INKWGB",
+    "name": "Khowaighat"
+  },
+  {
+    "code": "INKWHB",
+    "name": "KAKRAHAWA LCS"
+  },
+  {
+    "code": "INKXJ2",
+    "name": "Karimganj Railway St"
+  },
+  {
+    "code": "INKYM6",
+    "name": "KOTTAYAM"
+  },
+  {
+    "code": "INKZE6",
+    "name": "E TECH-I/SEZ/THPURAM"
+  },
+  {
+    "code": "INKZP6",
+    "name": "E PARK-III/SEZ/T&#x27;RAM"
+  },
+  {
+    "code": "INKZT6",
+    "name": "E PARK-II/SEZ/TPURAM"
+  },
+  {
+    "code": "INLCH6",
+    "name": "HCL IT SEZ LUCKNOW"
+  },
+  {
+    "code": "INLDA4",
+    "name": "Malda"
+  },
+  {
+    "code": "INLDH6",
+    "name": "Ludhiana"
+  },
+  {
+    "code": "INLGLB",
+    "name": "Lalgola Town"
+  },
+  {
+    "code": "INLKO4",
+    "name": "Lucknow"
+  },
+  {
+    "code": "INLKQB",
+    "name": "LAUKAHA LCS"
+  },
+  {
+    "code": "INLON6",
+    "name": "ICD Loni"
+  },
+  {
+    "code": "INLPB6",
+    "name": "BBLLP NANAKRAMGUDA"
+  },
+  {
+    "code": "INLPC6",
+    "name": "CMC LTD."
+  },
+  {
+    "code": "INLPD6",
+    "name": "M/S DLF, SEZ"
+  },
+  {
+    "code": "INLPG6",
+    "name": "GCPL SEZ KOKAPET"
+  },
+  {
+    "code": "INLPI6",
+    "name": "M/S SUNDEW, SEZ"
+  },
+  {
+    "code": "INLPJ6",
+    "name": "RELIANCE SEZ"
+  },
+  {
+    "code": "INLPM6",
+    "name": "MDL NANAKRAMGUDA"
+  },
+  {
+    "code": "INLPR1",
+    "name": "Leapuram"
+  },
+  {
+    "code": "INLPS6",
+    "name": "D NSL IP LTD."
+  },
+  {
+    "code": "INLPW6",
+    "name": "WIPRO LTD. HYDERABAD"
+  },
+  {
+    "code": "INLTBB",
+    "name": "Latu Bazar"
+  },
+  {
+    "code": "INLUD6",
+    "name": "LUDHIANA"
+  },
+  {
+    "code": "INLUH4",
+    "name": "Ludhiana"
+  },
+  {
+    "code": "INLUH5",
+    "name": "FPO LUDHIANA"
+  },
+  {
+    "code": "INLUH6",
+    "name": "Ludhiana"
+  },
+  {
+    "code": "INLWG6",
+    "name": "WIPRO LTD."
+  },
+  {
+    "code": "INMAA1",
+    "name": "Chennai (Ex Madras)"
+  },
+  {
+    "code": "INMAA4",
+    "name": "Chennai (Ex Madras)"
+  },
+  {
+    "code": "INMAA5",
+    "name": "Chennai (Ex Madras)"
+  },
+  {
+    "code": "INMAA6",
+    "name": "Chennai(EPZ/SEZ)"
+  },
+  {
+    "code": "INMAB6",
+    "name": "BRIGADE/SEZ/KANNADA"
+  },
+  {
+    "code": "INMAE6",
+    "name": "EC OF TAMIL NADU"
+  },
+  {
+    "code": "INMAH1",
+    "name": "Mahe"
+  },
+  {
+    "code": "INMAI6",
+    "name": "INFOSYS/SEZ/MANGALOR"
+  },
+  {
+    "code": "INMAL1",
+    "name": "Malpe"
+  },
+  {
+    "code": "INMAP1",
+    "name": "Masulipatnam"
+  },
+  {
+    "code": "INMAQ6",
+    "name": "MANGALORE SEZ"
+  },
+  {
+    "code": "INMAS6",
+    "name": "TRIL INFOPARK LTD."
+  },
+  {
+    "code": "INMBC6",
+    "name": "Moradabad(EPZ/SEZ)"
+  },
+  {
+    "code": "INMBD6",
+    "name": "Pakwara (Moradabad)"
+  },
+  {
+    "code": "INMBS6",
+    "name": "Madhosingh ICD"
+  },
+  {
+    "code": "INMCI1",
+    "name": "Minicoi I"
+  },
+  {
+    "code": "INMDA1",
+    "name": "Magdalla"
+  },
+  {
+    "code": "INMDD6",
+    "name": "Mandideep ICD"
+  },
+  {
+    "code": "INMDE6",
+    "name": "APIIC SEZ MEDAK"
+  },
+  {
+    "code": "INMDG6",
+    "name": "Margao"
+  },
+  {
+    "code": "INMDK1",
+    "name": "Muldwarka"
+  },
+  {
+    "code": "INMDP1",
+    "name": "Mandapam"
+  },
+  {
+    "code": "INMDU6",
+    "name": "KERN ICD MADURAI"
+  },
+  {
+    "code": "INMDV1",
+    "name": "Mandvi"
+  },
+  {
+    "code": "INMDW1",
+    "name": "Meadows"
+  },
+  {
+    "code": "INMEA6",
+    "name": "APIIC-SEZ/ViII-LALGA"
+  },
+  {
+    "code": "INMEC6",
+    "name": "EC OF TAMIL NADU"
+  },
+  {
+    "code": "INMGHB",
+    "name": "Mahendraganj"
+  },
+  {
+    "code": "INMGR1",
+    "name": "Mangrol"
+  },
+  {
+    "code": "INMHA1",
+    "name": "Mahuva"
+  },
+  {
+    "code": "INMHDB",
+    "name": "Kotawalighat (Mohedi"
+  },
+  {
+    "code": "INMHE1",
+    "name": "Mahe"
+  },
+  {
+    "code": "INMHGB",
+    "name": "Mahurighat"
+  },
+  {
+    "code": "INMHN2",
+    "name": "Mahisashan Railway S"
+  },
+  {
+    "code": "INMKCB",
+    "name": "Manikarchar"
+  },
+  {
+    "code": "INMKD6",
+    "name": "MIKADO SEZ GURGAON"
+  },
+  {
+    "code": "INMLI1",
+    "name": "Maroli"
+  },
+  {
+    "code": "INMLP1",
+    "name": "Mallipuram"
+  },
+  {
+    "code": "INMLW1",
+    "name": "Malwan"
+  },
+  {
+    "code": "INMNB2",
+    "name": "Munabao Railway Stat"
+  },
+  {
+    "code": "INMNR1",
+    "name": "Manori"
+  },
+  {
+    "code": "INMNUB",
+    "name": "Manu"
+  },
+  {
+    "code": "INMNW1",
+    "name": "Mandwa"
+  },
+  {
+    "code": "INMOH4",
+    "name": "Mohanbari"
+  },
+  {
+    "code": "INMOR2",
+    "name": "Moradabad"
+  },
+  {
+    "code": "INMPC1",
+    "name": "TEST"
+  },
+  {
+    "code": "INMPR6",
+    "name": "Malanpur ICD"
+  },
+  {
+    "code": "INMQK6",
+    "name": "KIADB/SEZ/MANGALORE"
+  },
+  {
+    "code": "INMRA1",
+    "name": "Mora"
+  },
+  {
+    "code": "INMRD1",
+    "name": "Murad"
+  },
+  {
+    "code": "INMREB",
+    "name": "Moreh"
+  },
+  {
+    "code": "INMRG4",
+    "name": "Margao"
+  },
+  {
+    "code": "INMRJ6",
+    "name": "Miraj"
+  },
+  {
+    "code": "INMRM1",
+    "name": "Marmagoa"
+  },
+  {
+    "code": "INMSR6",
+    "name": "RENAIS/SEZ/BANGALORE"
+  },
+  {
+    "code": "INMTW1",
+    "name": "Metwad"
+  },
+  {
+    "code": "INMUC6",
+    "name": "SCPL/SEZ/MULUND"
+  },
+  {
+    "code": "INMUL6",
+    "name": "Mulund ICD"
+  },
+  {
+    "code": "INMUN1",
+    "name": "Mundra"
+  },
+  {
+    "code": "INMUR1",
+    "name": "Murad"
+  },
+  {
+    "code": "INMUZ6",
+    "name": "MODINAGAR ICD"
+  },
+  {
+    "code": "INMWA6",
+    "name": "ICD Maliwada"
+  },
+  {
+    "code": "INMYB1",
+    "name": "Mayabandar"
+  },
+  {
+    "code": "INMYL6",
+    "name": "L AND T/SEZ/MYSORE"
+  },
+  {
+    "code": "INMYO6",
+    "name": "OPTOINFRA/SEZ/MYSORE"
+  },
+  {
+    "code": "INMYQ4",
+    "name": "Mysore"
+  },
+  {
+    "code": "INMZA4",
+    "name": "Muzaffarnagar"
+  },
+  {
+    "code": "INMZU4",
+    "name": "Muzaffarpur"
+  },
+  {
+    "code": "INNAG4",
+    "name": "Nagpur"
+  },
+  {
+    "code": "INNAG6",
+    "name": "Nagpur"
+  },
+  {
+    "code": "INNAN1",
+    "name": "Nancowrie"
+  },
+  {
+    "code": "INNAV1",
+    "name": "Navlakhi"
+  },
+  {
+    "code": "INNDA6",
+    "name": "Noida(EPZ/SEZ)"
+  },
+  {
+    "code": "INNDC4",
+    "name": "Nanded"
+  },
+  {
+    "code": "INNDG1",
+    "name": "Nandgaon"
+  },
+  {
+    "code": "INNDP1",
+    "name": "Tuglakabad"
+  },
+  {
+    "code": "INNEE1",
+    "name": "Neendakara"
+  },
+  {
+    "code": "INNEL1",
+    "name": "Nellore"
+  },
+  {
+    "code": "INNGB6",
+    "name": "BUTIBORI ICD NAGPUR"
+  },
+  {
+    "code": "INNGKB",
+    "name": "NAGARKATA LCS"
+  },
+  {
+    "code": "INNGO6",
+    "name": "OSE SEZ NOIDA"
+  },
+  {
+    "code": "INNGP6",
+    "name": "Nagpur"
+  },
+  {
+    "code": "INNGRB",
+    "name": "Nepalgunj Road"
+  },
+  {
+    "code": "INNGSB",
+    "name": "Village Namgaya Ship"
+  },
+  {
+    "code": "INNKI6",
+    "name": "INDIABULLS NASHIK"
+  },
+  {
+    "code": "INNKNB",
+    "name": "Namkhana"
+  },
+  {
+    "code": "INNML1",
+    "name": "New Mangalore"
+  },
+  {
+    "code": "INNMTB",
+    "name": "Neamati steamer Ghat"
+  },
+  {
+    "code": "INNNN6",
+    "name": "AMRL SEZ NANGUNERI"
+  },
+  {
+    "code": "INNPGB",
+    "name": "Nampong"
+  },
+  {
+    "code": "INNPT1",
+    "name": "Nagapattinam"
+  },
+  {
+    "code": "INNRP6",
+    "name": "AA LTD."
+  },
+  {
+    "code": "INNSA1",
+    "name": "Jawaharlal Nehru (Nh"
+  },
+  {
+    "code": "INNSK6",
+    "name": "Nasik"
+  },
+  {
+    "code": "INNTLB",
+    "name": "SHERATHANG LCS"
+  },
+  {
+    "code": "INNTVB",
+    "name": "THOOTHIBARI LCS"
+  },
+  {
+    "code": "INNUR6",
+    "name": "Kundli"
+  },
+  {
+    "code": "INNVB1",
+    "name": "Navabunder(with its"
+  },
+  {
+    "code": "INNVP1",
+    "name": "Navaspur"
+  },
+  {
+    "code": "INNVT1",
+    "name": "Nivti"
+  },
+  {
+    "code": "INNVY4",
+    "name": "Neyveli"
+  },
+  {
+    "code": "INNWP1",
+    "name": "Newapur"
+  },
+  {
+    "code": "INNYP6",
+    "name": "APIIC LTD."
+  },
+  {
+    "code": "INOKH1",
+    "name": "Okha"
+  },
+  {
+    "code": "INOMN4",
+    "name": "Osmanabad"
+  },
+  {
+    "code": "INOMU1",
+    "name": "Old Mundra Port"
+  },
+  {
+    "code": "INONJ1",
+    "name": "Onjal"
+  },
+  {
+    "code": "INPAB4",
+    "name": "Bilaspur"
+  },
+  {
+    "code": "INPAK6",
+    "name": "KSITIL/SEZ/PAYYANOOR"
+  },
+  {
+    "code": "INPAN1",
+    "name": "Panaji Port"
+  },
+  {
+    "code": "INPAO6",
+    "name": "HBS SEZ PANOLI"
+  },
+  {
+    "code": "INPAP2",
+    "name": "Panipat"
+  },
+  {
+    "code": "INPAT4",
+    "name": "Patna"
+  },
+  {
+    "code": "INPAV1",
+    "name": "Pipavav (Victor) Por"
+  },
+  {
+    "code": "INPAV2",
+    "name": "Pipavav (Victor) Por"
+  },
+  {
+    "code": "INPBD1",
+    "name": "Porbandar"
+  },
+  {
+    "code": "INPBD4",
+    "name": "Porbandar"
+  },
+  {
+    "code": "INPBLB",
+    "name": "KAMARDWISA LCS"
+  },
+  {
+    "code": "INPDD1",
+    "name": "Padubidri Minor Port"
+  },
+  {
+    "code": "INPEK6",
+    "name": "EKIPL/SEZ/PUNE"
+  },
+  {
+    "code": "INPGH4",
+    "name": "Pantnagar"
+  },
+  {
+    "code": "INPHBB",
+    "name": "Phulbari"
+  },
+  {
+    "code": "INPID1",
+    "name": "Port Indai"
+  },
+  {
+    "code": "INPIN1",
+    "name": "Pindhara"
+  },
+  {
+    "code": "INPIT6",
+    "name": "ITL/SEZ/PUNE"
+  },
+  {
+    "code": "INPKD6",
+    "name": "IGEL SEZ SETTIPALI"
+  },
+  {
+    "code": "INPKR6",
+    "name": "ICD PALI, REWARI"
+  },
+  {
+    "code": "INPMB1",
+    "name": "Pamban"
+  },
+  {
+    "code": "INPMP6",
+    "name": "Pimpri"
+  },
+  {
+    "code": "INPMT6",
+    "name": "MTDCCL/SEZ/PUNE"
+  },
+  {
+    "code": "INPNB6",
+    "name": "BTSL SEZ PUNE"
+  },
+  {
+    "code": "INPNE6",
+    "name": "NT PVT. LTD."
+  },
+  {
+    "code": "INPNF5",
+    "name": "PATNA FPO"
+  },
+  {
+    "code": "INPNI6",
+    "name": "MITTAL SEZ PANIPAT"
+  },
+  {
+    "code": "INPNJ1",
+    "name": "Panjim"
+  },
+  {
+    "code": "INPNK6",
+    "name": "KLPPL PANKI"
+  },
+  {
+    "code": "INPNL6",
+    "name": "PERSIPINA SEZ RAIGAD"
+  },
+  {
+    "code": "INPNM1",
+    "name": "Panambur"
+  },
+  {
+    "code": "INPNN1",
+    "name": "Ponnani"
+  },
+  {
+    "code": "INPNP6",
+    "name": "Babarpur"
+  },
+  {
+    "code": "INPNQ2",
+    "name": "Pune"
+  },
+  {
+    "code": "INPNQ4",
+    "name": "Pune"
+  },
+  {
+    "code": "INPNQ6",
+    "name": "SERUM BIO/SEZ/PUNE"
+  },
+  {
+    "code": "INPNTB",
+    "name": "Panitanki(Naxalbari)"
+  },
+  {
+    "code": "INPNU6",
+    "name": "TMSF PVT. LTD."
+  },
+  {
+    "code": "INPNV6",
+    "name": "ICD Panvel"
+  },
+  {
+    "code": "INPNY1",
+    "name": "Pondicherry"
+  },
+  {
+    "code": "INPNY4",
+    "name": "Pondicherry"
+  },
+  {
+    "code": "INPNY6",
+    "name": "ICD PULICHAPALLAM"
+  },
+  {
+    "code": "INPPG6",
+    "name": "Patparganj ICD,DELHI"
+  },
+  {
+    "code": "INPPJ1",
+    "name": "Pellet Plant Jetty a"
+  },
+  {
+    "code": "INPRD6",
+    "name": "PREPL SEZ PERUNGUDI"
+  },
+  {
+    "code": "INPRG1",
+    "name": "Purangad"
+  },
+  {
+    "code": "INPRK6",
+    "name": "ICD POWARKHEDA"
+  },
+  {
+    "code": "INPRT1",
+    "name": "Paradeep"
+  },
+  {
+    "code": "INPSH1",
+    "name": "Palshet"
+  },
+  {
+    "code": "INPSI6",
+    "name": "SIPL/SEZ/PUNE"
+  },
+  {
+    "code": "INPSN6",
+    "name": "PERFECT SEZ NOIDA"
+  },
+  {
+    "code": "INPSP6",
+    "name": "NSPL SEZ HINJEWADI"
+  },
+  {
+    "code": "INPTL6",
+    "name": "Patli ICD"
+  },
+  {
+    "code": "INPTN1",
+    "name": "Portonovo"
+  },
+  {
+    "code": "INPTPB",
+    "name": "Petrapole LCS"
+  },
+  {
+    "code": "INPUA6",
+    "name": "AIGP SEZ WAGHOLI"
+  },
+  {
+    "code": "INPUE6",
+    "name": "EON KHARADI SEZ"
+  },
+  {
+    "code": "INPUI6",
+    "name": "KIPPLGDPLSEZ KHARADI"
+  },
+  {
+    "code": "INPUL1",
+    "name": "Pulicat"
+  },
+  {
+    "code": "INPUM6",
+    "name": "MIDC PUNE"
+  },
+  {
+    "code": "INPUN6",
+    "name": "M/S KBTV PVT., PUNE"
+  },
+  {
+    "code": "INPUR1",
+    "name": "Puri"
+  },
+  {
+    "code": "INPUT4",
+    "name": "Puttaparthi"
+  },
+  {
+    "code": "INPVL6",
+    "name": "Panvel ICD"
+  },
+  {
+    "code": "INPVS6",
+    "name": "SNPIP SEZ TAMBARAM"
+  },
+  {
+    "code": "INPWL6",
+    "name": "PALWAL ICD"
+  },
+  {
+    "code": "INPYB4",
+    "name": "Jeypore"
+  },
+  {
+    "code": "INPYS6",
+    "name": "SIPCOT SEZ ERODE"
+  },
+  {
+    "code": "INQRP6",
+    "name": "ADANI ICD KILARAIPUR"
+  },
+  {
+    "code": "INQUI1",
+    "name": "Quilon"
+  },
+  {
+    "code": "INRAI6",
+    "name": "Raipur"
+  },
+  {
+    "code": "INRAJ4",
+    "name": "Rajkot"
+  },
+  {
+    "code": "INRAJ6",
+    "name": "Rajkot"
+  },
+  {
+    "code": "INRAM1",
+    "name": "Rameshwaram"
+  },
+  {
+    "code": "INRDP2",
+    "name": "Radhikapur Railway S"
+  },
+  {
+    "code": "INREA6",
+    "name": "Rewari"
+  },
+  {
+    "code": "INRED1",
+    "name": "Redi"
+  },
+  {
+    "code": "INREW4",
+    "name": "Rewa"
+  },
+  {
+    "code": "INRGBB",
+    "name": "Old Raghna Bazar"
+  },
+  {
+    "code": "INRGH4",
+    "name": "Balurghat"
+  },
+  {
+    "code": "INRGJ2",
+    "name": "RAIGANJ LCS RLY"
+  },
+  {
+    "code": "INRGT1",
+    "name": "Ranghat Bay"
+  },
+  {
+    "code": "INRGUB",
+    "name": "Ryngku"
+  },
+  {
+    "code": "INRJA4",
+    "name": "Rajahmundry"
+  },
+  {
+    "code": "INRJI4",
+    "name": "Rajouri"
+  },
+  {
+    "code": "INRJN6",
+    "name": "LS PVT. LTD."
+  },
+  {
+    "code": "INRJP1",
+    "name": "Rajpara"
+  },
+  {
+    "code": "INRJR1",
+    "name": "Rajpuri"
+  },
+  {
+    "code": "INRKG1",
+    "name": "Rajakkamangalam"
+  },
+  {
+    "code": "INRMD4",
+    "name": "Ramagundam"
+  },
+  {
+    "code": "INRML6",
+    "name": "CONCOR ICDNAYARAIPUR"
+  },
+  {
+    "code": "INRNC5",
+    "name": "RANCHI FPO"
+  },
+  {
+    "code": "INRNG2",
+    "name": "Ranaghat Railway Sta"
+  },
+  {
+    "code": "INRNR1",
+    "name": "Ranpar"
+  },
+  {
+    "code": "INRPL6",
+    "name": "Raddipalam"
+  },
+  {
+    "code": "INRPR4",
+    "name": "Raipur"
+  },
+  {
+    "code": "INRPR6",
+    "name": "Raipur"
+  },
+  {
+    "code": "INRPU5",
+    "name": "RAIPUR FPO"
+  },
+  {
+    "code": "INRRI1",
+    "name": "Raili"
+  },
+  {
+    "code": "INRRK4",
+    "name": "Rourkela"
+  },
+  {
+    "code": "INRTC1",
+    "name": "Ratnagiri"
+  },
+  {
+    "code": "INRTC4",
+    "name": "Ratnagiri"
+  },
+  {
+    "code": "INRTM6",
+    "name": "CONCOR ICD RATLAM"
+  },
+  {
+    "code": "INRUP4",
+    "name": "Rupsi"
+  },
+  {
+    "code": "INRVD1",
+    "name": "Revdanda"
+  },
+  {
+    "code": "INRWR1",
+    "name": "Rameshwaram"
+  },
+  {
+    "code": "INRXLB",
+    "name": "Raxaul"
+  },
+  {
+    "code": "INSABB",
+    "name": "Sabroom"
+  },
+  {
+    "code": "INSAC6",
+    "name": "Sachin (Surat)"
+  },
+  {
+    "code": "INSAJ6",
+    "name": "NAVKAR ICD UMBERGAON"
+  },
+  {
+    "code": "INSAL1",
+    "name": "Salaya"
+  },
+  {
+    "code": "INSAS6",
+    "name": "INFOSYS SEZ MOHALI"
+  },
+  {
+    "code": "INSAU6",
+    "name": "THAR DRY PORT"
+  },
+  {
+    "code": "INSBC6",
+    "name": "BIOCON SEZ BANGALORE"
+  },
+  {
+    "code": "INSBH1",
+    "name": "Sinbhour"
+  },
+  {
+    "code": "INSBI6",
+    "name": "ICD Sabarmati"
+  },
+  {
+    "code": "INSBK6",
+    "name": "KIADB/SEZ/BANGALORE"
+  },
+  {
+    "code": "INSBL6",
+    "name": "INFOSYS/SEZ/BANGLORE"
+  },
+  {
+    "code": "INSBW6",
+    "name": "WIPRO ELEC/SEZ/BLR"
+  },
+  {
+    "code": "INSBZ1",
+    "name": "SHELLA BAZAR"
+  },
+  {
+    "code": "INSCH6",
+    "name": "SAP-SEZ SURAT"
+  },
+  {
+    "code": "INSGF6",
+    "name": "GRFL ICD SAHNEWAL"
+  },
+  {
+    "code": "INSHI1",
+    "name": "Shirola"
+  },
+  {
+    "code": "INSHL4",
+    "name": "Shillong"
+  },
+  {
+    "code": "INSHP1",
+    "name": "Sinbhour Port"
+  },
+  {
+    "code": "INSIK1",
+    "name": "Sikka"
+  },
+  {
+    "code": "INSJR6",
+    "name": "Surajpur"
+  },
+  {
+    "code": "INSKD6",
+    "name": "ICD KALINGANAGAR"
+  },
+  {
+    "code": "INSKPB",
+    "name": "Sukhia Pokhari"
+  },
+  {
+    "code": "INSLL6",
+    "name": "Singanallur"
+  },
+  {
+    "code": "INSLR2",
+    "name": "Silcher R.M.S. Offic"
+  },
+  {
+    "code": "INSLRB",
+    "name": "Silcher Steamerghat"
+  },
+  {
+    "code": "INSLT6",
+    "name": "SALT LAKE (EPZ/SEZ)"
+  },
+  {
+    "code": "INSLV4",
+    "name": "Simla"
+  },
+  {
+    "code": "INSMK6",
+    "name": "KEONICS/SEZ/SHIMOGA"
+  },
+  {
+    "code": "INSMPB",
+    "name": "Srimantapur"
+  },
+  {
+    "code": "INSMR1",
+    "name": "Simor"
+  },
+  {
+    "code": "INSNA6",
+    "name": "ANSAL SEZ SONEPAT"
+  },
+  {
+    "code": "INSNBB",
+    "name": "Sonabarsa"
+  },
+  {
+    "code": "INSNF6",
+    "name": "ICD, Hyderabad"
+  },
+  {
+    "code": "INSNG2",
+    "name": "Singabad Railway Sta"
+  },
+  {
+    "code": "INSNI6",
+    "name": "KANECH, ICD SAHNEWAL"
+  },
+  {
+    "code": "INSNLB",
+    "name": "Sonauli"
+  },
+  {
+    "code": "INSNN6",
+    "name": "APIIC LTD."
+  },
+  {
+    "code": "INSNR6",
+    "name": "ARI LTD."
+  },
+  {
+    "code": "INSNS6",
+    "name": "NLE PVT. LTD."
+  },
+  {
+    "code": "INSPC6",
+    "name": "CCLPIL SEZ VIZAG"
+  },
+  {
+    "code": "INSPE6",
+    "name": "ASDI SEZ NELLORE"
+  },
+  {
+    "code": "INSRE6",
+    "name": "Saharanpur"
+  },
+  {
+    "code": "INSRK6",
+    "name": "KSITILA/SEZ/PALI/ALZ"
+  },
+  {
+    "code": "INSRV1",
+    "name": "Surasani-Yanam"
+  },
+  {
+    "code": "INSSE4",
+    "name": "Sholapur"
+  },
+  {
+    "code": "INSTFB",
+    "name": "SIKTA LCS"
+  },
+  {
+    "code": "INSTIB",
+    "name": "Sitai"
+  },
+  {
+    "code": "INSTM6",
+    "name": "MIDC PHALTAN SEZ"
+  },
+  {
+    "code": "INSTP1",
+    "name": "Satpati"
+  },
+  {
+    "code": "INSTRB",
+    "name": "Sutarkandi"
+  },
+  {
+    "code": "INSTT6",
+    "name": "Dadri STTPL CFS"
+  },
+  {
+    "code": "INSTU6",
+    "name": "MIDC SEZ SATARA"
+  },
+  {
+    "code": "INSTV1",
+    "name": "Surat"
+  },
+  {
+    "code": "INSTV4",
+    "name": "Surat"
+  },
+  {
+    "code": "INSTV6",
+    "name": "Surat(EPZ/SEZ)"
+  },
+  {
+    "code": "INSWD1",
+    "name": "Shriwardhan"
+  },
+  {
+    "code": "INSXE6",
+    "name": "ELCOT AMMAPALAYAM"
+  },
+  {
+    "code": "INSXR4",
+    "name": "Srinagar"
+  },
+  {
+    "code": "INSXR5",
+    "name": "FPO SRINAGAR"
+  },
+  {
+    "code": "INSXV4",
+    "name": "Salem"
+  },
+  {
+    "code": "INSXV6",
+    "name": "Salem"
+  },
+  {
+    "code": "INTAD1",
+    "name": "Tadri"
+  },
+  {
+    "code": "INTAS6",
+    "name": "SRICITYPVTLTD-SEZ"
+  },
+  {
+    "code": "INTBC6",
+    "name": "CTS PVT. LTD."
+  },
+  {
+    "code": "INTBM6",
+    "name": "PHPL SEZ KANCHEPURAM"
+  },
+  {
+    "code": "INTBP6",
+    "name": "SPIPL SEZ, PERUGULTH"
+  },
+  {
+    "code": "INTBS6",
+    "name": "HEXAWARE TECH. LTD."
+  },
+  {
+    "code": "INTBT6",
+    "name": "TCS LTD."
+  },
+  {
+    "code": "INTCR6",
+    "name": "M/S TICS, ICD MATHIL"
+  },
+  {
+    "code": "INTDE6",
+    "name": "Tudiyalur-Coimbatore"
+  },
+  {
+    "code": "INTEI4",
+    "name": "Tezu"
+  },
+  {
+    "code": "INTEL1",
+    "name": "Tellicherry"
+  },
+  {
+    "code": "INTEN6",
+    "name": "SIPCOT GANGAKONDAN"
+  },
+  {
+    "code": "INTEZ4",
+    "name": "Tezpur"
+  },
+  {
+    "code": "INTGN6",
+    "name": "KEIPL/ PUNE"
+  },
+  {
+    "code": "INTHA6",
+    "name": "Thar Dry Port Jodhpu"
+  },
+  {
+    "code": "INTHL1",
+    "name": "Thal"
+  },
+  {
+    "code": "INTHO6",
+    "name": "Tiruppur-Thottiplaya"
+  },
+  {
+    "code": "INTIR4",
+    "name": "Tirupati"
+  },
+  {
+    "code": "INTIV1",
+    "name": "Tiviri"
+  },
+  {
+    "code": "INTJA1",
+    "name": "Talaja"
+  },
+  {
+    "code": "INTJPB",
+    "name": "Tezpur Steamerghat"
+  },
+  {
+    "code": "INTJV4",
+    "name": "Thanjavur"
+  },
+  {
+    "code": "INTKD2",
+    "name": "Tuglakabad"
+  },
+  {
+    "code": "INTKD6",
+    "name": "Tuglakabad"
+  },
+  {
+    "code": "INTKNB",
+    "name": "Tikonia"
+  },
+  {
+    "code": "INTLG6",
+    "name": "Pune-Talegoan ICD"
+  },
+  {
+    "code": "INTLT6",
+    "name": "L&T SBL L&T CHENNAI"
+  },
+  {
+    "code": "INTMI6",
+    "name": "M/S IFFCO KISAN, SEZ"
+  },
+  {
+    "code": "INTMP1",
+    "name": "Trombay"
+  },
+  {
+    "code": "INTMX6",
+    "name": "ICD, THIMMAPUR,"
+  },
+  {
+    "code": "INTNA1",
+    "name": "Thana"
+  },
+  {
+    "code": "INTNC6",
+    "name": "CCCL SEZ TUTICORIN"
+  },
+  {
+    "code": "INTND1",
+    "name": "Tondi"
+  },
+  {
+    "code": "INTNGB",
+    "name": "Tungi"
+  },
+  {
+    "code": "INTNI6",
+    "name": "HIPL SEZ"
+  },
+  {
+    "code": "INTNK1",
+    "name": "Tankari"
+  },
+  {
+    "code": "INTNS6",
+    "name": "SSL SEZ TUTICORIN"
+  },
+  {
+    "code": "INTPH1",
+    "name": "Thopputhurai"
+  },
+  {
+    "code": "INTPJ6",
+    "name": "ECTN SEZ TRICHY"
+  },
+  {
+    "code": "INTPN1",
+    "name": "Talpona"
+  },
+  {
+    "code": "INTRA1",
+    "name": "Tranquebar"
+  },
+  {
+    "code": "INTRL6",
+    "name": "ICD Tiruvallur"
+  },
+  {
+    "code": "INTRP1",
+    "name": "Tarapur"
+  },
+  {
+    "code": "INTRV4",
+    "name": "Thiruvananthapuram ("
+  },
+  {
+    "code": "INTRZ4",
+    "name": "Tiruchirapalli"
+  },
+  {
+    "code": "INTSI6",
+    "name": "HVCPL SEZ KADAYAM"
+  },
+  {
+    "code": "INTTP6",
+    "name": "Dadri TTPL"
+  },
+  {
+    "code": "INTTS1",
+    "name": "T.T. SHED (KIDDERPOR"
+  },
+  {
+    "code": "INTUI6",
+    "name": "FCPL SEZ KESAVARAM"
+  },
+  {
+    "code": "INTUN1",
+    "name": "Tuna"
+  },
+  {
+    "code": "INTUP6",
+    "name": "Tirupur"
+  },
+  {
+    "code": "INTUT1",
+    "name": "Tuticorin"
+  },
+  {
+    "code": "INTUT6",
+    "name": "Tuticorin ICD"
+  },
+  {
+    "code": "INTVC6",
+    "name": "KINFRAA SEZ"
+  },
+  {
+    "code": "INTVT6",
+    "name": "ICD TONDIARPET CHENN"
+  },
+  {
+    "code": "INTYR1",
+    "name": "Tirukkadayyur"
+  },
+  {
+    "code": "INUDI6",
+    "name": "SYNEFRA-SEZ/UDUPI"
+  },
+  {
+    "code": "INUDN6",
+    "name": "GHB-SEZ SURAT"
+  },
+  {
+    "code": "INUDR4",
+    "name": "Udaipur"
+  },
+  {
+    "code": "INUDR6",
+    "name": "Udaipur"
+  },
+  {
+    "code": "INUDZ6",
+    "name": "Udaipur"
+  },
+  {
+    "code": "INUKL6",
+    "name": "ETLISL SEZ ERODE"
+  },
+  {
+    "code": "INULPB",
+    "name": "Ultapani"
+  },
+  {
+    "code": "INULW1",
+    "name": "Ulwa"
+  },
+  {
+    "code": "INUMB1",
+    "name": "Umbergoan"
+  },
+  {
+    "code": "INUMR1",
+    "name": "Umarsadi"
+  },
+  {
+    "code": "INURF6",
+    "name": "FAB CITY SPV-SEZ/SRI"
+  },
+  {
+    "code": "INURG6",
+    "name": "GMR HYDTABAD AVIATIO"
+  },
+  {
+    "code": "INURI6",
+    "name": "INDU TECHZONE PVT."
+  },
+  {
+    "code": "INURT6",
+    "name": "TCS LTD. ADIBATLA"
+  },
+  {
+    "code": "INUTN1",
+    "name": "Uttan"
+  },
+  {
+    "code": "INVAD1",
+    "name": "Vadinar"
+  },
+  {
+    "code": "INVAL6",
+    "name": "Valvada ICD"
+  },
+  {
+    "code": "INVAP1",
+    "name": "Vapi"
+  },
+  {
+    "code": "INVEN1",
+    "name": "Vengurla"
+  },
+  {
+    "code": "INVEP1",
+    "name": "Veppalodai"
+  },
+  {
+    "code": "INVGA4",
+    "name": "Vijayawada"
+  },
+  {
+    "code": "INVGA5",
+    "name": "FPO VIJAYAWADA"
+  },
+  {
+    "code": "INVGR6",
+    "name": "BHOJVA ICD VIRAMGAM"
+  },
+  {
+    "code": "INVKH6",
+    "name": "HIRANANDANI BUIL."
+  },
+  {
+    "code": "INVKM1",
+    "name": "Valinokkam"
+  },
+  {
+    "code": "INVLD6",
+    "name": "DISH/SEZ/KALYANGADH"
+  },
+  {
+    "code": "INVLN6",
+    "name": "NG REALTY-SEZ/TALUKA"
+  },
+  {
+    "code": "INVLR6",
+    "name": "SIPCOT LTD."
+  },
+  {
+    "code": "INVNG1",
+    "name": "Vengurla"
+  },
+  {
+    "code": "INVNS4",
+    "name": "Varanasi"
+  },
+  {
+    "code": "INVNS5",
+    "name": "FPO VARANASI"
+  },
+  {
+    "code": "INVNS6",
+    "name": "Varanasi"
+  },
+  {
+    "code": "INVPI6",
+    "name": "Vapi"
+  },
+  {
+    "code": "INVRD1",
+    "name": "Varavda"
+  },
+  {
+    "code": "INVRU1",
+    "name": "Vadarevu"
+  },
+  {
+    "code": "INVSA6",
+    "name": "APIIC (HALL NO.3)"
+  },
+  {
+    "code": "INVSI1",
+    "name": "Vansi-Borsi"
+  },
+  {
+    "code": "INVSK6",
+    "name": "APIIC- (HALL NO. 2)"
+  },
+  {
+    "code": "INVSP6",
+    "name": "WIPRO SEZRESPUVANIPA"
+  },
+  {
+    "code": "INVSV1",
+    "name": "Varsova"
+  },
+  {
+    "code": "INVTC6",
+    "name": "CHEYYAR VELLORE"
+  },
+  {
+    "code": "INVTZ1",
+    "name": "Visakhapatnam"
+  },
+  {
+    "code": "INVTZ4",
+    "name": "Visakhapatnam"
+  },
+  {
+    "code": "INVTZ6",
+    "name": "Visakhapatnam SEZ"
+  },
+  {
+    "code": "INVVA1",
+    "name": "Veraval"
+  },
+  {
+    "code": "INVYD1",
+    "name": "Vijaydurg"
+  },
+  {
+    "code": "INVZJ1",
+    "name": "Vazhinjam"
+  },
+  {
+    "code": "INVZM6",
+    "name": "DLL SEZ"
+  },
+  {
+    "code": "INVZR6",
+    "name": "M/S DR. REDDY SEZ"
+  },
+  {
+    "code": "INWAL6",
+    "name": "Waluj (Aurangabad)"
+  },
+  {
+    "code": "INWFD6",
+    "name": "ICD Bangalore"
+  },
+  {
+    "code": "INWFI6",
+    "name": "INFO/SEZ/BANGALORE"
+  },
+  {
+    "code": "INWFT6",
+    "name": "ITPL SEZ II BENGALUR"
+  },
+  {
+    "code": "INWGC4",
+    "name": "Warrangal"
+  },
+  {
+    "code": "INWRR6",
+    "name": "WARDHA POWER CO LTD"
+  },
+  {
+    "code": "INYMA6",
+    "name": "MODERN ASSET SEZ II"
+  },
+  {
+    "code": "INYNA6",
+    "name": "MOSERN ASSET SEZ I"
+  },
+  {
+    "code": "INYNK6",
+    "name": "KIP/SEZ/N BANGALORE"
+  },
+  {
+    "code": "INYNL6",
+    "name": "L&T CEL SEZ II"
+  },
+  {
+    "code": "INYNM6",
+    "name": "MILESTONE/SEZ/BLR"
+  },
+  {
+    "code": "INYNT6",
+    "name": "L&T CEL SEZ I"
+  },
+  {
+    "code": "INZIP6",
+    "name": "ZIPL-SEZ AHMEDABAD"
+  },
+  {
+    "code": "INQRH6",
+    "name": "HTPL ICD KILARAIPUR"
+  },
+  {
+    "code": "INKQZ6",
+    "name": "SATTVA ICD BENGALURU"
+  },
+  {
+    "code": "INWDH6",
+    "name": "ICD MORBI"
+  },
+  {
+    "code": "INBOA6",
+    "name": "ADANI ICD-BORKHED"
+  },
+  {
+    "code": "INLPN6",
+    "name": "Phoenix Tech Zone SEZ 115 Nanakramguda RR Dist Tel"
+  },
+  {
+    "code": "INLPF6",
+    "name": "Phoenix Ventures SEZ 35(P)36 Gachibowli RRDist Tel"
+  },
+  {
+    "code": "INLPA6",
+    "name": "Phoenix Infocity SEZ 35(P)36 Gachibowli RRDist Tel"
+  },
+  {
+    "code": "INNDB6",
+    "name": "Yash Technologies SEZ, Plot 1/Scheme 166, Indore"
+  },
+  {
+    "code": "INSCA6",
+    "name": "Sustain Properties SEZ, Raidurg, Ranga Reddy Tel."
+  },
+  {
+    "code": "INLPP6",
+    "name": "Phoenix Spaces SEZ Puppalguda, R. Nagar, Hyderabad"
+  },
+  {
+    "code": "INNZM6",
+    "name": "Tata Consultancy Services SEZ Sector 157, NOIDA UP"
+  },
+  {
+    "code": "INTBI6",
+    "name": "INFOSYS LTD SEZ SHOLINGNALLUR, KANCHIPURAM 600119"
+  },
+  {
+    "code": "INTBA6",
+    "name": "TCS SEZ, EGATTUR, SIRUSERI, TamilNadu 603103"
+  },
+  {
+    "code": "INLPY6",
+    "name": "Google Connect ServicesSEZ Nanakramguda RangaReddy"
+  },
+  {
+    "code": "INLPR6",
+    "name": "Phoenix Tech Zone SEZ 203/P Manikonda Ranga Reddy"
+  },
+  {
+    "code": "INDNK6",
+    "name": "ICD Dhanakya"
+  },
+  {
+    "code": "INDPP6",
+    "name": "ICD DHIRPUR"
+  },
+  {
+    "code": "INADC6",
+    "name": "3RD EYE VOICE SEZ, CCIPL, DASCROI AHMEDABAD 380060"
+  },
+  {
+    "code": "INADG6",
+    "name": "GANESH HOUSING CORPN SEZ CHARODI DASCROI AHMEDABAD"
+  },
+  {
+    "code": "INAIP6",
+    "name": "ICBP PVT LTD FTWZ SEZ, EDAYANCHAVADI"
+  },
+  {
+    "code": "INBLO6",
+    "name": "ICD BALLI, NEAR RAILWAY STATION BALLI, GOA, 403703"
+  },
+  {
+    "code": "INBNP6",
+    "name": "AEQUES SEZ, BHANAPUR-TALBAL KUKNOOR, KOPPAL-583238"
+  },
+  {
+    "code": "INBWS6",
+    "name": "AFS KAPASHERA, BIJWASAN ROAD, NEW DELHI - 110037"
+  },
+  {
+    "code": "INBZA6",
+    "name": "HCL TECHNOLOGIES SEZ KESARAPALLI KRISHNA AP521102"
+  },
+  {
+    "code": "INCCN6",
+    "name": "INFOSYS LTD SEZ, HINJEWADI, PHASE-II, PUNE, MAH."
+  },
+  {
+    "code": "INCNN4",
+    "name": "AIR CARGO COMPLEX, KANNUR INTERNATIONAL AIRPORT,"
+  },
+  {
+    "code": "INCTY6",
+    "name": "DIVIS LABSEZ LINGOJIGUDEM YADADRI BHUVANGIRI505252"
+  },
+  {
+    "code": "INDHB1",
+    "name": "LCS STEAMER GHAT, DHUBRI - 783301"
+  },
+  {
+    "code": "INGHW1",
+    "name": "LCS STEAMER GHAT, PANDU, GUWAHATI - 781012"
+  },
+  {
+    "code": "INGNI6",
+    "name": "LTIMINDTREE LTD SEZ, MAHAPE, NAVI MUMBAI, MAH."
+  },
+  {
+    "code": "INGOX4",
+    "name": "ACC MANOHAR INTERNATIONAL AIRPORT MOPA GOA 403512"
+  },
+  {
+    "code": "INGPL6",
+    "name": "ICD-PLIL GHUNGRANA, MALERKOTLA ROAD, LUDHIANA"
+  },
+  {
+    "code": "INHBL6",
+    "name": "EMBASSY PROPERTY DEVELOPMENT SEZ BENGULURU 560001"
+  },
+  {
+    "code": "INHEL6",
+    "name": "L & T REALTY DEVELOPERS LTD SEZ, BENGALURU 560024"
+  },
+  {
+    "code": "INHLS6",
+    "name": "SIEMENS HEALTHCARE BOMMASANDRA ANEKAL BENGULURU099"
+  },
+  {
+    "code": "INHSA6",
+    "name": "ELCOT SEZ, HOSUR, KRISHNAGIRI - 635109"
+  },
+  {
+    "code": "INHYC6",
+    "name": "DIVIJA COMMERCIAL PROP. SEZ RAIDURGAM HYDERABAD-32"
+  },
+  {
+    "code": "INHZR6",
+    "name": "KRIBHCO INFSTR LTD,HAZIRA,KRIBHCO NGR,SURAT,GUJRAT"
+  },
+  {
+    "code": "INKGJB",
+    "name": "LCS KARIMGANJ STEAMERGHAT & FERRY"
+  },
+  {
+    "code": "INKJW6",
+    "name": "WIPRO LIMITED SEZ, KODATHI, BENGALURU- 560035"
+  },
+  {
+    "code": "INLGL1",
+    "name": "MAIA, RIVERINE PORT, MURSHIDABAD, WEST BENGAL"
+  },
+  {
+    "code": "INLPU6",
+    "name": "LAXMI INFOBAHN SEZ KOKAPET GANDIPET HYDERABAD-075"
+  },
+  {
+    "code": "INMDC6",
+    "name": "ELCOT SEZ, VADAPALANJI, MADURAI- 625021&#x9;"
+  },
+  {
+    "code": "INMEM6",
+    "name": "VISA RADIANT CORPN SEZ MUPPIREDDIPALY MEDAK 502336"
+  },
+  {
+    "code": "INNJP6",
+    "name": "ICD DABGRAM, GHORA MORE, WB"
+  },
+  {
+    "code": "INNPK6",
+    "name": "NDR INFRA PVT LTD SEZ, NANDIAMBAKKAM, CHENNAI"
+  },
+  {
+    "code": "INPJN6",
+    "name": "JAWAHARLAL NEHRU PORT AUTHORITY SEZ, NAVI MUMBAI"
+  },
+  {
+    "code": "INRUG6",
+    "name": "ICD BARHI, GANAUR, SONEPAT DISTRICT, HARYANA"
+  },
+  {
+    "code": "INSBZB",
+    "name": "LAND CUSTOMS STATION SHELLABAZAR, MEGHALAYA"
+  },
+  {
+    "code": "INSCB6",
+    "name": "TECH MAHENDRA LTD SEZ BAHADURPALLY HYDERABAD500043"
+  },
+  {
+    "code": "INSCM6",
+    "name": "TECH MAHENDRA LTD SEZ MADHAPUR HYDERABAD 500081"
+  },
+  {
+    "code": "INSCV6",
+    "name": "VAXENIC INDIA PVT LTD SEZ SHAMEERPET MEDCHAL TEL."
+  },
+  {
+    "code": "INSPB6",
+    "name": "BHARTIYA INTERNATIONAL SEZ KONDURU, NELLORE 524401"
+  },
+  {
+    "code": "INTAN6",
+    "name": "ROMA BUILDERS PVT LTD SEZ KAVESAR, THANE, MAH."
+  },
+  {
+    "code": "INTVM6",
+    "name": "CHEYYAR DEVELOPERSEZ THINDIVANAM VILLUPURAM 604001"
+  },
+  {
+    "code": "INVKNB",
+    "name": "LCS VALMIKINAGAR, WEST CHAMPARAN, BIHAR - 845107"
+  },
+  {
+    "code": "INVRM6",
+    "name": "ICD VARNAMA, DISTRICT - VADODARA, GUJARAT-391243"
+  }
+]

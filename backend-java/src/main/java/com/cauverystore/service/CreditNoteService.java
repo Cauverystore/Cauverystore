@@ -117,6 +117,7 @@ public class CreditNoteService {
             cn.setInvoiceId(inv.getId());
             cn.setOriginalInvoiceNumber(inv.getInvoiceNumber());
             cn.setInvoiceType(inv.getInvoiceType() != null ? inv.getInvoiceType() : "B2C");
+            cn.setUtgstApplied(Boolean.TRUE.equals(inv.getUtgstApplied()));
             cn.setTaxableAmount(round(inv.getTaxableAmount() * factor));
             cn.setCgstRate(inv.getCgstRate());
             cn.setSgstRate(inv.getSgstRate());
@@ -263,6 +264,8 @@ public class CreditNoteService {
         } else {
             cn.setInvoiceType("B2C");
         }
+        // A return reverses whatever tax the original carried; if that was UTGST, say so.
+        cn.setUtgstApplied(inv != null && Boolean.TRUE.equals(inv.getUtgstApplied()));
 
         List<CreditNoteItem> items;
         if (inv != null) {
@@ -345,6 +348,7 @@ public class CreditNoteService {
         cn.setBuyerStateCode(inv.getBuyerStateCode());
         cn.setPlaceOfSupply(inv.getPlaceOfSupply());
         cn.setIsInterState(inv.getIsInterState());
+        cn.setUtgstApplied(Boolean.TRUE.equals(inv.getUtgstApplied()));
         cn.setInvoiceType(inv.getInvoiceType() != null ? inv.getInvoiceType() : "B2C");
 
         cn.setTaxableAmount(round(inv.getTaxableAmount() * factor));
@@ -506,6 +510,10 @@ public class CreditNoteService {
         Font bold9 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
 
+        boolean interState = Boolean.TRUE.equals(cn.getIsInterState());
+        boolean utgst = Boolean.TRUE.equals(cn.getUtgstApplied());
+        String stateLabel = utgst ? "UTGST" : "SGST";
+
         doc.add(PdfBrandingUtil.buildBrandHeader());
         doc.add(PdfBrandingUtil.buildDivider());
         doc.add(new Paragraph(" "));
@@ -566,10 +574,10 @@ public class CreditNoteService {
                 : new float[]{4, 9, 22, 6, 9, 12, 11, 11, 16};
         table.setWidths(colWidths);
         String[] hdrs;
-        if (Boolean.TRUE.equals(cn.getIsInterState())) {
+        if (interState) {
             hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "IGST", "Total"};
         } else {
-            hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "CGST", "SGST", "Total"};
+            hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "CGST", stateLabel, "Total"};
         }
         for (String h : hdrs) {
             PdfPCell hc = new PdfPCell(new Phrase(h, bold9));
@@ -601,11 +609,11 @@ public class CreditNoteService {
         sumTable.setWidthPercentage(40);
         sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
         addSumRow(sumTable, "Taxable Amount", "\u20B9" + String.format("%.2f", nz(cn.getTaxableAmount())), normal9);
-        if (Boolean.TRUE.equals(cn.getIsInterState())) {
+        if (interState) {
             addSumRow(sumTable, "IGST", "\u20B9" + String.format("%.2f", nz(cn.getIgstAmount())), normal9);
         } else {
             addSumRow(sumTable, "CGST", "\u20B9" + String.format("%.2f", nz(cn.getCgstAmount())), normal9);
-            addSumRow(sumTable, "SGST", "\u20B9" + String.format("%.2f", nz(cn.getSgstAmount())), normal9);
+            addSumRow(sumTable, stateLabel, "\u20B9" + String.format("%.2f", nz(cn.getSgstAmount())), normal9);
         }
         addSumRow(sumTable, "Total Tax", "\u20B9" + String.format("%.2f", nz(cn.getTotalTax())), normal9);
         if (nz(cn.getTcsAmount()) > 0) {
@@ -671,6 +679,7 @@ public class CreditNoteService {
             cn.setBuyerStateCode(inv.getBuyerStateCode());
             cn.setPlaceOfSupply(inv.getPlaceOfSupply());
             cn.setIsInterState(inv.getIsInterState());
+            cn.setUtgstApplied(Boolean.TRUE.equals(inv.getUtgstApplied()));
             cn.setInvoiceType(inv.getInvoiceType() != null ? inv.getInvoiceType() : "B2C");
             return;
         }
@@ -695,6 +704,7 @@ public class CreditNoteService {
         cn.setBuyerStateCode(buyerStateCode);
         cn.setPlaceOfSupply(buyerStateCode + "-" + STATE_CODES.getOrDefault(buyerStateCode, "Other"));
         cn.setIsInterState(!buyerStateCode.equals(sellerStateCode));
+        cn.setUtgstApplied(buyerStateCode.equals(sellerStateCode) && GstComplianceUtil.isUtgstState(sellerStateCode));
     }
 
     private List<CreditNoteItem> buildItemsFromInvoice(CreditNote cn, GstInvoice inv, double factor) {

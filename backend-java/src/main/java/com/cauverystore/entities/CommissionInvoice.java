@@ -98,6 +98,14 @@ public class CommissionInvoice {
     @Column(name = "is_inter_state", nullable = false)
     private Boolean isInterState = false;
 
+    /**
+     * True when this intra-state commission invoice came from a marketplace registered in a
+     * Union Territory without a legislature, so the state component is UTGST rather than SGST.
+     * The amount is still stored in the state-tax fields - GSTN reports both under "State/UT Tax".
+     */
+    @Column(name = "utgst_applied", nullable = false)
+    private Boolean utgstApplied = false;
+
     @Column(name = "status", length = 20, nullable = false)
     private String status = "ISSUED";
 
@@ -152,6 +160,8 @@ public class CommissionInvoice {
     public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
     public Boolean getIsInterState() { return isInterState; }
     public void setIsInterState(Boolean isInterState) { this.isInterState = isInterState; }
+    public Boolean getUtgstApplied() { return utgstApplied; }
+    public void setUtgstApplied(Boolean utgstApplied) { this.utgstApplied = utgstApplied; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public List<CommissionInvoiceLine> getLines() { return lines; }

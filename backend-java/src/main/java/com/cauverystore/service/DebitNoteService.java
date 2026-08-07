@@ -80,6 +80,7 @@ public class DebitNoteService {
         dn.setBuyerStateCode(inv.getBuyerStateCode());
         dn.setPlaceOfSupply(inv.getPlaceOfSupply());
         dn.setIsInterState(inv.getIsInterState());
+        dn.setUtgstApplied(Boolean.TRUE.equals(inv.getUtgstApplied()));
         dn.setInvoiceType(inv.getInvoiceType() != null ? inv.getInvoiceType() : "B2C");
 
         dn.setTaxableAmount(round(inv.getTaxableAmount() * factor));
@@ -160,6 +161,10 @@ public class DebitNoteService {
         Font bold9 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
 
+        boolean interState = Boolean.TRUE.equals(dn.getIsInterState());
+        boolean utgst = Boolean.TRUE.equals(dn.getUtgstApplied());
+        String stateLabel = utgst ? "UTGST" : "SGST";
+
         doc.add(PdfBrandingUtil.buildBrandHeader());
         doc.add(PdfBrandingUtil.buildDivider());
         doc.add(new Paragraph(" "));
@@ -220,10 +225,10 @@ public class DebitNoteService {
                 : new float[]{4, 9, 22, 6, 9, 12, 11, 11, 16};
         table.setWidths(colWidths);
         String[] hdrs;
-        if (Boolean.TRUE.equals(dn.getIsInterState())) {
+        if (interState) {
             hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "IGST", "Total"};
         } else {
-            hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "CGST", "SGST", "Total"};
+            hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "CGST", stateLabel, "Total"};
         }
         for (String h : hdrs) {
             PdfPCell hc = new PdfPCell(new Phrase(h, bold9));
@@ -255,11 +260,11 @@ public class DebitNoteService {
         sumTable.setWidthPercentage(40);
         sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
         addSumRow(sumTable, "Taxable Amount", "\u20B9" + String.format("%.2f", nz(dn.getTaxableAmount())), normal9);
-        if (Boolean.TRUE.equals(dn.getIsInterState())) {
+        if (interState) {
             addSumRow(sumTable, "IGST", "\u20B9" + String.format("%.2f", nz(dn.getIgstAmount())), normal9);
         } else {
             addSumRow(sumTable, "CGST", "\u20B9" + String.format("%.2f", nz(dn.getCgstAmount())), normal9);
-            addSumRow(sumTable, "SGST", "\u20B9" + String.format("%.2f", nz(dn.getSgstAmount())), normal9);
+            addSumRow(sumTable, stateLabel, "\u20B9" + String.format("%.2f", nz(dn.getSgstAmount())), normal9);
         }
         addSumRow(sumTable, "Total Tax", "\u20B9" + String.format("%.2f", nz(dn.getTotalTax())), normal9);
         if (nz(dn.getTcsAmount()) > 0) {

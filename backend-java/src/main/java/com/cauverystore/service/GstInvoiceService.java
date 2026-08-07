@@ -4,6 +4,8 @@ import com.cauverystore.client.GstnClient;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.GstInvoiceItem;
 import com.cauverystore.entities.GstSyncQueue;
+import com.cauverystore.entities.StateMaster;
+import com.cauverystore.repository.StateMasterRepository;
 import com.cauverystore.entities.GstConfiguration;
 import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.entities.TcsRecord;
@@ -68,28 +70,8 @@ public class GstInvoiceService {
     private final AuditService auditService;
     private final GstnClient gstnClient;
     private final TcsRecordRepository tcsRepo;
+    private final StateMasterRepository stateRepo;
 
-    private static final Map<String, String> STATE_CODES = new LinkedHashMap<>();
-    static {
-        STATE_CODES.put("35", "Andaman and Nicobar"); STATE_CODES.put("28", "Andhra Pradesh");
-        STATE_CODES.put("12", "Arunachal Pradesh"); STATE_CODES.put("18", "Assam");
-        STATE_CODES.put("10", "Bihar"); STATE_CODES.put("04", "Chandigarh");
-        STATE_CODES.put("22", "Chhattisgarh"); STATE_CODES.put("26", "Dadra and Nagar Haveli and Daman and Diu");
-        STATE_CODES.put("07", "Delhi"); STATE_CODES.put("30", "Goa");
-        STATE_CODES.put("24", "Gujarat"); STATE_CODES.put("06", "Haryana");
-        STATE_CODES.put("02", "Himachal Pradesh"); STATE_CODES.put("01", "Jammu and Kashmir");
-        STATE_CODES.put("20", "Jharkhand"); STATE_CODES.put("29", "Karnataka");
-        STATE_CODES.put("32", "Kerala"); STATE_CODES.put("31", "Lakshadweep");
-        STATE_CODES.put("23", "Madhya Pradesh"); STATE_CODES.put("27", "Maharashtra");
-        STATE_CODES.put("14", "Manipur"); STATE_CODES.put("17", "Meghalaya");
-        STATE_CODES.put("15", "Mizoram"); STATE_CODES.put("13", "Nagaland");
-        STATE_CODES.put("21", "Odisha"); STATE_CODES.put("34", "Puducherry");
-        STATE_CODES.put("03", "Punjab"); STATE_CODES.put("08", "Rajasthan");
-        STATE_CODES.put("11", "Sikkim"); STATE_CODES.put("33", "Tamil Nadu");
-        STATE_CODES.put("36", "Telangana"); STATE_CODES.put("16", "Tripura");
-        STATE_CODES.put("09", "Uttar Pradesh"); STATE_CODES.put("05", "Uttarakhand");
-        STATE_CODES.put("19", "West Bengal");
-    }
 
     private final GstRateResolver gstRateResolver;
     private final Gstr1ExportService gstr1ExportService;
@@ -100,6 +82,7 @@ public class GstInvoiceService {
                              OrderRepository orderRepo, ProductRepository productRepo,
                              UserRepository userRepo, AuditService auditService,
                              GstnClient gstnClient, TcsRecordRepository tcsRepo,
+                             StateMasterRepository stateRepo,
                              GstRateResolver gstRateResolver,
                              Gstr1ExportService gstr1ExportService) {
         this.gstRateResolver = gstRateResolver;
@@ -115,6 +98,7 @@ public class GstInvoiceService {
         this.auditService = auditService;
         this.gstnClient = gstnClient;
         this.tcsRepo = tcsRepo;
+        this.stateRepo = stateRepo;
     }
 
     @Transactional
@@ -195,8 +179,13 @@ public class GstInvoiceService {
         inv.setBuyerStateCode(buyerStateCode);
         inv.setDeliveryStateCode(resolvedDeliveryStateCode);
         // Place of supply (Req 5) is the destination (delivery) state.
-        inv.setPlaceOfSupply(resolvedDeliveryStateCode + "-" + STATE_CODES.getOrDefault(resolvedDeliveryStateCode, "Other"));
+        inv.setPlaceOfSupply(resolvedDeliveryStateCode + "-" + stateName(resolvedDeliveryStateCode));
         inv.setIsInterState(!resolvedDeliveryStateCode.equals(sellerStateCode));
+        // The state component of an intra-state supply from a Union Territory without a
+        // legislature is UTGST, not SGST. The amount stays in the state-tax fields (GSTN reports
+        // both under "State/UT Tax"); the flag only changes the label on the invoice.
+        inv.setUtgstApplied(GstComplianceUtil.isUtgstState(sellerStateCode)
+                && !Boolean.TRUE.equals(inv.getIsInterState()));
 
         String invoiceNumber = generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS");
         GstComplianceUtil.validateInvoiceNumber(invoiceNumber);
@@ -955,6 +944,34 @@ public class GstInvoiceService {
 
     private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
 
+    /**
+     * The state's name for the place-of-supply field, from the official master.
+     *
+     * Read from state_master rather than a map kept in this file. The hand-maintained one had
+     * drifted from the published list: it still carried 28 for Andhra Pradesh, which was the
+     * code before Telangana was carved out, and lacked 37 - the code Andhra Pradesh actually
+     * uses now. An invoice to an Andhra customer therefore read "37-Other". It also lacked
+     * Ladakh, and the 96/97/99 codes used for exports.
+     *
+     * Refuses rather than falling back to "Other". Place of supply is a mandatory field on a
+     * tax invoice and decides which government is owed the money; "Other" is not a state, and
+     * an invoice carrying it is wrong in a way nobody would notice.
+     */
+    private String stateName(String stateCode) {
+        if (stateCode == null || stateCode.isBlank()) {
+            throw new IllegalStateException(
+                    "This order has no delivery state, so the invoice has no place of supply. "
+                            + "Place of supply decides whether CGST+SGST or IGST applies, so the "
+                            + "invoice cannot be raised without it.");
+        }
+        String code = stateCode.trim().length() == 1 ? "0" + stateCode.trim() : stateCode.trim();
+        return stateRepo.findById(code)
+                .map(StateMaster::getStateName)
+                .orElseThrow(() -> new IllegalStateException(
+                        "'" + stateCode + "' is not a GST state code in the official master, so the "
+                                + "place of supply cannot be stated. Check the delivery address."));
+    }
+
     public Map<String, Object> getDashboardStats() {
         long total = invoiceRepo.count();
         long synced = invoiceRepo.countByStatus("SYNCED");
@@ -973,8 +990,8 @@ public class GstInvoiceService {
 
     public List<Map<String, String>> getStateCodes() {
         List<Map<String, String>> list = new ArrayList<>();
-        for (Map.Entry<String, String> e : STATE_CODES.entrySet()) {
-            list.add(Map.of("code", e.getKey(), "name", e.getValue()));
+        for (StateMaster s : stateRepo.findAll()) {
+            list.add(Map.of("code", s.getStateCode(), "name", s.getStateName()));
         }
         return list;
     }
@@ -995,12 +1012,38 @@ public class GstInvoiceService {
         return prefixPattern + String.format("%05d", seq);
     }
 
+    /**
+     * The GST state code for a state name from a delivery address.
+     *
+     * Used to be a lookup that returned "33" - Tamil Nadu - for anything it did not recognise,
+     * including null. A single unrecognised spelling therefore made an inter-state supply look
+     * intra-state, charging CGST+SGST where IGST was due and sending the money to the wrong
+     * government. It now refuses instead.
+     *
+     * Matching ignores case, punctuation and "and" versus "&", because an address typed by a
+     * customer will not match the gazette spelling exactly and rejecting it on that would be
+     * pedantry rather than compliance.
+     */
     private String getStateCode(String stateName) {
-        if (stateName == null) return "33";
-        for (Map.Entry<String, String> e : STATE_CODES.entrySet()) {
-            if (e.getValue().equalsIgnoreCase(stateName.trim())) return e.getKey();
+        if (stateName == null || stateName.isBlank()) {
+            throw new IllegalStateException(
+                    "The delivery address has no state, so the place of supply cannot be "
+                            + "determined and the invoice cannot state whether IGST or CGST+SGST "
+                            + "applies.");
         }
-        return "33";
+        String wanted = normaliseStateName(stateName);
+        for (StateMaster s : stateRepo.findAll()) {
+            if (normaliseStateName(s.getStateName()).equals(wanted)) return s.getStateCode();
+        }
+        throw new IllegalStateException("'" + stateName + "' is not a state in the official GST "
+                + "master, so the place of supply cannot be determined. Correct the delivery "
+                + "address.");
+    }
+
+    private String normaliseStateName(String name) {
+        return name == null ? "" : name.trim().toUpperCase()
+                .replace("&", "AND")
+                .replaceAll("[^A-Z]", "");
     }
 
     private String formatAddress(Address addr) {
@@ -1080,6 +1123,10 @@ public class GstInvoiceService {
         Font bold9 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
 
+        boolean interState = Boolean.TRUE.equals(inv.getIsInterState());
+        boolean utgst = Boolean.TRUE.equals(inv.getUtgstApplied());
+        String stateLabel = utgst ? "UTGST" : "SGST";
+
         // Brand header (logo + "Cauvery Store - Everyday Essentials, Delivered")
         doc.add(PdfBrandingUtil.buildBrandHeader());
         doc.add(PdfBrandingUtil.buildDivider());
@@ -1098,7 +1145,7 @@ public class GstInvoiceService {
                  "DUPLICATE".equals(inv.getInvoiceCopyType()) ? "Duplicate for Transporter" :
                  "TRIPLICATE".equals(inv.getInvoiceCopyType()) ? "Triplicate for Supplier" : "Original for Recipient")
                 + (inv.getSupplyType() != null && inv.getSupplyType().equals("GOODS") ? " (Goods)" : " (Services)")
-                + " | " + (Boolean.TRUE.equals(inv.getIsInterState()) ? "Inter-State" : "Intra-State"), small8));
+                + " | " + (interState ? "Inter-State" : "Intra-State"), small8));
         PdfPCell rightCell = new PdfPCell();
         rightCell.setBorder(Rectangle.NO_BORDER);
         rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
@@ -1151,7 +1198,8 @@ public class GstInvoiceService {
         idTable.setWidths(idW);
         String[][] idData = {
             {"Place of Supply", safeStr(inv.getPlaceOfSupply())},
-            {"Supply Type", Boolean.TRUE.equals(inv.getIsInterState()) ? "Inter-State (IGST)" : "Intra-State (CGST+SGST)"},
+            {"Supply Type", interState ? "Inter-State (IGST)"
+                    : "Intra-State (" + (utgst ? "CGST+UTGST" : "CGST+SGST") + ")"},
             {"Invoice Type", safeStr(inv.getInvoiceType())}
         };
         for (String[] row : idData) {
@@ -1175,10 +1223,10 @@ public class GstInvoiceService {
         table.setWidths(colWidths);
 
         String[] hdrs;
-        if (Boolean.TRUE.equals(inv.getIsInterState())) {
+        if (interState) {
             hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "IGST", "Total"};
         } else {
-            hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "CGST", "SGST", "Total"};
+            hdrs = new String[]{"#", "HSN/SAC", "Description", "Qty", "Unit Price", "Taxable Value", "CGST", stateLabel, "Total"};
         }
         for (String h : hdrs) {
             PdfPCell hc = new PdfPCell(new Phrase(h, bold9));
@@ -1241,11 +1289,11 @@ public class GstInvoiceService {
         if (inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0) {
             addBreakupCell(breakupTable, "Delivery Charge", "\u20B9" + String.format("%.2f", inv.getDeliveryCharge()), normal9);
         }
-        if (Boolean.TRUE.equals(inv.getIsInterState())) {
+        if (interState) {
             addBreakupCell(breakupTable, "IGST @ " + igstRate + "%", "\u20B9" + String.format("%.2f", igst), normal9);
         } else {
             addBreakupCell(breakupTable, "CGST @ " + cgstRate + "%", "\u20B9" + String.format("%.2f", cgst), normal9);
-            addBreakupCell(breakupTable, "SGST @ " + sgstRate + "%", "\u20B9" + String.format("%.2f", sgst), normal9);
+            addBreakupCell(breakupTable, stateLabel + " @ " + sgstRate + "%", "\u20B9" + String.format("%.2f", sgst), normal9);
         }
         addBreakupCell(breakupTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
         addBreakupCell(breakupTable, "TCS @ " + tcsRate + "%", "\u20B9" + String.format("%.2f", tcs), normal9);
@@ -1265,11 +1313,11 @@ public class GstInvoiceService {
         if (inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0) {
             addSumRow(sumTable, "Delivery Charge", "\u20B9" + String.format("%.2f", inv.getDeliveryCharge()), normal9);
         }
-        if (Boolean.TRUE.equals(inv.getIsInterState())) {
+        if (interState) {
             addSumRow(sumTable, "IGST", "\u20B9" + String.format("%.2f", igst), normal9);
         } else {
             addSumRow(sumTable, "CGST", "\u20B9" + String.format("%.2f", cgst), normal9);
-            addSumRow(sumTable, "SGST", "\u20B9" + String.format("%.2f", sgst), normal9);
+            addSumRow(sumTable, stateLabel, "\u20B9" + String.format("%.2f", sgst), normal9);
         }
         addSumRow(sumTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
         addSumRow(sumTable, "TCS @ " + tcsRate + "%", "\u20B9" + String.format("%.2f", tcs), normal9);
@@ -1297,7 +1345,9 @@ public class GstInvoiceService {
         doc.add(new Paragraph(" "));
         doc.add(new Paragraph("Declaration (Rule 46 CGST Rules, 2017): We declare that this invoice shows the actual price of the goods/services described and that all particulars are true and correct.", small8));
         doc.add(new Paragraph("- This is a computer-generated " + (inv.getInvoiceCopyType() != null ? inv.getInvoiceCopyType().toLowerCase() : "original") + " invoice for " + (inv.getSupplyType() != null && inv.getSupplyType().equals("GOODS") ? "goods" : "services") + " as per Rule 46.", small8));
-        doc.add(new Paragraph("- " + (Boolean.TRUE.equals(inv.getIsInterState()) ? "IGST charged (inter-state supply)." : "CGST + SGST charged (intra-state supply)."), small8));
+        doc.add(new Paragraph("- " + (interState ? "IGST charged (inter-state supply)."
+                : utgst ? "CGST + UTGST charged (intra-state supply from a Union Territory)."
+                        : "CGST + SGST charged (intra-state supply)."), small8));
         doc.add(new Paragraph("- HSN/SAC digits: " + (inv.getHsnDigits() != null ? inv.getHsnDigits() : 4) + ".", small8));
         if (inv.getSupplierSignature() != null) {
             doc.add(new Paragraph("- Digitally authenticated (SHA-256) and authorized by " + safeStr(inv.getSignedBy())

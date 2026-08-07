@@ -2,6 +2,7 @@ package com.cauverystore.service;
 
 import com.cauverystore.entities.*;
 import com.cauverystore.repository.*;
+import com.cauverystore.util.GstComplianceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -149,6 +150,10 @@ public class CommissionInvoiceService {
         inv.setTaxableAmount(taxable);
         inv.setGstRate(gstRate);
         inv.setIsInterState(interState);
+        // A marketplace registered in a Union Territory without a legislature charges UTGST
+        // instead of SGST on intra-UT commission invoices. The amount stays in the state-tax
+        // bucket (GSTN reports both under "State/UT Tax"); the flag only drives the label.
+        inv.setUtgstApplied(!interState && GstComplianceUtil.isUtgstState(marketplaceState));
 
         applyTaxSplit(inv, taxable, gstRate, interState);
 

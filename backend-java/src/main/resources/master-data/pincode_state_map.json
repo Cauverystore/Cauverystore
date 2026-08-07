@@ -1,0 +1,212 @@
+[
+  {
+    "stateCode": "01",
+    "stateName": "JAMMU AND KASHMIR",
+    "pincodeRange": "180 - 194"
+  },
+  {
+    "stateCode": "02",
+    "stateName": "HIMACHAL PRADESH",
+    "pincodeRange": "171 - 177"
+  },
+  {
+    "stateCode": "03",
+    "stateName": "PUNJAB",
+    "pincodeRange": "140 - 160"
+  },
+  {
+    "stateCode": "04",
+    "stateName": "CHANDIGARH",
+    "pincodeRange": "160 - 160"
+  },
+  {
+    "stateCode": "05",
+    "stateName": "UTTARAKHAND",
+    "pincodeRange": "244 - 263"
+  },
+  {
+    "stateCode": "06",
+    "stateName": "HARYANA",
+    "pincodeRange": "121 - 136"
+  },
+  {
+    "stateCode": "07",
+    "stateName": "DELHI",
+    "pincodeRange": "110 - 110"
+  },
+  {
+    "stateCode": "08",
+    "stateName": "RAJASTHAN",
+    "pincodeRange": "301 - 345"
+  },
+  {
+    "stateCode": "09",
+    "stateName": "UTTAR PRADESH",
+    "pincodeRange": "201 - 285"
+  },
+  {
+    "stateCode": "10",
+    "stateName": "BIHAR",
+    "pincodeRange": "800 - 855"
+  },
+  {
+    "stateCode": "11",
+    "stateName": "SIKKIM",
+    "pincodeRange": "737 - 737"
+  },
+  {
+    "stateCode": "12",
+    "stateName": "ARUNACHAL PRADESH",
+    "pincodeRange": "790 - 792"
+  },
+  {
+    "stateCode": "13",
+    "stateName": "NAGALAND",
+    "pincodeRange": "797 - 798"
+  },
+  {
+    "stateCode": "14",
+    "stateName": "MANIPUR",
+    "pincodeRange": "795 - 795"
+  },
+  {
+    "stateCode": "15",
+    "stateName": "MIZORAM",
+    "pincodeRange": "796 - 796"
+  },
+  {
+    "stateCode": "16",
+    "stateName": "TRIPURA",
+    "pincodeRange": "799 - 799"
+  },
+  {
+    "stateCode": "17",
+    "stateName": "MEGHALAYA",
+    "pincodeRange": "793 - 794"
+  },
+  {
+    "stateCode": "18",
+    "stateName": "ASSAM",
+    "pincodeRange": "781 - 788"
+  },
+  {
+    "stateCode": "19",
+    "stateName": "WEST BENGAL",
+    "pincodeRange": "700 - 743"
+  },
+  {
+    "stateCode": "20",
+    "stateName": "JHARKHAND",
+    "pincodeRange": "813 - 835"
+  },
+  {
+    "stateCode": "21",
+    "stateName": "ODISHA",
+    "pincodeRange": "751 - 770"
+  },
+  {
+    "stateCode": "22",
+    "stateName": "CHHATTISGARH",
+    "pincodeRange": "490 - 497"
+  },
+  {
+    "stateCode": "23",
+    "stateName": "MADHYA PRADESH",
+    "pincodeRange": "450 - 488"
+  },
+  {
+    "stateCode": "24",
+    "stateName": "GUJARAT",
+    "pincodeRange": "360 - 396"
+  },
+  {
+    "stateCode": "25",
+    "stateName": "DAMAN AND DIU",
+    "pincodeRange": "362 - 362"
+  },
+  {
+    "stateCode": "25",
+    "stateName": "DAMAN AND DIU",
+    "pincodeRange": "396 - 396"
+  },
+  {
+    "stateCode": "26",
+    "stateName": "DADRA AND NAGAR HAVELI",
+    "pincodeRange": "396 - 396"
+  },
+  {
+    "stateCode": "26",
+    "stateName": "DADRA AND NAGAR HAVELI",
+    "pincodeRange": "362 - 362"
+  },
+  {
+    "stateCode": "27",
+    "stateName": "MAHARASHTRA",
+    "pincodeRange": "400 - 445"
+  },
+  {
+    "stateCode": "29",
+    "stateName": "KARNATAKA",
+    "pincodeRange": "560 - 591"
+  },
+  {
+    "stateCode": "30",
+    "stateName": "GOA",
+    "pincodeRange": "403 - 403"
+  },
+  {
+    "stateCode": "31",
+    "stateName": "LAKSHADWEEP",
+    "pincodeRange": "682 - 682"
+  },
+  {
+    "stateCode": "32",
+    "stateName": "KERALA",
+    "pincodeRange": "670 - 695"
+  },
+  {
+    "stateCode": "33",
+    "stateName": "TAMIL NADU",
+    "pincodeRange": "600 - 643"
+  },
+  {
+    "stateCode": "34",
+    "stateName": "PUDUCHERRY",
+    "pincodeRange": "533 - 533"
+  },
+  {
+    "stateCode": "34",
+    "stateName": "PUDUCHERRY",
+    "pincodeRange": "605 - 605"
+  },
+  {
+    "stateCode": "34",
+    "stateName": "PUDUCHERRY",
+    "pincodeRange": "607 - 607"
+  },
+  {
+    "stateCode": "34",
+    "stateName": "PUDUCHERRY",
+    "pincodeRange": "609 - 609"
+  },
+  {
+    "stateCode": "35",
+    "stateName": "ANDAMAN AND NICOBAR",
+    "pincodeRange": "744 - 744"
+  },
+  {
+    "stateCode": "36",
+    "stateName": "TELANGANA",
+    "pincodeRange": "500 - 509"
+  },
+  {
+    "stateCode": "37",
+    "stateName": "ANDHRA PRADESH",
+    "pincodeRange": "500 - 535"
+  },
+  {
+    "stateCode": "38",
+    "stateName": "LADAKH",
+    "pincodeRange": "194 - 194"
+  }
+]

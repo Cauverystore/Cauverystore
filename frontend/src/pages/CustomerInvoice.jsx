@@ -272,7 +272,7 @@ const CustomerInvoice = () => {
 
             <div className="giv-identifiers">
               <div className="giv-id-item"><div className="giv-id-label">Place of Supply</div><div className="giv-id-value">{invoice.placeOfSupply}</div></div>
-              <div className="giv-id-item"><div className="giv-id-label">Supply Type</div><div className="giv-id-value">{invoice.isInterState ? "Inter-State (IGST)" : "Intra-State (CGST+SGST)"}</div></div>
+              <div className="giv-id-item"><div className="giv-id-label">Supply Type</div><div className="giv-id-value">{invoice.isInterState ? "Inter-State (IGST)" : invoice.utgstApplied ? "Intra-State (CGST+UTGST)" : "Intra-State (CGST+SGST)"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">Invoice Type</div><div className="giv-id-value">{invoice.invoiceType || "B2C"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">HSN Digits</div><div className="giv-id-value">{invoice.hsnDigits || 4}-digit HSN</div></div>
               <div className="giv-id-item"><div className="giv-id-label">IRN</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.irn || "Not generated"}</div></div>
@@ -289,7 +289,7 @@ const CustomerInvoice = () => {
                     <th style={{ textAlign: "right" }}>Qty</th>
                     <th style={{ textAlign: "right" }}>Unit Price</th>
                     <th style={{ textAlign: "right" }}>Taxable Value</th>
-                    {!invoice.isInterState && <><th style={{ textAlign: "right" }}>CGST</th><th style={{ textAlign: "right" }}>SGST</th></>}
+                    {!invoice.isInterState && <><th style={{ textAlign: "right" }}>CGST</th><th style={{ textAlign: "right" }}>{invoice.utgstApplied ? "UTGST" : "SGST"}</th></>}
                     {invoice.isInterState && <th style={{ textAlign: "right" }}>IGST</th>}
                     <th style={{ textAlign: "right" }}>Total</th>
                   </tr>
@@ -338,7 +338,7 @@ const CustomerInvoice = () => {
                       <div className="giv-tax-value" style={{ color: "#2563eb" }}>&#8377;{(invoice.cgstAmount || 0).toFixed(2)}</div>
                     </div>
                     <div className="giv-tax-card">
-                      <div className="giv-tax-label">SGST @ {(invoice.sgstRate || 0)}%</div>
+                      <div className="giv-tax-label">{invoice.utgstApplied ? "UTGST" : "SGST"} @ {(invoice.sgstRate || 0)}%</div>
                       <div className="giv-tax-value" style={{ color: "#7c3aed" }}>&#8377;{(invoice.sgstAmount || 0).toFixed(2)}</div>
                     </div>
                   </>
@@ -365,7 +365,7 @@ const CustomerInvoice = () => {
                   {(invoice.discountAmount > 0) && <tr><td>Discount</td><td style={{ color: "#16a34a" }}>-&#8377;{(invoice.discountAmount || 0).toFixed(2)}</td></tr>}
                   {(invoice.deliveryCharge > 0) && <tr><td>Delivery Charge</td><td>&#8377;{(invoice.deliveryCharge || 0).toFixed(2)}</td></tr>}
                   <tr><td>Taxable Amount</td><td>&#8377;{(invoice.taxableAmount || 0).toFixed(2)}</td></tr>
-                  {!invoice.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(invoice.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>SGST</td><td style={{ color: "#7c3aed" }}>&#8377;{(invoice.sgstAmount || 0).toFixed(2)}</td></tr></>}
+                  {!invoice.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(invoice.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>{invoice.utgstApplied ? "UTGST" : "SGST"}</td><td style={{ color: "#7c3aed" }}>&#8377;{(invoice.sgstAmount || 0).toFixed(2)}</td></tr></>}
                   {invoice.isInterState && <tr><td>IGST</td><td style={{ color: "#d97706" }}>&#8377;{(invoice.igstAmount || 0).toFixed(2)}</td></tr>}
                   <tr><td>Total Tax</td><td>&#8377;{(invoice.totalTax || 0).toFixed(2)}</td></tr>
                   <tr><td>TCS @ {(invoice.tcsRate || 1)}%</td><td style={{ color: "#dc2626" }}>&#8377;{(invoice.tcsAmount || 0).toFixed(2)}</td></tr>
@@ -404,7 +404,7 @@ const CustomerInvoice = () => {
               <strong>Declaration (Rule 46 CGST Rules, 2017):</strong> We declare that this invoice shows the actual price of the goods/services described and that all particulars are true and correct.
               <ul style={{ margin: "0.35rem 0 0", paddingLeft: "1.25rem", fontSize: "0.78rem" }}>
                 <li>This is a computer-generated {invoice.invoiceCopyType === "ORIGINAL" ? "Original" : invoice.invoiceCopyType === "DUPLICATE" ? "Duplicate" : "Triplicate"} invoice for {invoice.supplyType === "GOODS" ? "goods" : "services"} as per Rule 46.</li>
-                <li>{invoice.isInterState ? "IGST charged (inter-state supply)." : "CGST + SGST charged (intra-state supply)."}</li>
+                <li>{invoice.isInterState ? "IGST charged (inter-state supply)." : invoice.utgstApplied ? "CGST + UTGST charged (intra-state supply from a Union Territory)." : "CGST + SGST charged (intra-state supply)."}</li>
                 <li>HSN/SAC digits: {invoice.hsnDigits || 4}.</li>
                 {invoice.supplierSignature ? (
                   <li>Authenticated (SHA-256) and authorized by {invoice.signedBy || "Seller"}{invoice.signatureDate ? " on " + invoice.signatureDate : ""}.</li>

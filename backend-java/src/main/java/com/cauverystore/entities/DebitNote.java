@@ -56,6 +56,12 @@ public class DebitNote {
     private Boolean isInterState = false;
     private String invoiceType = "B2C";
 
+    /**
+     * Mirrors the source invoice's UTGST flag: a supply from a Union Territory without a
+     * legislature carries UTGST instead of SGST, and the note must print the same name.
+     */
+    private Boolean utgstApplied = false;
+
     private String noteType = "DEBIT";
     @Column(columnDefinition = "TEXT")
     private String reason;
@@ -140,6 +146,8 @@ public class DebitNote {
     public void setPlaceOfSupply(String placeOfSupply) { this.placeOfSupply = placeOfSupply; }
     public Boolean getIsInterState() { return isInterState; }
     public void setIsInterState(Boolean isInterState) { this.isInterState = isInterState; }
+    public Boolean getUtgstApplied() { return utgstApplied; }
+    public void setUtgstApplied(Boolean utgstApplied) { this.utgstApplied = utgstApplied; }
     public String getInvoiceType() { return invoiceType; }
     public void setInvoiceType(String invoiceType) { this.invoiceType = invoiceType; }
     public String getNoteType() { return noteType; }
