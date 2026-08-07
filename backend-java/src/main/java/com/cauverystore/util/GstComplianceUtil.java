@@ -19,6 +19,25 @@ public class GstComplianceUtil {
     /** Maximum invoice number length permitted under Rule 46 (16 characters). */
     public static final int MAX_INVOICE_NUMBER_LENGTH = 16;
 
+    /**
+     * 21-character MCA corporate identity number.
+     * Shape: L/U + 5-digit industry code + 2-letter state + 4-digit year + 3-letter ownership
+     * + 6-digit registration number.
+     */
+    private static final Pattern CIN_PATTERN =
+            Pattern.compile("^[LU]\\d{5}[A-Z]{2}\\d{4}[A-Z]{3}\\d{6}$");
+
+    public static boolean isValidCin(String cin) {
+        return cin != null && CIN_PATTERN.matcher(cin.trim().toUpperCase()).matches();
+    }
+
+    /** IFSC: 4-letter bank code, a reserved 0, then a 6-character branch code. */
+    private static final Pattern IFSC_PATTERN = Pattern.compile("^[A-Z]{4}0[A-Z0-9]{6}$");
+
+    public static boolean isValidIfsc(String ifsc) {
+        return ifsc != null && IFSC_PATTERN.matcher(ifsc.trim().toUpperCase()).matches();
+    }
+
     public static void validateGstin(String gstin) {
         if (gstin == null || gstin.trim().isEmpty()) {
             throw new IllegalArgumentException("GSTIN is required");

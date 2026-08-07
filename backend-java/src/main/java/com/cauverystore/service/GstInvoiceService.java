@@ -892,7 +892,15 @@ public class GstInvoiceService {
     }
 
     @Transactional
+    /**
+     * Saves the marketplace's own registration.
+     *
+     * Validated on the way in rather than trusted. A GSTIN that passes the shape check but
+     * fails its checksum is a typo, and a typo here is not discovered until a return is
+     * rejected - by which time the deadline has usually passed.
+     */
     public Map<String, Object> saveConfiguration(GstConfiguration config) {
+        validateConfiguration(config);
         if (config.getTcsRate() == null) config.setTcsRate(1.0);
         if (config.getInvoicePrefix() == null) config.setInvoicePrefix("CS");
         config.setIsActive(true);
@@ -901,6 +909,51 @@ public class GstInvoiceService {
                 "GSTIN " + saved.getGstin() + " configured", null);
         return Map.of("configuration", saved, "message", "GST configuration saved");
     }
+
+    private void validateConfiguration(GstConfiguration config) {
+        if (isBlank(config.getGstin())) {
+            throw new IllegalArgumentException("The marketplace's GSTIN is required.");
+        }
+        GstComplianceUtil.validateGstin(config.getGstin());
+        if (!GstComplianceUtil.hasValidCheckDigit(config.getGstin())) {
+            throw new IllegalArgumentException("'" + config.getGstin() + "' has the right shape but "
+                    + "fails its checksum, so it is not a real GSTIN. Check it against the "
+                    + "registration certificate.");
+        }
+        config.setGstin(config.getGstin().trim().toUpperCase());
+
+        if (!isBlank(config.getTcsGstin())) {
+            GstComplianceUtil.validateGstin(config.getTcsGstin());
+            if (!GstComplianceUtil.hasValidCheckDigit(config.getTcsGstin())) {
+                throw new IllegalArgumentException("The TCS GSTIN '" + config.getTcsGstin()
+                        + "' fails its checksum, so it is not a real registration.");
+            }
+            config.setTcsGstin(config.getTcsGstin().trim().toUpperCase());
+            // Almost always means the regular GSTIN was pasted into the TCS field. Left alone
+            // it would file every GSTR-8 under the wrong registration.
+            if (config.getTcsGstin().equalsIgnoreCase(config.getGstin())) {
+                throw new IllegalArgumentException("The TCS registration cannot be the same as the "
+                        + "regular GSTIN. Section 52 registration is a separate GSTIN, and GSTR-8 "
+                        + "filed under the regular one is rejected.");
+            }
+        }
+
+        if (!isBlank(config.getCin()) && !GstComplianceUtil.isValidCin(config.getCin())) {
+            throw new IllegalArgumentException("'" + config.getCin() + "' is not a valid CIN. It is "
+                    + "21 characters: L or U, 5-digit industry code, 2-letter state, 4-digit year, "
+                    + "3-letter ownership code, then a 6-digit registration number.");
+        }
+        if (!isBlank(config.getNodalIfsc()) && !GstComplianceUtil.isValidIfsc(config.getNodalIfsc())) {
+            throw new IllegalArgumentException("'" + config.getNodalIfsc() + "' is not a valid IFSC. "
+                    + "It is 11 characters: 4-letter bank code, a zero, then the branch code.");
+        }
+        if (config.getCommissionGstRate() != null
+                && (config.getCommissionGstRate() < 0 || config.getCommissionGstRate() > 100)) {
+            throw new IllegalArgumentException("The commission GST rate must be between 0 and 100.");
+        }
+    }
+
+    private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
 
     public Map<String, Object> getDashboardStats() {
         long total = invoiceRepo.count();

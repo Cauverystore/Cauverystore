@@ -29,6 +29,7 @@ const allLinks = [
   { to: "/admin/inventory", label: "Inventory", icon: ClipboardList, module: "inventory" },
   { to: "/admin/coupons", label: "Coupons", icon: Ticket, module: "coupons" },
   { to: "/admin/gst-rates", label: "GST Rates", icon: Percent, module: "gstRates" },
+  { to: "/admin/gst-compliance", label: "GST Compliance", icon: ShieldCheck, module: "gstRates" },
   { to: "/admin/shipping", label: "Shipping", icon: Ship, module: "shipping" },
   { to: "/admin/reviews", label: "Reviews", icon: Star, module: "reviews" },
   { to: "/admin/qna", label: "Q&A", icon: HelpCircle, module: "qna" },
