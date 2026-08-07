@@ -11,6 +11,9 @@ import java.time.LocalDateTime;
 public class TcsRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public static final String ENTRY_COLLECTION = "COLLECTION";
+    public static final String ENTRY_REVERSAL = "REVERSAL";
+
     private Long id;
 
     private String sellerGstin;
@@ -40,6 +43,21 @@ public class TcsRecord {
     private LocalDateTime filedAt;
 
     @Column(columnDefinition = "TEXT")
+    /**
+     * COLLECTION or REVERSAL.
+     *
+     * Section 52 charges TCS on NET monthly supplies - gross less returns - so a return has to
+     * reduce the month's collection. Without a reversing row the ledger keeps reporting money
+     * that was refunded, and GSTR-8 is filed from this table.
+     */
+    private String entryType = ENTRY_COLLECTION;
+
+    /** The credit note that caused a reversal. Null on a collection. */
+    private Long creditNoteId;
+
+    /** The collection row a reversal cancels, so every reversal is traceable to its origin. */
+    private Long reversesId;
+
     private String remarks;
 
     @Column(name = "created_at", updatable = false)
@@ -91,6 +109,17 @@ public class TcsRecord {
     public void setPeriod(String period) { this.period = period; }
     public LocalDateTime getFiledAt() { return filedAt; }
     public void setFiledAt(LocalDateTime filedAt) { this.filedAt = filedAt; }
+    public String getEntryType() { return entryType; }
+    public void setEntryType(String entryType) { this.entryType = entryType; }
+    public Long getCreditNoteId() { return creditNoteId; }
+    public void setCreditNoteId(Long creditNoteId) { this.creditNoteId = creditNoteId; }
+    public Long getReversesId() { return reversesId; }
+    public void setReversesId(Long reversesId) { this.reversesId = reversesId; }
+
+    /** True when this row cancels an earlier collection rather than recording one. */
+    @jakarta.persistence.Transient
+    public boolean isReversal() { return ENTRY_REVERSAL.equals(entryType); }
+
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }
     public LocalDateTime getCreatedAt() { return createdAt; }

@@ -30,6 +30,9 @@ import java.util.*;
 @Service
 public class CreditNoteService {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(CreditNoteService.class);
+
     private final CreditNoteRepository creditNoteRepo;
     private final CreditNoteItemRepository creditNoteItemRepo;
     private final GstInvoiceRepository invoiceRepo;
@@ -63,12 +66,16 @@ public class CreditNoteService {
         STATE_CODES.put("19", "West Bengal");
     }
 
+    private final TcsRecordRepository tcsRepo;
+
     public CreditNoteService(CreditNoteRepository creditNoteRepo, CreditNoteItemRepository creditNoteItemRepo,
                              GstInvoiceRepository invoiceRepo, GstInvoiceItemRepository invoiceItemRepo,
                              OrderRepository orderRepo, ReturnRequestRepository returnRepo,
                              SellerRegistrationRepository sellerRegRepo, GstConfigurationRepository configRepo,
-                             UserRepository userRepo, AuditService auditService) {
+                             UserRepository userRepo, AuditService auditService,
+                             TcsRecordRepository tcsRepo) {
         this.creditNoteRepo = creditNoteRepo;
+        this.tcsRepo = tcsRepo;
         this.creditNoteItemRepo = creditNoteItemRepo;
         this.invoiceRepo = invoiceRepo;
         this.invoiceItemRepo = invoiceItemRepo;
@@ -148,6 +155,7 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(null, actorEmail != null ? actorEmail : "system", "CREDIT_NOTE_GENERATED",
                 "CreditNote", saved.getId(),
@@ -155,6 +163,72 @@ public class CreditNoteService {
                         + (inv != null ? " against invoice " + inv.getInvoiceNumber() : ""), null);
 
         return Map.of("creditNote", saved, "message", "Credit note generated successfully");
+    }
+
+    /**
+     * Writes the TCS reversal for a credit note.
+     *
+     * Section 52 charges TCS on NET monthly supplies, so a return has to reduce the month it
+     * falls in. Recording the credit note's TCS on the note alone - which is all that used to
+     * happen - leaves tcs_records reporting money that has been refunded, and GSTR-8 is filed
+     * from that table.
+     *
+     * The reversal is a negative row naming the collection it cancels, rather than an edit to
+     * that collection: a filed period is a statement about a date and is never recomputed, so a
+     * return arriving after filing has to land in the current period instead.
+     *
+     * Never allowed to fail the credit note. A missing reversal is a reconcilable gap; a credit
+     * note that would not save leaves the customer refunded with no document behind it.
+     */
+    private void writeTcsReversal(CreditNote cn, Long orderId) {
+        try {
+            if (cn.getTcsAmount() == null || cn.getTcsAmount() <= 0) return;
+            if (tcsRepo.findByCreditNoteId(cn.getId()).isPresent()) return;   // already reversed
+
+            TcsRecord collection = tcsRepo
+                    .findByOrderIdAndEntryType(orderId, TcsRecord.ENTRY_COLLECTION)
+                    .orElse(null);
+            if (collection == null) {
+                log.warn("Credit note {} carries TCS of {} but no collection row exists for order "
+                                + "{} - nothing to reverse.",
+                        cn.getCreditNoteNumber(), cn.getTcsAmount(), orderId);
+                return;
+            }
+
+            TcsRecord reversal = new TcsRecord();
+            reversal.setEntryType(TcsRecord.ENTRY_REVERSAL);
+            reversal.setReversesId(collection.getId());
+            reversal.setCreditNoteId(cn.getId());
+            reversal.setOrderId(orderId);
+            reversal.setInvoiceNumber(cn.getOriginalInvoiceNumber());
+            reversal.setSellerId(collection.getSellerId());
+            reversal.setSellerGstin(collection.getSellerGstin());
+            reversal.setCustomerId(collection.getCustomerId());
+            reversal.setCustomerEmail(collection.getCustomerEmail());
+            reversal.setCustomerGstin(collection.getCustomerGstin());
+            reversal.setTcsRate(collection.getTcsRate());
+            // Negative, so summing the period nets to what was actually collected.
+            reversal.setTcsAmount(-round(cn.getTcsAmount()));
+            reversal.setTaxableAmount(-round(nz(cn.getTaxableAmount())));
+            // Dated today, not on the original supply: a period already filed is never restated.
+            reversal.setTransactionDate(LocalDate.now());
+            reversal.setPeriod(currentTcsPeriod());
+            reversal.setFilingStatus("PENDING");
+            reversal.setRemarks("Reversal for credit note " + cn.getCreditNoteNumber()
+                    + " against invoice " + cn.getOriginalInvoiceNumber());
+            tcsRepo.save(reversal);
+
+            log.info("TCS reversal of {} written for credit note {} (order {}).",
+                    reversal.getTcsAmount(), cn.getCreditNoteNumber(), orderId);
+        } catch (Exception e) {
+            log.error("Could not write the TCS reversal for credit note {}: {}",
+                    cn.getCreditNoteNumber(), e.getMessage(), e);
+        }
+    }
+
+    /** MMYYYY, the period GSTR-8 is filed for. */
+    private String currentTcsPeriod() {
+        return LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MMyyyy"));
     }
 
     /** Partial tax reversal for an approved/refunded return request. */
@@ -222,6 +296,7 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(null, actorEmail != null ? actorEmail : "system", "CREDIT_NOTE_GENERATED",
                 "CreditNote", saved.getId(),
@@ -287,6 +362,7 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(userId, userId != null ? "seller:" + userId : "system", "CREDIT_NOTE_GENERATED",
                 "CreditNote", saved.getId(),

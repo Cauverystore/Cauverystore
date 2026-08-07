@@ -131,12 +131,22 @@ public class ComplianceService {
     public Map<String, Object> getGstr8Data(Long sellerId, String period) {
         String sellerGstin = resolveGstin(sellerId);
         List<TcsRecord> records = tcsRepo.findBySellerGstinAndPeriod(sellerGstin, period);
-        double taxable = 0, tcsAmount = 0;
-        int count = 0;
+        // TCS is charged on NET monthly supplies, so reversals carry negative amounts and
+        // summing the period is what produces the figure to file. Gross and reversed are
+        // reported alongside the net so the return can be checked against the ledger rather
+        // than taken on trust.
+        double taxable = 0, tcsAmount = 0, grossTcs = 0, reversedTcs = 0;
+        int count = 0, reversalCount = 0;
         Map<String, Double> byCustomer = new LinkedHashMap<>();
         for (TcsRecord t : records) {
             taxable += nz(t.getTaxableAmount());
             tcsAmount += nz(t.getTcsAmount());
+            if (t.isReversal()) {
+                reversedTcs += nz(t.getTcsAmount());
+                reversalCount++;
+            } else {
+                grossTcs += nz(t.getTcsAmount());
+            }
             count++;
             String key = t.getCustomerGstin() != null && !t.getCustomerGstin().isBlank()
                     ? t.getCustomerGstin() : "URP";
@@ -144,11 +154,27 @@ public class ComplianceService {
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("gstin", sellerGstin);
+        // GSTR-8 is filed under the marketplace's s.52 registration, which is a different
+        // GSTIN from its regular one. Reported rather than assumed, and flagged when unset:
+        // filing under the wrong registration is rejected at the deadline.
+        java.util.Optional<String> tcsGstin = configRepo.findAll().stream()
+                .findFirst().flatMap(GstConfiguration::resolveTcsGstin);
+        result.put("filingGstin", tcsGstin.orElse(null));
+        if (tcsGstin.isEmpty()) {
+            result.put("filingBlocked", true);
+            result.put("filingBlockedReason",
+                    "No TCS registration (s.52) is configured for the marketplace, or it is the "
+                            + "same as the regular GSTIN. GSTR-8 filed under the regular "
+                            + "registration is rejected. Set gstConfiguration.tcsGstin before filing.");
+        }
         result.put("period", period);
         result.put("totalSuppliersAndBuyers", byCustomer.size());
         result.put("totalTaxableValue", round(taxable));
+        result.put("grossTcsCollected", round(grossTcs));
+        result.put("tcsReversed", round(reversedTcs));
         result.put("totalTcsCollected", round(tcsAmount));
         result.put("recordCount", count);
+        result.put("reversalCount", reversalCount);
         result.put("tcsRate", "1%");
         result.put("customerWiseTcs", byCustomer.entrySet().stream()
                 .map(e -> Map.of("customerGstin", e.getKey(), "tcsAmount", round(e.getValue())))

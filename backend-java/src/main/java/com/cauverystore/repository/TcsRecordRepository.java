@@ -12,7 +12,17 @@ import java.util.Optional;
 
 @Repository
 public interface TcsRecordRepository extends JpaRepository<TcsRecord, Long> {
-    Optional<TcsRecord> findByOrderId(Long orderId);
+    /**
+     * All TCS rows for an order - a collection, plus a reversal for each credit note against it.
+     * Returns a list rather than an Optional because a returned order legitimately has more than
+     * one row, and the single-result form would throw once the first return happened.
+     */
+    List<TcsRecord> findByOrderId(Long orderId);
+
+    Optional<TcsRecord> findByOrderIdAndEntryType(Long orderId, String entryType);
+
+    /** Guards against a second reversal for the same credit note if the flow is retried. */
+    Optional<TcsRecord> findByCreditNoteId(Long creditNoteId);
     Page<TcsRecord> findBySellerIdOrderByTransactionDateDesc(Long sellerId, Pageable pageable);
     List<TcsRecord> findBySellerIdOrderByTransactionDateDesc(Long sellerId);
     List<TcsRecord> findBySellerIdAndPeriod(Long sellerId, String period);
