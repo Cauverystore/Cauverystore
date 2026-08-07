@@ -19,7 +19,7 @@ import api from "../../api/axios";
  * product classified by guesswork. So the tariff can also be walked from the top: pick the
  * trade, then the heading.
  */
-const HsnPicker = ({ value, onChange, categoryId }) => {
+const HsnPicker = ({ value, onChange, categoryId, productName, unitPrice, prePackaged }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
@@ -32,7 +32,28 @@ const HsnPicker = ({ value, onChange, categoryId }) => {
   const [headings, setHeadings] = useState([]);
   const [activeChapter, setActiveChapter] = useState(null);
   const [browsing, setBrowsing] = useState(false);
+  const [mapped, setMapped] = useState(null);
   const boxRef = useRef(null);
+
+  // What the seller has already typed as the product's name is the best description of it
+  // anyone is going to get, so it is worth offering against before asking them to describe it
+  // a second time in the tariff's vocabulary.
+  useEffect(() => {
+    let cancelled = false;
+    if (value || !productName || productName.trim().length < 3) { setMapped(null); return; }
+    const t = setTimeout(() => {
+      api.get("/api/hsn/map", {
+        params: {
+          name: productName.trim(),
+          ...(unitPrice ? { unitPrice } : {}),
+          ...(prePackaged === true || prePackaged === false ? { prePackaged } : {}),
+        },
+      })
+        .then((r) => { if (!cancelled) setMapped(r.data || null); })
+        .catch(() => { if (!cancelled) setMapped(null); });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [productName, unitPrice, prePackaged, value]);
 
   // Show what the currently saved code actually means, so an existing product's classification
   // can be checked at a glance rather than taken on trust.
@@ -139,6 +160,48 @@ const HsnPicker = ({ value, onChange, categoryId }) => {
                   style={{ ...linkBtn }}>
             Change
           </button>
+        </div>
+      )}
+
+      {!selected && mapped?.candidates?.length > 0 && (
+        <div style={{
+          border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: "0.6rem", overflow: "hidden",
+        }}>
+          <div style={hdr}>
+            Codes published for “{mapped.query}”
+            {mapped.translations?.length > 0 && (
+              <span style={{ display: "block", fontWeight: 400, marginTop: 2 }}>
+                Matched using the tariff’s word{" "}
+                {mapped.translations.map((t) => `“${t.officialTerm}” for “${t.term}”`).join(", ")}.
+              </span>
+            )}
+          </div>
+          {mapped.candidates.slice(0, 5).map((c) => (
+            <button key={c.hsnCode} type="button" onClick={() => choose(c)} style={rowBtn}>
+              <span style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem" }}>
+                <strong style={{ fontSize: "0.85rem" }}>{c.hsnCode}</strong>
+                <span style={{
+                  fontSize: "0.78rem", whiteSpace: "nowrap",
+                  color: c.taxable ? "#166534" : "#b45309",
+                  fontWeight: c.taxable ? 600 : 400,
+                }}>
+                  {c.taxable ? `${c.gstRate}% GST` : "rate not settled"}
+                </span>
+              </span>
+              <span style={{ display: "block", color: "#4b5563", fontSize: "0.78rem" }}>
+                {c.description}
+              </span>
+              {c.rateNote && (
+                <span style={{ display: "block", color: "#6b7280", fontSize: "0.72rem", marginTop: 2 }}>
+                  {c.rateNote}
+                </span>
+              )}
+            </button>
+          ))}
+          <div style={{ ...row, color: "#6b7280", fontSize: "0.72rem", background: "#f9fafb" }}>
+            Pick the one that describes your stock — the tariff separates goods by material,
+            weave and weight, and only you can tell which yours is.
+          </div>
         </div>
       )}
 

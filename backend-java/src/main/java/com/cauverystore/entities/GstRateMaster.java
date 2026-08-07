@@ -81,6 +81,23 @@ public class GstRateMaster {
     @Column(name = "threshold_unit", length = 20)
     private String thresholdUnit;
 
+    /**
+     * For a two-digit row: whether it prices the whole chapter, or only the goods it names.
+     *
+     * Most chapter-level entries name specific goods - chapter 71's is "rupee notes or coins
+     * when sold to the Reserve Bank" at nil, chapter 39's is "paper sacks and bio-degradable
+     * bags" at 5%. The resolver's walk ends at the chapter, so treating those as the chapter's
+     * default charged nil on jewellery and 5% on plastics that owe 18%. Only a handful of
+     * entries genuinely cover their chapter: 60 is "knitted or crocheted fabrics [all goods]",
+     * and 61 and 62 are apparel banded by sale value.
+     *
+     * Null and false both mean "only the goods it names", so a row that predates this field, or
+     * one an admin adds without thinking about it, cannot silently become a chapter-wide
+     * default. Being wrong in that direction blocks a sale; the other direction misprices one.
+     */
+    @Column(name = "whole_chapter")
+    private Boolean wholeChapter;
+
     /** The notification's own wording, kept verbatim so a reviewer can tell rows apart. */
     @Column(name = "condition_text", columnDefinition = "TEXT")
     private String conditionText;
@@ -196,6 +213,12 @@ public class GstRateMaster {
 
     public String getThresholdUnit() { return thresholdUnit; }
     public void setThresholdUnit(String thresholdUnit) { this.thresholdUnit = thresholdUnit; }
+
+    public Boolean getWholeChapter() { return wholeChapter; }
+    public void setWholeChapter(Boolean wholeChapter) { this.wholeChapter = wholeChapter; }
+
+    /** True only when this row may stand as its whole chapter's rate. Null counts as no. */
+    public boolean coversWholeChapter() { return Boolean.TRUE.equals(wholeChapter); }
 
     public String getConditionText() { return conditionText; }
     public void setConditionText(String conditionText) { this.conditionText = conditionText; }

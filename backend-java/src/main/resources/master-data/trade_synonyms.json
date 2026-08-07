@@ -1,0 +1,62 @@
+[
+  {
+    "term": "veshti",
+    "officialTerm": "dhoti",
+    "note": "Tamil name for the garment the tariff lists as a dhoti. Same article; the tariff uses the northern name.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "vetti",
+    "officialTerm": "dhoti",
+    "note": "Alternative transliteration of veshti.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "mundu",
+    "officialTerm": "dhoti",
+    "note": "Malayalam name for the same garment.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "angavastram",
+    "officialTerm": "shawl",
+    "note": "Shoulder cloth. The tariff's nearest named article is a shawl; check the heading's wording before accepting it for a particular piece.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "thundu",
+    "officialTerm": "towel",
+    "note": "Tamil for a small towel.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "pattu",
+    "officialTerm": "silk",
+    "note": "Tamil for silk - a pattu saree is a silk saree, which the tariff classifies under silk fabrics rather than cotton.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "sari",
+    "officialTerm": "saree",
+    "note": "Spelling variant. The master spells it saree throughout.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "chudidhar",
+    "officialTerm": "salwar",
+    "note": "The tariff names salwar among other garments; churidar is the same class of article.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "churidar",
+    "officialTerm": "salwar",
+    "note": "Alternative transliteration of chudidhar.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  },
+  {
+    "term": "kambali",
+    "officialTerm": "blanket",
+    "note": "Tamil for a blanket.",
+    "addedBy": "Cauvery Store initial list - needs review by the store's accountant"
+  }
+]

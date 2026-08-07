@@ -269,6 +269,9 @@ const AddProduct = () => {
             value={form.hsnCode}
             onChange={(code) => set("hsnCode", code)}
             categoryId={form.category || null}
+            productName={form.name}
+            unitPrice={form.price ? Number(form.price) : null}
+            prePackaged={form.prePackagedAndLabelled}
           />
         </div>
         {/*

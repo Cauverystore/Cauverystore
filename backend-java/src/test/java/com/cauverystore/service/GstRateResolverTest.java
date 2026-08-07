@@ -187,6 +187,9 @@ class GstRateResolverTest {
         r.setConditionType(type);
         r.setThresholdAmount(threshold);
         r.setThresholdUnit("piece");
+        // Chapters 61 and 62 are apparel outright, banded by sale value, so their chapter-level
+        // rows do price everything beneath them - which the seed records and this mirrors.
+        if (hsn.length() == 2) r.setWholeChapter(true);
         return r;
     }
 
@@ -322,6 +325,43 @@ class GstRateResolverTest {
 
         assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 120.0).getTotalRate());
         assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6)).getTotalRate());
+    }
+
+    @Test
+    void resolve_shouldNotChargeAChapterRateToGoodsItDoesNotName() {
+        // Chapter 71's only chapter-level entry is "rupee notes or coins when sold to the
+        // Reserve Bank" at nil. The walk ends at the chapter, so treating that as chapter 71's
+        // rate invoiced gold jewellery at 0% instead of 3%. An entry that names its goods may
+        // only answer for those goods.
+        product.setHsnCode("71131110");
+        when(rateRepo.findApplicable(eq("71131110"), anyString(), any())).thenReturn(List.of());
+        when(rateRepo.findApplicable(eq("711311"), anyString(), any())).thenReturn(List.of());
+        when(rateRepo.findApplicable(eq("7113"), anyString(), any())).thenReturn(List.of());
+        GstRateMaster rbiNotes = rate("71", 0.0, LocalDate.of(2025, 9, 22), null);
+        rbiNotes.setConditionText("Rupee notes or coins when sold to the Reserve Bank of India");
+        when(rateRepo.findApplicable(eq("71"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(rbiNotes));
+
+        assertThrows(GstRateResolver.GstRateUnresolvedException.class,
+                () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 45000.0),
+                "refusing to invoice is the only safe answer; 0% on jewellery is not");
+    }
+
+    @Test
+    void resolve_shouldTreatANullWholeChapterFlagAsNo() {
+        // Rows written before the flag existed, and any an admin adds without considering it,
+        // must not become chapter-wide defaults by omission.
+        product.setHsnCode("39269099");
+        when(rateRepo.findApplicable(eq("39269099"), anyString(), any())).thenReturn(List.of());
+        when(rateRepo.findApplicable(eq("392690"), anyString(), any())).thenReturn(List.of());
+        when(rateRepo.findApplicable(eq("3926"), anyString(), any())).thenReturn(List.of());
+        GstRateMaster paperSacks = rate("39", 5.0, LocalDate.of(2025, 9, 22), null);
+        assertNull(paperSacks.getWholeChapter(), "the fixture must leave it unset");
+        when(rateRepo.findApplicable(eq("39"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(paperSacks));
+
+        assertThrows(GstRateResolver.GstRateUnresolvedException.class,
+                () -> resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 120.0));
     }
 
     @Test

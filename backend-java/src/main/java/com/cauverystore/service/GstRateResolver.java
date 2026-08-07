@@ -133,6 +133,16 @@ public class GstRateResolver {
                 hsn.length() > 2 ? hsn.substring(0, 2) : hsn)) {
             List<GstRateMaster> hits =
                     rateRepo.findApplicable(candidate, GstRateMaster.STATUS_VERIFIED, date);
+
+            // The last step of the walk is the whole chapter, and most chapter-level entries
+            // name particular goods rather than pricing everything under them - chapter 71's
+            // is "rupee notes or coins sold to the Reserve Bank" at nil, chapter 39's is
+            // "paper sacks and bio-degradable bags" at 5%. Letting those stand as the
+            // chapter's rate charged nil on jewellery and 5% on plastics owing 18%. Only an
+            // entry that genuinely covers its chapter may answer for goods it does not name.
+            if (candidate.length() == 2) {
+                hits = hits.stream().filter(GstRateMaster::coversWholeChapter).toList();
+            }
             if (hits.isEmpty()) continue;
 
             // A row whose value condition matches the item's price wins outright - that is the

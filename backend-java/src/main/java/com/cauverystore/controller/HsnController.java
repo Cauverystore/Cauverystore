@@ -1,6 +1,8 @@
 package com.cauverystore.controller;
 
+import com.cauverystore.entities.TradeSynonym;
 import com.cauverystore.service.HsnClassificationService;
+import com.cauverystore.service.ProductTermMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -21,9 +23,47 @@ import java.util.Map;
 public class HsnController {
 
     private final HsnClassificationService service;
+    private final ProductTermMapper termMapper;
 
-    public HsnController(HsnClassificationService service) {
+    public HsnController(HsnClassificationService service, ProductTermMapper termMapper) {
         this.service = service;
+        this.termMapper = termMapper;
+    }
+
+    /**
+     * Maps a plain product description to the published codes for it, each with its tax.
+     *
+     * "Cotton Lungi" comes back as the cotton lungi headings with 5% against them, rather than
+     * as a code the seller has to look up the consequences of separately.
+     */
+    @GetMapping("/map")
+    public ResponseEntity<Map<String, Object>> mapProduct(
+            @RequestParam("name") String productName,
+            @RequestParam(required = false) Double unitPrice,
+            @RequestParam(required = false) Boolean prePackaged) {
+        return ResponseEntity.ok(termMapper.map(productName, unitPrice, prePackaged));
+    }
+
+    /** The translations the store asserts, for review. */
+    @GetMapping("/synonyms")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<List<TradeSynonym>> synonyms() {
+        return ResponseEntity.ok(termMapper.synonyms());
+    }
+
+    /**
+     * Records that a word sellers use means a word the tariff uses.
+     *
+     * Admin-only, and attributed: this asserts what goods are, which is not a seller's call to
+     * make for the whole store.
+     */
+    @PostMapping("/synonyms")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<TradeSynonym> addSynonym(@RequestBody Map<String, String> body,
+                                                   java.security.Principal principal) {
+        return ResponseEntity.ok(termMapper.addSynonym(
+                body.get("term"), body.get("officialTerm"), body.get("note"),
+                principal != null ? principal.getName() : null));
     }
 
     /**

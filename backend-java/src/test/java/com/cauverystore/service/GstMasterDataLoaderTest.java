@@ -4,6 +4,7 @@ import com.cauverystore.entities.ChapterMaster;
 import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.ChapterMasterRepository;
+import com.cauverystore.repository.TradeSynonymRepository;
 import com.cauverystore.repository.CountryMasterRepository;
 import com.cauverystore.repository.CurrencyMasterRepository;
 import com.cauverystore.repository.PortMasterRepository;
@@ -52,13 +53,14 @@ class GstMasterDataLoaderTest {
     @Mock private PortMasterRepository portRepo;
     @Mock private PincodeStateRangeRepository pincodeRepo;
     @Mock private ChapterMasterRepository chapterRepo;
+    @Mock private TradeSynonymRepository synonymRepo;
 
     private GstMasterDataLoader loader;
 
     @BeforeEach
     void setUp() {
         loader = new GstMasterDataLoader(hsnRepo, unitRepo, stateRepo, rateRepo, logRepo,
-                countryRepo, currencyRepo, portRepo, pincodeRepo, chapterRepo);
+                countryRepo, currencyRepo, portRepo, pincodeRepo, chapterRepo, synonymRepo);
     }
 
     private GstRateMaster autoVerified(String hsn, double rate) {
@@ -352,6 +354,51 @@ class GstMasterDataLoaderTest {
         ReflectionTestUtils.invokeMethod(loader, "loadChapters");
 
         verify(chapterRepo, never()).saveAll(any());
+    }
+
+    @Test
+    void shouldPriceEveryHeadingInASchedulesRange() {
+        // CBIC writes one entry against a span - "5208 to 5212, woven fabrics of cotton". The
+        // extraction kept 5208 and dropped the rest, so a cotton lungi at 52095110 walked past
+        // the missing 5209 to chapter 52, whose only entry is the Gandhi Topi and khadi yarn
+        // exemption, and was invoiced at nil instead of 5%.
+        when(rateRepo.findAll()).thenReturn(List.of());
+
+        Map<String, List<GstRateMaster>> byCode = new HashMap<>();
+        runAndCaptureSaves().forEach(r -> byCode.computeIfAbsent(r.getHsnCode(),
+                k -> new ArrayList<>()).add(r));
+
+        for (String heading : List.of("5208", "5209", "5210", "5211", "5212")) {
+            List<GstRateMaster> rows = byCode.get(heading);
+            assertNotNull(rows, "heading " + heading + " is inside a priced range but has no row");
+            assertTrue(rows.stream().anyMatch(r -> r.getGstRate() == 5.0),
+                    "cotton fabric heading " + heading + " should be 5%");
+        }
+        // The polymer span was the costliest: 18% goods falling to a 5% chapter entry.
+        assertTrue(byCode.get("3913").stream().anyMatch(r -> r.getGstRate() == 18.0));
+    }
+
+    @Test
+    void shouldMarkOnlyGenuinelyChapterWideEntriesAsSuch() {
+        // Most chapter-level entries name particular goods. If they load as chapter-wide, the
+        // resolver charges them to everything beneath - nil on jewellery, 5% on plastics.
+        when(rateRepo.findAll()).thenReturn(List.of());
+
+        List<GstRateMaster> chapterRows = runAndCaptureSaves().stream()
+                .filter(r -> r.getHsnCode().length() == 2)
+                .toList();
+
+        assertFalse(chapterRows.isEmpty());
+        for (GstRateMaster r : chapterRows) {
+            if (List.of("60", "61", "62").contains(r.getHsnCode())) continue;
+            assertFalse(r.coversWholeChapter(),
+                    "chapter " + r.getHsnCode() + " names specific goods (" + r.getConditionText()
+                            + ") and must not price the whole chapter");
+        }
+        assertTrue(chapterRows.stream()
+                        .filter(r -> "61".equals(r.getHsnCode()))
+                        .allMatch(GstRateMaster::coversWholeChapter),
+                "chapter 61 is apparel outright and does price everything beneath it");
     }
 
     @Test

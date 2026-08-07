@@ -1,8 +1,10 @@
 package com.cauverystore.service;
 
 import com.cauverystore.entities.ChapterMaster;
+import com.cauverystore.entities.TradeSynonym;
 import com.cauverystore.entities.CountryMaster;
 import com.cauverystore.repository.ChapterMasterRepository;
+import com.cauverystore.repository.TradeSynonymRepository;
 import com.cauverystore.repository.CountryMasterRepository;
 import com.cauverystore.entities.CurrencyMaster;
 import com.cauverystore.repository.CurrencyMasterRepository;
@@ -99,6 +101,7 @@ public class GstMasterDataLoader {
     private final PortMasterRepository portRepo;
     private final PincodeStateRangeRepository pincodeRepo;
     private final ChapterMasterRepository chapterRepo;
+    private final TradeSynonymRepository synonymRepo;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gst.master-data.load-on-startup:true}")
@@ -113,7 +116,8 @@ public class GstMasterDataLoader {
                                CurrencyMasterRepository currencyRepo,
                                PortMasterRepository portRepo,
                                PincodeStateRangeRepository pincodeRepo,
-                               ChapterMasterRepository chapterRepo) {
+                               ChapterMasterRepository chapterRepo,
+                               TradeSynonymRepository synonymRepo) {
         this.hsnRepo = hsnRepo;
         this.unitRepo = unitRepo;
         this.stateRepo = stateRepo;
@@ -124,6 +128,7 @@ public class GstMasterDataLoader {
         this.portRepo = portRepo;
         this.pincodeRepo = pincodeRepo;
         this.chapterRepo = chapterRepo;
+        this.synonymRepo = synonymRepo;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -152,6 +157,7 @@ public class GstMasterDataLoader {
         summary.put("currency", loadCurrencies());
         summary.put("port", loadPorts());
         summary.put("pincodeRange", loadPincodeRanges());
+        summary.put("tradeSynonym", loadTradeSynonyms());
         summary.put("gstRate", loadGstRates());
         return summary;
     }
@@ -229,6 +235,7 @@ public class GstMasterDataLoader {
             if (n.hasNonNull("thresholdAmount")) r.setThresholdAmount(n.get("thresholdAmount").asDouble());
             r.setThresholdUnit(text(n, "thresholdUnit"));
             r.setConditionText(text(n, "conditionText"));
+            r.setWholeChapter(n.hasNonNull("wholeChapter") && n.get("wholeChapter").asBoolean());
             if (!isAmbiguous) {
                 r.setVerifiedBy(AUTO_VERIFIER);
                 r.setVerifiedAt(LocalDateTime.now());
@@ -459,6 +466,31 @@ public class GstMasterDataLoader {
         }
         if (!toSave.isEmpty()) chapterRepo.saveAll(toSave);
         recordLog("chapter_master.json", rows.size(), inserted, updated);
+        return rows.size();
+    }
+
+    /**
+     * The starting list of words sellers use for goods the tariff names differently.
+     *
+     * Insert-only and never updated. These are assertions about what goods are, so once the
+     * store's accountant has corrected or removed one, a restart must not put it back.
+     */
+    private int loadTradeSynonyms() {
+        List<JsonNode> rows = readArray("master-data/trade_synonyms.json");
+        if (rows.isEmpty()) return 0;
+
+        List<TradeSynonym> toSave = new ArrayList<>();
+        int inserted = 0;
+        for (JsonNode n : rows) {
+            String term = text(n, "term");
+            String official = text(n, "officialTerm");
+            if (term == null || term.isBlank() || official == null || official.isBlank()) continue;
+            if (synonymRepo.findByTermIgnoreCase(term).isPresent()) continue;
+            toSave.add(new TradeSynonym(term, official, text(n, "note"), text(n, "addedBy")));
+            inserted++;
+        }
+        if (!toSave.isEmpty()) synonymRepo.saveAll(toSave);
+        recordLog("trade_synonyms.json", rows.size(), inserted, 0);
         return rows.size();
     }
 
