@@ -1,6 +1,8 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.ChapterMaster;
 import com.cauverystore.entities.CountryMaster;
+import com.cauverystore.repository.ChapterMasterRepository;
 import com.cauverystore.repository.CountryMasterRepository;
 import com.cauverystore.entities.CurrencyMaster;
 import com.cauverystore.repository.CurrencyMasterRepository;
@@ -96,6 +98,7 @@ public class GstMasterDataLoader {
     private final CurrencyMasterRepository currencyRepo;
     private final PortMasterRepository portRepo;
     private final PincodeStateRangeRepository pincodeRepo;
+    private final ChapterMasterRepository chapterRepo;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gst.master-data.load-on-startup:true}")
@@ -109,7 +112,8 @@ public class GstMasterDataLoader {
                                CountryMasterRepository countryRepo,
                                CurrencyMasterRepository currencyRepo,
                                PortMasterRepository portRepo,
-                               PincodeStateRangeRepository pincodeRepo) {
+                               PincodeStateRangeRepository pincodeRepo,
+                               ChapterMasterRepository chapterRepo) {
         this.hsnRepo = hsnRepo;
         this.unitRepo = unitRepo;
         this.stateRepo = stateRepo;
@@ -119,6 +123,7 @@ public class GstMasterDataLoader {
         this.currencyRepo = currencyRepo;
         this.portRepo = portRepo;
         this.pincodeRepo = pincodeRepo;
+        this.chapterRepo = chapterRepo;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -139,6 +144,7 @@ public class GstMasterDataLoader {
     @Transactional
     public Map<String, Integer> loadAll() {
         Map<String, Integer> summary = new HashMap<>();
+        summary.put("chapter", loadChapters());
         summary.put("hsn", loadHsn());
         summary.put("unit", loadUnits());
         summary.put("state", loadStates());
@@ -414,6 +420,45 @@ public class GstMasterDataLoader {
         }
         if (!toSave.isEmpty()) hsnRepo.saveAll(toSave);
         recordLog("hsn_master.json", rows.size(), inserted, updated);
+        return rows.size();
+    }
+
+    /**
+     * The two-digit top of the classification tree.
+     *
+     * A title is allowed to be null - five chapters carry none anywhere in the published master,
+     * and a null records that rather than hiding it behind an invented name. So the update
+     * branch only overwrites when the file offers a title; a run against a file that has since
+     * lost one must not blank a title already stored.
+     */
+    private int loadChapters() {
+        List<JsonNode> rows = readArray("master-data/chapter_master.json");
+        if (rows.isEmpty()) return 0;
+
+        Map<String, ChapterMaster> existing = new HashMap<>();
+        chapterRepo.findAll().forEach(c -> existing.put(c.getChapter(), c));
+
+        List<ChapterMaster> toSave = new ArrayList<>();
+        int inserted = 0, updated = 0;
+        for (JsonNode n : rows) {
+            String chapter = text(n, "chapter");
+            String title = text(n, "title");
+            String source = text(n, "titleSource");
+            if (chapter == null || chapter.isBlank()) continue;
+
+            ChapterMaster cur = existing.get(chapter);
+            if (cur == null) {
+                toSave.add(new ChapterMaster(chapter, title, source));
+                inserted++;
+            } else if (title != null && !title.equals(cur.getTitle())) {
+                cur.setTitle(title);
+                cur.setTitleSource(source);
+                toSave.add(cur);
+                updated++;
+            }
+        }
+        if (!toSave.isEmpty()) chapterRepo.saveAll(toSave);
+        recordLog("chapter_master.json", rows.size(), inserted, updated);
         return rows.size();
     }
 

@@ -23,4 +23,7 @@ public interface HsnMasterRepository extends JpaRepository<HsnMaster, String> {
             + "OR LOWER(h.description) LIKE LOWER(CONCAT('%', :q, '%')) "
             + "ORDER BY LENGTH(h.hsnCode) ASC, h.hsnCode ASC")
     List<HsnMaster> search(@Param("q") String query, Pageable pageable);
+
+    /** One level of one chapter - what the picker shows after a seller chooses their trade. */
+    List<HsnMaster> findByChapterAndDigitsOrderByHsnCodeAsc(String chapter, Integer digits);
 }

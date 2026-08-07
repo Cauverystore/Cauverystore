@@ -4,6 +4,8 @@ import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.entities.HsnAssignment;
 import com.cauverystore.entities.HsnMaster;
 import com.cauverystore.entities.Product;
+import com.cauverystore.entities.ChapterMaster;
+import com.cauverystore.repository.ChapterMasterRepository;
 import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.HsnAssignmentRepository;
 import com.cauverystore.repository.HsnMasterRepository;
@@ -50,15 +52,18 @@ public class HsnClassificationService {
     private final HsnAssignmentRepository assignmentRepo;
     private final GstRateMasterRepository rateRepo;
     private final GstRateResolver rateResolver;
+    private final ChapterMasterRepository chapterRepo;
 
     public HsnClassificationService(HsnMasterRepository hsnRepo,
                                     HsnAssignmentRepository assignmentRepo,
                                     GstRateMasterRepository rateRepo,
-                                    GstRateResolver rateResolver) {
+                                    GstRateResolver rateResolver,
+                                    ChapterMasterRepository chapterRepo) {
         this.hsnRepo = hsnRepo;
         this.assignmentRepo = assignmentRepo;
         this.rateRepo = rateRepo;
         this.rateResolver = rateResolver;
+        this.chapterRepo = chapterRepo;
     }
 
     /** Thrown when a product carries a code that is not in the official master. */
@@ -286,8 +291,49 @@ public class HsnClassificationService {
         row.put("hsnCode", hsn.getHsnCode());
         row.put("description", hsn.getDescription());
         row.put("chapter", hsn.getChapter());
+        row.put("chapterTitle", chapterTitle(hsn.getChapter()));
         row.put("digits", hsn.getDigits());
         return row;
+    }
+
+    /**
+     * The chapter list, for browsing down instead of searching across.
+     *
+     * Searching only works for a seller who can already name their goods the way the tariff
+     * names them. Someone who cannot has nowhere to start, and the cost of them giving up is a
+     * product classified by guesswork. Browsing gives them a way in: pick the trade, then the
+     * heading.
+     */
+    public List<Map<String, Object>> chapters() {
+        return chapterRepo.findAllByOrderByChapterAsc().stream()
+                .map(this::describeChapter)
+                .toList();
+    }
+
+    /** The headings inside one chapter - the second step of browsing. */
+    public List<Map<String, Object>> headingsInChapter(String chapter) {
+        String c = normalise(chapter);
+        if (c == null || !c.matches("\\d{1,2}")) return List.of();
+        String padded = c.length() == 1 ? "0" + c : c;
+        // Four-digit only. Offering all 22,478 codes at once would bury the level most sellers
+        // should be picking anyway.
+        return hsnRepo.findByChapterAndDigitsOrderByHsnCodeAsc(padded, 4).stream()
+                .map(this::describe)
+                .toList();
+    }
+
+    private Map<String, Object> describeChapter(ChapterMaster c) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("chapter", c.getChapter());
+        row.put("title", c.getTitle());
+        row.put("label", c.getLabel());
+        row.put("named", c.isNamed());
+        return row;
+    }
+
+    private String chapterTitle(String chapter) {
+        if (chapter == null) return null;
+        return chapterRepo.findById(chapter).map(ChapterMaster::getTitle).orElse(null);
     }
 
     private String normalise(String code) {

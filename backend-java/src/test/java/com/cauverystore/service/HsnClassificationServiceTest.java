@@ -5,6 +5,8 @@ import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.entities.HsnAssignment;
 import com.cauverystore.entities.HsnMaster;
 import com.cauverystore.entities.Product;
+import com.cauverystore.entities.ChapterMaster;
+import com.cauverystore.repository.ChapterMasterRepository;
 import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.HsnAssignmentRepository;
 import com.cauverystore.repository.HsnMasterRepository;
@@ -33,13 +35,15 @@ class HsnClassificationServiceTest {
     @Mock private HsnAssignmentRepository assignmentRepo;
     @Mock private GstRateMasterRepository rateRepo;
     @Mock private GstRateResolver rateResolver;
+    @Mock private ChapterMasterRepository chapterRepo;
 
     private HsnClassificationService service;
     private Product product;
 
     @BeforeEach
     void setUp() {
-        service = new HsnClassificationService(hsnRepo, assignmentRepo, rateRepo, rateResolver);
+        service = new HsnClassificationService(hsnRepo, assignmentRepo, rateRepo, rateResolver,
+                chapterRepo);
         product = new Product();
         product.setName("Basmati Rice 5kg");
         when(assignmentRepo.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -318,6 +322,52 @@ class HsnClassificationServiceTest {
                 HsnClassificationService.UnclassifiedProductException.class,
                 () -> service.assertSellable(product));
         assertTrue(ex.getMessage().toLowerCase().contains("no hsn code"));
+    }
+
+    @Test
+    void chapters_shouldLabelAnUnnamedChapterByItsNumber() {
+        // Five chapters have no published title. They still have to be enterable, or the trades
+        // under them become unreachable by browsing.
+        when(chapterRepo.findAllByOrderByChapterAsc()).thenReturn(List.of(
+                new ChapterMaster("04", null, null),
+                new ChapterMaster("61", "ARTICLES OF APPAREL AND CLOTHING ACCESSORIES, KNITTED OR CROCHETED",
+                        "e-invoice HSN master, chapter title prefix")));
+
+        List<java.util.Map<String, Object>> out = service.chapters();
+
+        assertEquals("04", out.get(0).get("label"));
+        assertEquals(Boolean.FALSE, out.get(0).get("named"));
+        assertEquals("61 - ARTICLES OF APPAREL AND CLOTHING ACCESSORIES, KNITTED OR CROCHETED",
+                out.get(1).get("label"));
+        assertEquals(Boolean.TRUE, out.get(1).get("named"));
+    }
+
+    @Test
+    void headingsInChapter_shouldPadASingleDigitChapter() {
+        // Chapters are stored padded ("03"), and a picker or a URL may well send "3". Comparing
+        // the two unpadded is how a lookup silently returns nothing.
+        when(hsnRepo.findByChapterAndDigitsOrderByHsnCodeAsc("03", 4))
+                .thenReturn(List.of(new HsnMaster("0302", "FISH, FRESH OR CHILLED")));
+
+        assertEquals(1, service.headingsInChapter("3").size());
+        assertEquals(1, service.headingsInChapter("03").size());
+    }
+
+    @Test
+    void headingsInChapter_shouldOfferOnlyFourDigitHeadings() {
+        // The eight-digit rows exist, but opening a chapter onto hundreds of them buries the
+        // level most sellers should actually be picking.
+        service.headingsInChapter("61");
+
+        verify(hsnRepo).findByChapterAndDigitsOrderByHsnCodeAsc("61", 4);
+    }
+
+    @Test
+    void headingsInChapter_shouldRejectAnythingThatIsNotAChapterNumber() {
+        assertTrue(service.headingsInChapter("abc").isEmpty());
+        assertTrue(service.headingsInChapter("6101").isEmpty());
+        assertTrue(service.headingsInChapter(null).isEmpty());
+        verify(hsnRepo, never()).findByChapterAndDigitsOrderByHsnCodeAsc(any(), any());
     }
 
     @Test

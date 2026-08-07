@@ -1,0 +1,590 @@
+[
+  {
+    "chapter": "01",
+    "title": "LIVE ANIMALS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 21
+  },
+  {
+    "chapter": "02",
+    "title": "MEAT AND EDIBLE MEAT OFFAL",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 65
+  },
+  {
+    "chapter": "03",
+    "title": "FISH AND CRUSTACEANS, MOLLUSCS AND OTHER AQUATIC INVERTEBRATES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 102
+  },
+  {
+    "chapter": "04",
+    "title": null,
+    "titleSource": null,
+    "rowsAgreeing": 0
+  },
+  {
+    "chapter": "05",
+    "title": "PRODUCTS OF ANIMAL ORIGIN, NOT ELSEWHERE SPECIFIED OR INCLUDED",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 2
+  },
+  {
+    "chapter": "06",
+    "title": "LIVE TREES AND OTHER PLANTS ; BULBS, ROOTS AND THE LIKE ; CUT FLOWERS AND ORNAMENTAL FOLIAGE",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 10
+  },
+  {
+    "chapter": "07",
+    "title": "EDIBLE VEGETABLES AND CERTAIN ROOTS AND TUBERS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 52
+  },
+  {
+    "chapter": "08",
+    "title": "EDIBLE FRUIT AND NUTS; PEEL OF CITRUS FRUIT OR MELONS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 37
+  },
+  {
+    "chapter": "09",
+    "title": "COFFEE, TEA, MATE AND SPICES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 5
+  },
+  {
+    "chapter": "10",
+    "title": "CEREALS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 3
+  },
+  {
+    "chapter": "11",
+    "title": "PRODUCTS OF THE MILLING INDUSTRY; MALT; STARCHES; INULIN; WHEAT GLUTEN",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 21
+  },
+  {
+    "chapter": "12",
+    "title": "OIL SEEDS AND OLEAGINOUS FRUITS, MISCELLANEOUS GRAINS, SEEDS AND FRUIT; INDUSTRIAL OR MEDICINAL PLANTS; STRAW AND FODDER",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 24
+  },
+  {
+    "chapter": "13",
+    "title": "LAC; GUMS, RESINS AND OTHER VEGETABLE SAPS AND EXTRACTS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 7
+  },
+  {
+    "chapter": "14",
+    "title": "VEGETABLE PLAITING MATERIALS; VEGETABLE PRODUCTS NOT ELSEWHERE SPECIFIED OR INCLUDED",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 3
+  },
+  {
+    "chapter": "15",
+    "title": "ANIMAL, VEGETABLE OR MICROBIAL FATS AND OILS AND THEIR CLEAVAGE PRODUCTS; PREPARED EDIBLE FATS; ANIMAL OR VEGETABLE WAXES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 18
+  },
+  {
+    "chapter": "16",
+    "title": "PREPARATIONS OF MEAT, OF FISH, OF CRUSTACEANS, MOLLUSCS OR OTHER AQUATIC INVERTEBRATES OR OF INSECTS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 20
+  },
+  {
+    "chapter": "17",
+    "title": "SUGARS AND SUGAR CONFECTIONERY",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 5
+  },
+  {
+    "chapter": "18",
+    "title": "COCOA AND COCOA PREPARATIONS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 10
+  },
+  {
+    "chapter": "19",
+    "title": "PREPARATIONS OF CEREALS, FLOUR, STARCH OR MILK; PASTRYCOOKS? PRODUCTS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 10
+  },
+  {
+    "chapter": "20",
+    "title": "PREPARATIONS OF VEGETABLES, FRUIT, NUTS OR OTHER PARTS OF PLANTS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 42
+  },
+  {
+    "chapter": "21",
+    "title": "MISCELLANEOUS EDIBLE PREPARATIONS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 9
+  },
+  {
+    "chapter": "22",
+    "title": "BEVERAGES, SPIRITS AND VINEGAR",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 8
+  },
+  {
+    "chapter": "23",
+    "title": "RESIDUES AND WASTE FROM THE FOOD INDUSTRIES; PREPARED ANIMAL FODDER",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 12
+  },
+  {
+    "chapter": "24",
+    "title": "TOBACCO AND MANUFACTURED TOBACCO SUBSTITUTES; PRODUCTS, WHETHER OR NOT CONTAINING NICOTINE, INTENDED FOR INHALATION WITHOUT COMBUSTION; OTHER NICOTINE CONTAINING PRODUCTS INTENDED FOR THE INTAKE OF NICOTINE INTO THE HUMAN BODY",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 9
+  },
+  {
+    "chapter": "25",
+    "title": "SALT; SULPHUR; EARTHS AND STONE; PLASTERING MATERIALS, LIME AND CEMENT",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 30
+  },
+  {
+    "chapter": "26",
+    "title": "ORES, SLAG AND ASH",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 23
+  },
+  {
+    "chapter": "27",
+    "title": "MINERAL FUELS, MINERAL OILS AND PRODUCTS OF THEIR DISTILLATION; BITUMINOUS SUBSTANCES; MINERAL WAXES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 24
+  },
+  {
+    "chapter": "28",
+    "title": "INORGANIC CHEMICALS, ORGANIC OR INORGANIC COMPOUNDS OF PRECIOUS METALS, OF RARE-EARTH METALS, OF RADIOACTIVE ELEMENTS OR OF ISOTOPES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 110
+  },
+  {
+    "chapter": "29",
+    "title": "ORGANIC CHEMICALS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 246
+  },
+  {
+    "chapter": "30",
+    "title": "PHARMACEUTICAL PRODUCTS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 28
+  },
+  {
+    "chapter": "31",
+    "title": "FERTILISERS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 19
+  },
+  {
+    "chapter": "32",
+    "title": "TANNING OR DYEING EXTRACTS; TANNINS AND THEIR DERIVATIVES; DYES, PIGMENTS AND OTHER COLOURING MATTER; PAINTS AND VARNISHES; PUTTY AND OTHER MASTICS; INKS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 18
+  },
+  {
+    "chapter": "33",
+    "title": "ESSENTIAL OILS AND RESINOIDS, PERFUMERY, COSMETIC OR TOILET PREPARATIONS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 3
+  },
+  {
+    "chapter": "34",
+    "title": null,
+    "titleSource": null,
+    "rowsAgreeing": 0
+  },
+  {
+    "chapter": "35",
+    "title": null,
+    "titleSource": null,
+    "rowsAgreeing": 0
+  },
+  {
+    "chapter": "36",
+    "title": "EXPLOSIVES; PYROTECHNIC PRODUCTS; MATCHES; PYROPHORIC ALLOYS; CERTAIN COMBUSTIBLE PREPARATIONS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 8
+  },
+  {
+    "chapter": "37",
+    "title": "PHOTOGRAPHIC OR CINEMATOGRAPHIC GOODS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 6
+  },
+  {
+    "chapter": "38",
+    "title": "MISCELLANEOUS CHEMICAL PRODUCTS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 82
+  },
+  {
+    "chapter": "39",
+    "title": "PLASTICS AND ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 51
+  },
+  {
+    "chapter": "40",
+    "title": "RUBBER AND ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 41
+  },
+  {
+    "chapter": "41",
+    "title": "RAW HIDES AND SKINS (OTHER THAN FURSKINS) AND LEATHER",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 23
+  },
+  {
+    "chapter": "42",
+    "title": "ARTICLES OF LEATHER; SADDLERY AND HARNESS; TRAVEL GOODS, HANDBAGS AND SIMILAR CONTAINERS; ARTICLES OF ANIMAL GUT (OTHER THAN SILKWORM GUT)",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 5
+  },
+  {
+    "chapter": "43",
+    "title": "FURSKINS AND ARTIFICIAL FUR; MANUFACTURES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 8
+  },
+  {
+    "chapter": "44",
+    "title": "WOOD AND ARTICLES OF WOOD; WOOD CHARCOAL",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 93
+  },
+  {
+    "chapter": "45",
+    "title": "CORK AND ARTICLES OF CORK",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 5
+  },
+  {
+    "chapter": "46",
+    "title": "MANUFACTURES OF STRAW,OF ESPARTO OR OF OTHER PLAITING MATERIALS; BASKETWARE AND WICKERWORK",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 10
+  },
+  {
+    "chapter": "47",
+    "title": "PULP OF WOOD OR OF OTHER FIBROUS CELLULOSIC MATERIAL; RECOVERED (WASTE AND SCRAP) PAPER OR PAPERBOARD",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 19
+  },
+  {
+    "chapter": "48",
+    "title": "PAPER AND PAPERBOARD; ARTICLES OF PAPER PULP, OF PAPER OR OF PAPERBOARD",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 64
+  },
+  {
+    "chapter": "49",
+    "title": "PRINTED BOOKS, NEWSPAPERS, PICTURES AND OTHER PRODUCTS OF THE PRINTING INDUSTRY; MANUSCRIPTS, TYPESCRIPTS AND PLANS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 8
+  },
+  {
+    "chapter": "50",
+    "title": "SILK",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 2
+  },
+  {
+    "chapter": "51",
+    "title": "WOOL, FINE OR COARSE ANIMAL HAIR; HORSEHAIR YARN AND WOVEN FABRIC",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 14
+  },
+  {
+    "chapter": "52",
+    "title": "COTTON",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 42
+  },
+  {
+    "chapter": "53",
+    "title": "OTHER VEGETABLE TEXTILE FIBRES; PAPER YARN AND WOVEN FABRICS OF PAPER YARN",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 8
+  },
+  {
+    "chapter": "54",
+    "title": "MAN-MADE FILAMENTS; STRIP AND THE LIKE OF MAN-MADE TEXTILE MATERIALS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 37
+  },
+  {
+    "chapter": "55",
+    "title": "MAN-MADE STAPLE FIBRES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 62
+  },
+  {
+    "chapter": "56",
+    "title": "WADDING, FELT AND NONWOVENS; SPECIAL YARNS; TWINE, CORDAGE, ROPES AND CABLES AND ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 18
+  },
+  {
+    "chapter": "57",
+    "title": "CARPETS AND OTHER TEXTILE FLOOR COVERINGS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 4
+  },
+  {
+    "chapter": "58",
+    "title": "SPECIAL WOVEN FABRICS; TUFTED TEXTILE FABRICS; LACE; TAPESTRIES; TRIMMINGS; EMBROIDERY",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 16
+  },
+  {
+    "chapter": "59",
+    "title": "IMPREGNATED, COATED, COVERED OR LAMINATED TEXTILE FABRICS; TEXTILE ARTICLES OF A KIND SUITABLE FOR INDUSTRIAL USE",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 5
+  },
+  {
+    "chapter": "60",
+    "title": "KNITTED OR CROCHETED FABRICS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 41
+  },
+  {
+    "chapter": "61",
+    "title": "ARTICLES OF APPAREL AND CLOTHING ACCESSORIES, KNITTED OR CROCHETED",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 57
+  },
+  {
+    "chapter": "62",
+    "title": "ARTICLES OF APPAREL AND CLOTHING ACCESSORIES, NOT KNITTED OR CROCHETED",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 34
+  },
+  {
+    "chapter": "63",
+    "title": "OTHER MADE UP TEXTILE ARTICLES; SETS; WORN CLOTHING AND WORN TEXTILE ARTICLES; RAGS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 31
+  },
+  {
+    "chapter": "64",
+    "title": "FOOTWEAR, GAITERS AND THE LIKE; PARTS OF SUCH ARTICLES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 6
+  },
+  {
+    "chapter": "65",
+    "title": "HEADGEAR AND PARTS THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 3
+  },
+  {
+    "chapter": "66",
+    "title": "UMBRELLAS, SUN UMBRELLAS, WALKING-STICKS, SEAT-STICKS, WHIPS, RIDING-CROPS AND PARTS THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 5
+  },
+  {
+    "chapter": "67",
+    "title": "PREPARED FEATHERS AND DOWN AND ARTICLES MADE OF FEATHERS OR OF DOWN; ARTIFICIAL FLOWERS; ARTICLES OF HUMAN HAIR",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 11
+  },
+  {
+    "chapter": "68",
+    "title": "ARTICLES OF STONE, PLASTER, CEMENT, ASBESTOS, MICA OR SIMILAR MATERIALS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 30
+  },
+  {
+    "chapter": "69",
+    "title": "CERAMIC PRODUCTS",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 16
+  },
+  {
+    "chapter": "70",
+    "title": "GLASS AND GLASSWARE",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 46
+  },
+  {
+    "chapter": "71",
+    "title": "NATURAL OR CULTURED PEARLS, PRECIOUS OR SEMI-PRECIOUS STONES, PRECIOUS METALS, METALS CLAD WITH PRECIOUS METAL, AND ARTICLES THEREOF; IMITATION JEWELLERY; COIN",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 30
+  },
+  {
+    "chapter": "72",
+    "title": "IRON AND STEEL",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 62
+  },
+  {
+    "chapter": "73",
+    "title": "ARTICLES OF IRON OR STEEL",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 60
+  },
+  {
+    "chapter": "74",
+    "title": "COPPER AND ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 39
+  },
+  {
+    "chapter": "75",
+    "title": "NICKEL AND ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 12
+  },
+  {
+    "chapter": "76",
+    "title": "ALUMINIUM AND ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 14
+  },
+  {
+    "chapter": "78",
+    "title": "LEAD AND ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 3
+  },
+  {
+    "chapter": "79",
+    "title": "ZINC AND ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 4
+  },
+  {
+    "chapter": "80",
+    "title": null,
+    "titleSource": null,
+    "rowsAgreeing": 0
+  },
+  {
+    "chapter": "81",
+    "title": "OTHER BASE METALS; CERMETS; ARTICLES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 42
+  },
+  {
+    "chapter": "82",
+    "title": "TOOLS, IMPLEMENTS, CUTLERY, SPOONS AND FORKS, OF BASE METAL; PARTS THEREOF OF BASE METAL",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 42
+  },
+  {
+    "chapter": "83",
+    "title": "MISCELLANEOUS ARTICLES OF BASE METAL",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 24
+  },
+  {
+    "chapter": "84",
+    "title": "NUCLEAR REACTORS, BOILERS, MACHINERY AND MECHANICAL APPLIANCES; PARTS THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 333
+  },
+  {
+    "chapter": "85",
+    "title": "ELECTRICAL MACHINERY AND EQUIPMENT AND PARTS THEREOF; SOUND RECORDERS AND REPRODUCERS, TELEVISION IMAGE AND SOUND RECORDERS AND REPRODUCERS, AND PARTS AND ACCESSORIES OF SUCH ARTICLES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 191
+  },
+  {
+    "chapter": "86",
+    "title": "RAILWAY OR TRAMWAY LOCOMOTIVES, ROLLING-STOCK AND PARTS THEREOF; RAILWAY OR TRAMWAY TRACK FIXTURES AND FITTINGS AND PARTS THEREOF; MECHANICAL (INCLUDING ELECTRO-MECHANICAL) TRAFFIC SIGNALLING EQUIPMENT OF ALL KIND",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 14
+  },
+  {
+    "chapter": "87",
+    "title": "VEHICLES OTHER THAN RAILWAY OR TRAMWAY ROLLING-STOCK, AND PARTS AND ACCESSORIES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 50
+  },
+  {
+    "chapter": "88",
+    "title": "AIRCRAFT, SPACECRAFT, AND PARTS THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 22
+  },
+  {
+    "chapter": "89",
+    "title": "SHIPS, BOATS AND FLOATING STRUCTURES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 20
+  },
+  {
+    "chapter": "90",
+    "title": "OPTICAL, PHOTOGRAPHIC, CINEMATOGRAPHIC, MEASURING, CHECKING, PRECISION, MEDICAL OR SURGICAL INSTRUMENTS AND APPARATUS; PARTS AND ACCESSORIES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 87
+  },
+  {
+    "chapter": "91",
+    "title": "CLOCKS AND WATCHES AND PARTS THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 37
+  },
+  {
+    "chapter": "92",
+    "title": "MUSICAL INSTRUMENTS; PARTS AND ACCESSORIES OF SUCH ARTICLES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 17
+  },
+  {
+    "chapter": "93",
+    "title": "ARMS AND AMMUNITION; PARTS AND ACCESSORIES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 15
+  },
+  {
+    "chapter": "94",
+    "title": "FURNITURE; BEDDING, MATTRESSES, MATTRESS SUPPORTS, CUSHIONS AND SIMILAR STUFFED FURNISHING; LUMINAIRES  AND LIGHTING FITTINGS, NOT ELSEWHERE SPECIFIED OR INCLUDED; ILLUMINATED SIGNS, ILLUMINATED NAME- PLATES AND THE LIKE; PREFABRICATED BUILDING",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 39
+  },
+  {
+    "chapter": "95",
+    "title": "TOYS, GAMES AND SPORTS REQUISITES; PARTS AND ACCESSORIES THEREOF",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 28
+  },
+  {
+    "chapter": "96",
+    "title": "MISCELLANEOUS MANUFACTURED ARTICLES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 27
+  },
+  {
+    "chapter": "97",
+    "title": "WORKS OF ART, COLLECTORS\\' PIECES AND ANTIQUES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 16
+  },
+  {
+    "chapter": "98",
+    "title": "PROJECT IMPORTS; LABORATORY CHEMICALS; PASSENGERS\\' BAGGAGE, PERSONAL IMPORTATIONS BY AIR OR POST; SHIP STORES",
+    "titleSource": "e-invoice HSN master, chapter title prefix",
+    "rowsAgreeing": 8
+  },
+  {
+    "chapter": "99",
+    "title": null,
+    "titleSource": null,
+    "rowsAgreeing": 0
+  }
+]

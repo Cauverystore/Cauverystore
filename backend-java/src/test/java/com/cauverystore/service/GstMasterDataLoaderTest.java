@@ -1,7 +1,9 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.ChapterMaster;
 import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.repository.GstRateMasterRepository;
+import com.cauverystore.repository.ChapterMasterRepository;
 import com.cauverystore.repository.CountryMasterRepository;
 import com.cauverystore.repository.CurrencyMasterRepository;
 import com.cauverystore.repository.PortMasterRepository;
@@ -23,7 +25,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,13 +51,14 @@ class GstMasterDataLoaderTest {
     @Mock private CurrencyMasterRepository currencyRepo;
     @Mock private PortMasterRepository portRepo;
     @Mock private PincodeStateRangeRepository pincodeRepo;
+    @Mock private ChapterMasterRepository chapterRepo;
 
     private GstMasterDataLoader loader;
 
     @BeforeEach
     void setUp() {
         loader = new GstMasterDataLoader(hsnRepo, unitRepo, stateRepo, rateRepo, logRepo,
-                countryRepo, currencyRepo, portRepo, pincodeRepo);
+                countryRepo, currencyRepo, portRepo, pincodeRepo, chapterRepo);
     }
 
     private GstRateMaster autoVerified(String hsn, double rate) {
@@ -273,6 +278,80 @@ class GstMasterDataLoaderTest {
         assertTrue(saved.stream().noneMatch(r -> "1200".equals(r.getHsnCode())));
         assertTrue(saved.stream().anyMatch(r -> "2101".equals(r.getHsnCode())),
                 "the goods it described belong to 2101, which must still be seeded");
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<ChapterMaster> runChapterLoad() {
+        ReflectionTestUtils.invokeMethod(loader, "loadChapters");
+        ArgumentCaptor<List<ChapterMaster>> captor = ArgumentCaptor.forClass(List.class);
+        verify(chapterRepo, atLeastOnce()).saveAll(captor.capture());
+        List<ChapterMaster> all = new ArrayList<>();
+        captor.getAllValues().forEach(all::addAll);
+        return all;
+    }
+
+    @Test
+    void shouldNameEveryChapterTheRateSeedPrices() {
+        // The point of the chapter master: 36 chapter codes are priced by the seed, and each one
+        // has to be showable to a seller as a trade rather than as two digits.
+        when(chapterRepo.findAll()).thenReturn(List.of());
+        when(chapterRepo.saveAll(any())).thenAnswer(i -> i.getArgument(0));
+
+        List<ChapterMaster> loaded = runChapterLoad();
+        Map<String, ChapterMaster> byCode = new HashMap<>();
+        loaded.forEach(c -> byCode.put(c.getChapter(), c));
+
+        for (String priced : List.of("61", "62", "64", "03", "10", "92", "87")) {
+            assertTrue(byCode.containsKey(priced), "chapter " + priced + " is priced but missing");
+            assertTrue(byCode.get(priced).isNamed(), "chapter " + priced + " has no title");
+        }
+        assertEquals("ARTICLES OF APPAREL AND CLOTHING ACCESSORIES, KNITTED OR CROCHETED",
+                byCode.get("61").getTitle());
+    }
+
+    @Test
+    void shouldKeepAChapterThatHasNoPublishedTitle() {
+        // Five chapters carry no title anywhere in the master. Dropping them would silently
+        // shorten the tariff; writing in a remembered title would put unsourced text into the
+        // data that decides tax. The row exists and says so.
+        when(chapterRepo.findAll()).thenReturn(List.of());
+        when(chapterRepo.saveAll(any())).thenAnswer(i -> i.getArgument(0));
+
+        ChapterMaster dairy = runChapterLoad().stream()
+                .filter(c -> "04".equals(c.getChapter()))
+                .findFirst().orElseThrow(() -> new AssertionError("chapter 04 was dropped"));
+
+        assertNull(dairy.getTitle());
+        assertFalse(dairy.isNamed());
+        assertEquals("04", dairy.getLabel(), "an unnamed chapter still labels as its number");
+    }
+
+    @Test
+    void shouldNotBlankATitleAlreadyStoredWhenTheFileHasNone() {
+        // Someone may fill in one of the five by hand. A later run reading the same file must
+        // not wipe that back to null.
+        ChapterMaster filledIn = new ChapterMaster("04", "DAIRY PRODUCE", "entered by hand");
+        when(chapterRepo.findAll()).thenReturn(List.of(filledIn));
+        when(chapterRepo.saveAll(any())).thenAnswer(i -> i.getArgument(0));
+
+        ReflectionTestUtils.invokeMethod(loader, "loadChapters");
+
+        assertEquals("DAIRY PRODUCE", filledIn.getTitle());
+    }
+
+    @Test
+    void chapterLoadShouldBeIdempotent() {
+        when(chapterRepo.findAll()).thenReturn(List.of());
+        when(chapterRepo.saveAll(any())).thenAnswer(i -> i.getArgument(0));
+        List<ChapterMaster> first = runChapterLoad();
+        assertEquals(98, first.size(), "01-99 less chapter 77, which the tariff reserves");
+
+        reset(chapterRepo);
+        when(chapterRepo.findAll()).thenReturn(first);
+
+        ReflectionTestUtils.invokeMethod(loader, "loadChapters");
+
+        verify(chapterRepo, never()).saveAll(any());
     }
 
     @Test

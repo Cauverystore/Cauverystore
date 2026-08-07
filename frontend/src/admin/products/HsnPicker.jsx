@@ -12,6 +12,12 @@ import api from "../../api/axios";
  * ("rice") or by code, always shown with the government's own description, and codes already
  * used in this category offered first, because the second bag of rice belongs where the first
  * one went.
+ *
+ * Search alone was not enough, though. It only works for a seller who can already name their
+ * goods the way the tariff names them - someone selling lungis who does not think of them as
+ * "articles of apparel, not knitted" has nothing to type, and the cost of them giving up is a
+ * product classified by guesswork. So the tariff can also be walked from the top: pick the
+ * trade, then the heading.
  */
 const HsnPicker = ({ value, onChange, categoryId }) => {
   const [query, setQuery] = useState("");
@@ -20,6 +26,12 @@ const HsnPicker = ({ value, onChange, categoryId }) => {
   const [selected, setSelected] = useState(null);
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  // "search" | "chapters" | "headings" - which way into the tariff is being used.
+  const [mode, setMode] = useState("search");
+  const [chapters, setChapters] = useState([]);
+  const [headings, setHeadings] = useState([]);
+  const [activeChapter, setActiveChapter] = useState(null);
+  const [browsing, setBrowsing] = useState(false);
   const boxRef = useRef(null);
 
   // Show what the currently saved code actually means, so an existing product's classification
@@ -69,7 +81,36 @@ const HsnPicker = ({ value, onChange, categoryId }) => {
     setSelected(row);
     setQuery("");
     setResults([]);
+    setMode("search");
     setOpen(false);
+  };
+
+  const browseChapters = () => {
+    setMode("chapters");
+    if (chapters.length > 0) return;   // the tariff does not change between clicks
+    setBrowsing(true);
+    api.get("/api/hsn/chapters")
+      .then((r) => setChapters(r.data || []))
+      .catch(() => setChapters([]))
+      .finally(() => setBrowsing(false));
+  };
+
+  const openChapter = (chapter) => {
+    setActiveChapter(chapter);
+    setMode("headings");
+    setHeadings([]);
+    setBrowsing(true);
+    api.get(`/api/hsn/chapters/${encodeURIComponent(chapter.chapter)}/headings`)
+      .then((r) => setHeadings(r.data || []))
+      .catch(() => setHeadings([]))
+      .finally(() => setBrowsing(false));
+  };
+
+  // Typing is a clear signal that browsing has been abandoned.
+  const onType = (text) => {
+    setQuery(text);
+    setOpen(true);
+    if (text.trim().length > 0 && mode !== "search") setMode("search");
   };
 
   const shown = query.trim().length >= 2 ? results : suggestions;
@@ -106,7 +147,7 @@ const HsnPicker = ({ value, onChange, categoryId }) => {
           <input
             value={query}
             onFocus={() => setOpen(true)}
-            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onChange={(e) => onType(e.target.value)}
             placeholder="Search by goods or code — e.g. rice, or 1006"
             style={inp}
           />
@@ -117,32 +158,88 @@ const HsnPicker = ({ value, onChange, categoryId }) => {
               background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
               boxShadow: "0 8px 24px rgba(0,0,0,0.1)", maxHeight: 280, overflowY: "auto",
             }}>
-              {showingSuggestions && suggestions.length > 0 && (
-                <div style={hdr}>Already used for this category</div>
-              )}
-              {searching && <div style={{ ...row, color: "#6b7280" }}>Searching…</div>}
-
-              {!searching && shown.length === 0 && (
-                <div style={{ ...row, color: "#6b7280" }}>
-                  {showingSuggestions
-                    ? "No codes used here yet — type what the product is, such as “rice”."
-                    : "No match. Try plainer words, or the first digits of the code."}
-                </div>
-              )}
-
-              {shown.map((r) => (
-                <button key={r.hsnCode} type="button" onClick={() => choose(r)} style={rowBtn}>
-                  <strong style={{ fontSize: "0.85rem" }}>{r.hsnCode}</strong>
-                  {typeof r.timesUsed === "number" && (
-                    <span style={{ color: "#6b7280", fontSize: "0.72rem", marginLeft: 6 }}>
-                      used {r.timesUsed}×
-                    </span>
+              {mode === "search" && (
+                <>
+                  {showingSuggestions && suggestions.length > 0 && (
+                    <div style={hdr}>Already used for this category</div>
                   )}
-                  <span style={{ display: "block", color: "#4b5563", fontSize: "0.78rem" }}>
-                    {r.description}
-                  </span>
-                </button>
-              ))}
+                  {searching && <div style={{ ...row, color: "#6b7280" }}>Searching…</div>}
+
+                  {!searching && shown.length === 0 && (
+                    <div style={{ ...row, color: "#6b7280" }}>
+                      {showingSuggestions
+                        ? "No codes used here yet — type what the product is, such as “rice”."
+                        : "No match. Try plainer words, or browse the tariff below."}
+                    </div>
+                  )}
+
+                  {shown.map((r) => (
+                    <button key={r.hsnCode} type="button" onClick={() => choose(r)} style={rowBtn}>
+                      <strong style={{ fontSize: "0.85rem" }}>{r.hsnCode}</strong>
+                      {typeof r.timesUsed === "number" && (
+                        <span style={{ color: "#6b7280", fontSize: "0.72rem", marginLeft: 6 }}>
+                          used {r.timesUsed}×
+                        </span>
+                      )}
+                      <span style={{ display: "block", color: "#4b5563", fontSize: "0.78rem" }}>
+                        {r.description}
+                      </span>
+                    </button>
+                  ))}
+
+                  <button type="button" onClick={browseChapters} style={{ ...rowBtn, ...footBtn }}>
+                    Not sure what to search for? Browse the tariff by trade →
+                  </button>
+                </>
+              )}
+
+              {mode === "chapters" && (
+                <>
+                  <div style={hdr}>
+                    Choose the trade your goods belong to
+                    <button type="button" onClick={() => setMode("search")}
+                            style={{ ...linkBtn, float: "right", fontWeight: 400 }}>
+                      Search instead
+                    </button>
+                  </div>
+                  {browsing && <div style={{ ...row, color: "#6b7280" }}>Loading…</div>}
+                  {chapters.map((c) => (
+                    <button key={c.chapter} type="button" onClick={() => openChapter(c)} style={rowBtn}>
+                      <strong style={{ fontSize: "0.85rem" }}>{c.chapter}</strong>
+                      <span style={{ display: "block", color: c.named ? "#4b5563" : "#9ca3af", fontSize: "0.78rem" }}>
+                        {c.named ? c.title : "No published title — open it to see the headings"}
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {mode === "headings" && (
+                <>
+                  <div style={hdr}>
+                    <button type="button" onClick={() => setMode("chapters")} style={{ ...linkBtn, fontWeight: 400 }}>
+                      ← All trades
+                    </button>
+                    <span style={{ display: "block", marginTop: 2 }}>
+                      {activeChapter?.named ? activeChapter.title : `Chapter ${activeChapter?.chapter}`}
+                    </span>
+                  </div>
+                  {browsing && <div style={{ ...row, color: "#6b7280" }}>Loading…</div>}
+                  {!browsing && headings.length === 0 && (
+                    <div style={{ ...row, color: "#6b7280" }}>
+                      No headings listed under this chapter.
+                    </div>
+                  )}
+                  {headings.map((h) => (
+                    <button key={h.hsnCode} type="button" onClick={() => choose(h)} style={rowBtn}>
+                      <strong style={{ fontSize: "0.85rem" }}>{h.hsnCode}</strong>
+                      <span style={{ display: "block", color: "#4b5563", fontSize: "0.78rem" }}>
+                        {h.description}
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </>
@@ -163,6 +260,9 @@ const row = { padding: "0.55rem 0.65rem", fontSize: "0.82rem" };
 const rowBtn = {
   ...row, display: "block", width: "100%", textAlign: "left",
   background: "none", border: "none", borderTop: "1px solid #f3f4f6", cursor: "pointer",
+};
+const footBtn = {
+  color: "#2563eb", fontSize: "0.78rem", background: "#f9fafb", borderTop: "1px solid #e5e7eb",
 };
 const linkBtn = {
   background: "none", border: "none", color: "#2563eb", cursor: "pointer",

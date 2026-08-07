@@ -26,6 +26,23 @@ public class HsnController {
         this.service = service;
     }
 
+    /**
+     * The chapter list, for browsing down rather than searching across.
+     *
+     * Search only helps a seller who can already name their goods the tariff's way. Browsing
+     * gives everyone else somewhere to start.
+     */
+    @GetMapping("/chapters")
+    public ResponseEntity<List<Map<String, Object>>> chapters() {
+        return ResponseEntity.ok(service.chapters());
+    }
+
+    /** The four-digit headings inside one chapter - the second step of browsing. */
+    @GetMapping("/chapters/{chapter}/headings")
+    public ResponseEntity<List<Map<String, Object>>> headings(@PathVariable String chapter) {
+        return ResponseEntity.ok(service.headingsInChapter(chapter));
+    }
+
     /** Search the official master by code prefix or by words in the description. */
     @GetMapping("/search")
     public ResponseEntity<List<Map<String, Object>>> search(@RequestParam("q") String query) {
