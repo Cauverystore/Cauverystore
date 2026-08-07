@@ -151,7 +151,7 @@ const AdminGstCompliance = () => {
           <div>
             <label style={lbl}>State code</label>
             <input name="stateCode" value={form.stateCode || ""} onChange={change} style={inp} placeholder="33" />
-            <span style={hint}>Decides CGST+SGST or IGST on commission invoices.</span>
+            <span style={hint}>Decides CGST+SGST (or UTGST for Union Territories without a legislature) vs IGST on commission invoices.</span>
           </div>
         </div>
 
