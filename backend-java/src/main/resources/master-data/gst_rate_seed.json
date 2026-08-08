@@ -10497,20 +10497,6 @@
   },
   {
     "hsnCode": "61",
-    "gstRate": 5.0,
-    "effectiveFrom": "2025-09-22",
-    "effectiveTo": null,
-    "status": "VERIFIED",
-    "conditionType": "VALUE_UPTO",
-    "thresholdAmount": 2500.0,
-    "thresholdUnit": "piece",
-    "conditionText": "Article of apparel and clothing accessories, knitted or crocheted, of sale value not exceeding Rs 2500 per piece",
-    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "",
-    "wholeChapter": true
-  },
-  {
-    "hsnCode": "61",
     "gstRate": 18.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
@@ -10524,7 +10510,7 @@
     "wholeChapter": true
   },
   {
-    "hsnCode": "62",
+    "hsnCode": "61",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
@@ -10532,7 +10518,7 @@
     "conditionType": "VALUE_UPTO",
     "thresholdAmount": 2500.0,
     "thresholdUnit": "piece",
-    "conditionText": "Articles of apparel and clothing accessories, not knitted or crocheted, of sale value not exceeding Rs. 2500 per piece",
+    "conditionText": "Article of apparel and clothing accessories, knitted or crocheted, of sale value not exceeding Rs 2500 per piece",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
     "notes": "",
     "wholeChapter": true
@@ -10547,6 +10533,20 @@
     "thresholdAmount": 2500.0,
     "thresholdUnit": "piece",
     "conditionText": "Articles of apparel and clothing accessories, not knitted or crocheted, of sale value exceeding Rs. 2500 per piece",
+    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
+    "notes": "",
+    "wholeChapter": true
+  },
+  {
+    "hsnCode": "62",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "VALUE_UPTO",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "piece",
+    "conditionText": "Articles of apparel and clothing accessories, not knitted or crocheted, of sale value not exceeding Rs. 2500 per piece",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
     "notes": "",
     "wholeChapter": true
@@ -10567,20 +10567,6 @@
   },
   {
     "hsnCode": "63",
-    "gstRate": 5.0,
-    "effectiveFrom": "2025-09-22",
-    "effectiveTo": null,
-    "status": "UNVERIFIED",
-    "conditionType": "VALUE_UPTO",
-    "thresholdAmount": 2500.0,
-    "thresholdUnit": "piece",
-    "conditionText": "[other than 6305 32 00, Other made up textile articles, sets, of sale value not exceeding 6305 33 00, 6309] Rs. 2500 per piece",
-    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading mixes value-conditional and unconditional rates - price alone cannot decide it; the goods description must be matched. ",
-    "wholeChapter": false
-  },
-  {
-    "hsnCode": "63",
     "gstRate": 18.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
@@ -10589,6 +10575,20 @@
     "thresholdAmount": 2500.0,
     "thresholdUnit": "piece",
     "conditionText": "[other than 6309] Other made-up textile articles, sets of sale value exceeding Rs. 2500 per piece [other than worn clothing and other worn articles; rags]",
+    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
+    "notes": "This heading mixes value-conditional and unconditional rates - price alone cannot decide it; the goods description must be matched. ",
+    "wholeChapter": false
+  },
+  {
+    "hsnCode": "63",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "VALUE_UPTO",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "piece",
+    "conditionText": "[other than 6305 32 00, Other made up textile articles, sets, of sale value not exceeding 6305 33 00, 6309] Rs. 2500 per piece",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
     "notes": "This heading mixes value-conditional and unconditional rates - price alone cannot decide it; the goods description must be matched. ",
     "wholeChapter": false
@@ -10639,12 +10639,25 @@
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
     "status": "VERIFIED",
-    "conditionType": "NONE",
-    "thresholdAmount": null,
-    "thresholdUnit": null,
+    "conditionType": "VALUE_ABOVE",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
     "conditionText": "Waterproof footwear with outer soles and uppers of rubber or of plastics, the uppers of which are neither fixed to the sole nor assembled by stitching, riveting, nailing, screwing, plugging or similar processes",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": ""
+    "notes": "Banded on 6401: this heading's rate applies above Rs 2500 per pair. Left flat it answered before the chapter-level carve-out the resolver never reached, taxing every pair at 18% including those owing 5%."
+  },
+  {
+    "hsnCode": "6401",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "VALUE_UPTO",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
+    "conditionText": "Footwear of sale value not exceeding Rs 2500 per pair - Waterproof footwear with outer soles and uppers of rubber or of plastics, the uppers of which are neither fixed to the sole nor assembled by stitching, riveting, nailing, screwing, plugging or similar processes",
+    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
+    "notes": "Written from the chapter 64 carve-out in Notification 09/2025, which taxes footwear of sale value not exceeding Rs 2500 per pair at 5%. It sat against the chapter, where the resolver never reached it because this heading answered first."
   },
   {
     "hsnCode": "6402",
@@ -10652,12 +10665,25 @@
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
     "status": "VERIFIED",
-    "conditionType": "NONE",
-    "thresholdAmount": null,
-    "thresholdUnit": null,
+    "conditionType": "VALUE_ABOVE",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
     "conditionText": "Other footwear with outer soles and uppers of rubber or plastics",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": ""
+    "notes": "Banded on 6402: this heading's rate applies above Rs 2500 per pair. Left flat it answered before the chapter-level carve-out the resolver never reached, taxing every pair at 18% including those owing 5%."
+  },
+  {
+    "hsnCode": "6402",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "VALUE_UPTO",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
+    "conditionText": "Footwear of sale value not exceeding Rs 2500 per pair - Other footwear with outer soles and uppers of rubber or plastics",
+    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
+    "notes": "Written from the chapter 64 carve-out in Notification 09/2025, which taxes footwear of sale value not exceeding Rs 2500 per pair at 5%. It sat against the chapter, where the resolver never reached it because this heading answered first."
   },
   {
     "hsnCode": "6403",
@@ -10665,12 +10691,25 @@
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
     "status": "VERIFIED",
-    "conditionType": "NONE",
-    "thresholdAmount": null,
-    "thresholdUnit": null,
+    "conditionType": "VALUE_ABOVE",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
     "conditionText": "Footwear with outer soles of rubber, plastics, leather or composition leather and uppers of leather",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": ""
+    "notes": "Banded on 6403: this heading's rate applies above Rs 2500 per pair. Left flat it answered before the chapter-level carve-out the resolver never reached, taxing every pair at 18% including those owing 5%."
+  },
+  {
+    "hsnCode": "6403",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "VALUE_UPTO",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
+    "conditionText": "Footwear of sale value not exceeding Rs 2500 per pair - Footwear with outer soles of rubber, plastics, leather or composition leather and uppers of leather",
+    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
+    "notes": "Written from the chapter 64 carve-out in Notification 09/2025, which taxes footwear of sale value not exceeding Rs 2500 per pair at 5%. It sat against the chapter, where the resolver never reached it because this heading answered first."
   },
   {
     "hsnCode": "6404",
@@ -10678,12 +10717,25 @@
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
     "status": "VERIFIED",
-    "conditionType": "NONE",
-    "thresholdAmount": null,
-    "thresholdUnit": null,
+    "conditionType": "VALUE_ABOVE",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
     "conditionText": "Footwear with outer soles of rubber, plastics, leather or composition leather and uppers of textile materials",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": ""
+    "notes": "Banded on 6404: this heading's rate applies above Rs 2500 per pair. Left flat it answered before the chapter-level carve-out the resolver never reached, taxing every pair at 18% including those owing 5%."
+  },
+  {
+    "hsnCode": "6404",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "VALUE_UPTO",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
+    "conditionText": "Footwear of sale value not exceeding Rs 2500 per pair - Footwear with outer soles of rubber, plastics, leather or composition leather and uppers of textile materials",
+    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
+    "notes": "Written from the chapter 64 carve-out in Notification 09/2025, which taxes footwear of sale value not exceeding Rs 2500 per pair at 5%. It sat against the chapter, where the resolver never reached it because this heading answered first."
   },
   {
     "hsnCode": "6405",
@@ -10691,12 +10743,25 @@
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
     "status": "VERIFIED",
-    "conditionType": "NONE",
-    "thresholdAmount": null,
-    "thresholdUnit": null,
+    "conditionType": "VALUE_ABOVE",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
     "conditionText": "Other footwear",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": ""
+    "notes": "Banded on 6405: this heading's rate applies above Rs 2500 per pair. Left flat it answered before the chapter-level carve-out the resolver never reached, taxing every pair at 18% including those owing 5%."
+  },
+  {
+    "hsnCode": "6405",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "VALUE_UPTO",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "pair",
+    "conditionText": "Footwear of sale value not exceeding Rs 2500 per pair - Other footwear",
+    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
+    "notes": "Written from the chapter 64 carve-out in Notification 09/2025, which taxes footwear of sale value not exceeding Rs 2500 per pair at 5%. It sat against the chapter, where the resolver never reached it because this heading answered first."
   },
   {
     "hsnCode": "6406",
@@ -17967,19 +18032,6 @@
   },
   {
     "hsnCode": "9404",
-    "gstRate": 5.0,
-    "effectiveFrom": "2025-09-22",
-    "effectiveTo": null,
-    "status": "UNVERIFIED",
-    "conditionType": "VALUE_UPTO",
-    "thresholdAmount": 2500.0,
-    "thresholdUnit": "piece",
-    "conditionText": "Cotton quilts of sale value not exceeding Rs. 2500 per piece",
-    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading mixes value-conditional and unconditional rates - price alone cannot decide it; the goods description must be matched. "
-  },
-  {
-    "hsnCode": "9404",
     "gstRate": 18.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
@@ -17988,6 +18040,19 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Mattress supports; articles of bedding and similar furnishing (for example, mattresses, quilts, eiderdowns, cushions, pouffes and pillows) fitted with springs or stuffed or internally fitted with any material or of cellular rubber or plastics, whether or not covered [other than coir products (except coir mattresses), products wholly made of quilted textile materials not exceeding Rs. 2500 per piece and cotton quilts not exceeding Rs. 2500 per piece]",
+    "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
+    "notes": "This heading mixes value-conditional and unconditional rates - price alone cannot decide it; the goods description must be matched. "
+  },
+  {
+    "hsnCode": "9404",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "VALUE_UPTO",
+    "thresholdAmount": 2500.0,
+    "thresholdUnit": "piece",
+    "conditionText": "Cotton quilts of sale value not exceeding Rs. 2500 per piece",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
     "notes": "This heading mixes value-conditional and unconditional rates - price alone cannot decide it; the goods description must be matched. "
   },
