@@ -474,4 +474,51 @@ class ProductServiceTest {
         assertNotNull(rowErrors);
         assertTrue(rowErrors.get(0).contains("Yes or No"), "should explain the bad value");
     }
+
+    @Test
+    void updatingAnUntaxableProduct_shouldTakeItOffSaleRatherThanRefuseTheEdit() {
+        // The trap: assertSellable threw on every save, so a seller could not correct the
+        // price, could not zero the stock, and could not unpublish - and the product stayed
+        // published and untaxable, which is the outcome the guard exists to prevent.
+        Product existing = new Product();
+        existing.setId(9L);
+        existing.setName("Unclassified goods");
+        existing.setProductStatus("published");
+        existing.setPrice(100.0);
+        when(productRepo.findById(9L)).thenReturn(java.util.Optional.of(existing));
+        when(productRepo.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(authorizationService.hasRole("SELLER")).thenReturn(false);
+        doThrow(new HsnClassificationService.UnclassifiedProductException(
+                        "no rate can be determined for it"))
+                .when(hsnClassificationService).assertSellable(any());
+
+        Product update = new Product();
+        update.setStock(0);
+
+        Product saved = assertDoesNotThrow(() -> productService.updateProduct(9L, update));
+
+        assertEquals("draft", saved.getProductStatus(),
+                "an untaxable product must come off sale, not block the seller");
+        verify(productRepo).save(existing);
+    }
+
+    @Test
+    void updatingATaxableProduct_shouldLeaveItPublished() {
+        Product existing = new Product();
+        existing.setId(9L);
+        existing.setName("Cotton Lungi");
+        existing.setProductStatus("published");
+        existing.setPrice(450.0);
+        when(productRepo.findById(9L)).thenReturn(java.util.Optional.of(existing));
+        when(productRepo.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(authorizationService.hasRole("SELLER")).thenReturn(false);
+
+        Product update = new Product();
+        update.setStock(5);
+
+        Product saved = productService.updateProduct(9L, update);
+
+        assertEquals("published", saved.getProductStatus(),
+                "nothing is wrong with this one; it must stay on sale");
+    }
 }

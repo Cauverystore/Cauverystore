@@ -13,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +32,8 @@ import java.util.*;
 
 @Service
 public class ProductService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
     private final ProductRepository productRepo;
     private final CategoryRepository catRepo;
@@ -501,10 +505,36 @@ public class ProductService {
               existing.setGstRateSelectionId(product.getGstRateSelectionId());
           }
           hsnClassificationService.validate(existing);
-          hsnClassificationService.assertSellable(existing);
+          withdrawFromSaleIfUntaxable(existing);
           Product saved = productRepo.save(existing);
           hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
           return saved;
+    }
+
+    /**
+     * Takes a product off sale when it cannot be taxed, instead of refusing to save it.
+     *
+     * assertSellable throws, which is right when something is being published. On an edit to a
+     * product already on sale it is exactly backwards: the save is rejected, so the seller
+     * cannot correct the price, cannot zero the stock, and cannot unpublish it - and the
+     * product stays on sale, untaxable, which is the outcome the guard exists to prevent. A
+     * seller who only wanted to fix a typo gets an error about GST and no way through.
+     *
+     * That trap opened today, when chapter-level rates stopped answering for goods they do not
+     * name: products that resolved yesterday stopped resolving, without anyone touching them.
+     *
+     * So the edit is accepted and the product is moved to draft. It is off sale either way -
+     * which is what compliance requires - but the seller keeps their work and can fix the
+     * classification rather than being locked out of their own listing.
+     */
+    private void withdrawFromSaleIfUntaxable(Product product) {
+        try {
+            hsnClassificationService.assertSellable(product);
+        } catch (HsnClassificationService.UnclassifiedProductException e) {
+            product.setProductStatus("draft");
+            log.warn("Product {} ('{}') has been moved to draft because it cannot be taxed: {}",
+                    product.getId(), product.getName(), e.getMessage());
+        }
     }
 
     @Transactional
