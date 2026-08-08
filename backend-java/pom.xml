@@ -48,8 +48,18 @@
                     <!-- AuthIntegrationTest boots the full Spring context against a real database
                          (DatabaseConfig requires PG* vars / SPRING_DATASOURCE_URL). Exclude it from
                          the default `mvn test` run so CI/unit builds stay green; run it explicitly
-                         with `mvn test -Dgroups=integration` against a live database. -->
-                    <excludedGroups>integration</excludedGroups>
+                         with `mvn test -Dgroups=integration` against a live database.
+
+                         "live" is the CBIC notification check calling taxinformation.cbic.gov.in
+                         for real. The Railway image skips tests entirely, so this never affected
+                         a deployment - but any ordinary `mvn test` or `mvn package` would reach
+                         out to a third party's website, and a green build should never depend on
+                         someone else's server being up. It currently passes here only because
+                         this machine cannot verify CBIC's certificate, which is luck rather than
+                         design, and would start making builds flaky the moment that is fixed.
+
+                         Run it deliberately:  mvn test -Dgroups=live -->
+                    <excludedGroups>integration,live</excludedGroups>
                 </configuration>
             </plugin>
             <plugin>
