@@ -45,7 +45,7 @@ class CbicNotificationDetectorTest {
 
     private CbicNotificationDetector.Update update(String number, String category) {
         return new CbicNotificationDetector.Update(number, "some notification",
-                LocalDate.of(2026, 4, 30), category, "Notification", "path.pdf");
+                LocalDate.of(2026, 4, 30), category, "Notification", "path.pdf", 1010645L);
     }
 
     @Test
@@ -73,6 +73,7 @@ class CbicNotificationDetectorTest {
         CbicNotificationDetector spy = spy(detector);
         doReturn(List.of(update("04/2026-Central Tax (Rate)", "Central Tax (Rate)")))
                 .when(spy).fetchLatestUpdates();
+        doReturn(null).when(spy).fetchDocument(any());
 
         spy.detect();
 
@@ -89,6 +90,7 @@ class CbicNotificationDetectorTest {
         CbicNotificationDetector spy = spy(detector);
         doReturn(List.of(update("04/2026-Central Tax (Rate)", "Central Tax (Rate)")))
                 .when(spy).fetchLatestUpdates();
+        doReturn(null).when(spy).fetchDocument(any());
 
         spy.detect();
 
@@ -195,5 +197,42 @@ class CbicNotificationDetectorTest {
                         detector, "isCertificateProblem",
                         new RuntimeException("connection timed out")),
                 "an ordinary timeout is not a trust problem");
+    }
+
+    @Test
+    void shouldFingerprintTheNotificationDocument() {
+        // The rates are defensible because they trace to a published document. That argument
+        // only holds if the document can be shown to be the one CBIC served when it was read.
+        GstRateSource recorded = new GstRateSource();
+        when(freshnessService.recordPendingNotification(any(), any(), any(), any()))
+                .thenReturn(recorded);
+        CbicNotificationDetector spy = spy(detector);
+        doReturn(List.of(update("04/2026-Central Tax (Rate)", "Central Tax (Rate)")))
+                .when(spy).fetchLatestUpdates();
+        doReturn(new CbicNotificationDetector.Document("CTR-E.pdf", "%PDF-1.7 x".getBytes(),
+                "241c5e76584742e55f1e4ed8630310f0")).when(spy).fetchDocument(1010645L);
+
+        spy.detect();
+
+        assertEquals("241c5e76584742e55f1e4ed8630310f0", recorded.getDocumentSha256());
+        assertEquals("CTR-E.pdf", recorded.getDocumentFileName());
+        assertEquals(1010645L, recorded.getCbicDocumentId());
+        verify(sourceRepo).save(recorded);
+    }
+
+    @Test
+    void shouldStillRaiseTheAlertWhenTheDocumentCannotBeFetched() {
+        // The alert is the part that protects anyone. Losing it because a download failed would
+        // trade the whole point of the detector for a nice-to-have.
+        when(freshnessService.recordPendingNotification(any(), any(), any(), any()))
+                .thenReturn(new GstRateSource());
+        CbicNotificationDetector spy = spy(detector);
+        doReturn(List.of(update("04/2026-Central Tax (Rate)", "Central Tax (Rate)")))
+                .when(spy).fetchLatestUpdates();
+        doThrow(new IllegalStateException("gateway timeout")).when(spy).fetchDocument(any());
+
+        assertDoesNotThrow(spy::detect);
+        verify(freshnessService).recordPendingNotification(
+                eq("04/2026-Central Tax (Rate)"), any(), any(), any());
     }
 }

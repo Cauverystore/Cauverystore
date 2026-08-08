@@ -38,10 +38,12 @@ import java.util.Map;
  *
  * <h2>What it does with what it finds</h2>
  *
- * It records the notification's existence and nothing else. It does not read the PDF, does not
- * derive a rate, and never touches gst_rate_master - a rate enters this system only when a
- * person has read the notification and imported it, and that is the property that makes every
- * rate here defensible. What this removes is the chance of nobody noticing for a month.
+ * It records that the notification exists, downloads the PDF, and stores its SHA-256. It does
+ * not read the PDF for rates and never touches gst_rate_master - a rate enters this system only
+ * when a person has read the notification and imported it, and that is the property that makes
+ * every rate here defensible. What this removes is the chance of nobody noticing for a month,
+ * and the fingerprint means the document a reviewer reads can be shown to be the one CBIC
+ * served on the day it was found.
  *
  * A found notification is written with applied=false, so it shows on the compliance screen as
  * an outstanding change and the daily chase logs it as a compliance error until the rates are
@@ -84,7 +86,7 @@ public class CbicNotificationDetector {
 
     /** One CBIC update, reduced to what matters here. */
     public record Update(String number, String name, LocalDate dated, String category,
-                         String type, String documentPath) {
+                         String type, String documentPath, Long documentId) {
 
         /**
          * Whether this changes rates.
@@ -124,9 +126,31 @@ public class CbicNotificationDetector {
                 // Effective date is not in the feed and is rarely the notification date, so it
                 // is left null rather than guessed. Guessing it would put a date on a rate
                 // change that nobody had read.
-                freshnessService.recordPendingNotification(u.number(), u.dated(), null,
+                GstRateSource pending = freshnessService.recordPendingNotification(
+                        u.number(), u.dated(), null,
                         u.name() + (u.documentPath() == null ? ""
                                 : " [CBIC document: " + u.documentPath() + "]"));
+
+                // Fetch and fingerprint the notification as CBIC serves it today. The whole
+                // argument for these rates is that they trace to a published document, and that
+                // is only worth anything if the document can be shown to be unchanged since it
+                // was read. Failing to fetch it must not lose the alert, which is the part that
+                // actually protects anyone.
+                try {
+                    Document doc = fetchDocument(u.documentId());
+                    if (doc != null && pending != null) {
+                        pending.setCbicDocumentId(u.documentId());
+                        pending.setDocumentFileName(doc.fileName());
+                        pending.setDocumentSha256(doc.sha256());
+                        sourceRepo.save(pending);
+                        log.info("Archived the fingerprint of {} ({}, {} bytes, sha256 {}).",
+                                u.number(), doc.fileName(), doc.bytes().length, doc.sha256());
+                    }
+                } catch (Exception docFailure) {
+                    log.warn("Recorded {} but could not fetch its PDF: {}. The notification still "
+                            + "needs reading; fetch it from CBIC by hand.",
+                            u.number(), docFailure.getMessage());
+                }
                 recorded++;
                 log.error("GST COMPLIANCE: CBIC has published {} ({}), which this store has not "
                                 + "applied. Read it and import the rates before invoicing "
@@ -202,7 +226,8 @@ public class CbicNotificationDetector {
                         parsePortalDate(text(n, "updatedDate")),
                         text(n, "updateCategory"),
                         text(n, "updateType"),
-                        text(n, "docFilePath")));
+                        text(n, "docFilePath"),
+                        n.get("id") == null || n.get("id").isNull() ? null : n.get("id").asLong()));
             }
         } catch (IllegalStateException e) {
             throw e;
@@ -210,6 +235,52 @@ public class CbicNotificationDetector {
             throw new IllegalStateException("CBIC's updates feed could not be read: " + e.getMessage(), e);
         }
         return updates;
+    }
+
+    /** A notification PDF exactly as CBIC served it. */
+    public record Document(String fileName, byte[] bytes, String sha256) {}
+
+    /**
+     * Downloads one notification.
+     *
+     * CBIC returns the PDF base64-encoded inside a JSON envelope rather than as a file, which
+     * is why a plain fetch of the page URL yields an HTML shell and looks like the document has
+     * gone. Verified against 01/2026-Central Tax (Rate): the bytes this returns are identical
+     * to the copy committed under cbic-source.
+     */
+    public Document fetchDocument(Long documentId) {
+        if (documentId == null) return null;
+        String url = baseUrl + "/api/cbic-notification-msts/download/" + documentId + "/ENG";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set(HttpHeaders.USER_AGENT, "Mozilla/5.0 (compatible; CauveryStore-GST-check/1.0)");
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        String body = response.getBody();
+        if (body == null || body.isBlank()) return null;
+
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            String encoded = text(root, "data");
+            if (encoded == null || encoded.isBlank()) return null;
+            byte[] bytes = java.util.Base64.getDecoder().decode(encoded);
+            // A PDF that is not a PDF means the envelope changed shape, and a hash of the wrong
+            // bytes is worse than no hash - it would look like provenance.
+            if (bytes.length < 5 || bytes[0] != '%' || bytes[1] != 'P') {
+                throw new IllegalStateException(
+                        "CBIC returned something that is not a PDF for document " + documentId);
+            }
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            StringBuilder hex = new StringBuilder();
+            for (byte b : md.digest(bytes)) hex.append(String.format("%02x", b));
+            return new Document(text(root, "fileName"), bytes, hex.toString());
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("CBIC document " + documentId
+                    + " could not be read: " + e.getMessage(), e);
+        }
     }
 
     /** What the check currently sees, for the compliance screen and for testing it by hand. */

@@ -13,9 +13,11 @@ import java.time.LocalDateTime;
  * could not be queried, aged, or checked - so "are these the current rates?" had no answer, and
  * a rate change published months ago would have gone on being missed silently.
  *
- * CBIC's notification API requires authentication, so this cannot be polled automatically. What
- * can be automated is the chasing: record who checked and when, measure how stale that is, and
- * escalate. A verification that is 90 days old is a finding in itself.
+ * CbicNotificationDetector now fills these rows automatically from CBIC's own updates feed, and
+ * records the SHA-256 of the notification PDF as served. Applying a notification is still a
+ * human act: the detector can say one exists, but only a person can say they have read it and
+ * that the rates charged here match it. So the verification stamps below remain the point -
+ * a check that is 90 days old is a finding in itself, however good the detector is.
  */
 @Entity
 @Table(name = "gst_rate_sources", uniqueConstraints = {
@@ -52,6 +54,25 @@ public class GstRateSource {
     @Column(name = "last_verified_by")
     private String lastVerifiedBy;
 
+    /**
+     * SHA-256 of the notification PDF as CBIC served it, and the name they gave it.
+     *
+     * This is the anchor the whole chain hangs from. A rate is defensible because it traces to
+     * a published document, and that argument is only as good as being able to show the
+     * document has not changed since it was read. Recorded when the detector finds the
+     * notification, so the hash is of what CBIC served that day rather than of whatever is at
+     * the URL by the time anyone asks.
+     */
+    @Column(name = "document_sha256", length = 64)
+    private String documentSha256;
+
+    @Column(name = "document_file_name")
+    private String documentFileName;
+
+    /** CBIC's own id for the document, so it can be fetched again on demand. */
+    @Column(name = "cbic_document_id")
+    private Long cbicDocumentId;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -87,6 +108,15 @@ public class GstRateSource {
     public void setLastVerifiedAt(LocalDateTime t) { this.lastVerifiedAt = t; }
     public String getLastVerifiedBy() { return lastVerifiedBy; }
     public void setLastVerifiedBy(String by) { this.lastVerifiedBy = by; }
+    public String getDocumentSha256() { return documentSha256; }
+    public void setDocumentSha256(String documentSha256) { this.documentSha256 = documentSha256; }
+
+    public String getDocumentFileName() { return documentFileName; }
+    public void setDocumentFileName(String documentFileName) { this.documentFileName = documentFileName; }
+
+    public Long getCbicDocumentId() { return cbicDocumentId; }
+    public void setCbicDocumentId(Long cbicDocumentId) { this.cbicDocumentId = cbicDocumentId; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime t) { this.createdAt = t; }
 }
