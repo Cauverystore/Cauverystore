@@ -1,0 +1,61 @@
+[
+  {
+    "sacCode": "996511",
+    "description": "Road transport services of goods including letters, parcels, live animals, household and office furniture, containers etc. by refrigerator vehicles, trucks, trailers, man or animal-drawn vehicles or any other vehicles",
+    "gstRate": 18.0,
+    "effectiveFrom": "2025-09-22",
+    "status": "VERIFIED",
+    "source": "CBIC Notif. 11/2017-CT(Rate) as amended, read with 09/2025-CT(Rate)",
+    "notes": "The delivery line on every invoice. Was hard-coded as 18% in GstInvoiceService, which is the right figure but was traceable to nothing."
+  },
+  {
+    "sacCode": "998599",
+    "description": "Other support services n.e.c. - the marketplace's commission for facilitating a supply",
+    "gstRate": 18.0,
+    "effectiveFrom": "2025-09-22",
+    "status": "VERIFIED",
+    "source": "CBIC Notif. 11/2017-CT(Rate) as amended, read with 09/2025-CT(Rate)",
+    "notes": "Used by CommissionInvoiceService, where 18% was a configuration default rather than a published rate."
+  },
+  {
+    "sacCode": "996812",
+    "description": "Courier services",
+    "gstRate": 18.0,
+    "effectiveFrom": "2025-09-22",
+    "status": "VERIFIED",
+    "source": "CBIC Notif. 11/2017-CT(Rate) as amended, read with 09/2025-CT(Rate)"
+  },
+  {
+    "sacCode": "996713",
+    "description": "Clearing and forwarding services",
+    "gstRate": 18.0,
+    "effectiveFrom": "2025-09-22",
+    "status": "VERIFIED",
+    "source": "CBIC Notif. 11/2017-CT(Rate) as amended, read with 09/2025-CT(Rate)"
+  },
+  {
+    "sacCode": "997212",
+    "description": "Rental or leasing services involving own or leased non-residential property",
+    "gstRate": 18.0,
+    "effectiveFrom": "2025-09-22",
+    "status": "VERIFIED",
+    "source": "CBIC Notif. 11/2017-CT(Rate) as amended, read with 09/2025-CT(Rate)"
+  },
+  {
+    "sacCode": "998313",
+    "description": "Information technology consulting and support services",
+    "gstRate": 18.0,
+    "effectiveFrom": "2025-09-22",
+    "status": "VERIFIED",
+    "source": "CBIC Notif. 11/2017-CT(Rate) as amended, read with 09/2025-CT(Rate)"
+  },
+  {
+    "sacCode": "999799",
+    "description": "Other services n.e.c.",
+    "gstRate": 18.0,
+    "effectiveFrom": "2025-09-22",
+    "status": "UNVERIFIED",
+    "source": "CBIC Notif. 11/2017-CT(Rate) as amended",
+    "notes": "A residual heading. 18% is the standard rate but 'other services not elsewhere classified' covers things that are not all standard-rated, so this needs a human to confirm it describes the service being billed before it is charged."
+  }
+]

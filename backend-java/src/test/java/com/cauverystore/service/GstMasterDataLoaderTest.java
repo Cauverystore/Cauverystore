@@ -4,6 +4,7 @@ import com.cauverystore.entities.ChapterMaster;
 import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.ChapterMasterRepository;
+import com.cauverystore.repository.SacMasterRepository;
 import com.cauverystore.repository.TradeSynonymRepository;
 import com.cauverystore.repository.CountryMasterRepository;
 import com.cauverystore.repository.CurrencyMasterRepository;
@@ -54,13 +55,14 @@ class GstMasterDataLoaderTest {
     @Mock private PincodeStateRangeRepository pincodeRepo;
     @Mock private ChapterMasterRepository chapterRepo;
     @Mock private TradeSynonymRepository synonymRepo;
+    @Mock private SacMasterRepository sacRepo;
 
     private GstMasterDataLoader loader;
 
     @BeforeEach
     void setUp() {
         loader = new GstMasterDataLoader(hsnRepo, unitRepo, stateRepo, rateRepo, logRepo,
-                countryRepo, currencyRepo, portRepo, pincodeRepo, chapterRepo, synonymRepo);
+                countryRepo, currencyRepo, portRepo, pincodeRepo, chapterRepo, synonymRepo, sacRepo);
     }
 
     private GstRateMaster autoVerified(String hsn, double rate) {

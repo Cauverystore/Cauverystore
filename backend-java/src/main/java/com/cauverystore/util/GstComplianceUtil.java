@@ -8,6 +8,25 @@ public class GstComplianceUtil {
             Pattern.compile("^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$");
 
     /**
+     * PAN: five letters, four digits, one letter. Not "10 alphanumeric" - the positions carry
+     * meaning, and a loose check would accept strings the department never issued.
+     */
+    private static final Pattern PAN_PATTERN =
+            Pattern.compile("^[A-Z]{5}[0-9]{4}[A-Z]{1}$");
+
+    /**
+     * Enrolment number issued under Notification 34/2023 to unregistered persons supplying
+     * goods intra-state through an e-commerce operator.
+     *
+     * Deliberately loose. It is a comparatively recent identifier, the published format is a
+     * state code followed by an alphanumeric string, and rejecting a real one because this
+     * pattern was drawn too tightly would keep a lawful seller off the platform - a worse
+     * outcome than accepting a typo that the portal will reject anyway.
+     */
+    private static final Pattern ENROLMENT_PATTERN =
+            Pattern.compile("^[0-9]{2}[0-9A-Z]{10,18}$");
+
+    /**
      * GST state codes of the Union Territories without a state legislature - the only places a
      * supplier charges UTGST instead of SGST on intra-state supplies. Delhi, Puducherry and
      * Jammu &amp; Kashmir have legislatures, so SGST applies there and they are deliberately absent.
@@ -54,6 +73,40 @@ public class GstComplianceUtil {
             throw new IllegalArgumentException("Invalid GSTIN format: " + gstin
                     + ". Expected 15 characters: 2-digit state code + 10-digit PAN + 1 entity code + 1 blank + 1 checksum");
         }
+    }
+
+    /** Optional field: blank is fine, wrong is not. */
+    public static void validatePan(String pan) {
+        if (pan == null || pan.trim().isEmpty()) return;
+        if (!PAN_PATTERN.matcher(pan.trim().toUpperCase()).matches()) {
+            throw new IllegalArgumentException("Invalid PAN format: " + pan
+                    + ". Expected 10 characters: five letters, four digits, one letter (AAAAA9999A).");
+        }
+    }
+
+    public static void validateEnrolmentNumber(String enrolment) {
+        if (enrolment == null || enrolment.trim().isEmpty()) return;
+        if (!ENROLMENT_PATTERN.matcher(enrolment.trim().toUpperCase()).matches()) {
+            throw new IllegalArgumentException("Invalid enrolment number: " + enrolment
+                    + ". Expected a two-digit state code followed by the identifier issued under "
+                    + "Notification 34/2023.");
+        }
+    }
+
+    /**
+     * Whether a PAN agrees with the PAN embedded in a GSTIN.
+     *
+     * A GSTIN carries its holder's PAN at characters 3 to 12 by construction, so the two can be
+     * checked against each other rather than stored as unrelated facts. A mismatch means one of
+     * them belongs to somebody else, and an invoice carrying the wrong PAN misreports who the
+     * supply was made to.
+     */
+    public static boolean panMatchesGstin(String pan, String gstin) {
+        if (pan == null || gstin == null) return false;
+        String p = pan.trim().toUpperCase();
+        String g = gstin.trim().toUpperCase();
+        if (!PAN_PATTERN.matcher(p).matches() || !GSTIN_PATTERN.matcher(g).matches()) return false;
+        return g.substring(2, 12).equals(p);
     }
 
     /**

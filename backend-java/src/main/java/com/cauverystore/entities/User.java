@@ -20,6 +20,27 @@ public class User extends BaseEntity {
     private String phone;
     private String address;
     private String profilePicture;
+
+    /**
+     * The customer's PAN. Optional, and only meaningful for a business buyer.
+     *
+     * A registered buyer's PAN is already inside their GSTIN at characters 3-12, so this is not
+     * a second source of truth - GstComplianceUtil.panMatchesGstin checks the two agree. It
+     * exists for buyers who have a PAN but no GST registration, where returns and TCS reporting
+     * still need to identify them.
+     */
+    @Column(name = "pan_number", length = 10)
+    private String panNumber;
+
+    /**
+     * Enrolment number under Notification 34/2023, effective 01-10-2023.
+     *
+     * Lets a person supplying goods intra-state through an e-commerce operator trade without
+     * full GST registration while under the threshold. It is an alternative to a GSTIN, not an
+     * addition, so anything reading one has to accept the other.
+     */
+    @Column(name = "enrolment_number", length = 20)
+    private String enrolmentNumber;
     @Column(nullable = false)
     private String status = "ACTIVE";
     @Enumerated(EnumType.STRING)
@@ -101,6 +122,22 @@ public class User extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public String getProfilePicture() {
         return this.profilePicture;
+    }
+
+    public String getPanNumber() {
+        return this.panNumber;
+    }
+
+    public void setPanNumber(final String panNumber) {
+        this.panNumber = panNumber;
+    }
+
+    public String getEnrolmentNumber() {
+        return this.enrolmentNumber;
+    }
+
+    public void setEnrolmentNumber(final String enrolmentNumber) {
+        this.enrolmentNumber = enrolmentNumber;
     }
 
     @java.lang.SuppressWarnings("all")

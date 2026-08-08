@@ -160,6 +160,10 @@ public class GstInvoiceService {
         // generation); B2C invoices use the account holder's name as the consumer.
         // Carried from the order onto the invoice before place of supply is worked out, since
         // it is what decides it.
+        if (order.getUser() != null) {
+            inv.setBuyerPan(order.getUser().getPanNumber());
+            inv.setBuyerEnrolmentNumber(order.getUser().getEnrolmentNumber());
+        }
         inv.setBillToShipTo(Boolean.TRUE.equals(order.getBillToShipTo()));
         inv.setConsigneeName(order.getConsigneeName());
         inv.setConsigneeAddress(order.getConsigneeAddress());
@@ -796,6 +800,10 @@ public class GstInvoiceService {
             entry.put("invoiceDate", inv.getInvoiceDate().toString());
             entry.put("buyerGstin", inv.getBuyerGstin());
             entry.put("buyerName", inv.getBuyerName());
+            // Deliberately here and not in Gstr1ExportService: the offline utility's columns are
+            // prescribed, and an extra one fails validation at upload. This report is ours.
+            entry.put("buyerPan", inv.getBuyerPan());
+            entry.put("buyerEnrolmentNumber", inv.getBuyerEnrolmentNumber());
             entry.put("taxableAmount", inv.getTaxableAmount());
             entry.put("cgst", inv.getCgstAmount());
             entry.put("sgst", inv.getSgstAmount());

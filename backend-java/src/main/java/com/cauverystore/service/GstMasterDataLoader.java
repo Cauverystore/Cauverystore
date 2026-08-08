@@ -4,6 +4,8 @@ import com.cauverystore.entities.ChapterMaster;
 import com.cauverystore.entities.TradeSynonym;
 import com.cauverystore.entities.CountryMaster;
 import com.cauverystore.repository.ChapterMasterRepository;
+import com.cauverystore.entities.SacMaster;
+import com.cauverystore.repository.SacMasterRepository;
 import com.cauverystore.repository.TradeSynonymRepository;
 import com.cauverystore.repository.CountryMasterRepository;
 import com.cauverystore.entities.CurrencyMaster;
@@ -103,6 +105,7 @@ public class GstMasterDataLoader {
     private final PincodeStateRangeRepository pincodeRepo;
     private final ChapterMasterRepository chapterRepo;
     private final TradeSynonymRepository synonymRepo;
+    private final SacMasterRepository sacRepo;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gst.master-data.load-on-startup:true}")
@@ -118,7 +121,8 @@ public class GstMasterDataLoader {
                                PortMasterRepository portRepo,
                                PincodeStateRangeRepository pincodeRepo,
                                ChapterMasterRepository chapterRepo,
-                               TradeSynonymRepository synonymRepo) {
+                               TradeSynonymRepository synonymRepo,
+                               SacMasterRepository sacRepo) {
         this.hsnRepo = hsnRepo;
         this.unitRepo = unitRepo;
         this.stateRepo = stateRepo;
@@ -130,6 +134,7 @@ public class GstMasterDataLoader {
         this.pincodeRepo = pincodeRepo;
         this.chapterRepo = chapterRepo;
         this.synonymRepo = synonymRepo;
+        this.sacRepo = sacRepo;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -213,6 +218,7 @@ public class GstMasterDataLoader {
         summary.put("port", loadPorts());
         summary.put("pincodeRange", loadPincodeRanges());
         summary.put("tradeSynonym", loadTradeSynonyms());
+        summary.put("sac", loadSacRates());
         summary.put("gstRate", loadGstRates());
         return summary;
     }
@@ -590,6 +596,44 @@ public class GstMasterDataLoader {
         }
         if (!toSave.isEmpty()) synonymRepo.saveAll(toSave);
         recordLog("trade_synonyms.json", rows.size(), inserted, 0);
+        return rows.size();
+    }
+
+    /**
+     * Service rates, keyed by SAC.
+     *
+     * Insert-only and matched on code plus rate plus start date, so a restart neither
+     * duplicates nor overwrites - and an approval given on the review desk survives, exactly as
+     * it does for goods.
+     */
+    private int loadSacRates() {
+        List<JsonNode> rows = readArray("master-data/sac_master.json");
+        if (rows.isEmpty()) return 0;
+
+        List<SacMaster> existing = sacRepo.findAll();
+        List<SacMaster> toSave = new ArrayList<>();
+        int inserted = 0;
+        for (JsonNode n : rows) {
+            String sac = text(n, "sacCode");
+            JsonNode rateNode = n.get("gstRate");
+            String fromStr = text(n, "effectiveFrom");
+            if (sac == null || sac.isBlank() || rateNode == null || fromStr == null) continue;
+
+            double rate = rateNode.asDouble();
+            LocalDate from = LocalDate.parse(fromStr);
+            boolean present = existing.stream().anyMatch(r -> sac.equals(r.getSacCode())
+                    && Double.compare(r.getGstRate(), rate) == 0
+                    && from.equals(r.getEffectiveFrom()));
+            if (present) continue;
+
+            SacMaster row = new SacMaster(sac, text(n, "description"), rate, from,
+                    text(n, "source"), text(n, "status") != null ? text(n, "status") : "UNVERIFIED");
+            row.setNotes(text(n, "notes"));
+            toSave.add(row);
+            inserted++;
+        }
+        if (!toSave.isEmpty()) sacRepo.saveAll(toSave);
+        recordLog("sac_master.json", rows.size(), inserted, 0);
         return rows.size();
     }
 

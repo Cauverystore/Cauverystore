@@ -53,6 +53,7 @@ class GstChargedRateVerificationTest {
     @Mock private com.cauverystore.repository.PincodeStateRangeRepository pincodeRepo;
     @Mock private com.cauverystore.repository.ChapterMasterRepository chapterRepo;
     @Mock private com.cauverystore.repository.TradeSynonymRepository synonymRepo;
+    @Mock private com.cauverystore.repository.SacMasterRepository sacRepo;
     @Mock private ProductRepository productRepo;
 
     private GstRateResolver resolver;
@@ -63,7 +64,7 @@ class GstChargedRateVerificationTest {
     @SuppressWarnings("unchecked")
     void loadTheRealSeed() {
         GstMasterDataLoader loader = new GstMasterDataLoader(hsnRepo, unitRepo, stateRepo, rateRepo,
-                logRepo, countryRepo, currencyRepo, portRepo, pincodeRepo, chapterRepo, synonymRepo);
+                logRepo, countryRepo, currencyRepo, portRepo, pincodeRepo, chapterRepo, synonymRepo, sacRepo);
         when(rateRepo.findAll()).thenReturn(List.of());
         ReflectionTestUtils.invokeMethod(loader, "loadGstRates");
 

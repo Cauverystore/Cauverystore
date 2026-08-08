@@ -16,6 +16,17 @@ public class Address extends BaseEntity {
     private String label;
     private String landmark;
     private String deliveryInstructions;
+
+    /**
+     * GSTIN registered at this address.
+     *
+     * Held per address rather than per customer because registration is per state: a company
+     * trading in three states holds three GSTINs, and which one applies depends on which of
+     * their addresses the supply is billed to. One GSTIN on the customer record would put the
+     * wrong state on the invoice for two of them.
+     */
+    @Column(length = 15)
+    private String gstin;
     private Boolean isDefault = false;
     private Boolean isBilling = false;
     @ManyToOne(fetch = FetchType.LAZY)
@@ -143,4 +154,6 @@ public class Address extends BaseEntity {
     public void setUser(final User user) {
         this.user = user;
     }
+    public String getGstin() { return gstin; }
+    public void setGstin(String gstin) { this.gstin = gstin; }
 }

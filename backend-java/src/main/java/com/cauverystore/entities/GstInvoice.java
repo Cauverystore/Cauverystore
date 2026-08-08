@@ -56,6 +56,19 @@ public class GstInvoice {
     private String buyerAddress;
     private String buyerStateCode;
 
+    /**
+     * The buyer's PAN and, where they trade on one instead of a GSTIN, their enrolment number
+     * under Notification 34/2023.
+     *
+     * Snapshotted onto the invoice like everything else that identifies a party, so a customer
+     * later correcting their profile does not rewrite who an issued invoice was made out to.
+     */
+    @Column(name = "buyer_pan", length = 10)
+    private String buyerPan;
+
+    @Column(name = "buyer_enrolment_number", length = 20)
+    private String buyerEnrolmentNumber;
+
     @Column(columnDefinition = "TEXT")
     private String deliveryAddress;
     private String deliveryStateCode;
@@ -317,6 +330,12 @@ public class GstInvoice {
 
     public String getConsigneeAddress() { return consigneeAddress; }
     public void setConsigneeAddress(String consigneeAddress) { this.consigneeAddress = consigneeAddress; }
+
+    public String getBuyerPan() { return buyerPan; }
+    public void setBuyerPan(String buyerPan) { this.buyerPan = buyerPan; }
+
+    public String getBuyerEnrolmentNumber() { return buyerEnrolmentNumber; }
+    public void setBuyerEnrolmentNumber(String n) { this.buyerEnrolmentNumber = n; }
 
     public String getPlaceOfSupply() { return placeOfSupply; }
     public void setPlaceOfSupply(String placeOfSupply) { this.placeOfSupply = placeOfSupply; }
