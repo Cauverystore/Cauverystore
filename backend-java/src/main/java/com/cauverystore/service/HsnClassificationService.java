@@ -159,7 +159,8 @@ public class HsnClassificationService {
      *
      * A blank code is allowed through: plenty of the catalogue predates any of this, and
      * refusing to save an existing product because of it would be worse than the missing code.
-     * Such products resolve to the fallback rate, which is logged and visible on the GST screen.
+     * Such products cannot be published or invoiced - assertSellable stops that - and they are
+     * named on the GST readiness screen until someone classifies them.
      */
     public void validate(Product product) {
         if (product == null) return;
@@ -171,8 +172,8 @@ public class HsnClassificationService {
             throw new UnknownHsnException(
                     "'" + code + "' is not an HSN code in the official GSTN master. A code that "
                             + "does not exist cannot be matched to a published rate, so the product "
-                            + "would be taxed at the fallback rate on every sale. Search for the "
-                            + "goods by name and pick the code that describes them.");
+                            + "could not be invoiced at all. Search for the goods by name and pick "
+                            + "the code that describes them.");
         }
         product.setHsnCode(normalised);
     }

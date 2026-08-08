@@ -433,6 +433,46 @@ public class ProductService {
     }
 
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
+    /**
+     * Classifies one product, without touching anything else about it.
+     *
+     * updateProduct can already do this, but only as part of a whole-product save, which means
+     * correcting a mistyped HSN carries every other field along with it. Classification is its
+     * own decision - often taken by someone reviewing the catalogue rather than editing it -
+     * and it is worth being able to make it on its own.
+     *
+     * The same three guards apply as anywhere else, because a code arriving here is no more
+     * trustworthy than one arriving through the product form: it has to exist in the official
+     * master, the product has to end up sellable, and where the heading carries more than one
+     * published rate the choice between them has to have been made.
+     */
+    @Transactional
+    public Product assignHsnCode(Long productId, String hsnCode, Boolean prePackaged,
+                                 Long gstRateSelectionId) {
+        Product existing = getProductById(productId);
+        if (authorizationService.hasRole("SELLER")) {
+            verifySellerOwnership(productId, authorizationService.getCurrentUserId());
+        }
+        if (hsnCode == null || hsnCode.isBlank()) {
+            throw new IllegalArgumentException(
+                    "An HSN code is required. To clear a product's classification, unpublish it "
+                            + "instead - a published product with no code cannot be invoiced.");
+        }
+
+        existing.setHsnCode(hsnCode);
+        if (prePackaged != null) existing.setPrePackagedAndLabelled(prePackaged);
+        // A rate choice belongs to the code it was made against. Carrying an old selection onto
+        // a new heading would apply a rate published for the goods this product no longer is.
+        existing.setGstRateSelectionId(gstRateSelectionId);
+
+        hsnClassificationService.validate(existing);
+        hsnClassificationService.validateRateSelection(existing);
+        hsnClassificationService.assertSellable(existing);
+        Product saved = productRepo.save(existing);
+        hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
+        return saved;
+    }
+
     public Product updateProduct(Long productId, Product product) {
         Product existing = getProductById(productId);
         if (authorizationService.hasRole("SELLER")) {

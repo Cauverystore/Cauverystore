@@ -3,6 +3,8 @@ package com.cauverystore.controller;
 import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.entities.MasterUpdateLog;
 import com.cauverystore.service.GstRateAdminService;
+import com.cauverystore.service.GstRateImportService;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,9 +27,27 @@ import java.util.Map;
 public class AdminGstRateController {
 
     private final GstRateAdminService service;
+    private final GstRateImportService importService;
 
-    public AdminGstRateController(GstRateAdminService service) {
+    public AdminGstRateController(GstRateAdminService service, GstRateImportService importService) {
         this.service = service;
+        this.importService = importService;
+    }
+
+    /**
+     * Imports rates from a spreadsheet transcribed from a CBIC notification.
+     *
+     * Everything lands UNVERIFIED and appears on the review desk below. A transcription is not
+     * evidence, so nothing uploaded here is charged to a customer until a second person has
+     * checked it against the notification itself.
+     */
+    @PostMapping("/import")
+    public ResponseEntity<Map<String, Object>> importRates(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("notification") String notification,
+            java.security.Principal principal) {
+        return ResponseEntity.ok(importService.importRates(file, notification,
+                principal != null ? principal.getName() : null));
     }
 
     /** How much is verified, how much is still waiting, and when the last import ran. */

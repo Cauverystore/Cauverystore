@@ -52,15 +52,17 @@ class HsnClassificationServiceTest {
     @Test
     void validate_shouldRejectACodeThatIsNotInTheOfficialMaster() {
         // The catalogue already contains "123", which is not an HSN code at all. Accepting it
-        // silently is how a product ends up taxed at the fallback rate forever.
+        // silently leaves a product nobody can lawfully invoice.
         product.setHsnCode("123");
         when(hsnRepo.existsById("123")).thenReturn(false);
 
         HsnClassificationService.UnknownHsnException ex = assertThrows(
                 HsnClassificationService.UnknownHsnException.class, () -> service.validate(product));
         assertTrue(ex.getMessage().contains("123"), "should name the offending code");
-        assertTrue(ex.getMessage().toLowerCase().contains("fallback"),
+        assertTrue(ex.getMessage().toLowerCase().contains("could not be invoiced"),
                 "should say what goes wrong, not just that it is invalid");
+        assertFalse(ex.getMessage().toLowerCase().contains("fallback"),
+                "there is no fallback rate any more; promising one would be a lie");
     }
 
     @Test

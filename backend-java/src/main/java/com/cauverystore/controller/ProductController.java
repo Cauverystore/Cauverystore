@@ -25,6 +25,31 @@ public class ProductController {
         return ResponseEntity.ok(productService.getActiveProducts());
     }
 
+    /**
+     * Assigns an HSN code to one product, on its own.
+     *
+     * Body: {@code hsnCode}, optional {@code prePackagedAndLabelled} for the staples whose rate
+     * turns on packaging, and optional {@code gstRateSelectionId} where the heading carries more
+     * than one published rate and the seller has chosen between them.
+     *
+     * Rejected if the code is not in the official GSTN master, or if the product is published
+     * and the assignment would leave its rate undeterminable - a published product that cannot
+     * be taxed is one that cannot be lawfully invoiced.
+     */
+    @PostMapping("/{id}/assign-hsn")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<Product> assignHsn(@PathVariable Long id,
+                                             @RequestBody Map<String, Object> body) {
+        authorizationService.requireProductAccess(id);
+        Object rateSelection = body.get("gstRateSelectionId");
+        return ResponseEntity.ok(productService.assignHsnCode(
+                id,
+                body.get("hsnCode") == null ? null : String.valueOf(body.get("hsnCode")),
+                body.get("prePackagedAndLabelled") == null ? null
+                        : Boolean.valueOf(String.valueOf(body.get("prePackagedAndLabelled"))),
+                rateSelection == null ? null : Long.valueOf(String.valueOf(rateSelection).trim())));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<Page<Product>> searchProducts(
             @RequestParam(required = false) String name,

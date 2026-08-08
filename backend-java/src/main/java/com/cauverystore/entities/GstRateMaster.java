@@ -183,9 +183,9 @@ public class GstRateMaster {
      * Whether this row applies to an item with the given price and packaging.
      *
      * An unconditional row applies to everything; a conditional one only to its own side of
-     * the split. A condition whose input is unknown does NOT apply - failing to resolve sends
-     * the caller to the fallback and logs it, whereas guessing charges the wrong rate and
-     * looks entirely correct until an audit.
+     * the split. A condition whose input is unknown does NOT apply - failing to resolve stops
+     * the sale and says why, whereas guessing charges the wrong rate and looks entirely
+     * correct until an audit.
      */
     @Transient
     public boolean appliesTo(Double unitPrice, Boolean prePackaged) {

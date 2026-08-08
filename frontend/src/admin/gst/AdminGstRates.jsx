@@ -29,6 +29,11 @@ const AdminGstRates = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyRate);
   const [refreshing, setRefreshing] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importNotification, setImportNotification] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,6 +175,38 @@ const AdminGstRates = () => {
     }
   };
 
+  /**
+   * Uploads a rate sheet transcribed from a CBIC notification.
+   *
+   * The notification number is required by the server and asked for here rather than guessed
+   * from the filename: it is the only thing that lets a reviewer check a rate against its
+   * source, and a filename is not a citation.
+   */
+  const runImport = async () => {
+    if (!importFile || !importNotification.trim()) {
+      setError("Choose a file and name the notification it was transcribed from.");
+      return;
+    }
+    setImporting(true);
+    setError("");
+    setNotice("");
+    try {
+      const body = new FormData();
+      body.append("file", importFile);
+      body.append("notification", importNotification.trim());
+      const res = await api.post("/api/admin/gst-rates/import", body, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setImportResult(res.data);
+      setNotice(res.data?.message || "Import finished.");
+      await load();
+    } catch (e) {
+      setError(e?.response?.data?.error || e?.response?.data?.message || "The import failed.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const conditionLabel = (r) => {
     switch (r.conditionType) {
       case "VALUE_UPTO":
@@ -192,10 +229,16 @@ const AdminGstRates = () => {
         <div>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>GST Rates</h1>
           <p style={{ margin: "4px 0 0", color: "#6b7280", fontSize: "0.85rem" }}>
-            Only approved rates are charged. Anything waiting here is being taxed at the fallback rate.
+            Only approved rates are charged. Goods whose rate is still waiting here cannot be
+            invoiced at all — there is no fallback to fall back to.
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            onClick={() => { setShowImport(!showImport); setImportResult(null); }}
+            style={{ ...btn, background: "#7c3aed", color: "#fff", padding: "0.5rem 1rem", fontSize: "0.85rem" }}>
+            {showImport ? "Cancel" : "Import from Notification"}
+          </button>
           <button
             onClick={refreshMaster}
             disabled={refreshing}
@@ -218,6 +261,74 @@ const AdminGstRates = () => {
       {notice && (
         <div style={{ ...card, borderColor: "#bbf7d0", background: "#f0fdf4", color: "#15803d", marginBottom: "1rem", fontSize: "0.85rem" }}>
           {notice}
+        </div>
+      )}
+
+      {showImport && (
+        <div style={{ ...card, marginBottom: "1.5rem" }}>
+          <h3 style={{ margin: "0 0 0.35rem", fontSize: "1rem", fontWeight: 600 }}>
+            Import rates from a notification
+          </h3>
+          <p style={{ margin: "0 0 0.9rem", color: "#6b7280", fontSize: "0.82rem", maxWidth: "44rem" }}>
+            A spreadsheet with columns <strong>HSN</strong>, <strong>Rate</strong> and{" "}
+            <strong>Effective From</strong>, plus an optional <strong>Description</strong>.
+            Everything imported is held for review — a transcription is not evidence, so nothing
+            here is charged to a customer until someone approves it against the notification
+            itself.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "0.75rem" }}>
+            <div>
+              <label style={lbl}>Notification</label>
+              <input
+                value={importNotification}
+                onChange={(e) => setImportNotification(e.target.value)}
+                placeholder="e.g. 09/2025-Central Tax (Rate)"
+                style={inp}
+              />
+            </div>
+            <div>
+              <label style={lbl}>Spreadsheet</label>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                style={{ ...inp, padding: "0.35rem" }}
+              />
+            </div>
+          </div>
+          <button
+            onClick={runImport}
+            disabled={importing}
+            style={{ ...btn, background: "#7c3aed", color: "#fff", padding: "0.5rem 1.2rem",
+                     fontSize: "0.85rem", marginTop: "0.9rem", opacity: importing ? 0.6 : 1 }}>
+            {importing ? "Importing…" : "Import and hold for review"}
+          </button>
+
+          {importResult && (
+            <div style={{ marginTop: "1rem", fontSize: "0.82rem" }}>
+              <div style={{ color: "#374151" }}>
+                {importResult.rowsRead} row(s) read · <strong>{importResult.staged}</strong> staged
+                for review · {importResult.supersededExisting} existing rate(s) closed off
+              </div>
+              {importResult.rejected?.length > 0 && (
+                <div style={{ marginTop: "0.6rem" }}>
+                  <div style={{ fontWeight: 600, color: "#b45309", marginBottom: 4 }}>
+                    {importResult.rejected.length} row(s) rejected — fix these in the sheet and
+                    import again:
+                  </div>
+                  <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid #e5e7eb", borderRadius: 6 }}>
+                    {importResult.rejected.map((r, i) => (
+                      <div key={i} style={{ padding: "0.4rem 0.6rem", borderTop: i ? "1px solid #f3f4f6" : "none" }}>
+                        <strong>Row {r.row}</strong>
+                        {r.hsnCode ? ` · ${r.hsnCode}` : ""}
+                        <span style={{ display: "block", color: "#6b7280" }}>{r.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
