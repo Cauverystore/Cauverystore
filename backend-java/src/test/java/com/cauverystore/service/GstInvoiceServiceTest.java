@@ -401,4 +401,23 @@ class GstInvoiceServiceTest {
         assertThrows(IllegalStateException.class,
                 () -> gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN));
     }
+
+    @Test
+    void shouldRecordPaymentTerms_andOnlyDateWhatIsActuallyOutstanding() {
+        // A prepaid invoice showing a due date invites a second payment against something
+        // already settled; a COD one with no due date leaves the buyer nothing to pay against.
+        com.cauverystore.entities.GstInvoice cod = new com.cauverystore.entities.GstInvoice();
+        cod.setPaymentMode("COD");
+        cod.setInvoiceDate(java.time.LocalDate.of(2026, 8, 8));
+        cod.setPaymentDueDate(cod.isPayableOnDelivery() ? cod.getInvoiceDate() : null);
+        assertTrue(cod.isPayableOnDelivery());
+        assertEquals(java.time.LocalDate.of(2026, 8, 8), cod.getPaymentDueDate());
+
+        com.cauverystore.entities.GstInvoice prepaid = new com.cauverystore.entities.GstInvoice();
+        prepaid.setPaymentMode("RAZORPAY");
+        prepaid.setInvoiceDate(java.time.LocalDate.of(2026, 8, 8));
+        prepaid.setPaymentDueDate(prepaid.isPayableOnDelivery() ? prepaid.getInvoiceDate() : null);
+        assertFalse(prepaid.isPayableOnDelivery());
+        assertNull(prepaid.getPaymentDueDate(), "a paid invoice has nothing outstanding to date");
+    }
 }

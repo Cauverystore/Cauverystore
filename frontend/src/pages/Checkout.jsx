@@ -12,6 +12,8 @@ const Checkout = () => {
   const [step, setStep] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [serverTax, setServerTax] = useState(null);
+  const [bill, setBill] = useState(null);
+  const [billLoading, setBillLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState("");
@@ -68,6 +70,27 @@ const Checkout = () => {
     setShipping({ ...shipping, [e.target.name]: e.target.value });
   };
 
+  // The itemised bill is fetched as soon as there is somewhere to deliver to, because the
+  // destination decides IGST against CGST+SGST and the same goods are taxed differently either
+  // way. Prices are not sent - the server reads them from the stored cart, so the tax cannot be
+  // quoted against a figure the browser made up.
+  useEffect(() => {
+    const state = shipping.state?.trim();
+    const pincode = shipping.pincode?.trim();
+    if (!state && !pincode) { setBill(null); return; }
+    if (cartItems.length === 0) { setBill(null); return; }
+
+    let cancelled = false;
+    setBillLoading(true);
+    const t = setTimeout(() => {
+      api.post("/api/checkout/bill", { state, pincode, city: shipping.city?.trim() })
+        .then((r) => { if (!cancelled) setBill(r.data || null); })
+        .catch(() => { if (!cancelled) setBill(null); })
+        .finally(() => { if (!cancelled) setBillLoading(false); });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [shipping.state, shipping.pincode, shipping.city, cartItems]);
+
   const subtotal = cartItems.reduce((sum, item) => {
     const price = item.product?.price || item.price || 0;
     return sum + price * (item.quantity || 1);
@@ -81,13 +104,17 @@ const Checkout = () => {
   const delivery = subtotal >= 500 ? 0 : 40;
   const giftCharge = giftWrap ? 49 : 0;
   const taxableAmount = subtotal - discount;
-  // Same as the cart: the server resolves GST per item from its HSN, so display that
-  // rather than a flat rate, or the amount shown here would not be the amount charged.
+  // GST comes from the server, worked out per item from its HSN code. There is deliberately no
+  // flat-rate fallback: this used to show 12% of the basket whenever the server figure was
+  // missing, which is not a rate anything is taxed at any more and quoted a total the invoice
+  // would never match. If the tax cannot be worked out, the order does not proceed.
   const retained = subtotal > 0 ? Math.max(taxableAmount, 0) / subtotal : 0;
-  const tax = serverTax !== null
-    ? Math.round(serverTax * retained * 100) / 100
-    : Math.round(Math.max(taxableAmount, 0) * 0.12 * 100) / 100;
-  const total = Math.max(subtotal - discount + delivery + giftCharge + tax, 0);
+  const billTax = bill && typeof bill.totalTax === "number" ? bill.totalTax : null;
+  const tax = billTax !== null
+    ? Math.round(billTax * retained * 100) / 100
+    : (serverTax !== null ? Math.round(serverTax * retained * 100) / 100 : null);
+  const taxKnown = tax !== null;
+  const total = Math.max(subtotal - discount + delivery + giftCharge + (tax || 0), 0);
 
   const validateStep = () => {
     if (step === 0) {
@@ -130,6 +157,17 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
+    // The server refuses to invoice goods it cannot tax, so taking payment for them would only
+    // produce a payment with no lawful invoice behind it and a refund to arrange afterwards.
+    if (bill && bill.canProceed === false) {
+      setError(bill.message || "Some items in this order cannot be taxed yet, so it cannot be placed.");
+      return;
+    }
+    if (!taxKnown) {
+      setError("The GST on this order has not been worked out yet. Check the delivery address and try again.");
+      return;
+    }
+
     const payload = {
       items: cartItems.map((item) => ({
         productId: item.product?.id || item.product?._id || item.productId,
@@ -516,10 +554,66 @@ const Checkout = () => {
               <span style={{ color: "var(--color-text-secondary)" }}>Subtotal after discount</span>
               <span>&#8377;{(subtotal - discount).toFixed(2)}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-              <span style={{ color: "var(--color-text-secondary)" }}>GST</span>
-              <span>&#8377;{tax.toFixed(2)}</span>
-            </div>
+            {/* GST, itemised. A basket can carry four different rates at once, so a single
+                figure is nothing the customer could check against their invoice. */}
+            {bill?.lines?.length > 0 && (
+              <div style={{
+                margin: "0.75rem 0", padding: "0.6rem", borderRadius: 6,
+                background: "var(--color-bg, #f9fafb)", border: "1px solid var(--color-border)",
+              }}>
+                <div style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.4rem" }}>
+                  GST on this order
+                </div>
+                {bill.lines.map((l) => (
+                  <div key={l.productId} style={{ fontSize: "0.75rem", marginBottom: "0.45rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {l.description}{l.quantity > 1 ? ` x${l.quantity}` : ""}
+                      </span>
+                      <span style={{ whiteSpace: "nowrap" }}>&#8377;{l.taxAmount.toFixed(2)}</span>
+                    </div>
+                    <div style={{ color: "var(--color-text-secondary)" }}>
+                      HSN {l.hsnCode} &middot; &#8377;{l.taxableValue.toFixed(2)} @ {l.gstRate}%
+                      {l.igstAmount > 0
+                        ? ` (IGST ${l.igstRate}%)`
+                        : ` (CGST ${l.cgstRate}% + SGST ${l.sgstRate}%)`}
+                      {" → "}&#8377;{l.lineTotal.toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+                <div style={{
+                  display: "flex", justifyContent: "space-between", fontSize: "0.78rem",
+                  fontWeight: 600, borderTop: "1px solid var(--color-border)", paddingTop: "0.4rem",
+                }}>
+                  <span>Total GST</span>
+                  <span>&#8377;{tax !== null ? tax.toFixed(2) : bill.totalTax.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            {!bill?.lines?.length && (
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
+                <span style={{ color: "var(--color-text-secondary)" }}>GST</span>
+                <span>
+                  {billLoading ? "calculating…"
+                    : taxKnown ? `₹${tax.toFixed(2)}`
+                    : "enter delivery address"}
+                </span>
+              </div>
+            )}
+
+            {bill && bill.canProceed === false && bill.blocked?.length > 0 && (
+              <div style={{
+                margin: "0.5rem 0", padding: "0.55rem", borderRadius: 6,
+                background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c",
+                fontSize: "0.75rem",
+              }}>
+                <strong>This order cannot be placed yet.</strong>
+                {bill.blocked.map((b) => (
+                  <div key={b.productId} style={{ marginTop: 4 }}>{b.description}: {b.reason}</div>
+                ))}
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
               <span style={{ color: "var(--color-text-secondary)" }}>Delivery</span>
               <span>{delivery === 0 ? <span style={{ color: "#16a34a" }}>FREE</span> : `\u20B9${delivery}`}</span>

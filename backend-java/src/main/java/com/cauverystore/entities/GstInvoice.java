@@ -157,6 +157,25 @@ public class GstInvoice {
 
     private String sellerBusinessCategory;
 
+    /**
+     * How the order was paid, and by when it must be.
+     *
+     * Rule 46 does not list payment terms among the particulars, but an invoice that does not
+     * say whether it has been paid is one the buyer's accounts team has to chase the seller
+     * about, and it is what every commercial invoice carries. Recorded on the invoice rather
+     * than read from the order later, because the order's payment method can change - a COD
+     * order settled by card afterwards would otherwise rewrite what an issued invoice says.
+     */
+    @Column(name = "payment_mode", length = 40)
+    private String paymentMode;
+
+    /**
+     * Null for anything already paid. Only a supply made on credit has something outstanding,
+     * and printing a due date on a prepaid order invites a second payment.
+     */
+    @Column(name = "payment_due_date")
+    private LocalDate paymentDueDate;
+
     private String supplierSignature;
 
     /**
@@ -330,6 +349,18 @@ public class GstInvoice {
     public void setSellerBusinessCategory(String sellerBusinessCategory) { this.sellerBusinessCategory = sellerBusinessCategory; }
     public String getSupplierSignatureImageUrl() { return supplierSignatureImageUrl; }
     public void setSupplierSignatureImageUrl(String url) { this.supplierSignatureImageUrl = url; }
+    public String getPaymentMode() { return paymentMode; }
+    public void setPaymentMode(String paymentMode) { this.paymentMode = paymentMode; }
+
+    public LocalDate getPaymentDueDate() { return paymentDueDate; }
+    public void setPaymentDueDate(LocalDate paymentDueDate) { this.paymentDueDate = paymentDueDate; }
+
+    /** Cash on delivery is the only thing this store sells on credit. */
+    @Transient
+    public boolean isPayableOnDelivery() {
+        return paymentMode != null && paymentMode.toUpperCase().contains("COD");
+    }
+
     public String getSupplierSignature() { return supplierSignature; }
     public void setSupplierSignature(String supplierSignature) { this.supplierSignature = supplierSignature; }
     public String getSignedBy() { return signedBy; }

@@ -1,5 +1,9 @@
 package com.cauverystore.controller;
 
+import com.cauverystore.entities.Address;
+import com.cauverystore.entities.User;
+import com.cauverystore.repository.UserRepository;
+import com.cauverystore.service.CheckoutBillService;
 import com.cauverystore.service.TaxPreviewService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,9 +31,40 @@ import java.util.Map;
 public class CheckoutTaxController {
 
     private final TaxPreviewService taxPreview;
+    private final CheckoutBillService billService;
+    private final UserRepository userRepo;
 
-    public CheckoutTaxController(TaxPreviewService taxPreview) {
+    public CheckoutTaxController(TaxPreviewService taxPreview,
+                                 CheckoutBillService billService,
+                                 UserRepository userRepo) {
         this.taxPreview = taxPreview;
+        this.billService = billService;
+        this.userRepo = userRepo;
+    }
+
+    /**
+     * The itemised bill for the signed-in user's cart, delivered to a given address.
+     *
+     * Prices and quantities come from the stored cart, never from the request - a checkout that
+     * posted its own line values could be edited to pay tax on a lower figure than the goods
+     * sell for. The body supplies only the destination, since that decides IGST against
+     * CGST+SGST.
+     *
+     * Body: {@code state}, {@code pincode}, and optionally {@code city} / {@code street}.
+     */
+    @PostMapping("/bill")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> bill(@RequestBody Map<String, Object> body,
+                                                    java.security.Principal principal) {
+        User user = userRepo.findByEmail(principal.getName());
+        if (user == null) user = userRepo.findByUsername(principal.getName());
+        if (user == null) return ResponseEntity.status(401).build();
+
+        Address to = new Address();
+        to.setState(str(body.get("state")));
+        to.setPincode(str(body.get("pincode")));
+        to.setCity(str(body.get("city")));
+        return ResponseEntity.ok(billService.billFor(user, to));
     }
 
     /**

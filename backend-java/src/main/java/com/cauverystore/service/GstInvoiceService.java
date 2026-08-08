@@ -162,6 +162,14 @@ public class GstInvoiceService {
         inv.setBuyerName(isB2b && buyerLegalName != null && !buyerLegalName.isBlank()
                 ? buyerLegalName.trim()
                 : (buyer != null ? buyer.getFullName() : "Walk-in Customer"));
+        // Payment terms, snapshotted rather than read back from the order. A COD order settled
+        // by card later would otherwise change what an already-issued invoice says it was.
+        inv.setPaymentMode(order.getPaymentMethod());
+        // Only a supply on credit has anything outstanding. Cash on delivery falls due when the
+        // goods arrive; anything prepaid has no due date, and printing one invites a second
+        // payment against an invoice that is already settled.
+        inv.setPaymentDueDate(inv.isPayableOnDelivery() ? inv.getInvoiceDate() : null);
+
         Address addr = order.getAddress();
 
         // Billing address (Req 3) is taken from the order's saved address. In this marketplace the
@@ -1058,7 +1066,7 @@ public class GstInvoiceService {
      * and Dadra and Nagar Haveli - so treating a disagreement as proof of error would reject
      * correct addresses.
      */
-    private String resolveDeliveryState(Address addr) {
+    public String resolveDeliveryState(Address addr) {
         if (addr == null) {
             throw new IllegalStateException(
                     "This order has no delivery address, so there is no place of supply and the "
@@ -1089,7 +1097,7 @@ public class GstInvoiceService {
      * The state a pincode belongs to, or null when it is missing, unrecognised, or shared by
      * more than one state - in which case it settles nothing and should not pretend to.
      */
-    private String stateCodeFromPincode(String pincode) {
+    public String stateCodeFromPincode(String pincode) {
         if (pincode == null || pincode.isBlank()) return null;
         String digits = pincode.replaceAll("\\D", "");
         if (digits.length() < 3) return null;
@@ -1394,6 +1402,16 @@ public class GstInvoiceService {
 
         doc.add(new Paragraph(" "));
         doc.add(new Paragraph("Amount in Words: " + numberToWordsPdf(total), bold9));
+
+        // Payment terms. An invoice that does not say whether it has been paid is one the
+        // buyer's accounts team has to ring the seller about.
+        if (inv.getPaymentMode() != null && !inv.getPaymentMode().isBlank()) {
+            String terms = "Payment Mode: " + inv.getPaymentMode();
+            terms += inv.getPaymentDueDate() != null
+                    ? "   |   Due: " + inv.getPaymentDueDate() + " (payable on delivery)"
+                    : "   |   Paid in full - no amount outstanding";
+            doc.add(new Paragraph(terms, small8));
+        }
 
         // IRN / QR section
         if (inv.getIrn() != null) {

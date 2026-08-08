@@ -14,6 +14,8 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepo;
     private final OrderItemRepository orderItemRepo;
@@ -692,10 +696,22 @@ public class OrderService {
                     buyerGstin = null;
                 }
                 gstInvoiceService.generateInvoiceFromOrder(orderId, sellerId, sellerGstin, buyerGstin);
+            } else {
+                // The commonest reason no invoice exists, and it used to leave no trace at all:
+                // an unregistered seller silently skipped the whole block, so orders accumulated
+                // with nothing to issue. A seller below the threshold genuinely cannot raise a
+                // tax invoice, but that has to be visible rather than inferred from an absence.
+                log.warn("No GST invoice for order {}: seller {} has no GSTIN recorded, so no tax "
+                        + "invoice can be raised. If they are registered, add it in the seller's "
+                        + "GST configuration; if not, this order has no tax invoice by design.",
+                        orderId, sellerId);
             }
         } catch (Exception e) {
-            // Auto-generation is best-effort; seller can manually generate later
-            System.err.println("Auto GST invoice generation skipped for order " + orderId + ": " + e.getMessage());
+            // Never fail the order over invoicing - the customer has paid and the goods are sold.
+            // But this is a compliance failure, not a footnote, so it is logged as one rather
+            // than printed to stderr where nothing collects it.
+            log.error("GST invoice generation FAILED for order {}: {}. The order stands and needs "
+                    + "an invoice raising by hand.", orderId, e.getMessage(), e);
         }
     }
 
