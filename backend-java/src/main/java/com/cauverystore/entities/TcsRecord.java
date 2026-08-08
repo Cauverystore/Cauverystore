@@ -37,7 +37,8 @@ public class TcsRecord {
     @Column(nullable = false)
     private Double tcsAmount;
 
-    private Double tcsRate = 1.0;
+    /** The rate actually applied, kept on the row. 0.5% since Notif. 15/2024-CT. */
+    private Double tcsRate = 0.5;
     private Double taxableAmount;
 
     private String filingStatus = "PENDING";

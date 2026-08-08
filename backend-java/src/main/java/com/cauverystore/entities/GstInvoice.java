@@ -84,7 +84,9 @@ public class GstInvoice {
     private Double totalAmount;
 
     private Double tcsAmount;
-    private Double tcsRate = 1.0;
+    /** Copied from the configuration when the invoice is raised, so a later rate change
+     *  never rewrites what was actually collected. 0.5% since Notif. 15/2024-CT (10-07-2024). */
+    private Double tcsRate = 0.5;
 
     @Column(columnDefinition = "TEXT")
     private String placeOfSupply;

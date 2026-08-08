@@ -42,8 +42,19 @@ public class GstConfiguration {
     private String ewaybillApiKey;
     private String ewaybillEndpoint = "https://api.ewaybill.gstn.gov.in";
 
+    /**
+     * TCS under section 52, as a percentage of net taxable supplies.
+     *
+     * 0.5% since 10-07-2024 - Notification 15/2024-Central Tax halved it, so it is now 0.25%
+     * CGST plus 0.25% SGST intra-state, or 0.5% IGST inter-state. It was 1% before that, and
+     * this field defaulted to the old figure, which would have withheld twice what is due from
+     * every seller's settlement and over-declared the same amount in GSTR-8.
+     *
+     * Configurable because the rate is set by notification and has already changed once.
+     * Invoices keep their own copy, so correcting this never rewrites what was collected before.
+     */
     @Column(nullable = false)
-    private Double tcsRate = 1.0;
+    private Double tcsRate = 0.5;
 
     /**
      * The marketplace's TCS registration under s.52 - a SEPARATE GSTIN from the regular one.

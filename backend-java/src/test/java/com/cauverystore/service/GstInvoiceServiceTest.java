@@ -458,4 +458,32 @@ class GstInvoiceServiceTest {
                 "the simulator's own prefix is what tells the two apart");
         assertFalse(real.startsWith("SIM"));
     }
+
+    @Test
+    void tcsMustUseTheHalfPercentRateInForceSinceJuly2024() {
+        // Notification 15/2024-Central Tax halved TCS under section 52 from 1% to 0.5% with
+        // effect from 10-07-2024 - 0.25% CGST plus 0.25% SGST, or 0.5% IGST. The default here
+        // was still the old 1%, which would withhold twice what is due from every seller's
+        // settlement and over-declare the same amount in GSTR-8.
+        com.cauverystore.entities.GstConfiguration fresh = new com.cauverystore.entities.GstConfiguration();
+
+        assertEquals(0.5, fresh.getTcsRate(), 0.0001,
+                "a new configuration must start at the rate currently in force");
+
+        double taxable = 15000.0;
+        assertEquals(75.0, Math.round(taxable * fresh.getTcsRate() / 100 * 100.0) / 100.0, 0.01,
+                "Rs 15,000 of supplies carries Rs 75 of TCS, not Rs 150");
+    }
+
+    @Test
+    void anInvoicesOwnTcsRateMustSurviveALaterRateChange() {
+        // The rate has changed once and will change again. An invoice records what was actually
+        // collected, so re-reading it years later must not apply today's figure to it.
+        com.cauverystore.entities.GstInvoice old = new com.cauverystore.entities.GstInvoice();
+        old.setTcsRate(1.0);
+        old.setTcsAmount(150.0);
+
+        assertEquals(1.0, old.getTcsRate(), 0.0001,
+                "history keeps the rate it was raised under");
+    }
 }

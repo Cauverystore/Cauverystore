@@ -386,7 +386,9 @@ public class GstInvoiceService {
             }
         }
 
-        double tcsRate = config != null ? config.getTcsRate() : 1.0;
+        // 0.5% since Notification 15/2024-CT. The fallback matters: it is what applies
+        // when no configuration row exists, and at 1.0% it withheld double from sellers.
+        double tcsRate = config != null && config.getTcsRate() != null ? config.getTcsRate() : 0.5;
         double tcsAmount = Math.round(taxableAmount * tcsRate / 100 * 100.0) / 100.0;
         inv.setTcsAmount(tcsAmount);
         inv.setTcsRate(tcsRate);
@@ -1353,7 +1355,7 @@ public class GstInvoiceService {
         double cgstRate = inv.getCgstRate() != null ? inv.getCgstRate() : 0;
         double sgstRate = inv.getSgstRate() != null ? inv.getSgstRate() : 0;
         double igstRate = !items.isEmpty() && items.get(0).getIgstRate() != null ? items.get(0).getIgstRate() : 0;
-        double tcsRate = inv.getTcsRate() != null ? inv.getTcsRate() : 1.0;
+        double tcsRate = inv.getTcsRate() != null ? inv.getTcsRate() : 0.5;
 
         // Header row
         PdfPCell bh = new PdfPCell(new Phrase("Tax Breakup", bold10));
