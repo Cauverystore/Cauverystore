@@ -9,6 +9,8 @@ import com.cauverystore.repository.CartItemRepository;
 import com.cauverystore.repository.CartRepository;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CartServiceImpl implements CartService {
+
+    private static final Logger log = LoggerFactory.getLogger(CartServiceImpl.class);
 
     private final CartRepository cartRepo;
     private final CartItemRepository cartItemRepo;
@@ -193,15 +197,40 @@ public class CartServiceImpl implements CartService {
         // resolved per item from its HSN via the same rate master OrderService uses rather
         // than applying a flat percentage to the basket.
         double cartTax = 0.0;
+        List<Map<String, Object>> untaxable = new ArrayList<>();
         for (CartItem item : cart.getItems()) {
             if (item.isSavedForLater()) continue;
             double unitPrice = effectiveUnitPrice(item);
             double lineValue = unitPrice * item.getQuantity();
-            double rate = gstRateResolver
-                    .resolve(item.getProduct(), false, LocalDate.now(), unitPrice).getTotalRate();
-            cartTax += Math.round(lineValue * rate / 100.0 * 100.0) / 100.0;
+            try {
+                double rate = gstRateResolver
+                        .resolve(item.getProduct(), false, LocalDate.now(), unitPrice).getTotalRate();
+                cartTax += Math.round(lineValue * rate / 100.0 * 100.0) / 100.0;
+            } catch (GstRateResolver.GstRateUnresolvedException e) {
+                // A cart is a display, not a tax point. Letting this escape made one
+                // unclassified product break the whole cart endpoint, so the basket would not
+                // load at all and adding anything looked broken - which is a far worse outcome
+                // than an incomplete tax figure on a page nobody is charged from.
+                //
+                // The refusal still stands where it counts: CheckoutBillService will not let
+                // the order be placed, and the invoice cannot be raised. This only stops a
+                // shopper being locked out of their own basket by a catalogue problem.
+                Map<String, Object> problem = new HashMap<>();
+                problem.put("productId", item.getProduct() != null ? item.getProduct().getId() : null);
+                problem.put("productName", item.getProduct() != null ? item.getProduct().getName() : null);
+                problem.put("reason", e.getMessage());
+                untaxable.add(problem);
+                log.warn("Cart for user {} contains '{}', which has no determinable GST rate: {}",
+                        user.getId(),
+                        item.getProduct() != null ? item.getProduct().getName() : "?",
+                        e.getMessage());
+            }
         }
         result.put("tax", Math.round(cartTax * 100.0) / 100.0);
+        // Named rather than hidden: the total below excludes these, and the customer will be
+        // stopped at checkout, so the page has to be able to say why.
+        result.put("untaxableItems", untaxable);
+        result.put("taxComplete", untaxable.isEmpty());
         result.put("finalAmount", Math.round(((double) result.get("totalPrice") + (double) result.get("deliveryCharge") + (double) result.get("tax")) * 100.0) / 100.0);
         result.put("freeDeliveryEligible", (double) result.get("totalPrice") >= 500);
         result.put("deliveryDate", LocalDate.now().plusDays(4).toString());
