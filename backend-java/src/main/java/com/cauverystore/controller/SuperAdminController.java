@@ -304,6 +304,7 @@ public class SuperAdminController {
         String newPassword = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "A1!";
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
         user.setMustResetPassword(true);
         user.invalidateSessions();
         userRepo.save(user);
@@ -322,6 +323,7 @@ public class SuperAdminController {
     public ResponseEntity<Map<String, String>> unlockUser(@PathVariable Long id) {
         User user = userService.getUser(id);
         user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
         user.setMustResetPassword(true);
         userRepo.save(user);
 

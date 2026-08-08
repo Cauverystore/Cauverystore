@@ -363,4 +363,79 @@ class AuthServiceTest {
         assertThrows(AuthenticationFailedException.class,
                 () -> authService.resetPassword("customer@test.com", "123456", "newPass"));
     }
+
+    @Test
+    void authenticate_shouldLiftALockoutOnceItsTimeHasPassed() {
+        // The bug this covers: the failure counter only ever reset on a successful login, which
+        // a locked-out person cannot reach. Five wrong attempts shut the account permanently
+        // while the message said "try again later", and waiting did nothing.
+        user.setFailedLoginAttempts(5);
+        user.setLockedUntil(java.time.LocalDateTime.now().minusMinutes(1));
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyList(), any()))
+                .thenReturn("access-token");
+        when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
+
+        AuthResponse response = authService.authenticate(loginReq);
+
+        assertEquals("access-token", response.getAccessToken());
+        assertNull(user.getLockedUntil());
+        assertEquals(0, user.getFailedLoginAttempts());
+    }
+
+    @Test
+    void authenticate_shouldStillRefuseWhileTheLockoutIsRunning() {
+        user.setFailedLoginAttempts(5);
+        user.setLockedUntil(java.time.LocalDateTime.now().plusMinutes(10));
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+
+        AuthenticationFailedException ex = assertThrows(AuthenticationFailedException.class,
+                () -> authService.authenticate(loginReq));
+        assertTrue(ex.getMessage().contains("minute"), "must say how long is left");
+        assertTrue(ex.getMessage().contains("reset your password"),
+                "must offer the way out that works immediately");
+        // The password is never even checked while locked.
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+    }
+
+    @Test
+    void authenticate_shouldSetAnExpiryWhenTheLockoutIsApplied() {
+        // Without an expiry the lockout is permanent, which is what caused this.
+        user.setFailedLoginAttempts(4);
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+        assertThrows(AuthenticationFailedException.class, () -> authService.authenticate(loginReq));
+
+        assertNotNull(user.getLockedUntil(), "a lockout with no end is a closed account");
+        assertTrue(user.getLockedUntil().isAfter(java.time.LocalDateTime.now()));
+    }
+
+    @Test
+    void authenticate_shouldNotLockBeforeTheLimit() {
+        user.setFailedLoginAttempts(1);
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+        AuthenticationFailedException ex = assertThrows(AuthenticationFailedException.class,
+                () -> authService.authenticate(loginReq));
+        assertNull(user.getLockedUntil());
+        assertTrue(ex.getMessage().contains("attempt(s) remaining"));
+    }
+
+    @Test
+    void authenticate_shouldClearAnyLockOnSuccess() {
+        user.setFailedLoginAttempts(3);
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyList(), any()))
+                .thenReturn("access-token");
+        when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
+
+        authService.authenticate(loginReq);
+
+        assertEquals(0, user.getFailedLoginAttempts());
+        assertNull(user.getLockedUntil());
+    }
 }

@@ -30,6 +30,20 @@ public class User extends BaseEntity {
     private Boolean mfaEnabled = false;
     private java.time.LocalDateTime lastLoginAt;
     private Integer failedLoginAttempts = 0;
+
+    /**
+     * When a lockout from failed logins stops applying.
+     *
+     * Without this the counter only ever reset on a successful login - which a locked-out
+     * account cannot reach - so five wrong attempts locked someone out permanently while the
+     * message told them to try again later. Waiting did nothing, and the only ways back were a
+     * password reset or an admin.
+     *
+     * Null means not locked. A time in the past means the lockout has served its purpose and
+     * the next attempt starts fresh.
+     */
+    private java.time.LocalDateTime lockedUntil;
+
     private Boolean mustResetPassword = false;
     private Integer tokenVersion = 0;
     private Long suspendedBy;
@@ -246,6 +260,14 @@ public class User extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
+    public java.time.LocalDateTime getLockedUntil() {
+        return this.lockedUntil;
+    }
+
+    public void setLockedUntil(final java.time.LocalDateTime lockedUntil) {
+        this.lockedUntil = lockedUntil;
+    }
+
     public void setFailedLoginAttempts(final Integer failedLoginAttempts) {
         this.failedLoginAttempts = failedLoginAttempts;
     }

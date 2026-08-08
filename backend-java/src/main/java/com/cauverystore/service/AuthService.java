@@ -114,6 +114,12 @@ public class AuthService {
 
     private static final int MAX_LOGIN_ATTEMPTS = 5;
 
+    /**
+     * How long a lockout lasts. Long enough to make guessing passwords pointless, short enough
+     * that a customer who mistyped theirs is not shut out of the shop for the evening.
+     */
+    private static final int LOCKOUT_MINUTES = 15;
+
     public AuthResponse authenticate(LoginRequest request) {
         return authenticate(request, null, null);
     }
@@ -130,20 +136,39 @@ public class AuthService {
         }
         log.info("Login attempt: identifier={}, resolved id={}, email={}, failedLoginAttempts={}", identifier, user.getId(), user.getEmail(), user.getFailedLoginAttempts());
 
-        if (user.getFailedLoginAttempts() != null && user.getFailedLoginAttempts() >= MAX_LOGIN_ATTEMPTS) {
-            log.info("Login lockout: id={}, email={}, failedLoginAttempts={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
-            auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
-            throw new AuthenticationFailedException("Account locked due to too many failed attempts. Try again later.");
+        // A lockout that never lifts is not a lockout, it is a closed account. The counter used
+        // to reset only on a successful login, which a locked-out person cannot reach, so five
+        // wrong attempts locked someone out for good while the message said "try again later".
+        if (user.getLockedUntil() != null) {
+            if (user.getLockedUntil().isAfter(LocalDateTime.now())) {
+                long minutes = Math.max(1, java.time.Duration.between(
+                        LocalDateTime.now(), user.getLockedUntil()).toMinutes() + 1);
+                log.info("Login lockout: id={}, email={}, until={}", user.getId(), user.getEmail(), user.getLockedUntil());
+                auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
+                throw new AuthenticationFailedException("Account locked due to too many failed "
+                        + "attempts. Try again in " + minutes + " minute(s), or reset your password "
+                        + "to unlock it now.");
+            }
+            // Served its time - start the count again rather than leaving them one attempt from
+            // being locked straight back out.
+            user.setLockedUntil(null);
+            user.setFailedLoginAttempts(0);
+            userRepo.save(user);
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             user.setFailedLoginAttempts(user.getFailedLoginAttempts() != null
                     ? user.getFailedLoginAttempts() + 1 : 1);
-            userRepo.save(user);
             int remaining = MAX_LOGIN_ATTEMPTS - user.getFailedLoginAttempts();
+            if (remaining <= 0) {
+                user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCKOUT_MINUTES));
+            }
+            userRepo.save(user);
             auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
             if (remaining <= 0) {
-                throw new AuthenticationFailedException("Account locked due to too many failed attempts.");
+                throw new AuthenticationFailedException("Account locked due to too many failed "
+                        + "attempts. Try again in " + LOCKOUT_MINUTES + " minutes, or reset your "
+                        + "password to unlock it now.");
             }
             throw new AuthenticationFailedException("Invalid username or password. " + remaining + " attempt(s) remaining.");
         }
@@ -168,6 +193,7 @@ public class AuthService {
         }
 
         user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
         user.setLastLoginAt(LocalDateTime.now());
 
         passwordPolicyService.applyExpiry(user);
@@ -535,6 +561,7 @@ public class AuthService {
         passwordPolicyService.checkHistory(user, newPassword);
         passwordPolicyService.recordNewPassword(user, newPassword);
         user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
         user.setMustResetPassword(false);
         user.invalidateSessions();
         sessionService.revokeAllForUser(user.getId());
