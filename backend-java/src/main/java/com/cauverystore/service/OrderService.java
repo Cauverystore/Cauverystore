@@ -629,10 +629,32 @@ public class OrderService {
         String paymentMethod = (String) body.getOrDefault("paymentMethod", "COD");
         String promoCode = (String) body.get("promoCode");
         Order order = placeOrder(user.getUsername(), address, paymentMethod, promoCode);
+        // Bill-to / ship-to under section 10(1)(b): the buyer is having the goods sent to
+        // somebody else. It moves the place of supply to the buyer's own state, so it has to be
+        // declared rather than guessed from the addresses - and it only exists for a registered
+        // buyer, because the rule turns on a third person's principal place of business and an
+        // unregistered buyer has none.
+        boolean billToShipTo = Boolean.TRUE.equals(body.get("billToShipTo"));
+        if (billToShipTo && !wantsB2b) {
+            throw new RuntimeException("A bill-to / ship-to order needs the buyer's GSTIN. "
+                    + "Section 10(1)(b) puts the place of supply at the buyer's registered place "
+                    + "of business, so there has to be one.");
+        }
+        String consigneeName = (String) body.get("consigneeName");
+        if (billToShipTo && (consigneeName == null || consigneeName.isBlank())) {
+            throw new RuntimeException("Tell us who is receiving the goods. Rule 46(o) requires "
+                    + "the consignee's name and address when they are not the buyer.");
+        }
+
         if (wantsB2b) {
             order.setBuyerGstin(buyerGstin.trim().toUpperCase());
             if (buyerLegalName != null && !buyerLegalName.isBlank()) {
                 order.setBuyerLegalName(buyerLegalName.trim());
+            }
+            order.setBillToShipTo(billToShipTo);
+            if (billToShipTo) {
+                order.setConsigneeName(consigneeName.trim());
+                order.setConsigneeAddress((String) body.get("consigneeAddress"));
             }
             orderRepo.save(order);
         }

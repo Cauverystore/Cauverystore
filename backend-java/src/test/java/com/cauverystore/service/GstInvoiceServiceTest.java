@@ -486,4 +486,66 @@ class GstInvoiceServiceTest {
         assertEquals(1.0, old.getTcsRate(), 0.0001,
                 "history keeps the rate it was raised under");
     }
+
+    @Test
+    void billToShipTo_placeOfSupplyIsTheBuyersStateNotTheDeliveryState() {
+        // Section 10(1)(b): a Chennai company buys from a Chennai seller and has the goods sent
+        // to their customer in Maharashtra. The goods leave the state, but the buyer is deemed
+        // to have received them, so the place of supply is Tamil Nadu and the supply is
+        // intra-state - CGST and SGST, not IGST.
+        stubCommonRepos();
+        order.setBuyerGstin(SELLER_GSTIN_TN);          // buyer registered in 33
+        order.setBuyerLegalName("Chennai Traders Pvt Ltd");
+        order.setBillToShipTo(true);
+        order.setConsigneeName("Mumbai Client Ltd");
+        order.setConsigneeAddress("Andheri, Mumbai, Maharashtra");
+
+        Map<String, Object> result = gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, SELLER_GSTIN_TN, "27");
+        GstInvoice inv = (GstInvoice) result.get("invoice");
+
+        assertTrue(inv.isBillToShipTo());
+        assertEquals("27", inv.getDeliveryStateCode(), "the goods really did go to Maharashtra");
+        assertTrue(inv.getPlaceOfSupply().startsWith("33-"),
+                "but the place of supply is the buyer's state: " + inv.getPlaceOfSupply());
+        assertFalse(Boolean.TRUE.equals(inv.getIsInterState()),
+                "same state as the seller, so this is intra-state despite the delivery address");
+        assertTrue(inv.getCgstAmount() > 0 && inv.getSgstAmount() > 0);
+        assertEquals(0.0, inv.getIgstAmount(), 0.01);
+    }
+
+    @Test
+    void anOrdinaryB2bDeliveryElsewhereIsStillInterState() {
+        // Without the declaration this is 10(1)(a) - place of supply is where the goods stop.
+        // The addresses are identical to the case above; only the buyer's declaration differs,
+        // which is exactly why it cannot be inferred.
+        stubCommonRepos();
+        order.setBuyerGstin(BUYER_GSTIN_MH);
+        order.setBuyerLegalName("Mumbai Traders Pvt Ltd");
+        order.setBillToShipTo(false);
+
+        Map<String, Object> result = gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, BUYER_GSTIN_MH, "27");
+        GstInvoice inv = (GstInvoice) result.get("invoice");
+
+        assertTrue(inv.getPlaceOfSupply().startsWith("27-"));
+        assertTrue(Boolean.TRUE.equals(inv.getIsInterState()));
+        assertTrue(inv.getIgstAmount() > 0);
+        assertEquals(0.0, inv.getCgstAmount(), 0.01);
+    }
+
+    @Test
+    void billToShipTo_isIgnoredWithoutARegisteredBuyer() {
+        // 10(1)(b) turns on a third person's principal place of business. An unregistered buyer
+        // has none, so the ordinary destination rule stands and the flag must not move the tax.
+        stubCommonRepos();
+        order.setBillToShipTo(true);   // no GSTIN on the order
+
+        Map<String, Object> result = gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN);
+        GstInvoice inv = (GstInvoice) result.get("invoice");
+
+        assertEquals("URP", inv.getBuyerGstin());
+        assertTrue(inv.getPlaceOfSupply().startsWith("33-"),
+                "falls back to the delivery state, which here is also 33");
+    }
 }

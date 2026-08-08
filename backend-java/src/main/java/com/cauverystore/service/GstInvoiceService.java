@@ -158,6 +158,12 @@ public class GstInvoiceService {
         inv.setItcEligible(isB2b);
         // B2B invoices carry the recipient's registered legal name (captured at checkout / manual
         // generation); B2C invoices use the account holder's name as the consumer.
+        // Carried from the order onto the invoice before place of supply is worked out, since
+        // it is what decides it.
+        inv.setBillToShipTo(Boolean.TRUE.equals(order.getBillToShipTo()));
+        inv.setConsigneeName(order.getConsigneeName());
+        inv.setConsigneeAddress(order.getConsigneeAddress());
+
         String buyerLegalName = order.getBuyerLegalName();
         inv.setBuyerName(isB2b && buyerLegalName != null && !buyerLegalName.isBlank()
                 ? buyerLegalName.trim()
@@ -191,9 +197,29 @@ public class GstInvoiceService {
                 : buyerStateCode;
         inv.setBuyerStateCode(buyerStateCode);
         inv.setDeliveryStateCode(resolvedDeliveryStateCode);
-        // Place of supply (Req 5) is the destination (delivery) state.
-        inv.setPlaceOfSupply(resolvedDeliveryStateCode + "-" + stateName(resolvedDeliveryStateCode));
-        inv.setIsInterState(!resolvedDeliveryStateCode.equals(sellerStateCode));
+
+        // Place of supply is normally the destination - section 10(1)(a), where the movement of
+        // goods terminates for delivery.
+        //
+        // Section 10(1)(b) is the exception, and it inverts the answer. Where a registered buyer
+        // directs the goods to somebody else, that buyer is deemed to have received them and the
+        // place of supply is their own principal place of business, wherever the lorry went. So
+        // a Chennai company buying from a Chennai seller for delivery to their customer in
+        // Bengaluru is an intra-state supply: CGST and SGST, not IGST.
+        //
+        // Getting this wrong is not a rounding error. IGST charged on a supply whose place of
+        // supply is Tamil Nadu is not creditable against the buyer's Tamil Nadu output, so the
+        // tax is simply lost to them - and the seller has reported it in the wrong state.
+        //
+        // It only applies to a registered buyer: 10(1)(b) turns on a third person's principal
+        // place of business, and an unregistered buyer has no registered one to use.
+        boolean billToShipTo = inv.isBillToShipTo() && isB2b;
+        String placeOfSupplyState = billToShipTo ? buyerStateCode : resolvedDeliveryStateCode;
+        inv.setPlaceOfSupply(placeOfSupplyState + "-" + stateName(placeOfSupplyState));
+        // Whether tax splits or not follows the place of supply, which is the whole point of the
+        // rule above - comparing the delivery state here would quietly undo it and put IGST on a
+        // bill-to/ship-to supply that owes CGST and SGST.
+        inv.setIsInterState(!placeOfSupplyState.equals(sellerStateCode));
         // The state component of an intra-state supply from a Union Territory without a
         // legislature is UTGST, not SGST. The amount stays in the state-tax fields (GSTN reports
         // both under "State/UT Tax"); the flag only changes the label on the invoice.
@@ -1265,9 +1291,23 @@ public class GstInvoiceService {
         buyCell.addElement(new Paragraph("Address: " + safeStr(inv.getBuyerAddress()), small8));
         buyCell.addElement(new Paragraph("State Code: " + safeStr(inv.getBuyerStateCode()), small8));
         if (inv.getDeliveryAddress() != null) {
-            buyCell.addElement(new Paragraph("Ship To (Delivery):", bold10));
-            buyCell.addElement(new Paragraph(safeStr(inv.getDeliveryAddress()), small8));
+            // On a bill-to / ship-to supply the consignee is a different person from the buyer,
+            // and rule 46(o) wants them named. Saying so on the face of the invoice also
+            // explains why the tax splits the way it does, which otherwise looks like an error
+            // to anyone comparing it against the delivery pin code.
+            buyCell.addElement(new Paragraph(inv.isBillToShipTo()
+                    ? "Ship To (Consignee - delivered on the buyer's direction):" : "Ship To (Delivery):", bold10));
+            if (inv.isBillToShipTo() && inv.getConsigneeName() != null) {
+                buyCell.addElement(new Paragraph(safeStr(inv.getConsigneeName()), small8));
+            }
+            buyCell.addElement(new Paragraph(safeStr(inv.isBillToShipTo() && inv.getConsigneeAddress() != null
+                    ? inv.getConsigneeAddress() : inv.getDeliveryAddress()), small8));
             buyCell.addElement(new Paragraph("Delivery State: " + safeStr(inv.getDeliveryStateCode()), small8));
+            if (inv.isBillToShipTo()) {
+                buyCell.addElement(new Paragraph("Bill-to / ship-to supply u/s 10(1)(b) IGST Act: "
+                        + "place of supply is the buyer's registered state ("
+                        + safeStr(inv.getBuyerStateCode()) + "), not the delivery state.", small8));
+            }
         }
         parties.addCell(buyCell);
         doc.add(parties);

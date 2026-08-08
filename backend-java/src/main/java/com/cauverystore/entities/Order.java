@@ -43,6 +43,22 @@ public class Order extends BaseEntity {
     /** Registered legal name supplied with the buyer GSTIN for B2B supplies. */
     private String buyerLegalName;
 
+    /**
+     * The buyer has asked for the goods to go to somebody else - section 10(1)(b) IGST Act.
+     *
+     * Declared, never inferred. The same pair of addresses describes a different supply
+     * depending on whether the consignee is a third party or the buyer's own branch, and only
+     * the buyer knows which.
+     */
+    private Boolean billToShipTo = false;
+
+    /** Who receives the goods, when that is not the buyer. Rule 46(o). */
+    @Column(columnDefinition = "TEXT")
+    private String consigneeName;
+
+    @Column(columnDefinition = "TEXT")
+    private String consigneeAddress;
+
     @java.lang.SuppressWarnings("all")
     public User getUser() {
         return this.user;
@@ -134,6 +150,13 @@ public class Order extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
+    public Boolean getBillToShipTo() { return this.billToShipTo; }
+    public void setBillToShipTo(Boolean billToShipTo) { this.billToShipTo = billToShipTo; }
+    public String getConsigneeName() { return this.consigneeName; }
+    public void setConsigneeName(String consigneeName) { this.consigneeName = consigneeName; }
+    public String getConsigneeAddress() { return this.consigneeAddress; }
+    public void setConsigneeAddress(String consigneeAddress) { this.consigneeAddress = consigneeAddress; }
+
     public String getBuyerGstin() {
         return this.buyerGstin;
     }

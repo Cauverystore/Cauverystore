@@ -93,6 +93,37 @@ public class GstInvoice {
     private Boolean isInterState = false;
 
     /**
+     * A bill-to / ship-to supply under section 10(1)(b) of the IGST Act.
+     *
+     * Where goods are delivered to someone else on the direction of a third person, that third
+     * person is deemed to have received them, and the place of supply is <em>their</em>
+     * principal place of business - not where the lorry actually stopped.
+     *
+     * The consequence is counterintuitive enough to be worth stating: a Chennai company buying
+     * from a Chennai seller and having the goods sent to their own customer in Bengaluru is an
+     * intra-state supply carrying CGST and SGST, even though the goods left the state. Charging
+     * IGST because the delivery pin is in Karnataka would give the buyer a credit they cannot
+     * use, since IGST paid on a supply whose place of supply is Tamil Nadu is not creditable
+     * against their Tamil Nadu output.
+     *
+     * It cannot be inferred from the addresses. The same two pin codes describe a wholly
+     * different supply when a registered buyer ships to their own branch - that stays 10(1)(a),
+     * place of supply being the branch. Only the buyer knows which it is, so they must say.
+     */
+    private Boolean billToShipTo = false;
+
+    /**
+     * Who physically receives the goods when they are not the buyer. Rule 46(o) requires the
+     * name and address of the consignee on a bill-to / ship-to invoice, precisely because the
+     * recipient and the person charged are different people.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String consigneeName;
+
+    @Column(columnDefinition = "TEXT")
+    private String consigneeAddress;
+
+    /**
      * True when this intra-state supply came from a Union Territory without a legislature and so
      * carried UTGST instead of SGST. The state component is still stored in the state-tax fields
      * - GSTN reports UTGST under "State/UT Tax" in every return and e-invoice - but the face of
@@ -274,6 +305,19 @@ public class GstInvoice {
     public void setTcsAmount(Double tcsAmount) { this.tcsAmount = tcsAmount; }
     public Double getTcsRate() { return tcsRate; }
     public void setTcsRate(Double tcsRate) { this.tcsRate = tcsRate; }
+    public Boolean getBillToShipTo() { return billToShipTo; }
+    public void setBillToShipTo(Boolean billToShipTo) { this.billToShipTo = billToShipTo; }
+
+    /** True only when the buyer has declared it. Never inferred from the addresses. */
+    @Transient
+    public boolean isBillToShipTo() { return Boolean.TRUE.equals(billToShipTo); }
+
+    public String getConsigneeName() { return consigneeName; }
+    public void setConsigneeName(String consigneeName) { this.consigneeName = consigneeName; }
+
+    public String getConsigneeAddress() { return consigneeAddress; }
+    public void setConsigneeAddress(String consigneeAddress) { this.consigneeAddress = consigneeAddress; }
+
     public String getPlaceOfSupply() { return placeOfSupply; }
     public void setPlaceOfSupply(String placeOfSupply) { this.placeOfSupply = placeOfSupply; }
     public Boolean getIsInterState() { return isInterState; }
