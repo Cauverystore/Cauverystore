@@ -161,4 +161,45 @@ class GstReviewPriorityTest {
         assertEquals(1, priority.size());
         assertEquals("1905", priority.get(0).get("hsnCode"));
     }
+
+    @Test
+    void shouldFlagATurnoverThatMakesEInvoicingCompulsory() {
+        // Order 48 declared "HSN/SAC digits: 6" over the four-digit code 8517, because the
+        // recorded turnover was above five crore. The same figure makes e-invoicing compulsory,
+        // and rule 48(5) says a document that should have been e-invoiced but was not is not an
+        // invoice at all - so with a simulated IRP the store would be issuing things that are
+        // not invoices while the PDF prints something that looks like one.
+        com.cauverystore.entities.GstConfiguration config = new com.cauverystore.entities.GstConfiguration();
+        config.setGstin("33ABCDE1234F1Z5");
+        config.setCin("U12345TN2020PTC123456");
+        config.setNodalAccountNumber("1234567890");
+        config.setAnnualTurnover(60_000_000.0);
+        when(configRepo.findAll()).thenReturn(List.of(config));
+        when(productRepo.findAll()).thenReturn(List.of());
+
+        @SuppressWarnings("unchecked")
+        List<String> gaps = (List<String>) service.readiness().get("marketplaceGaps");
+
+        assertTrue(gaps.stream().anyMatch(g -> g.contains("e-invoicing compulsory")),
+                "a turnover above the threshold has to be surfaced, not left implicit: " + gaps);
+        assertTrue(gaps.stream().anyMatch(g -> g.contains("48(5)")));
+    }
+
+    @Test
+    void shouldNotFlagEInvoicingBelowTheThreshold() {
+        // A new store is nowhere near five crore, and a false alarm here would train someone to
+        // ignore the screen.
+        com.cauverystore.entities.GstConfiguration config = new com.cauverystore.entities.GstConfiguration();
+        config.setGstin("33ABCDE1234F1Z5");
+        config.setCin("U12345TN2020PTC123456");
+        config.setNodalAccountNumber("1234567890");
+        config.setAnnualTurnover(2_000_000.0);
+        when(configRepo.findAll()).thenReturn(List.of(config));
+        when(productRepo.findAll()).thenReturn(List.of());
+
+        @SuppressWarnings("unchecked")
+        List<String> gaps = (List<String>) service.readiness().get("marketplaceGaps");
+
+        assertTrue(gaps.stream().noneMatch(g -> g.contains("e-invoicing compulsory")));
+    }
 }

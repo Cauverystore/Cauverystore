@@ -1,6 +1,7 @@
 package com.cauverystore.service;
 
 import com.cauverystore.entities.GstConfiguration;
+import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.Product;
 import com.cauverystore.entities.GstRateMaster;
@@ -256,6 +257,22 @@ public class GstComplianceReadinessService {
         if (isBlank(config.getNodalAccountNumber())) {
             gaps.add("No nodal escrow account. Money collected for sellers is held rather than "
                     + "owned, and settlement cannot be reconciled without it.");
+        }
+
+        // The recorded turnover quietly decides two obligations, and getting it wrong is not a
+        // cosmetic error. Above five crore, e-invoicing is compulsory and rule 48(5) says a
+        // document that should have been e-invoiced but was not "shall not be treated as an
+        // invoice" - so with a simulated IRP the store would be issuing things that are not
+        // invoices at all, while the PDF prints a reference that looks like one.
+        //
+        // It also raises the HSN requirement to six digits, which is why an invoice can end up
+        // declaring "HSN/SAC digits: 6" over a four-digit code and contradicting itself.
+        if (GstComplianceUtil.requiresEInvoice(config.getAnnualTurnover())) {
+            gaps.add("Turnover is recorded as ₹" + config.getAnnualTurnover() + ", which makes "
+                    + "e-invoicing compulsory. Every invoice must carry a real IRN and QR from "
+                    + "the government portal, and under rule 48(5) one that does not is not an "
+                    + "invoice at all. Check this figure is right - a store below ₹5 crore should "
+                    + "not have it set, and it also forces 6-digit HSN codes on every product.");
         }
         return gaps;
     }
