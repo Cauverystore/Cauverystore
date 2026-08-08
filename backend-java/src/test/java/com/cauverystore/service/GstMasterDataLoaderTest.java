@@ -412,4 +412,35 @@ class GstMasterDataLoaderTest {
                 .findFirst().orElseThrow();
         assertEquals(LocalDate.of(2026, 4, 30), inserted.getEffectiveTo());
     }
+
+    @Test
+    void shouldSetTheWholeChapterFlagOnRowsThatAlreadyExist() {
+        // The regression this prevents: the load is insert-only, so chapter 61's rows in an
+        // already-populated database keep a null flag, the resolver refuses a chapter row that
+        // does not claim to cover its chapter, and every garment stops being sellable.
+        GstRateMaster apparelLower = autoVerified("61", 5.0);
+        apparelLower.setConditionType(GstRateMaster.CONDITION_VALUE_UPTO);
+        apparelLower.setThresholdAmount(2500.0);
+        assertNull(apparelLower.getWholeChapter(), "starts as a pre-existing row would");
+        when(rateRepo.findAll()).thenReturn(List.of(apparelLower));
+
+        runAndCaptureSaves();
+
+        assertTrue(apparelLower.coversWholeChapter(),
+                "chapter 61 is apparel outright and must go on pricing everything beneath it");
+    }
+
+    @Test
+    void shouldTakeTheFlagAwayWhenTheSeedNoLongerClaimsTheChapter() {
+        // Otherwise a chapter dropped from that short list would go on answering for goods it
+        // does not name, on the strength of a flag set months earlier.
+        GstRateMaster narrowChapterRow = autoVerified("71", 0.0);
+        narrowChapterRow.setWholeChapter(Boolean.TRUE);
+        when(rateRepo.findAll()).thenReturn(List.of(narrowChapterRow));
+
+        runAndCaptureSaves();
+
+        assertFalse(narrowChapterRow.coversWholeChapter(),
+                "chapter 71's entry is the Reserve Bank exemption, not a rate for all jewellery");
+    }
 }

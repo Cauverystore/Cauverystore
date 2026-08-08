@@ -204,4 +204,24 @@ class GstChargedRateVerificationTest {
         assertThrows(GstRateResolver.GstRateUnresolvedException.class,
                 () -> resolver.resolve(mystery, false, LocalDate.of(2026, 8, 8), 100.0));
     }
+
+    @Test
+    void staleFlatFootwearRowsInTheDatabase_shouldNotOverrideTheNewBands() {
+        // What production will actually look like after this deploys. The load is insert-only,
+        // so the old unconditional 18% rows for 6401-6405 stay put and the two new bands are
+        // inserted alongside them. This asserts the outcome of that mixture rather than
+        // assuming it: a matching value condition has to beat an unconditional row, or a Rs 499
+        // pair would go on being charged 18% forever.
+        GstRateMaster staleFlat = new GstRateMaster();
+        staleFlat.setHsnCode("6403");
+        staleFlat.setGstRate(18.0);
+        staleFlat.setEffectiveFrom(LocalDate.of(2025, 9, 22));
+        staleFlat.setStatus(GstRateMaster.STATUS_VERIFIED);
+        loaded.computeIfAbsent("6403", k -> new ArrayList<>()).add(staleFlat);
+
+        assertEquals(3, loaded.get("6403").size(), "the stale row plus both new bands");
+        assertEquals(Optional.of(5.0), rateFor("64031990", 499.0, null),
+                "a cheap pair must take the 5% band despite the stale flat 18% row");
+        assertEquals(Optional.of(18.0), rateFor("64031990", 4999.0, null));
+    }
 }

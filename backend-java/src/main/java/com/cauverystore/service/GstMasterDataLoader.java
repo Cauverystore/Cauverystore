@@ -248,8 +248,9 @@ public class GstMasterDataLoader {
         int closed = applySeedEndDates(rows, existing);
         int demoted = demoteStaleAutoVerified(existing, seedVerified, seedHeadings);
         int retracted = retractFabricatedCodes(existing);
+        int flagged = backfillWholeChapterFlag(rows, existing);
 
-        if (inserted > 0 || demoted > 0 || closed > 0 || retracted > 0) {
+        if (inserted > 0 || demoted > 0 || closed > 0 || retracted > 0 || flagged > 0) {
             MasterUpdateLog entry = new MasterUpdateLog();
             entry.setFileName("gst_rate_seed.json");
             entry.setVersion(RATE_SOURCE_VERSION);
@@ -261,7 +262,8 @@ public class GstMasterDataLoader {
                     + " left UNVERIFIED because the heading carries more than one rate; "
                     + demoted + " previously auto-verified rows demoted for review; "
                     + closed + " rows closed off on the date a later notification ended them; "
-                    + retracted + " rows retracted as not being real HSN headings");
+                    + retracted + " rows retracted as not being real HSN headings; "
+                    + flagged + " chapter rows had their whole-chapter flag corrected");
             logRepo.save(entry);
         }
         log.info("GST rates: {} rows in file, {} inserted ({} ambiguous held for review), "
@@ -357,6 +359,48 @@ public class GstMasterDataLoader {
                     + "they will be charged again.", demote.size());
         }
         return demote.size();
+    }
+
+    /**
+     * Copies the whole-chapter flag onto chapter rows that already exist.
+     *
+     * The flag decides whether a two-digit row may answer for goods it does not name, and the
+     * resolver treats an unset flag as no. That default is the safe one for a row nobody has
+     * considered, but it makes this pass essential rather than tidy: the load is insert-only,
+     * so chapters 60, 61 and 62 - which genuinely do price everything beneath them - would keep
+     * a null flag on any database populated before the column existed, the resolver would
+     * refuse them, and every garment in the shop would stop being sellable overnight.
+     *
+     * Runs in both directions. A row the seed no longer considers chapter-wide has the flag
+     * taken away, or a heading withdrawn from that short list would go on pricing its whole
+     * chapter on the strength of a flag set months ago.
+     */
+    private int backfillWholeChapterFlag(List<JsonNode> rows, Map<String, List<GstRateMaster>> existing) {
+        Map<String, Boolean> seedFlags = new HashMap<>();
+        for (JsonNode n : rows) {
+            String hsn = text(n, "hsnCode");
+            JsonNode rateNode = n.get("gstRate");
+            if (hsn == null || hsn.length() != 2 || rateNode == null) continue;
+            seedFlags.put(hsn + "|" + rateNode.asDouble(),
+                    n.hasNonNull("wholeChapter") && n.get("wholeChapter").asBoolean());
+        }
+
+        List<GstRateMaster> toSave = new ArrayList<>();
+        for (Map.Entry<String, List<GstRateMaster>> entry : existing.entrySet()) {
+            if (entry.getKey().length() != 2) continue;
+            for (GstRateMaster r : entry.getValue()) {
+                Boolean shouldBe = seedFlags.get(r.getHsnCode() + "|" + r.getGstRate());
+                if (shouldBe == null) continue;              // not a row the seed speaks to
+                if (shouldBe.equals(r.getWholeChapter())) continue;
+                r.setWholeChapter(shouldBe);
+                toSave.add(r);
+            }
+        }
+        if (!toSave.isEmpty()) {
+            rateRepo.saveAll(toSave);
+            log.info("Set the whole-chapter flag on {} existing chapter rate row(s).", toSave.size());
+        }
+        return toSave.size();
     }
 
     /**
