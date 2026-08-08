@@ -107,6 +107,7 @@ public class SellerRegistrationService {
                 break;
             case 2:
                 if (req.getGstin() != null) reg.setGstin(req.getGstin());
+                if (req.getCompositionScheme() != null) reg.setCompositionScheme(req.getCompositionScheme());
                 if (req.getPanNumber() != null) reg.setPanNumber(req.getPanNumber());
                 if (req.getAadhaarNumber() != null) reg.setAadhaarNumber(req.getAadhaarNumber());
                 break;
@@ -155,8 +156,24 @@ public class SellerRegistrationService {
         if (reg.getBusinessName() == null || reg.getBusinessName().isBlank()) {
             throw new RuntimeException("Complete business details (step 1) before submitting");
         }
+        // Section 24 makes registration compulsory for anyone supplying through an e-commerce
+        // operator, whatever their turnover - so there is no threshold to fall under here.
         if (reg.getGstin() == null || reg.getGstin().isBlank()) {
-            throw new RuntimeException("GSTIN is required (step 2)");
+            throw new RuntimeException("GSTIN is required (step 2). Selling through a marketplace "
+                    + "requires GST registration under section 24 regardless of turnover.");
+        }
+        // Section 10(2)(d) bars a composition taxpayer from supplying goods through an operator
+        // required to collect TCS. Letting one onboard would put the marketplace in the position
+        // of facilitating a supply the seller is not permitted to make.
+        if (reg.getCompositionScheme() == null) {
+            throw new RuntimeException("Tell us whether you are registered under the composition "
+                    + "scheme (step 2). A composition taxpayer cannot sell through a marketplace, "
+                    + "so we cannot approve an account without the answer.");
+        }
+        if (reg.isOnCompositionScheme()) {
+            throw new RuntimeException("A composition taxpayer cannot supply goods through an "
+                    + "e-commerce operator that collects TCS (section 10(2)(d) CGST Act). To sell "
+                    + "here you would need to move to the regular scheme first.");
         }
         if (reg.getBankAccountNumber() == null || reg.getBankAccountNumber().isBlank()) {
             throw new RuntimeException("Bank account details are required (step 3)");

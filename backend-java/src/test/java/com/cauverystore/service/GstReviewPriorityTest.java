@@ -7,6 +7,8 @@ import com.cauverystore.repository.GstInvoiceRepository;
 import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.HsnMasterRepository;
 import com.cauverystore.repository.ProductRepository;
+import com.cauverystore.repository.SellerRegistrationRepository;
+import com.cauverystore.entities.SellerRegistration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,16 +41,18 @@ class GstReviewPriorityTest {
     @Mock private GstConfigurationRepository configRepo;
     @Mock private GstRateFreshnessService freshnessService;
     @Mock private GstRateMasterRepository rateRepo;
+    @Mock private SellerRegistrationRepository sellerRegRepo;
 
     private GstComplianceReadinessService service;
 
     @BeforeEach
     void setUp() {
         service = new GstComplianceReadinessService(productRepo, hsnRepo, rateResolver,
-                invoiceRepo, configRepo, freshnessService, rateRepo);
+                invoiceRepo, configRepo, freshnessService, rateRepo, sellerRegRepo);
         when(hsnRepo.existsById(any())).thenReturn(true);
         when(rateResolver.findRate(any(), any(), any(), any())).thenReturn(Optional.empty());
         when(rateRepo.findByHsnCodeOrderByEffectiveFromDesc(any())).thenReturn(List.of());
+        when(sellerRegRepo.findAll()).thenReturn(List.of());
     }
 
     private Product live(long id, String name, String hsn) {
@@ -201,5 +205,71 @@ class GstReviewPriorityTest {
         List<String> gaps = (List<String>) service.readiness().get("marketplaceGaps");
 
         assertTrue(gaps.stream().noneMatch(g -> g.contains("e-invoicing compulsory")));
+    }
+
+    private SellerRegistration seller(String name, String gstin, Boolean composition) {
+        SellerRegistration r = new SellerRegistration();
+        r.setId(1L);
+        r.setBusinessName(name);
+        r.setGstin(gstin);
+        r.setCompositionScheme(composition);
+        r.setStatus("APPROVED");
+        return r;
+    }
+
+    @Test
+    void shouldNameAnApprovedSellerWithNoGstin() {
+        // Section 24 requires registration of anyone selling through an operator, whatever their
+        // turnover. The form blocks new ones; this catches those already approved.
+        when(sellerRegRepo.findAll()).thenReturn(List.of(seller("Corner Shop", null, Boolean.FALSE)));
+
+        List<Map<String, Object>> gaps = service.sellerGaps();
+
+        assertEquals(1, gaps.size());
+        assertTrue(String.valueOf(gaps.get(0).get("problem")).contains("section 24"));
+    }
+
+    @Test
+    void shouldNameACompositionSellerAsBarred() {
+        // Section 10(2)(d). The marketplace carries the exposure for facilitating the supply.
+        when(sellerRegRepo.findAll()).thenReturn(
+                List.of(seller("Small Trader", "33ABCDE1234F1Z5", Boolean.TRUE)));
+
+        List<Map<String, Object>> gaps = service.sellerGaps();
+
+        assertEquals(1, gaps.size());
+        assertTrue(String.valueOf(gaps.get(0).get("problem")).contains("10(2)(d)"));
+        assertTrue(String.valueOf(gaps.get(0).get("fix")).contains("Suspend"));
+    }
+
+    @Test
+    void shouldSeparateUnansweredFromBarred() {
+        // One is a seller to remove, the other a question to ask. Treating silence as a breach
+        // would overstate it; treating it as clearance would hide it.
+        when(sellerRegRepo.findAll()).thenReturn(
+                List.of(seller("Not Yet Asked", "33ABCDE1234F1Z5", null)));
+
+        Map<String, Object> gap = service.sellerGaps().get(0);
+
+        assertTrue(String.valueOf(gap.get("problem")).contains("Nobody has asked"));
+        assertFalse(String.valueOf(gap.get("problem")).contains("10(2)(d)"));
+    }
+
+    @Test
+    void shouldPassACompliantSeller() {
+        when(sellerRegRepo.findAll()).thenReturn(
+                List.of(seller("Proper Trader", "33ABCDE1234F1Z5", Boolean.FALSE)));
+
+        assertTrue(service.sellerGaps().isEmpty());
+    }
+
+    @Test
+    void shouldIgnoreSellersNotYetApproved() {
+        // A draft or rejected application is not trading, so it is not the operator's exposure.
+        SellerRegistration pending = seller("Applicant", null, null);
+        pending.setStatus("SUBMITTED");
+        when(sellerRegRepo.findAll()).thenReturn(List.of(pending));
+
+        assertTrue(service.sellerGaps().isEmpty());
     }
 }

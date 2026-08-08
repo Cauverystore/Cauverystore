@@ -5,7 +5,9 @@ import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.Product;
 import com.cauverystore.entities.GstRateMaster;
+import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.repository.GstConfigurationRepository;
+import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.GstInvoiceRepository;
 import com.cauverystore.repository.HsnMasterRepository;
@@ -42,6 +44,7 @@ public class GstComplianceReadinessService {
     private final GstConfigurationRepository configRepo;
     private final GstRateFreshnessService freshnessService;
     private final GstRateMasterRepository rateRepo;
+    private final SellerRegistrationRepository sellerRegRepo;
 
     public GstComplianceReadinessService(ProductRepository productRepo,
                                          HsnMasterRepository hsnRepo,
@@ -49,7 +52,8 @@ public class GstComplianceReadinessService {
                                          GstInvoiceRepository invoiceRepo,
                                          GstConfigurationRepository configRepo,
                                          GstRateFreshnessService freshnessService,
-                                         GstRateMasterRepository rateRepo) {
+                                         GstRateMasterRepository rateRepo,
+                                         SellerRegistrationRepository sellerRegRepo) {
         this.productRepo = productRepo;
         this.hsnRepo = hsnRepo;
         this.rateResolver = rateResolver;
@@ -57,6 +61,7 @@ public class GstComplianceReadinessService {
         this.configRepo = configRepo;
         this.freshnessService = freshnessService;
         this.rateRepo = rateRepo;
+        this.sellerRegRepo = sellerRegRepo;
     }
 
     /** Why one product cannot be taxed correctly, and what fixes it. */
@@ -228,6 +233,7 @@ public class GstComplianceReadinessService {
         out.put("blockingProductCount", blockers.size());
         out.put("blockingProducts", blockers);
         out.put("marketplaceGaps", marketplaceGaps);
+        out.put("sellerGaps", sellerGaps());
         // Rate freshness is reported alongside, because a store whose products all resolve is
         // still not compliant if the rates they resolve to were superseded months ago.
         out.put("rateFreshness", freshnessService.status());
@@ -275,6 +281,51 @@ public class GstComplianceReadinessService {
                     + "not have it set, and it also forces 6-digit HSN codes on every product.");
         }
         return gaps;
+    }
+
+    /**
+     * Sellers who are approved to trade but should not be, or whom nobody has checked.
+     *
+     * The onboarding form now asks both questions, so no new seller can get past them. That
+     * does nothing for anyone already approved - and it is the marketplace, not the seller,
+     * that carries the exposure for facilitating a supply the seller was not permitted to make.
+     * Section 24 requires registration of anyone selling through an operator whatever their
+     * turnover, and section 10(2)(d) bars a composition taxpayer outright.
+     *
+     * Unanswered is reported separately from barred. One is a seller to remove; the other is a
+     * question to ask, and conflating them would either overstate the problem or bury it.
+     */
+    public List<Map<String, Object>> sellerGaps() {
+        List<Map<String, Object>> gaps = new ArrayList<>();
+        for (SellerRegistration reg : sellerRegRepo.findAll()) {
+            if (!"APPROVED".equalsIgnoreCase(String.valueOf(reg.getStatus()))) continue;
+
+            if (isBlank(reg.getGstin())) {
+                gaps.add(sellerGap(reg, "No GSTIN, but selling through a marketplace requires "
+                        + "registration under section 24 whatever the turnover.",
+                        "Suspend the account until they register, or collect the GSTIN."));
+            }
+            if (reg.isOnCompositionScheme()) {
+                gaps.add(sellerGap(reg, "Registered under the composition scheme, which section "
+                        + "10(2)(d) bars from supplying through an operator that collects TCS.",
+                        "Suspend the account. They would have to move to the regular scheme."));
+            } else if (reg.getCompositionScheme() == null) {
+                gaps.add(sellerGap(reg, "Nobody has asked whether this seller is on the "
+                        + "composition scheme. Their GSTIN does not reveal it.",
+                        "Ask them. It is one question and it decides whether they may trade here."));
+            }
+        }
+        return gaps;
+    }
+
+    private Map<String, Object> sellerGap(SellerRegistration reg, String problem, String fix) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("sellerRegistrationId", reg.getId());
+        row.put("businessName", reg.getBusinessName());
+        row.put("gstin", reg.getGstin());
+        row.put("problem", problem);
+        row.put("fix", fix);
+        return row;
     }
 
     private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }

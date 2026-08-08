@@ -31,6 +31,9 @@ public class SellerRegistrationRequest {
     @com.fasterxml.jackson.annotation.JsonAlias("authorised_signatory")
     private String authorisedSignatory;
     private String gstin;
+
+    /** Section 10(2)(d): a composition taxpayer cannot sell through a TCS-collecting operator. */
+    private Boolean compositionScheme;
     @com.fasterxml.jackson.annotation.JsonAlias("pan_number")
     private String panNumber;
     private String aadhaarNumber;
@@ -75,6 +78,9 @@ public class SellerRegistrationRequest {
     public void setAuthorisedSignatory(String authorisedSignatory) { this.authorisedSignatory = authorisedSignatory; }
     public String getGstin() { return gstin; }
     public void setGstin(String gstin) { this.gstin = gstin; }
+
+    public Boolean getCompositionScheme() { return compositionScheme; }
+    public void setCompositionScheme(Boolean compositionScheme) { this.compositionScheme = compositionScheme; }
     public String getPanNumber() { return panNumber; }
     public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
     public String getAadhaarNumber() { return aadhaarNumber; }

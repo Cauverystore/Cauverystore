@@ -54,6 +54,17 @@ public class AdminGstReadinessController {
         return ResponseEntity.ok(service.reviewPriority());
     }
 
+    /**
+     * Sellers approved to trade who should not be, or whom nobody has checked.
+     *
+     * The marketplace, not the seller, carries the exposure for facilitating a supply the
+     * seller was not permitted to make - so this is the operator's list, not theirs.
+     */
+    @GetMapping("/readiness/seller-gaps")
+    public ResponseEntity<List<Map<String, Object>>> sellerGaps() {
+        return ResponseEntity.ok(service.sellerGaps());
+    }
+
     /** Just the products that cannot be sold, with the fix for each. */
     @GetMapping("/readiness/blocking-products")
     public ResponseEntity<List<GstComplianceReadinessService.Blocker>> blocking() {

@@ -92,6 +92,19 @@ public class SellerRegistration {
     private String panNumber;
     private String aadhaarNumber;
 
+    /**
+     * Whether this seller is registered under the composition scheme.
+     *
+     * Section 10(2)(d) bars a composition taxpayer from supplying goods through an e-commerce
+     * operator required to collect TCS - which this marketplace is. So the answer decides
+     * whether they can trade here at all, and it has to be asked rather than assumed: a
+     * composition dealer's GSTIN looks like any other, and nothing in the number reveals it.
+     *
+     * Null means unanswered, which is not the same as "no". An unanswered seller is one nobody
+     * has checked, and the readiness screen says so rather than treating silence as clearance.
+     */
+    private Boolean compositionScheme;
+
     private String gstinStatus = "UNVERIFIED";
     private LocalDateTime gstinVerifiedAt;
     private String gstinLegalName;
@@ -185,6 +198,13 @@ public class SellerRegistration {
     public void setAuthorisedSignatory(String authorisedSignatory) { this.authorisedSignatory = authorisedSignatory; }
     public String getGstin() { return gstin; }
     public void setGstin(String gstin) { this.gstin = gstin; }
+
+    public Boolean getCompositionScheme() { return compositionScheme; }
+    public void setCompositionScheme(Boolean compositionScheme) { this.compositionScheme = compositionScheme; }
+
+    /** True only when the seller has said yes. Unanswered is not a no. */
+    @jakarta.persistence.Transient
+    public boolean isOnCompositionScheme() { return Boolean.TRUE.equals(compositionScheme); }
     public String getGstinStatus() { return gstinStatus; }
     public void setGstinStatus(String gstinStatus) { this.gstinStatus = gstinStatus; }
     public LocalDateTime getGstinVerifiedAt() { return gstinVerifiedAt; }
