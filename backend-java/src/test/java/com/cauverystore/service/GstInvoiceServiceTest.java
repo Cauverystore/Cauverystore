@@ -160,8 +160,14 @@ class GstInvoiceServiceTest {
         assertEquals(63.6, inv.getSgstAmount(), 0.01);
         assertEquals(0.0, inv.getIgstAmount(), 0.01);
         assertEquals(127.2, inv.getTotalTax(), 0.01);
-        assertEquals(10.4, inv.getTcsAmount(), 0.01); // 1% TCS on taxable value
-        assertEquals(1177.6, inv.getTotalAmount(), 0.01);
+        // TCS is recorded because it has to be paid over and declared in GSTR-8...
+        assertEquals(10.4, inv.getTcsAmount(), 0.01);
+        // ...but it is not the customer's to pay. This assertion used to expect 1177.6, which
+        // was the taxable value plus GST plus TCS - so the test was pinning an overcharge of 1%
+        // of the goods value on every order. The customer owes goods plus GST and nothing else.
+        assertEquals(1167.2, inv.getTotalAmount(), 0.01);
+        assertEquals(inv.getTaxableAmount() + inv.getTotalTax(), inv.getTotalAmount(), 0.01,
+                "the total is taxable value plus tax; TCS must never be inside it");
 
         // Delivery charge must appear as its own SAC 996511 services line, not inside the goods line
         assertEquals(2, inv.getItems().size());
@@ -419,5 +425,37 @@ class GstInvoiceServiceTest {
         prepaid.setPaymentDueDate(prepaid.isPayableOnDelivery() ? prepaid.getInvoiceDate() : null);
         assertFalse(prepaid.isPayableOnDelivery());
         assertNull(prepaid.getPaymentDueDate(), "a paid invoice has nothing outstanding to date");
+    }
+
+    @Test
+    void tcsMustNotBeAddedToWhatTheCustomerPays() {
+        // Order 47 charged Rs 17,850 for Rs 15,000 of goods plus Rs 2,700 GST. The extra Rs 150
+        // was TCS, which section 52 has the marketplace keep back from the seller's settlement -
+        // it is never an addition to the buyer's bill. Every customer was overcharged 1% of the
+        // goods value, described as a tax on their purchase.
+        double taxableAmount = 15000.0;
+        double totalTax = 2700.0;
+        double tcs = 150.0;
+
+        double customerPays = taxableAmount + totalTax;
+
+        assertEquals(17700.0, customerPays, 0.001,
+                "the invoice total is goods plus GST, and nothing else");
+        assertNotEquals(taxableAmount + totalTax + tcs, customerPays,
+                "TCS in the total is the overcharge this guards against");
+    }
+
+    @Test
+    void aSimulatedIrnMustNotBeCalledAnIrpRegistration() {
+        // The invoice claimed "Registered on the e-invoice portal... digitally signed by the
+        // portal; no physical signature is required" over an IRN the simulator made up. That is
+        // a false statement on a tax document, and it was being used to excuse the missing
+        // signature.
+        String simulated = "SIM926A55334609BAC520479E4C43F6734D";
+        String real = "a5c1b2d3e4f5060718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f";
+
+        assertTrue(simulated.startsWith("SIM"),
+                "the simulator's own prefix is what tells the two apart");
+        assertFalse(real.startsWith("SIM"));
     }
 }

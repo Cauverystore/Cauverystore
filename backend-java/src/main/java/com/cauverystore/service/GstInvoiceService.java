@@ -391,7 +391,18 @@ public class GstInvoiceService {
         inv.setTcsAmount(tcsAmount);
         inv.setTcsRate(tcsRate);
 
-        inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax() + tcsAmount) * 100.0) / 100.0);
+        // TCS is not the customer's to pay, and adding it here was charging them for it.
+        //
+        // Under section 52 the marketplace collects the consideration, keeps back 1% of the net
+        // taxable supplies, and pays the seller the balance. It comes out of what the seller
+        // receives - it is never an addition to the buyer's bill. Adding it made an order of
+        // Rs 15,000 + Rs 2,700 GST come to Rs 17,850 instead of Rs 17,700, so every customer
+        // was overcharged by 1% of the goods value and the invoice misdescribed what that
+        // charge was.
+        //
+        // The amount is still recorded on the invoice, because it is what has to be paid over
+        // and declared in GSTR-8. It just is not part of what the customer owes.
+        inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax()) * 100.0) / 100.0);
 
         // Supplier signature (Req 11): bind supplier GSTIN + fiscal identity + amounts with a digest
         // so the invoice cannot be altered without invalidating the recorded signature.
@@ -1366,7 +1377,8 @@ public class GstInvoiceService {
             addBreakupCell(breakupTable, stateLabel + " @ " + sgstRate + "%", "\u20B9" + String.format("%.2f", sgst), normal9);
         }
         addBreakupCell(breakupTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
-        addBreakupCell(breakupTable, "TCS @ " + tcsRate + "%", "\u20B9" + String.format("%.2f", tcs), normal9);
+        // TCS is deliberately not in this breakup. It is not a tax on this supply and the
+        // customer does not pay it - printing it beside CGST and SGST read as though they did.
         doc.add(breakupTable);
 
         doc.add(new Paragraph(" "));
@@ -1390,7 +1402,9 @@ public class GstInvoiceService {
             addSumRow(sumTable, stateLabel, "\u20B9" + String.format("%.2f", sgst), normal9);
         }
         addSumRow(sumTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
-        addSumRow(sumTable, "TCS @ " + tcsRate + "%", "\u20B9" + String.format("%.2f", tcs), normal9);
+        // TCS sat here, between Total Tax and Total Amount, which is exactly where a customer
+        // reads a charge as theirs - and it was being added into the total. It belongs below
+        // the total as a note about the marketplace's own obligation, not in the sum.
         PdfPCell totalCell = new PdfPCell(new Phrase("Total Amount", bold12));
         totalCell.setBorder(Rectangle.TOP);
         sumTable.addCell(totalCell);
@@ -1403,6 +1417,16 @@ public class GstInvoiceService {
         doc.add(new Paragraph(" "));
         doc.add(new Paragraph("Amount in Words: " + numberToWordsPdf(total), bold9));
 
+        // Stated, but plainly as the marketplace's obligation rather than a line on the bill.
+        // Section 52 has the operator keep this back from what the seller is paid; the customer
+        // is not charged it and the figure above does not include it.
+        if (tcs > 0) {
+            doc.add(new Paragraph("TCS u/s 52: ₹" + String.format("%.2f", tcs) + " (" + tcsRate
+                    + "% of taxable value) is collected by the marketplace from the seller's "
+                    + "settlement and declared in GSTR-8. It is not charged to the buyer and is "
+                    + "not included in the Total Amount above.", small8));
+        }
+
         // Payment terms. An invoice that does not say whether it has been paid is one the
         // buyer's accounts team has to ring the seller about.
         if (inv.getPaymentMode() != null && !inv.getPaymentMode().isBlank()) {
@@ -1413,9 +1437,13 @@ public class GstInvoiceService {
             doc.add(new Paragraph(terms, small8));
         }
 
-        // IRN / QR section
+        // IRN / QR section. A bare "IRN: ..." reads as a genuine portal reference wherever it
+        // appears, so a simulated one is labelled at the point it is printed rather than only
+        // in the declaration further down.
         if (inv.getIrn() != null) {
-            doc.add(new Paragraph("IRN: " + inv.getIrn(), small8));
+            boolean simulated = inv.getIrn().startsWith("SIM");
+            doc.add(new Paragraph((simulated ? "Reference (SIMULATED - not an IRP registration): "
+                    : "IRN: ") + inv.getIrn(), small8));
             if (inv.getEwayBillNumber() != null) {
                 doc.add(new Paragraph("E-Way Bill: " + inv.getEwayBillNumber() + (inv.getEwayBillExpiry() != null ? " (exp: " + inv.getEwayBillExpiry() + ")" : ""), small8));
             }
@@ -1439,8 +1467,18 @@ public class GstInvoiceService {
         // The digest above proves the invoice has not been altered; it is not that signature.
         // An e-invoice carrying an IRN needs neither, because the portal signs it - so say so
         // rather than printing a "no signature required" line that is only true in that case.
-        boolean eInvoiced = inv.getIrn() != null && !inv.getIrn().isBlank();
+        // Only a real IRP registration may be claimed. The simulator issues IRNs prefixed
+        // "SIM", and printing "registered on the e-invoice portal, digitally signed by the
+        // portal" over one of those is a false statement on a tax document - made worse by the
+        // fact that the claim was being used to excuse the missing signature. A simulated
+        // invoice therefore says so, and still needs signing like any other.
+        boolean simulatedIrn = inv.getIrn() != null && inv.getIrn().startsWith("SIM");
+        boolean eInvoiced = inv.getIrn() != null && !inv.getIrn().isBlank() && !simulatedIrn;
         String signatureImage = inv.getSupplierSignatureImageUrl();
+        if (simulatedIrn) {
+            doc.add(new Paragraph("- NOT registered on the e-invoice portal. The reference above "
+                    + "was generated locally for testing and has no standing with GSTN.", small8));
+        }
         if (eInvoiced) {
             doc.add(new Paragraph("- Registered on the e-invoice portal (IRN " + inv.getIrn()
                     + "). Digitally signed by the portal; no physical signature is required.", small8));
