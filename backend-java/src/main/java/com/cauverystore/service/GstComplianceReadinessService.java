@@ -3,7 +3,9 @@ package com.cauverystore.service;
 import com.cauverystore.entities.GstConfiguration;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.Product;
+import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.repository.GstConfigurationRepository;
+import com.cauverystore.repository.GstRateMasterRepository;
 import com.cauverystore.repository.GstInvoiceRepository;
 import com.cauverystore.repository.HsnMasterRepository;
 import com.cauverystore.repository.ProductRepository;
@@ -38,19 +40,22 @@ public class GstComplianceReadinessService {
     private final GstInvoiceRepository invoiceRepo;
     private final GstConfigurationRepository configRepo;
     private final GstRateFreshnessService freshnessService;
+    private final GstRateMasterRepository rateRepo;
 
     public GstComplianceReadinessService(ProductRepository productRepo,
                                          HsnMasterRepository hsnRepo,
                                          GstRateResolver rateResolver,
                                          GstInvoiceRepository invoiceRepo,
                                          GstConfigurationRepository configRepo,
-                                         GstRateFreshnessService freshnessService) {
+                                         GstRateFreshnessService freshnessService,
+                                         GstRateMasterRepository rateRepo) {
         this.productRepo = productRepo;
         this.hsnRepo = hsnRepo;
         this.rateResolver = rateResolver;
         this.invoiceRepo = invoiceRepo;
         this.configRepo = configRepo;
         this.freshnessService = freshnessService;
+        this.rateRepo = rateRepo;
     }
 
     /** Why one product cannot be taxed correctly, and what fixes it. */
@@ -122,6 +127,64 @@ public class GstComplianceReadinessService {
             }
         }
         return blockers;
+    }
+
+    /**
+     * Which unreviewed headings are actually holding the shop up, busiest first.
+     *
+     * The rate master has 357 rates awaiting review across 175 headings, and read as a list of
+     * work that is daunting enough to not get started. Most of it is irrelevant: a heading only
+     * matters if something on sale resolves through it. This turns the queue into the handful
+     * of headings that would unblock the most products, so the review can be done in an hour
+     * rather than abandoned as a project.
+     *
+     * Each entry also carries the alternative. A seller can clear their own product by choosing
+     * which published wording describes it, which works immediately and without waiting for
+     * anyone - so a heading with one blocked product is usually a message to that seller, not a
+     * job for whoever reviews rates.
+     */
+    public List<Map<String, Object>> reviewPriority() {
+        Map<String, List<Blocker>> byHeading = new LinkedHashMap<>();
+        for (Blocker b : blockingProducts()) {
+            if (b.hsnCode == null || b.hsnCode.isBlank()) continue;
+            byHeading.computeIfAbsent(b.hsnCode.replaceAll("\\s", ""), k -> new ArrayList<>()).add(b);
+        }
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map.Entry<String, List<Blocker>> e : byHeading.entrySet()) {
+            String code = e.getKey();
+            List<Blocker> blocked = e.getValue();
+
+            // The rates competing on this code, at whichever level the resolver would stop.
+            List<GstRateMaster> competing = new ArrayList<>();
+            for (String candidate : List.of(code,
+                    code.length() > 6 ? code.substring(0, 6) : code,
+                    code.length() > 4 ? code.substring(0, 4) : code,
+                    code.length() > 2 ? code.substring(0, 2) : code)) {
+                List<GstRateMaster> rows = rateRepo.findByHsnCodeOrderByEffectiveFromDesc(candidate);
+                if (!rows.isEmpty()) { competing.addAll(rows); break; }
+            }
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("hsnCode", code);
+            row.put("productsBlocked", blocked.size());
+            row.put("products", blocked.stream().limit(5).map(b -> b.productName).toList());
+            row.put("choices", competing.stream().map(r -> Map.of(
+                    "rateId", r.getId() == null ? "" : r.getId(),
+                    "gstRate", r.getGstRate(),
+                    "status", r.getStatus(),
+                    "wording", r.getConditionText() == null ? "" : r.getConditionText())).toList());
+            row.put("fixedByReview", "Approve the correct rate for HSN " + code
+                    + " on the rate review desk - clears every product under it at once.");
+            row.put("fixedBySeller", "Or the seller opens each product and picks the wording that "
+                    + "describes their goods, which works without waiting for a review.");
+            out.add(row);
+        }
+
+        // Busiest first: the point is to show where an hour of review buys the most.
+        out.sort((a, b) -> Integer.compare((Integer) b.get("productsBlocked"),
+                (Integer) a.get("productsBlocked")));
+        return out;
     }
 
     /** Invoices already issued at the fallback rate - a rate that is not lawful for anything. */

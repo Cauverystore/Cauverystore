@@ -42,6 +42,18 @@ public class AdminGstReadinessController {
         return ResponseEntity.ok(service.readiness());
     }
 
+    /**
+     * Which unreviewed headings are actually holding the shop up, busiest first.
+     *
+     * The review queue is 357 rates, which is a project. This is the short list that matters:
+     * only headings something on sale resolves through, ordered by how many products each one
+     * would release.
+     */
+    @GetMapping("/readiness/review-priority")
+    public ResponseEntity<List<Map<String, Object>>> reviewPriority() {
+        return ResponseEntity.ok(service.reviewPriority());
+    }
+
     /** Just the products that cannot be sold, with the fix for each. */
     @GetMapping("/readiness/blocking-products")
     public ResponseEntity<List<GstComplianceReadinessService.Blocker>> blocking() {
