@@ -10,6 +10,7 @@ import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.ComplianceService;
 import com.cauverystore.service.DebitNoteService;
 import com.cauverystore.service.GstInvoiceService;
+import com.cauverystore.service.Gstr8ExportService;
 import com.cauverystore.service.MarketplaceImportService;
 import com.cauverystore.service.ReconciliationService;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ public class GstComplianceController {
     private final ReconciliationService reconciliationService;
     private final MarketplaceImportService marketplaceImportService;
     private final GstnClient gstnClient;
+    private final Gstr8ExportService gstr8Export;
     private final GstInvoiceRepository invoiceRepo;
     private final SellerRegistrationRepository sellerRegRepo;
     private final TcsRecordRepository tcsRepo;
@@ -49,7 +51,9 @@ public class GstComplianceController {
                                    MarketplaceImportService marketplaceImportService, GstnClient gstnClient,
                                    GstInvoiceRepository invoiceRepo, SellerRegistrationRepository sellerRegRepo,
                                    TcsRecordRepository tcsRepo, UserRepository userRepo,
-                                   com.cauverystore.repository.SellerApobRepository apobRepo) {
+                                   com.cauverystore.repository.SellerApobRepository apobRepo,
+                                   Gstr8ExportService gstr8Export) {
+        this.gstr8Export = gstr8Export;
         this.gstService = gstService;
         this.debitNoteService = debitNoteService;
         this.complianceService = complianceService;
@@ -263,6 +267,18 @@ public class GstComplianceController {
     }
 
     // ------------------------------------------------------------------
+    /**
+     * GSTR-8 for a period, in the offline utility's own column names.
+     *
+     * Shaped from GSTR_8_Offline_Utility.xlsm rather than from our field names, because a
+     * report the portal rejects at upload is not a return.
+     */
+    @GetMapping("/gstr8/filing")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<Map<String, Object>> gstr8ForFiling(@RequestParam String period) {
+        return ResponseEntity.ok(gstr8Export.forPeriod(period));
+    }
+
     // GSTR-8 / TCS
     // ------------------------------------------------------------------
 

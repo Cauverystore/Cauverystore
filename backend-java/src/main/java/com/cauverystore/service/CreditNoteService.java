@@ -207,6 +207,12 @@ public class CreditNoteService {
             reversal.setCustomerId(collection.getCustomerId());
             reversal.setCustomerEmail(collection.getCustomerEmail());
             reversal.setCustomerGstin(collection.getCustomerGstin());
+            // Carried from the collection, not recomputed. A reversal has to net against the row
+            // it cancels, and GSTR-8 buckets by place of supply and by whether the customer was
+            // registered - so a reversal landing in a different bucket would leave both wrong.
+            reversal.setPlaceOfSupplyState(collection.getPlaceOfSupplyState());
+            reversal.setCustomerRegistered(collection.getCustomerRegistered());
+            reversal.setInterState(collection.getInterState());
             reversal.setTcsRate(collection.getTcsRate());
             // Negative, so summing the period nets to what was actually collected.
             reversal.setTcsAmount(-round(cn.getTcsAmount()));

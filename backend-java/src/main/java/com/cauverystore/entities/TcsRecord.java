@@ -41,6 +41,39 @@ public class TcsRecord {
     private Double tcsRate = 0.5;
     private Double taxableAmount;
 
+    /**
+     * Place of supply, as the two-digit state code.
+     *
+     * GSTR-8 table 3 is keyed on the supplier's GSTIN <em>and</em> the place of supply - one
+     * row per supplier per state - so a TCS ledger without it cannot be turned into the return
+     * at all. Copied from the invoice rather than derived later, because the invoice already
+     * settled the question, including the section 10(1)(b) cases where the answer is not the
+     * delivery state.
+     */
+    @Column(name = "place_of_supply_state", length = 2)
+    private String placeOfSupplyState;
+
+    /**
+     * Whether the customer was registered.
+     *
+     * Table 3 asks for supplies to registered and unregistered persons in separate columns, so
+     * this has to be recorded per transaction. Derived from the customer's GSTIN when the row is
+     * written, not looked up afterwards - a customer who registers next month must not move
+     * last month's supplies into a different column of a return already filed.
+     */
+    @Column(name = "customer_registered")
+    private Boolean customerRegistered = Boolean.FALSE;
+
+    /**
+     * Whether the supply was inter-state.
+     *
+     * The utility splits the TCS figure into integrated, central and state tax, and which
+     * applies follows the supply, not the seller. Recorded per row because a single supplier can
+     * have both kinds in one month.
+     */
+    @Column(name = "inter_state")
+    private Boolean interState = Boolean.FALSE;
+
     private String filingStatus = "PENDING";
     private String period;
     private LocalDateTime filedAt;
@@ -104,6 +137,21 @@ public class TcsRecord {
     public void setTcsAmount(Double tcsAmount) { this.tcsAmount = tcsAmount; }
     public Double getTcsRate() { return tcsRate; }
     public void setTcsRate(Double tcsRate) { this.tcsRate = tcsRate; }
+    public String getPlaceOfSupplyState() { return placeOfSupplyState; }
+    public void setPlaceOfSupplyState(String placeOfSupplyState) { this.placeOfSupplyState = placeOfSupplyState; }
+    public Boolean getCustomerRegistered() { return customerRegistered; }
+    public void setCustomerRegistered(Boolean customerRegistered) { this.customerRegistered = customerRegistered; }
+
+    /** True when the buyer held a GSTIN at the time of supply. */
+    @jakarta.persistence.Transient
+    public boolean isCustomerRegistered() { return Boolean.TRUE.equals(customerRegistered); }
+
+    public Boolean getInterState() { return interState; }
+    public void setInterState(Boolean interState) { this.interState = interState; }
+
+    @jakarta.persistence.Transient
+    public boolean isInterStateSupply() { return Boolean.TRUE.equals(interState); }
+
     public Double getTaxableAmount() { return taxableAmount; }
     public void setTaxableAmount(Double taxableAmount) { this.taxableAmount = taxableAmount; }
     public String getFilingStatus() { return filingStatus; }

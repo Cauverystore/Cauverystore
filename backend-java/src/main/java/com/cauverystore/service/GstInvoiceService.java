@@ -469,6 +469,17 @@ public class GstInvoiceService {
             tcs.setCustomerId(saved.getCustomerId());
             tcs.setCustomerEmail(saved.getCustomerEmail());
             tcs.setCustomerGstin(isB2b ? saved.getBuyerGstin() : "");
+            // GSTR-8 table 3 is one row per supplier per place of supply, and asks for supplies
+            // to registered and unregistered persons in separate columns. Both are recorded here
+            // rather than worked out at filing time: the invoice has already settled the place of
+            // supply, including the 10(1)(b) cases where it is not the delivery state, and a
+            // customer who registers later must not move last month's supplies between columns
+            // of a return already filed.
+            tcs.setPlaceOfSupplyState(saved.getPlaceOfSupply() != null
+                    && saved.getPlaceOfSupply().length() >= 2
+                    ? saved.getPlaceOfSupply().substring(0, 2) : null);
+            tcs.setCustomerRegistered(isB2b);
+            tcs.setInterState(Boolean.TRUE.equals(saved.getIsInterState()));
             tcs.setTransactionDate(LocalDate.now());
             tcs.setTaxableAmount(saved.getTaxableAmount());
             tcs.setTcsRate(saved.getTcsRate());
