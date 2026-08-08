@@ -15,6 +15,20 @@ const PASSWORD_REQUIREMENTS = [
   { label: 'Contains special character', test: (v) => /[!@#$%^&*(),.?":{}|<>]/.test(v) },
 ];
 
+/**
+ * Who may sign in with Google.
+ *
+ * The backend never restricted this - authenticateWithGoogle looks the account up by email and
+ * logs it in with whatever role it already holds, only assigning CUSTOMER when creating someone
+ * new. The gate was here in the form, and it left sellers with no Google option at all even
+ * though their account already carries customer capability.
+ *
+ * Staff stay off the list deliberately. An executive, admin or super-admin account reachable
+ * through a consumer Google account means a compromised mailbox is a compromised store, and
+ * those accounts are few enough that a password is not the friction it is for shoppers.
+ */
+const GOOGLE_ROLES = ['customer', 'seller'];
+
 const ROLES = [
   { value: 'customer', label: 'Customer' },
   { value: 'seller', label: 'Seller' },
@@ -84,7 +98,7 @@ const Login = () => {
   }, [loginWithGoogle, rememberMe, goAfterLogin, navigate]);
 
   useEffect(() => {
-    if (role !== 'customer' || isNativeApp) return;
+    if (!GOOGLE_ROLES.includes(role) || isNativeApp) return;
     const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
     if (!clientId) return;
 
@@ -336,6 +350,33 @@ const Login = () => {
               </select>
             </div>
 
+            {GOOGLE_ROLES.includes(role) && isNativeApp && (
+            <>
+              <button
+                type="button"
+                className="auth-social-btn"
+                onClick={handleNativeGoogleSignIn}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 48 48">
+                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+                  <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+                  <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+                  <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
+                </svg>
+                Sign in with Google
+              </button>
+              <div className="auth-divider">or sign in with your email</div>
+            </>
+          )}
+
+            {GOOGLE_ROLES.includes(role) && !isNativeApp && process.env.REACT_APP_GOOGLE_CLIENT_ID && (
+            <>
+              <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center' }} />
+              <div className="auth-divider">or sign in with your email</div>
+            </>
+            )}
+
             <div className="auth-field">
               <label className="auth-field-label" htmlFor="login-email">Email or Username</label>
               <div className="auth-input-wrapper">
@@ -394,33 +435,6 @@ const Login = () => {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
-
-          {role === 'customer' && isNativeApp && (
-            <>
-              <div className="auth-divider">or continue with</div>
-              <button
-                type="button"
-                className="auth-social-btn"
-                onClick={handleNativeGoogleSignIn}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 48 48">
-                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
-                  <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
-                  <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
-                  <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
-                </svg>
-                Sign in with Google
-              </button>
-            </>
-          )}
-
-          {role === 'customer' && !isNativeApp && process.env.REACT_APP_GOOGLE_CLIENT_ID && (
-            <>
-              <div className="auth-divider">or continue with</div>
-              <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center' }} />
-            </>
-          )}
 
           <div className="auth-footer">
             {role === 'customer' && (
