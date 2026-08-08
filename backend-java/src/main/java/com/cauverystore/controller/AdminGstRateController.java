@@ -3,6 +3,7 @@ package com.cauverystore.controller;
 import com.cauverystore.entities.GstRateMaster;
 import com.cauverystore.entities.MasterUpdateLog;
 import com.cauverystore.service.GstRateAdminService;
+import com.cauverystore.service.GstMasterDataLoader;
 import com.cauverystore.service.GstRateImportService;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpStatus;
@@ -28,10 +29,13 @@ public class AdminGstRateController {
 
     private final GstRateAdminService service;
     private final GstRateImportService importService;
+    private final GstMasterDataLoader loader;
 
-    public AdminGstRateController(GstRateAdminService service, GstRateImportService importService) {
+    public AdminGstRateController(GstRateAdminService service, GstRateImportService importService,
+                                  GstMasterDataLoader loader) {
         this.service = service;
         this.importService = importService;
+        this.loader = loader;
     }
 
     /**
@@ -67,6 +71,18 @@ public class AdminGstRateController {
     @GetMapping("/heading/{hsnCode}")
     public ResponseEntity<Map<String, Object>> heading(@PathVariable String hsnCode) {
         return ResponseEntity.ok(service.getHeading(hsnCode));
+    }
+
+    /**
+     * What is actually in the database after the last startup load.
+     *
+     * One call instead of reading the host's logs. The number to look at is
+     * chapterRowsMarkedWholeChapter: if the backfill did not run, apparel stops resolving and
+     * nothing else on this report would tell you.
+     */
+    @GetMapping("/data-state")
+    public ResponseEntity<Map<String, Object>> dataState() {
+        return ResponseEntity.ok(loader.state());
     }
 
     @GetMapping("/imports")

@@ -11,11 +11,15 @@ import java.util.List;
 @Table(name = "gst_invoices")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class GstInvoice {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     public static final String COMPLIANCE_VERIFIED = "RATES_VERIFIED";
     public static final String COMPLIANCE_FALLBACK = "FALLBACK_USED";
 
+    // These two constants were inserted between the annotations and the field they belong to,
+    // so @Id ended up on a static String. Hibernate ignores statics, concluded the entity had
+    // no identifier, and refused to build the EntityManagerFactory - which fails the whole
+    // application, not just invoicing.
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)

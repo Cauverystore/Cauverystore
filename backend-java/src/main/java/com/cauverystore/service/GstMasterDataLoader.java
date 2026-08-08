@@ -38,6 +38,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -143,6 +144,60 @@ public class GstMasterDataLoader {
             // Never prevent the application from starting over reference data.
             log.error("GST master data load failed: {}", e.getMessage(), e);
         }
+    }
+
+    /**
+     * What actually made it into the database, so a deploy can be checked without reading logs.
+     *
+     * The load runs once at startup and says what it did in the log, which is no help a week
+     * later or to anyone without access to the host. Worse, the failure that matters most is
+     * silent from the outside: if the whole-chapter backfill did not run, apparel rows keep a
+     * null flag, the resolver refuses them, and the first anyone knows is a customer unable to
+     * buy a shirt. That number is the single most useful thing on this report.
+     */
+    public Map<String, Object> state() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        List<GstRateMaster> rates = rateRepo.findAll();
+
+        long chapterRows = rates.stream().filter(r -> r.getHsnCode() != null
+                && r.getHsnCode().length() == 2).count();
+        long chapterWide = rates.stream().filter(GstRateMaster::coversWholeChapter).count();
+
+        out.put("gstRates", rates.size());
+        out.put("gstRatesVerified", rates.stream().filter(GstRateMaster::isVerified).count());
+        out.put("chapterLevelRows", chapterRows);
+        // Expect 5: chapter 60, and 61 and 62 with both value bands each.
+        out.put("chapterRowsMarkedWholeChapter", chapterWide);
+        out.put("wholeChapterBackfillLooksApplied", chapterWide >= 5);
+
+        out.put("hsnCodes", hsnRepo.count());
+        out.put("chapters", chapterRepo.count());
+        out.put("tradeSynonyms", synonymRepo.count());
+        out.put("states", stateRepo.count());
+        out.put("pincodeRanges", pincodeRepo.count());
+
+        // Spot-checks on the two rate corrections made today, so "did it land" is answerable
+        // without trusting a count.
+        out.put("footwear6403Banded", rates.stream()
+                .anyMatch(r -> "6403".equals(r.getHsnCode())
+                        && GstRateMaster.CONDITION_VALUE_UPTO.equals(r.getConditionType())));
+        out.put("cottonFabric5209Present", rates.stream()
+                .anyMatch(r -> "5209".equals(r.getHsnCode())));
+        out.put("fabricatedCode1200Retracted", rates.stream()
+                .filter(r -> "1200".equals(r.getHsnCode()))
+                .allMatch(r -> r.getEffectiveTo() != null || !r.isVerified()));
+
+        out.put("recentLoads", logRepo.findAll().stream()
+                .sorted((a, b) -> b.getId().compareTo(a.getId()))
+                .limit(8)
+                .map(l -> Map.of(
+                        "file", String.valueOf(l.getFileName()),
+                        "inserted", l.getRowsInserted() == null ? 0 : l.getRowsInserted(),
+                        "updated", l.getRowsUpdated() == null ? 0 : l.getRowsUpdated(),
+                        "status", String.valueOf(l.getStatus()),
+                        "detail", String.valueOf(l.getChangesDetected())))
+                .toList());
+        return out;
     }
 
     /** Loads every master file. Safe to call repeatedly. */

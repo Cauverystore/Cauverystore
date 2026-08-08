@@ -9,11 +9,13 @@ import java.time.LocalDateTime;
 @Table(name = "tcs_records")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class TcsRecord {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     public static final String ENTRY_COLLECTION = "COLLECTION";
     public static final String ENTRY_REVERSAL = "REVERSAL";
 
+    // Same displacement as GstInvoice had: constants added between the annotations and the
+    // field left @Id sitting on a static String, which Hibernate ignores.
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String sellerGstin;
