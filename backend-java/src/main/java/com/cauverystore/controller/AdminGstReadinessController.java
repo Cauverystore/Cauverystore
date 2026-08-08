@@ -1,6 +1,7 @@
 package com.cauverystore.controller;
 
 import com.cauverystore.service.GstComplianceReadinessService;
+import com.cauverystore.service.CbicNotificationDetector;
 import com.cauverystore.service.GstRateFreshnessService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,11 +27,14 @@ public class AdminGstReadinessController {
 
     private final GstComplianceReadinessService service;
     private final GstRateFreshnessService freshnessService;
+    private final CbicNotificationDetector detector;
 
     public AdminGstReadinessController(GstComplianceReadinessService service,
-                                       GstRateFreshnessService freshnessService) {
+                                       GstRateFreshnessService freshnessService,
+                                       CbicNotificationDetector detector) {
         this.service = service;
         this.freshnessService = freshnessService;
+        this.detector = detector;
     }
 
     @GetMapping("/readiness")
@@ -48,6 +52,28 @@ public class AdminGstReadinessController {
      * How current the rates are: which notification they are built from, when a human last
      * confirmed nothing newer exists, and how stale that is.
      */
+    /**
+     * What CBIC is publishing right now, and which of it we already know about.
+     *
+     * Reads the portal live so the check can be proved to still work. A detector that silently
+     * stopped watching looks exactly like one reporting all-clear, and this is how to tell the
+     * difference without waiting for the next notification.
+     */
+    @GetMapping("/cbic-updates")
+    public ResponseEntity<Map<String, Object>> cbicUpdates() {
+        return ResponseEntity.ok(detector.preview());
+    }
+
+    /** Runs the CBIC check immediately rather than waiting for the overnight run. */
+    @PostMapping("/cbic-updates/check")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<Map<String, Object>> runCbicCheck() {
+        detector.detect();
+        return ResponseEntity.ok(Map.of(
+                "checked", true,
+                "outstanding", detector.outstanding()));
+    }
+
     @GetMapping("/rate-freshness")
     public ResponseEntity<Map<String, Object>> rateFreshness() {
         return ResponseEntity.ok(freshnessService.status());
@@ -56,9 +82,10 @@ public class AdminGstReadinessController {
     /**
      * Records that someone has checked CBIC and found no newer Central Tax (Rate) notification.
      *
-     * This is the only way the clock resets. It cannot be automated, because CBIC's notification
-     * API requires credentials we do not have - so the honest alternative is to make the check a
-     * named, dated act rather than pretend a scraper is doing it.
+     * This is the only way the clock resets, and it stays a named, dated human act even now
+     * that CbicNotificationDetector watches the portal automatically. The detector can say a
+     * notification exists; only a person can say they have read it and that the rates charged
+     * here still match it.
      */
     @PostMapping("/rate-freshness/verify")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
