@@ -305,9 +305,10 @@ public class SellerApprovalService {
         user.setStatus("SUSPENDED");
         user.setActive(false);
         user.setSuspensionReason(because);
-        // Otherwise the seller keeps the access token they are already holding and carries on
-        // working in Seller Centre until it expires on its own.
-        user.invalidateSessions();
+        // Kept signed in on purpose. The listings are down so no new order can arrive, but the
+        // orders already paid for still have to be picked, shipped and seen through their return
+        // window - and signing the seller out would strand exactly those.
+        user.setRefreshToken(null);
         userRepo.save(user);
 
         List<Long> taken = new ArrayList<>();

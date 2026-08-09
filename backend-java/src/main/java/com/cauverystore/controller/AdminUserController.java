@@ -6,6 +6,7 @@ import com.cauverystore.exception.AccessDeniedException;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.AuditService;
 import com.cauverystore.service.AuthorizationService;
+import com.cauverystore.service.AccountRestrictionService;
 import com.cauverystore.service.EmailService;
 import com.cauverystore.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class AdminUserController {
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final AccountRestrictionService accountRestrictionService;
 
     // Regular Admins may only create Seller/Customer accounts here - never Admin
     // or Super Admin, which would let an Admin hand out admin-level access to
@@ -124,8 +126,21 @@ public class AdminUserController {
     }
 
     /**
-     * Stops one customer. They are signed out on their next request, not whenever their token
-     * happens to expire, and they are told why.
+     * What a suspended account still has running.
+     *
+     * A suspension is not finished when the button is pressed - it is finished when nobody is
+     * waiting for goods and nobody still holds a right to return them. This answers that, so an
+     * account is not closed out from under somebody mid-delivery.
+     */
+    @GetMapping("/{id}/wind-down")
+    public ResponseEntity<Map<String, Object>> windDown(@PathVariable Long id) {
+        return ResponseEntity.ok(accountRestrictionService.windDown(userService.getUser(id)));
+    }
+
+    /**
+     * Suspends one customer: no new orders, but the orders they already have run to their end,
+     * return window included. They stay able to sign in for exactly that. Use the block action
+     * instead when somebody has to be off the site immediately.
      */
     @PostMapping("/{id}/suspend")
     public ResponseEntity<Map<String, Object>> suspendUser(@PathVariable Long id,

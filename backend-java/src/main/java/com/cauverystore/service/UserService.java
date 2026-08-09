@@ -60,7 +60,10 @@ public class UserService {
         user.setSuspendedBy(suspendedByUserId);
         user.setSuspendedAt(LocalDateTime.now());
         user.setSuspensionReason(reason);
-        user.invalidateSessions();
+        // Deliberately not invalidateSessions(). A suspension is a wind-down: they keep the
+        // session they are in so orders already placed can be seen out. New business is refused
+        // where it is attempted instead. blockUser is the one that ends the session.
+        user.setRefreshToken(null);
         return userRepo.save(user);
     }
 

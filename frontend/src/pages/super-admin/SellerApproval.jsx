@@ -110,8 +110,13 @@ const SellerApproval = () => {
   };
 
   const handleSuspend = async (registrationId) => {
+    // Suspension is a wind-down, not a lockout: the listings come down so nothing new arrives,
+    // but orders already placed still have to be fulfilled, so the seller keeps access for that.
     const reason = window.prompt(
-      "Why is this seller being suspended? Their listings come off sale immediately."
+      "Suspend this seller?\n\n"
+      + "Their listings come off sale at once, so no new orders can arrive. Orders already "
+      + "placed still have to be fulfilled, and they keep access to do that.\n\n"
+      + "Reason (sent to them):"
     );
     if (reason === null) return;
     if (!reason.trim()) { showToast("A suspension needs a reason", "error"); return; }

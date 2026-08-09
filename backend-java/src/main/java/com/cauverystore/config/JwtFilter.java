@@ -60,13 +60,17 @@ public class JwtFilter extends OncePerRequestFilter {
                         sendError(response, "Session has been invalidated. Please log in again.");
                         return;
                     }
-                    // A suspension has to take effect on the next request, not whenever the
-                    // access token happens to expire. Bumping the token version at the point of
-                    // suspension already achieves that; this is the second line, and it catches
-                    // an account stopped by any route at all - a direct database change, or some
-                    // future code path that forgets to invalidate. The user row is already
+                    // A block takes effect on the next request rather than whenever the access
+                    // token happens to expire, and this catches an account stopped by any route
+                    // at all - including a direct database change. The user row is already
                     // loaded here, so it costs nothing.
-                    if (!user.isActive() || !"ACTIVE".equals(user.getStatus())) {
+                    //
+                    // SUSPENDED is deliberately allowed through. It is a wind-down: no new
+                    // business, but the orders already placed have to be seen out, and refusing
+                    // every request would strand them. What a suspended account may not do is
+                    // enforced where the action happens - see AccountRestrictionService.
+                    if ("BLOCKED".equals(user.getStatus())
+                            || (!user.isActive() && !"SUSPENDED".equals(user.getStatus()))) {
                         sendError(response, "This account is not active. Please contact support.");
                         return;
                     }

@@ -59,9 +59,12 @@ const AdminUsers = () => {
 
   const handleSuspend = async (id, name) => {
     // The reason is emailed to the person, so it is written for them rather than kept as an
-    // internal note. Suspension also signs them out immediately, not when their token expires.
+    // internal note. Suspension is a wind-down, not a lockout - saying so matters, because an
+    // admin who thinks this removes somebody instantly will reach for it in the wrong situation.
     const reason = window.prompt(
-      `Suspend ${name}? They are signed out at once and cannot sign in again.\n\nReason (sent to them):`
+      `Suspend ${name}?\n\nThey cannot place new orders. Orders they already have run to `
+      + `completion, including the return window, and they stay able to sign in for that.\n\n`
+      + `Reason (sent to them):`
     );
     if (reason === null) return;
     if (!reason.trim()) { alert('A suspension needs a reason'); return; }

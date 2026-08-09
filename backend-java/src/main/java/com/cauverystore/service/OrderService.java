@@ -49,6 +49,7 @@ public class OrderService {
     private final ProductService productService;
     private final CouponService couponService;
     private final ReturnRequestRepository returnRequestRepo;
+    private final AccountRestrictionService accountRestrictionService;
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepo;
     private final CreditNoteService creditNoteService;
@@ -73,7 +74,9 @@ public class OrderService {
                         PaymentRepository paymentRepo,
                         CreditNoteService creditNoteService,
                         CourierTrackingService courierTrackingService,
-                        GstRateResolver gstRateResolver) {
+                        GstRateResolver gstRateResolver,
+                        AccountRestrictionService accountRestrictionService) {
+        this.accountRestrictionService = accountRestrictionService;
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -156,6 +159,8 @@ public class OrderService {
         if (user == null) {
             throw new UserNotFoundException("User not found: " + username);
         }
+        // A suspended account may see out the orders it already has, but may not start another.
+        accountRestrictionService.requireMayPlaceOrder(user);
 
         address.setUser(user);
         Address savedAddress = addressRepo.save(address);

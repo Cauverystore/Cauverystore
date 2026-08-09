@@ -173,7 +173,12 @@ public class AuthService {
             throw new AuthenticationFailedException("Invalid username or password. " + remaining + " attempt(s) remaining.");
         }
 
-        if (!"ACTIVE".equals(user.getStatus()) || !user.isActive()) {
+        // A suspension is a wind-down, not a lockout. The person still owes or is owed something -
+        // a seller has orders to ship, a buyer has a right to return what arrives - and locking
+        // them out would strand exactly those orders. They sign in and find they cannot start
+        // anything new. BLOCKED is the hard stop and does refuse entry here.
+        boolean windingDown = "SUSPENDED".equals(user.getStatus());
+        if ((!"ACTIVE".equals(user.getStatus()) && !windingDown) || (!user.isActive() && !windingDown)) {
             auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
             if ("SUSPENDED".equals(user.getStatus()) && user.getSuspendedBy() != null) {
                 User suspendedByUser = userRepo.findById(user.getSuspendedBy()).orElse(null);

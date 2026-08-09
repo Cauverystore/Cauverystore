@@ -22,6 +22,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("error", message));
     }
 
+    /**
+     * A suspended account trying to start something new.
+     *
+     * The message is written to be shown to the person it happened to - it says what they cannot
+     * do, why, and what they can still do - so it is passed through rather than replaced with a
+     * generic refusal.
+     */
+    @ExceptionHandler(com.cauverystore.service.AccountRestrictionService.AccountRestrictedException.class)
+    public ResponseEntity<Map<String, String>> handleAccountRestricted(
+            com.cauverystore.service.AccountRestrictionService.AccountRestrictedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
