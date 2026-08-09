@@ -5,8 +5,10 @@ import com.cauverystore.entities.Cart;
 import com.cauverystore.entities.CartItem;
 import com.cauverystore.entities.GstConfiguration;
 import com.cauverystore.entities.Product;
+import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.entities.User;
 import com.cauverystore.repository.GstConfigurationRepository;
+import com.cauverystore.repository.SellerRegistrationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +39,7 @@ class CheckoutBillServiceTest {
     @Mock private GstRateResolver rateResolver;
     @Mock private GstInvoiceService invoiceService;
     @Mock private GstConfigurationRepository gstConfigRepo;
+    @Mock private SellerRegistrationRepository sellerRegRepo;
 
     private CheckoutBillService service;
     private User user;
@@ -44,7 +47,7 @@ class CheckoutBillServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CheckoutBillService(cartService, rateResolver, invoiceService, gstConfigRepo);
+        service = new CheckoutBillService(cartService, rateResolver, invoiceService, gstConfigRepo, sellerRegRepo);
         user = new User();
         user.setId(7L);
         cart = new Cart();
@@ -192,6 +195,31 @@ class CheckoutBillServiceTest {
 
         assertEquals(Boolean.FALSE, bill.get("canProceed"));
         assertTrue(lines(bill).isEmpty());
+    }
+
+    @Test
+    void shouldUseTheRegistrationGstinWhenNoGstConfigurationExists() {
+        // A registered seller who has not filled in the marketplace GST form must not block
+        // the order: the registration GSTIN carries the same state any invoice would use.
+        Product p = new Product();
+        p.setId(1L);
+        p.setSellerId(400L);
+        p.setName("Cotton Tshirt men");
+        p.setPrice(499.0);
+        when(gstConfigRepo.findBySellerId(400L)).thenReturn(Optional.empty());
+        SellerRegistration reg = new SellerRegistration();
+        reg.setGstin("33ABCDE1234F1Z5");
+        when(sellerRegRepo.findByUserId(400L)).thenReturn(Optional.of(reg));
+        addToCart(p, 1);
+        when(rateResolver.resolve(any(), eq(false), any(), anyDouble()))
+                .thenReturn(resolved(5.0, false, "61091000"));
+
+        Map<String, Object> bill = service.billFor(user, new Address());
+
+        assertEquals(Boolean.TRUE, bill.get("canProceed"));
+        assertEquals("CGST+SGST", bill.get("taxType"));
+        assertEquals(12.48, bill.get("cgstAmount"));
+        assertEquals(12.48, bill.get("sgstAmount"));
     }
 
     @Test
