@@ -44,7 +44,15 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // A request that succeeded proves the session is working, so arm the expiry notice again.
+    // Without this the flag is set once and never cleared: sign in again after being timed out
+    // and the *next* expiry in the same tab redirects nobody, leaving the page silently broken.
+    if (sessionStorage.getItem('auth_session_expired_told')) {
+      sessionStorage.removeItem('auth_session_expired_told');
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
@@ -90,17 +98,24 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
+        // Read before clearing. Both of these are about to be deleted, and reading them
+        // afterwards is how the previous attempt sent every expired admin to the customer
+        // login screen: role was always '' by the time it was looked at.
         const hadToken =
           !!localStorage.getItem('accessToken') || !!localStorage.getItem('admin_token');
+        const role = (localStorage.getItem('role') || '').toLowerCase();
+
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
         localStorage.removeItem('role');
         localStorage.removeItem('admin_token');
         const path = window.location.pathname + window.location.search;
         const alreadyOnLogin = /^\/(login|admin\/login)(\?|$)/.test(path);
+        // Only tell someone their session expired if they actually had one. A guest browsing a
+        // public page can still provoke a 401, and being bounced to "session expired" from the
+        // home page is what this looked like from the outside.
         if (hadToken && !alreadyOnLogin && !sessionStorage.getItem('auth_session_expired_told')) {
           sessionStorage.setItem('auth_session_expired_told', '1');
-          const role = (localStorage.getItem('role') || '').toLowerCase();
           const isStaff = ['admin', 'super_admin', 'executive'].includes(role);
           const login = isStaff ? '/admin/login' : '/login';
           const redirect = isStaff ? '/admin' : (path.startsWith('/login') ? '' : path);
