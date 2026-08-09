@@ -182,6 +182,59 @@ class ProductServiceTest {
     }
 
     @Test
+    void updateProduct_shouldDropTheRateChoice_whenTheHsnItBelongedToChanges() {
+        // A rate line is published against one HSN. Correcting the code leaves the old choice
+        // describing goods this product no longer is, and validation rejects the save quoting a
+        // line the editor never picked. There is no way out of that by hand either - a null in
+        // the payload means "unchanged", so the stale id cannot be cleared.
+        product.setHsnCode("0901");
+        product.setGstRateSelectionId(77L);
+        Product update = new Product();
+        update.setHsnCode("1006");
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Product result = productService.updateProduct(1L, update);
+
+        assertEquals("1006", result.getHsnCode());
+        assertNull(result.getGstRateSelectionId());
+    }
+
+    @Test
+    void updateProduct_shouldKeepANewRateChoiceMadeAlongsideTheNewHsn() {
+        // Changing both at once is the ordinary path through the edit form: pick the code, then
+        // answer the question it raises. The incoming choice must survive the clearing above.
+        product.setHsnCode("0901");
+        product.setGstRateSelectionId(77L);
+        Product update = new Product();
+        update.setHsnCode("1006");
+        update.setGstRateSelectionId(91L);
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Product result = productService.updateProduct(1L, update);
+
+        assertEquals(91L, result.getGstRateSelectionId());
+    }
+
+    @Test
+    void updateProduct_shouldKeepTheRateChoice_whenTheHsnIsResubmittedUnchanged() {
+        // The edit form posts the HSN on every save, so an unrelated edit must not be read as a
+        // reclassification and throw away an answer somebody already gave.
+        product.setHsnCode("1006");
+        product.setGstRateSelectionId(77L);
+        Product update = new Product();
+        update.setHsnCode("1006");
+        update.setPrice(250.0);
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Product result = productService.updateProduct(1L, update);
+
+        assertEquals(77L, result.getGstRateSelectionId());
+    }
+
+    @Test
     void updateProduct_shouldLeaveGstFieldsAlone_whenTheUpdateOmitsThem() {
         // A partial update of, say, the price must not silently reset the packaging flag to
         // null and knock the product onto the fallback rate.

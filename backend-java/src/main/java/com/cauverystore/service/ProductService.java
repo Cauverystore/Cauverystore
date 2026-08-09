@@ -497,6 +497,16 @@ public class ProductService {
           if (product.getOfferPrice() != null) existing.setOfferPrice(product.getOfferPrice());
           // Both of these decide the GST charged, and neither was previously copied - so a
           // mistyped HSN could never be corrected and the tax stayed wrong for the product's life.
+          if (product.getHsnCode() != null
+                  && !product.getHsnCode().equals(existing.getHsnCode())) {
+              // A rate line is published against one HSN and cannot survive the code changing
+              // underneath it. Leaving it would fail validation on save, quoting a line the
+              // editor never picked - and there would be no way out, because a null in this
+              // payload means "unchanged" rather than "clear it". So correcting a wrong code
+              // clears the choice that was made about the old one, and the choice is asked
+              // again for the new code.
+              existing.setGstRateSelectionId(null);
+          }
           if (product.getHsnCode() != null) existing.setHsnCode(product.getHsnCode());
           if (product.getPrePackagedAndLabelled() != null) {
               existing.setPrePackagedAndLabelled(product.getPrePackagedAndLabelled());

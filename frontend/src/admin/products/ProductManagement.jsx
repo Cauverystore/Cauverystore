@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
 import api from "../../api/axios";
 import { imgUrl } from "../../utils/images";
+import HsnPicker from "./HsnPicker";
+import GstRateChoice from "./GstRateChoice";
 import "../../styles/admin.css";
 
 const CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"];
@@ -33,7 +35,7 @@ const ProductManagement = () => {
   const canManageCategories = isAdmin || role === "EXECUTIVE" || isSuperAdmin;
 
   const [tab, setTab] = useState("add");
-  const [form, setForm] = useState({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
+  const [form, setForm] = useState({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState(null);
   const [products, setProducts] = useState([]);
@@ -87,10 +89,10 @@ const ProductManagement = () => {
     setSubmitting(true); setMsg(null);
     try {
       const ep = isSeller?"/api/seller/products":"/api/admin/products/add";
-      const data = { name:form.name,brand:form.brand,price:parseFloat(form.price),stock:parseInt(form.stock),sku:form.sku,description:form.description,manufacturer:form.manufacturer,modelNumber:form.modelNumber,barcode:form.barcode,hsnCode:form.hsnCode,countryOfOrigin:form.countryOfOrigin,shortDescription:form.shortDescription,technicalSpecs:form.technicalSpecs,warranty:form.warranty,returnPolicy:form.returnPolicy,metaTitle:form.metaTitle,metaDescription:form.metaDescription,metaKeywords:form.keywords,slug:form.slug||slugify(form.name),weight:form.weight?parseFloat(form.weight):null,dimensions:form.dimensions,shippingClass:form.shippingClass,deliveryDays:form.deliveryDays?parseInt(form.deliveryDays):null,badges:form.badges!=="None"?[form.badges]:[] };
+      const data = { name:form.name,brand:form.brand,price:parseFloat(form.price),stock:parseInt(form.stock),sku:form.sku,description:form.description,manufacturer:form.manufacturer,modelNumber:form.modelNumber,barcode:form.barcode,hsnCode:form.hsnCode,prePackagedAndLabelled:form.prePackagedAndLabelled,gstRateSelectionId:form.gstRateSelectionId??null,countryOfOrigin:form.countryOfOrigin,shortDescription:form.shortDescription,technicalSpecs:form.technicalSpecs,warranty:form.warranty,returnPolicy:form.returnPolicy,metaTitle:form.metaTitle,metaDescription:form.metaDescription,metaKeywords:form.keywords,slug:form.slug||slugify(form.name),weight:form.weight?parseFloat(form.weight):null,dimensions:form.dimensions,shippingClass:form.shippingClass,deliveryDays:form.deliveryDays?parseInt(form.deliveryDays):null,badges:form.badges!=="None"?[form.badges]:[] };
       await api.post(ep, data);
       setMsg({type:"success",text:"Product created!"}); loadProducts();
-      setForm({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
+      setForm({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
     } catch (err) { setMsg({type:"error",text:err.response?.data?.error||"Failed"}); }
     setSubmitting(false);
   };
@@ -210,9 +212,44 @@ const ProductManagement = () => {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.75rem"}}>{fld("Price (₹) *","price","number")}{fld("Stock *","stock","number")}{fld("SKU","sku")}</div>
         </div>
         <div style={S.section}><h3 style={S.sTitle}>Details</h3>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>{fld("Manufacturer","manufacturer")}{fld("Model Number","modelNumber")}{fld("Barcode","barcode",null,null,"12-13 digits")}{fld("HSN Code","hsnCode")}{fld("Country","countryOfOrigin",null,COUNTRIES)}{fld("Warranty","warranty",null,WARRANTY)}{fld("Return Policy","returnPolicy",null,RETURN_POLICY)}{fld("Badges","badges",null,BADGES)}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>{fld("Manufacturer","manufacturer")}{fld("Model Number","modelNumber")}{fld("Barcode","barcode",null,null,"12-13 digits")}{fld("Country","countryOfOrigin",null,COUNTRIES)}{fld("Warranty","warranty",null,WARRANTY)}{fld("Return Policy","returnPolicy",null,RETURN_POLICY)}{fld("Badges","badges",null,BADGES)}</div>
           {fld("Short Description","shortDescription","textarea",null,"Max 150 chars")}
           {fld("Tech Specs","technicalSpecs","textarea",null,"Format: RAM:8GB; Storage:256GB")}
+        </div>
+        {/*
+          HSN used to be a plain text box on this form while the same field elsewhere went
+          through the picker. A code typed by hand is not checked against the tariff, so a
+          product could be saved with 123 or nothing at all - which is how the live catalogue
+          ended up with exactly that. The rate then resolves to nothing and the sale is taxed
+          on a fallback while the invoice looks entirely normal.
+        */}
+        <div style={S.section}><h3 style={S.sTitle}>GST Classification</h3>
+          <HsnPicker
+            value={form.hsnCode}
+            onChange={(code)=>set("hsnCode",code)}
+            categoryId={form.category||null}
+            productName={form.name}
+            unitPrice={form.price?Number(form.price):null}
+            prePackaged={form.prePackagedAndLabelled}
+          />
+          <label style={{display:"flex",gap:"0.6rem",alignItems:"flex-start",margin:"0.75rem 0 0"}}>
+            <input type="checkbox" checked={form.prePackagedAndLabelled} onChange={e=>set("prePackagedAndLabelled",e.target.checked)} style={{marginTop:3}} />
+            <span>
+              <span style={{fontWeight:500,fontSize:"0.9rem"}}>Sold pre-packaged and labelled</span>
+              <span style={{display:"block",color:"#6b7280",fontSize:"0.78rem"}}>
+                Decides the GST on staples such as rice, flour, dairy and packed meat, which are
+                taxed at 5% packaged and nil loose. Leave ticked for anything shipped in a sealed,
+                labelled pack.
+              </span>
+            </span>
+          </label>
+          <GstRateChoice
+            hsnCode={form.hsnCode}
+            unitPrice={form.price?parseFloat(form.price):undefined}
+            prePackaged={form.prePackagedAndLabelled}
+            value={form.gstRateSelectionId}
+            onChange={(rateId)=>set("gstRateSelectionId",rateId)}
+          />
         </div>
         <div style={S.section}><h3 style={S.sTitle}>SEO</h3>
           {fld("Meta Title","metaTitle",null,null,"Max 60 chars")}{fld("Meta Description","metaDescription","textarea",null,"Max 160 chars")}
@@ -303,7 +340,7 @@ const ProductManagement = () => {
                 </td>
                 <td style={{padding:"10px",display:"flex",gap:"6px",flexWrap:"wrap"}}>
                   <button onClick={()=>navigate(`/admin/products/${p.id}/images`)} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#EAF7EE",color:"#146C43",cursor:"pointer",fontSize:"0.75rem",fontWeight:600}}>Images</button>
-                  <button onClick={()=>{setEditing(p);setEditForm({name:p.name||"",price:p.price||"",stock:p.stock||"",description:p.description||"",brand:p.brand||""});switchTab("edit")}} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Edit</button>
+                  <button onClick={()=>{setEditing(p);setEditForm({name:p.name||"",price:p.price||"",stock:p.stock||"",description:p.description||"",brand:p.brand||"",hsnCode:p.hsnCode||"",prePackagedAndLabelled:p.prePackagedAndLabelled!==false,gstRateSelectionId:p.gstRateSelectionId??undefined});switchTab("edit")}} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Edit</button>
                   <button onClick={()=>delProduct(p.id)} style={{padding:"4px 10px",border:"1px solid #fecaca",borderRadius:"4px",background:"#fef2f2",color:"#dc2626",cursor:"pointer",fontSize:"0.8rem"}}>Delete</button>
                 </td>
               </tr>)}</tbody>
@@ -322,6 +359,42 @@ const ProductManagement = () => {
             {fldEdit("Price (₹)","price","number")}{fldEdit("Stock","stock","number")}
           </div>
           {fldEdit("Description","description","textarea")}
+
+          {/*
+            The edit form carried no HSN at all, so a product saved with a bad code could not be
+            corrected here - the only screen an admin reaches from the product list. The three
+            live products classified 123, 1212 and blank are unfixable without this.
+          */}
+          <div style={{borderTop:"1px solid #EAF7EE",margin:"1rem 0 0",paddingTop:"0.75rem"}}>
+            <h4 style={{margin:"0 0 0.6rem",fontSize:"0.9rem",fontWeight:600,color:"#146C43"}}>GST Classification</h4>
+            <HsnPicker
+              value={editForm.hsnCode||""}
+              onChange={(code)=>setEditForm(f=>({...f,hsnCode:code,gstRateSelectionId:undefined}))}
+              categoryId={editing.category?.name||editing.category||null}
+              productName={editForm.name}
+              unitPrice={editForm.price?Number(editForm.price):null}
+              prePackaged={editForm.prePackagedAndLabelled}
+            />
+            <label style={{display:"flex",gap:"0.6rem",alignItems:"flex-start",margin:"0.75rem 0 0"}}>
+              <input type="checkbox" checked={!!editForm.prePackagedAndLabelled} onChange={e=>setEditForm(f=>({...f,prePackagedAndLabelled:e.target.checked,gstRateSelectionId:undefined}))} style={{marginTop:3}} />
+              <span>
+                <span style={{fontWeight:500,fontSize:"0.9rem"}}>Sold pre-packaged and labelled</span>
+                <span style={{display:"block",color:"#6b7280",fontSize:"0.78rem"}}>
+                  Decides the GST on staples such as rice, flour, dairy and packed meat, which are
+                  taxed at 5% packaged and nil loose.
+                </span>
+              </span>
+            </label>
+            <GstRateChoice
+              hsnCode={editForm.hsnCode}
+              unitPrice={editForm.price?parseFloat(editForm.price):undefined}
+              prePackaged={editForm.prePackagedAndLabelled}
+              value={editForm.gstRateSelectionId}
+              onChange={(rateId)=>setEditForm(f=>({...f,gstRateSelectionId:rateId}))}
+              productStatus={editing.status}
+            />
+          </div>
+
           <div style={{display:"flex",gap:"10px",marginTop:"0.75rem",justifyContent:"flex-end"}}>
             <button onClick={()=>setTab("list")} style={{padding:"8px 16px",border:"1px solid #CFE8D6",borderRadius:"6px",background:"#fff",cursor:"pointer"}}>Cancel</button>
             <button onClick={saveEdit} style={{padding:"8px 20px",background:"#2E9B57",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600}}>Save Changes</button>
