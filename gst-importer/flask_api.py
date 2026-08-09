@@ -158,7 +158,9 @@ def upload_master_codes():
         return jsonify({"error": "An update is already running - try again shortly."}), 409
 
     try:
-        page_file = os.path.join(BASE_DIR, "logs", "uploaded_master_codes.html")
+        logs_dir = os.path.join(BASE_DIR, "logs")
+        os.makedirs(logs_dir, exist_ok=True)
+        page_file = os.path.join(logs_dir, "uploaded_master_codes.html")
         with open(page_file, "w", encoding="utf-8") as fh:
             fh.write(html)
         _append_log("[%s] Uploaded %d bytes of Master Codes HTML" % (time.strftime("%Y-%m-%d %H:%M:%S"), len(html)))
