@@ -5,6 +5,7 @@ Flask API that triggers the GST master importer.
 Endpoints:
     GET  /                        service info + last run
     POST /update-gst-master       run the importer (subprocess), returns result
+    POST /upload-master-codes     load a saved Master Codes page HTML into the DB
     GET  /update-gst-master/status  last run result
 
 The importer runs as a subprocess so the API host and the executable are the
@@ -90,52 +91,79 @@ def index():
     })
 
 
+def _run_importer(extra_env=None, note="Update"):
+    started = time.time()
+    started_at = time.strftime("%Y-%m-%d %H:%M:%S")
+    env = dict(os.environ)
+    if extra_env:
+        env.update(extra_env)
+    try:
+        proc = subprocess.run(
+            _importer_command(),
+            capture_output=True,
+            text=True,
+            timeout=cfg.run_timeout(),
+            cwd=BASE_DIR,
+            env=env,
+        )
+    except subprocess.TimeoutExpired:
+        _write_last_run({"status": "error", "started": started_at,
+                         "finished": None, "error": "Importer timed out after %ss" % cfg.run_timeout()})
+        _append_log("[%s] %s FAILED: timed out" % (started_at, note))
+        return jsonify({"status": "error",
+                        "error": "Importer timed out after %ss" % cfg.run_timeout()}), 504
+
+    elapsed = round(time.time() - started, 1)
+    output = (proc.stdout or "") + "\n" + (proc.stderr or "")
+    tail = output.strip().splitlines()[-25:]
+    result = {"started": started_at, "finished": time.strftime("%Y-%m-%d %H:%M:%S"),
+              "duration_seconds": elapsed, "exit_code": proc.returncode,
+              "output_tail": tail}
+
+    if proc.returncode == 0:
+        summary = None
+        for line in tail:
+            if line.startswith("RESULT "):
+                summary = line[len("RESULT "):]
+                break
+        result.update({"status": "success", "summary": summary})
+        _write_last_run(result)
+        _append_log("[%s] %s" % (time.strftime("%Y-%m-%d %H:%M:%S"), note))
+        return jsonify(result)
+    result.update({"status": "error", "error": tail[-1] if tail else "Unknown failure"})
+    _write_last_run(result)
+    _append_log("[%s] %s FAILED (exit %s)" % (time.strftime("%Y-%m-%d %H:%M:%S"), note, proc.returncode))
+    return jsonify(result), 500
+
+
 @app.route("/update-gst-master", methods=["POST"])
 def update_gst_master():
     if not _lock.acquire(blocking=False):
         return jsonify({"error": "An update is already running - try again shortly."}), 409
 
-    started = time.time()
-    started_at = time.strftime("%Y-%m-%d %H:%M:%S")
-    _append_log("[%s] Update triggered via API" % started_at)
     try:
-        cmd = _importer_command()
-        try:
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=cfg.run_timeout(),
-                cwd=BASE_DIR,
-            )
-        except subprocess.TimeoutExpired:
-            _write_last_run({"status": "error", "started": started_at,
-                             "finished": None, "error": "Importer timed out after %ss" % cfg.run_timeout()})
-            _append_log("[%s] Update FAILED: timed out" % started_at)
-            return jsonify({"status": "error",
-                            "error": "Importer timed out after %ss" % cfg.run_timeout()}), 504
+        _append_log("[%s] Update triggered via API" % time.strftime("%Y-%m-%d %H:%M:%S"))
+        return _run_importer(None, "GST Master Codes updated successfully")
+    finally:
+        _lock.release()
 
-        elapsed = round(time.time() - started, 1)
-        output = (proc.stdout or "") + "\n" + (proc.stderr or "")
-        tail = output.strip().splitlines()[-25:]
-        result = {"started": started_at, "finished": time.strftime("%Y-%m-%d %H:%M:%S"),
-                  "duration_seconds": elapsed, "exit_code": proc.returncode,
-                  "output_tail": tail}
 
-        if proc.returncode == 0:
-            summary = None
-            for line in tail:
-                if line.startswith("RESULT "):
-                    summary = line[len("RESULT "):]
-                    break
-            result.update({"status": "success", "summary": summary})
-            _write_last_run(result)
-            _append_log("[%s] GST Master Codes updated successfully" % time.strftime("%Y-%m-%d %H:%M:%S"))
-            return jsonify(result)
-        result.update({"status": "error", "error": tail[-1] if tail else "Unknown failure"})
-        _write_last_run(result)
-        _append_log("[%s] Update FAILED (exit %s)" % (time.strftime("%Y-%m-%d %H:%M:%S"), proc.returncode))
-        return jsonify(result), 500
+@app.route("/upload-master-codes", methods=["POST"])
+def upload_master_codes():
+    html = request.get_data(as_text=True) or ""
+    if not html.strip():
+        return jsonify({"error": "Empty body: POST the saved Master Codes page HTML"}), 400
+
+    if not _lock.acquire(blocking=False):
+        return jsonify({"error": "An update is already running - try again shortly."}), 409
+
+    try:
+        page_file = os.path.join(BASE_DIR, "logs", "uploaded_master_codes.html")
+        with open(page_file, "w", encoding="utf-8") as fh:
+            fh.write(html)
+        _append_log("[%s] Uploaded %d bytes of Master Codes HTML" % (time.strftime("%Y-%m-%d %H:%M:%S"), len(html)))
+        return _run_importer({"GST_MASTER_CODES_FILE": page_file},
+                             "GST Master Codes updated from uploaded page")
     finally:
         _lock.release()
 

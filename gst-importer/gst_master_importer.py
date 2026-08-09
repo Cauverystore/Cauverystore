@@ -106,7 +106,13 @@ def fetch_json(url, timeout=90):
 
 def fetch_master_codes():
     """Returns {table: [(code, description), ...]} for the page's static tables."""
-    html = fetch_text(cfg.master_codes_url())
+    saved = cfg.master_codes_html()
+    if saved:
+        log("page: reading saved HTML %s" % saved)
+        with open(saved, "r", encoding="utf-8", errors="replace") as fh:
+            html = fh.read()
+    else:
+        html = fetch_text(cfg.master_codes_url())
     tables = parse_tables(html)
     found = {}
     for filename, expected, keys in PAGE_TABLES:
@@ -256,7 +262,15 @@ def main(argv=None):
         page_tables[prefix + "sac_master"] = "sac_master"
         ensure_schema(conn, sorted(page_tables.keys()))
 
-        page = fetch_master_codes()
+        summary = {}
+        try:
+            page = fetch_master_codes()
+        except Exception as exc:  # noqa: BLE001 - GSTN blocks non-India hosts
+            log("WARN  Master Codes page unreachable: %s: %s" % (type(exc).__name__, exc))
+            log("WARN  page tables (state/country/currency/port/uqc) left unchanged")
+            page = {}
+            summary["page_fetch"] = {"status": "unreachable",
+                                     "error": "%s: %s" % (type(exc).__name__, exc)[:4000]}
         hsn, sac = load_hsn_sac()
         rates = load_rates()
 
@@ -295,7 +309,10 @@ def main(argv=None):
         log("")
         log("%-28s %9s %9s" % ("table", "inserted", "updated"))
         for table, s in sorted(summary.items()):
-            log("%-28s %9d %9d" % (table, s["inserted"], s["updated"]))
+            if "inserted" in s:
+                log("%-28s %9d %9d" % (table, s["inserted"], s["updated"]))
+            else:
+                log("%-28s %s" % (table, s))
         log("audit log row id: %s" % log_id)
         log("RESULT status=SUCCESS duration=%.1fs" % elapsed)
         return 0

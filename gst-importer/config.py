@@ -53,6 +53,17 @@ def master_codes_url():
     return get("GST_MASTER_CODES_URL", "https://einvoice1.gst.gov.in/Others/MasterCodes")
 
 
+def master_codes_html():
+    """A locally saved copy of the Master Codes page, or None to fetch live."""
+    path = get("GST_MASTER_CODES_FILE")
+    if path and os.path.exists(path):
+        return path
+    bundled = os.path.join(_bundle_dir(), "data", "master_codes.html")
+    if os.path.exists(bundled):
+        return bundled
+    return None
+
+
 def hsn_source():
     """('file'|'url'|None, path-or-url). Bundled JSON ships with the exe."""
     path = get("GST_HSN_FILE")
