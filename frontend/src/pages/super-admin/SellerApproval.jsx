@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Store, ChevronLeft, Check, X, FileText, ShieldCheck, Ban, RotateCcw } from "lucide-react";
 import api from "../../utils/axios";
 import { useToast } from "../../admin/context/ToastContext";
+import WindDownStatus from "../../components/WindDownStatus";
 
 const StatusBadge = ({ value }) => (
   <span className={`admin-badge ${value === "VERIFIED" || value === "APPROVED" || value === "ACTIVE" ? "active" : value === "FAILED" || value === "REJECTED" || value === "SUSPENDED" ? "danger" : "inactive"}`}>
@@ -392,6 +393,7 @@ const SellerApproval = () => {
                         {r.suspensionReason || r.rejectionReason}
                       </div>
                     )}
+                    <WindDownStatus data={r.windDown} compact />
                   </td>
                   <td style={{ fontSize: '0.8rem', color: '#6b7280' }}>{r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-IN') : '—'}</td>
                   <td>

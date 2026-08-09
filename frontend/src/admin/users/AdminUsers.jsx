@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Users, ShieldOff, Shield } from "lucide-react";
 import api from "../../utils/axios";
+import WindDownStatus from "../../components/WindDownStatus";
 
 const ROLES = ['CUSTOMER', 'SELLER', 'EXECUTIVE', 'ADMIN'];
 const CREATABLE_ROLES = ['SELLER', 'CUSTOMER'];
@@ -15,6 +16,7 @@ const AdminUsers = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [windDowns, setWindDowns] = useState({});
   const pageSize = 10;
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -29,15 +31,37 @@ const AdminUsers = () => {
       const params = { page: p, pageSize, role: filterRole !== 'ALL' ? filterRole : undefined, search: search || undefined };
       const res = await api.get('/api/admin/users', { params });
       const data = res.data;
-      setUsers(Array.isArray(data) ? data : data.users || data.data || []);
+      const list = Array.isArray(data) ? data : data.users || data.data || [];
+      setUsers(list);
       setTotalPages(data.totalPages || data.pages || 1);
       setTotal(data.total || (Array.isArray(data) ? data.length : 0));
+      loadWindDowns(list);
     } catch (err) {
       setError('Failed to load users');
       setUsers([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  /**
+   * What each suspended account on this page still has running.
+   *
+   * Asked only for suspended rows, and only for the page on screen - walking every customer's
+   * orders to answer a question nobody has about the active ones would make the list crawl.
+   * Fetched after the table renders so a slow answer never holds up the list itself, and a
+   * failure is swallowed: not knowing the wind-down is a reason to show no badge, not a reason
+   * to fail the whole screen.
+   */
+  const loadWindDowns = async (list) => {
+    const suspended = list.filter(u => u.status === 'SUSPENDED');
+    if (suspended.length === 0) { setWindDowns({}); return; }
+    const results = await Promise.all(suspended.map(u =>
+      api.get(`/api/admin/users/${u.id}/wind-down`)
+        .then(r => [u.id, r.data])
+        .catch(() => null)
+    ));
+    setWindDowns(Object.fromEntries(results.filter(Boolean)));
   };
 
   useEffect(() => { fetchUsers(page); }, [page, filterRole, search]);
@@ -173,6 +197,12 @@ const AdminUsers = () => {
                       {new Date(u.suspendedAt).toLocaleDateString()}
                     </div>
                   )}
+                  {u.status === 'SUSPENDED' && u.suspensionReason && (
+                    <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '2px', maxWidth: '200px' }}>
+                      {u.suspensionReason}
+                    </div>
+                  )}
+                  <WindDownStatus data={windDowns[u.id || u._id]} compact />
                 </td>
                 <td>
                   <div className="admin-table-actions-cell">

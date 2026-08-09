@@ -135,8 +135,38 @@ class AccountWindDownTest {
 
         assertEquals(1L, w.get("openReturns"));
         assertEquals(Boolean.FALSE, w.get("complete"));
-        // A granted return starts a refund and there is no way to say today when that ends.
-        assertNull(w.get("lastObligationEnds"));
+        // Settlement is assumed to take ten days, so there is a date to show. It is marked as an
+        // estimate, because inspection and refund can overrun and nobody should plan around it
+        // as though it were fixed.
+        assertNotNull(w.get("lastObligationEnds"));
+        assertEquals(Boolean.TRUE, w.get("lastObligationEstimated"));
+    }
+
+    @Test
+    void theTenDaysRunFromWhenTheReturnWasRaisedNotFromToday() {
+        // Counting from now would push the date back every time anybody looked at the screen,
+        // and a wind-down that never gets closer is worse than no date at all.
+        ordersAre();
+        ReturnRequest raisedAWeekAgo = new ReturnRequest();
+        raisedAWeekAgo.setStatus("REQUESTED");
+        raisedAWeekAgo.setCreatedAt(LocalDateTime.now().minusDays(7));
+        when(returnRepo.findByUserId(7L)).thenReturn(List.of(raisedAWeekAgo));
+
+        LocalDateTime ends = (LocalDateTime) service.windDown(user).get("lastObligationEnds");
+
+        assertTrue(ends.isBefore(LocalDateTime.now().plusDays(4)),
+                "expected roughly three days left, not ten");
+        assertTrue(ends.isAfter(LocalDateTime.now().plusDays(2)));
+    }
+
+    @Test
+    void aDateThatIsSimplyAReturnWindowRunningOutIsNotAnEstimate() {
+        ordersAre(order("DELIVERED", LocalDateTime.now().minusDays(2), 7));
+
+        Map<String, Object> w = service.windDown(user);
+
+        assertNotNull(w.get("lastObligationEnds"));
+        assertEquals(Boolean.FALSE, w.get("lastObligationEstimated"));
     }
 
     @Test

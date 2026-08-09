@@ -59,6 +59,7 @@ public class SellerApprovalService {
     private final ProductRepository productRepo;
     private final AuditService auditService;
     private final EmailService emailService;
+    private final AccountRestrictionService accountRestrictionService;
 
     public SellerApprovalService(SellerRegistrationRepository regRepo,
                                  SellerDocumentRepository docRepo,
@@ -67,7 +68,8 @@ public class SellerApprovalService {
                                  UserRepository userRepo,
                                  ProductRepository productRepo,
                                  AuditService auditService,
-                                 EmailService emailService) {
+                                 EmailService emailService,
+                                 AccountRestrictionService accountRestrictionService) {
         this.regRepo = regRepo;
         this.docRepo = docRepo;
         this.complianceRepo = complianceRepo;
@@ -76,6 +78,7 @@ public class SellerApprovalService {
         this.productRepo = productRepo;
         this.auditService = auditService;
         this.emailService = emailService;
+        this.accountRestrictionService = accountRestrictionService;
     }
 
     public List<Map<String, Object>> listPending() {
@@ -119,6 +122,13 @@ public class SellerApprovalService {
                 row.put("rejectionReason", r.getRejectionReason());
                 row.put("suspendedAt", r.getSuspendedAt());
                 row.put("suspensionReason", r.getSuspensionReason());
+                // Only for a suspended seller, and only then: a suspension is not over when the
+                // button is pressed but when nobody is still waiting for goods. Computing it for
+                // every row would mean walking every seller's orders to answer a question nobody
+                // asked about the ones still trading.
+                if ("SUSPENDED".equals(r.getStatus()) && r.getUser() != null) {
+                    row.put("windDown", accountRestrictionService.windDown(r.getUser()));
+                }
                 row.put("documentsVerified", docsVerified);
                 row.put("documentsTotal", docsTotal);
                 row.put("complianceCompleted", complianceTotal - complianceIncomplete);

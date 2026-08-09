@@ -40,6 +40,7 @@ class SellerApprovalOverrideTest {
     @Mock private ProductRepository productRepo;
     @Mock private AuditService auditService;
     @Mock private EmailService emailService;
+    @Mock private AccountRestrictionService accountRestrictionService;
 
     private SellerApprovalService service;
     private SellerRegistration reg;
@@ -51,7 +52,7 @@ class SellerApprovalOverrideTest {
     @BeforeEach
     void setUp() {
         service = new SellerApprovalService(regRepo, docRepo, complianceRepo, storeRepo,
-                userRepo, productRepo, auditService, emailService);
+                userRepo, productRepo, auditService, emailService, accountRestrictionService);
 
         seller = new User();
         seller.setId(5L);
@@ -205,6 +206,37 @@ class SellerApprovalOverrideTest {
         verify(auditService).log(eq(ADMIN), contains("admin:"), eq("SELLER_APPROVED"),
                 any(), eq(1L), any(), any());
         verify(emailService).sendSellerApproved(eq("seller@example.com"), any());
+    }
+
+    @Test
+    void aSuspendedSellerRowCarriesWhatIsStillRunning() {
+        // The admin has to be able to tell a suspension that is genuinely finished from one with
+        // a delivery still out, without opening each seller in turn.
+        reg.setStatus("SUSPENDED");
+        when(regRepo.findAll()).thenReturn(List.of(reg));
+        when(docRepo.findByUserId(anyLong())).thenReturn(List.of());
+        when(complianceRepo.findByUserId(anyLong())).thenReturn(List.of());
+        when(accountRestrictionService.windDown(seller))
+                .thenReturn(java.util.Map.of("complete", false, "ordersAwaitingFulfilment", 3));
+
+        var row = service.listByStatus("SUSPENDED").get(0);
+
+        assertNotNull(row.get("windDown"));
+    }
+
+    @Test
+    void aSellerWhoIsStillTradingIsNotAskedAboutAtAll() {
+        // Walking every seller's orders to answer a question nobody has about the active ones
+        // would make the list crawl as the marketplace grows.
+        reg.setStatus("APPROVED");
+        when(regRepo.findAll()).thenReturn(List.of(reg));
+        when(docRepo.findByUserId(anyLong())).thenReturn(List.of());
+        when(complianceRepo.findByUserId(anyLong())).thenReturn(List.of());
+
+        var row = service.listByStatus("APPROVED").get(0);
+
+        assertNull(row.get("windDown"));
+        verify(accountRestrictionService, never()).windDown(any());
     }
 
     @Test

@@ -49,6 +49,15 @@ public class AccountRestrictionService {
     /** Used when a product no longer says, or never said. */
     private static final int DEFAULT_RETURN_WINDOW_DAYS = 7;
 
+    /**
+     * How long an open return is expected to take to settle, counted from when it was raised.
+     *
+     * A working assumption, not a guarantee - inspection and refund can overrun it. It is here
+     * so the wind-down has a date to show rather than a blank, and the response marks the date
+     * as an estimate when this is what produced it, so nobody reads it as a commitment.
+     */
+    private static final int OPEN_RETURN_SETTLEMENT_DAYS = 10;
+
     private final OrderRepository orderRepo;
     private final ReturnRequestRepository returnRepo;
 
@@ -115,18 +124,32 @@ public class AccountRestrictionService {
             }
         }
 
-        long openReturns = returnRepo.findByUserId(user.getId()).stream()
+        List<ReturnRequest> open = returnRepo.findByUserId(user.getId()).stream()
                 .filter(r -> r.getStatus() != null && RETURN_OPEN.contains(r.getStatus().toUpperCase()))
-                .count();
+                .toList();
+
+        // An open return settles on an estimate rather than a known date, so the two are tracked
+        // apart: a date that is only a projection must not be presented as a fact.
+        boolean estimated = false;
+        for (ReturnRequest r : open) {
+            LocalDateTime raised = r.getCreatedAt() != null ? r.getCreatedAt() : now;
+            LocalDateTime expected = raised.plusDays(OPEN_RETURN_SETTLEMENT_DAYS);
+            if (lastObligationEnds == null || expected.isAfter(lastObligationEnds)) {
+                lastObligationEnds = expected;
+            }
+            estimated = true;
+        }
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ordersAwaitingFulfilment", awaitingFulfilment);
         out.put("ordersWithinReturnWindow", withinReturnWindow);
-        out.put("openReturns", openReturns);
-        out.put("complete", awaitingFulfilment == 0 && withinReturnWindow == 0 && openReturns == 0);
-        // Null while a return is open, because a return that is granted starts a refund and there
-        // is no way to know today when that finishes. Saying "unknown" beats inventing a date.
-        out.put("lastObligationEnds", openReturns == 0 ? lastObligationEnds : null);
+        out.put("openReturns", (long) open.size());
+        out.put("complete", awaitingFulfilment == 0 && withinReturnWindow == 0 && open.isEmpty());
+        out.put("lastObligationEnds", lastObligationEnds);
+        // True when the date above rests on the settlement assumption rather than a return window
+        // that is simply running out. Inspection and refund can overrun it.
+        out.put("lastObligationEstimated", estimated);
+        out.put("openReturnSettlementDays", OPEN_RETURN_SETTLEMENT_DAYS);
         return out;
     }
 
