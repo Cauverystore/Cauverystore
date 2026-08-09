@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Store, ChevronLeft, Check, X, FileText, ShieldCheck } from "lucide-react";
+import { Store, ChevronLeft, Check, X, FileText, ShieldCheck, Ban, RotateCcw } from "lucide-react";
 import api from "../../utils/axios";
 import { useToast } from "../../admin/context/ToastContext";
 
 const StatusBadge = ({ value }) => (
-  <span className={`admin-badge ${value === "VERIFIED" || value === "APPROVED" || value === "ACTIVE" ? "active" : value === "FAILED" || value === "REJECTED" ? "danger" : "inactive"}`}>
+  <span className={`admin-badge ${value === "VERIFIED" || value === "APPROVED" || value === "ACTIVE" ? "active" : value === "FAILED" || value === "REJECTED" || value === "SUSPENDED" ? "danger" : "inactive"}`}>
     {value || "—"}
   </span>
 );
+
+const TABS = [
+  { key: "SUBMITTED", label: "Pending" },
+  { key: "APPROVED", label: "Approved" },
+  { key: "REJECTED", label: "Rejected" },
+  { key: "SUSPENDED", label: "Suspended" },
+  { key: "ALL", label: "All" },
+];
 
 const SellerApproval = () => {
   const [registrations, setRegistrations] = useState([]);
@@ -19,13 +27,22 @@ const SellerApproval = () => {
   const [showReject, setShowReject] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [docActioning, setDocActioning] = useState(null);
+  // The list only ever showed pending applications, so there was no way to look up who had been
+  // approved, who was turned down and why, or who is currently suspended.
+  const [statusTab, setStatusTab] = useState("SUBMITTED");
   const { showToast } = useToast();
+
+  // Suspending a live business and overturning a colleague's decision are super-admin only. The
+  // buttons are hidden for an admin rather than shown and then refused by the API.
+  const isSuperAdmin = (localStorage.getItem("role") || "").toUpperCase() === "SUPER_ADMIN";
 
   const fetchRegistrations = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get("/api/seller-registration/admin/registrations");
+      const res = await api.get("/api/seller-registration/admin/registrations", {
+        params: { status: statusTab },
+      });
       const content = res.data?.content;
       setRegistrations(Array.isArray(content) ? content : []);
     } catch (err) {
@@ -34,7 +51,7 @@ const SellerApproval = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusTab]);
 
   useEffect(() => { fetchRegistrations(); }, [fetchRegistrations]);
 
@@ -88,6 +105,47 @@ const SellerApproval = () => {
     }
   };
 
+  const handleSuspend = async (registrationId) => {
+    const reason = window.prompt(
+      "Why is this seller being suspended? Their listings come off sale immediately."
+    );
+    if (reason === null) return;
+    if (!reason.trim()) { showToast("A suspension needs a reason", "error"); return; }
+    setActioning(registrationId);
+    try {
+      const res = await api.post(
+        `/api/seller-registration/admin/registrations/${registrationId}/suspend`,
+        { reason: reason.trim() }
+      );
+      showToast(res.data?.message || "Seller suspended", "success");
+      closeDetail();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to suspend seller', "error");
+    } finally {
+      setActioning(null);
+    }
+  };
+
+  const handleReinstate = async (registrationId) => {
+    if (!window.confirm("Lift this suspension? The listings it took down go back on sale.")) return;
+    setActioning(registrationId);
+    try {
+      const res = await api.post(
+        `/api/seller-registration/admin/registrations/${registrationId}/reinstate`
+      );
+      const n = res.data?.listingsRestored;
+      showToast(
+        `Seller reinstated${typeof n === "number" ? ` — ${n} listing(s) restored` : ""}`,
+        "success"
+      );
+      closeDetail();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to reinstate seller', "error");
+    } finally {
+      setActioning(null);
+    }
+  };
+
   const handleVerifyDoc = async (documentId, approved) => {
     setDocActioning(documentId);
     try {
@@ -120,12 +178,24 @@ const SellerApproval = () => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => setShowReject(true)} disabled={actioning === regId || reg.status === 'REJECTED' || reg.status === 'APPROVED'}>
-              <X size={14} style={{ verticalAlign: 'middle' }} /> Reject
+            {/* Withdrawing an approval is a super-admin override, so the button stays live for
+                them on an approved seller and is closed to an admin, matching the API. */}
+            <button className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => setShowReject(true)} disabled={actioning === regId || reg.status === 'REJECTED' || (reg.status === 'APPROVED' && !isSuperAdmin)}>
+              <X size={14} style={{ verticalAlign: 'middle' }} /> {reg.status === 'APPROVED' ? 'Withdraw Approval' : 'Reject'}
             </button>
-            <button className="admin-btn admin-btn-sm admin-btn-success" onClick={() => handleApprove(regId)} disabled={actioning === regId || reg.status === 'APPROVED'}>
-              {actioning === regId ? 'Approving...' : <><Check size={14} style={{ verticalAlign: 'middle' }} /> Approve & Activate</>}
+            <button className="admin-btn admin-btn-sm admin-btn-success" onClick={() => handleApprove(regId)} disabled={actioning === regId || reg.status === 'APPROVED' || (reg.status === 'REJECTED' && !isSuperAdmin)}>
+              {actioning === regId ? 'Approving...' : <><Check size={14} style={{ verticalAlign: 'middle' }} /> {reg.status === 'REJECTED' ? 'Overturn & Approve' : 'Approve & Activate'}</>}
             </button>
+            {isSuperAdmin && reg.status === 'APPROVED' && (
+              <button className="admin-btn admin-btn-sm admin-btn-outline" onClick={() => handleSuspend(regId)} disabled={actioning === regId} style={{ color: '#dc2626', borderColor: '#fecaca' }}>
+                <Ban size={14} style={{ verticalAlign: 'middle' }} /> Suspend
+              </button>
+            )}
+            {isSuperAdmin && reg.status === 'SUSPENDED' && (
+              <button className="admin-btn admin-btn-sm admin-btn-outline" onClick={() => handleReinstate(regId)} disabled={actioning === regId} style={{ color: '#146C43', borderColor: '#CFE8D6' }}>
+                <RotateCcw size={14} style={{ verticalAlign: 'middle' }} /> Reinstate
+              </button>
+            )}
           </div>
         </div>
 
@@ -236,9 +306,29 @@ const SellerApproval = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Seller Approval Queue</h1>
-        <span className="admin-badge inactive">{registrations.length} pending</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Sellers</h1>
+        <span className="admin-badge inactive">
+          {registrations.length} {(TABS.find(t => t.key === statusTab)?.label || '').toLowerCase()}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '1rem', borderBottom: '2px solid #EAF7EE', overflowX: 'auto' }}>
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setStatusTab(t.key)}
+            style={{
+              padding: '8px 16px', border: 'none', cursor: 'pointer', fontWeight: 600,
+              fontSize: '0.85rem', whiteSpace: 'nowrap',
+              background: statusTab === t.key ? '#EAF7EE' : 'transparent',
+              color: statusTab === t.key ? '#146C43' : '#64748B',
+              borderBottom: statusTab === t.key ? '2px solid #2E9B57' : '2px solid transparent',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {error && <div className="admin-alert error">{error}</div>}
@@ -247,7 +337,9 @@ const SellerApproval = () => {
         {registrations.length === 0 ? (
           <div className="admin-empty-state">
             <div className="admin-empty-state-icon"><Store size={32} /></div>
-            <div className="admin-empty-state-text">No registrations awaiting approval</div>
+            <div className="admin-empty-state-text">
+              No {(TABS.find(t => t.key === statusTab)?.label || '').toLowerCase()} sellers
+            </div>
           </div>
         ) : (
           <table className="admin-table">
@@ -259,6 +351,7 @@ const SellerApproval = () => {
                 <th>Bank</th>
                 <th>Documents</th>
                 <th>Compliance</th>
+                <th>Status</th>
                 <th>Submitted</th>
                 <th>Actions</th>
               </tr>
@@ -281,12 +374,42 @@ const SellerApproval = () => {
                   <td><StatusBadge value={r.bankStatus} /></td>
                   <td style={{ fontSize: '0.85rem' }}>{r.documentsVerified}/{r.documentsTotal}</td>
                   <td style={{ fontSize: '0.85rem' }}>{r.complianceCompleted}/{r.complianceTotal}</td>
+                  <td>
+                    <StatusBadge value={r.status} />
+                    {/* Why somebody was turned down or stopped is the first thing anybody
+                        opening this list wants, and it was nowhere on screen. */}
+                    {(r.rejectionReason || r.suspensionReason) && (
+                      <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '2px', maxWidth: '180px' }}>
+                        {r.suspensionReason || r.rejectionReason}
+                      </div>
+                    )}
+                  </td>
                   <td style={{ fontSize: '0.8rem', color: '#6b7280' }}>{r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-IN') : '—'}</td>
                   <td>
                     <div className="admin-table-actions-cell">
                       <button className="admin-btn admin-btn-sm admin-btn-outline" onClick={() => openDetail(r.registrationId)}>
                         <ShieldCheck size={14} style={{ verticalAlign: 'middle' }} /> Review
                       </button>
+                      {isSuperAdmin && r.status === 'APPROVED' && (
+                        <button
+                          className="admin-btn admin-btn-sm admin-btn-outline"
+                          disabled={actioning === r.registrationId}
+                          onClick={() => handleSuspend(r.registrationId)}
+                          style={{ color: '#dc2626', borderColor: '#fecaca' }}
+                        >
+                          <Ban size={14} style={{ verticalAlign: 'middle' }} /> Suspend
+                        </button>
+                      )}
+                      {isSuperAdmin && r.status === 'SUSPENDED' && (
+                        <button
+                          className="admin-btn admin-btn-sm admin-btn-outline"
+                          disabled={actioning === r.registrationId}
+                          onClick={() => handleReinstate(r.registrationId)}
+                          style={{ color: '#146C43', borderColor: '#CFE8D6' }}
+                        >
+                          <RotateCcw size={14} style={{ verticalAlign: 'middle' }} /> Reinstate
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

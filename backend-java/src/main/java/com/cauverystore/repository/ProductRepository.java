@@ -17,6 +17,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByActiveTrue();
 
+    /** Every listing a seller has, active or not - used when suspending and reinstating them. */
+    List<Product> findBySellerId(Long sellerId);
+
     List<Product> findByChannelAndActiveTrue(String channel);
 
     // Atomic conditional decrement, mirroring InventoryRepository.decrementStockIfAvailable -

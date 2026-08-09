@@ -147,6 +147,21 @@ public class SellerRegistration {
     private LocalDateTime rejectedAt;
     private String rejectionReason;
 
+    private LocalDateTime suspendedAt;
+    private String suspensionReason;
+
+    /**
+     * The products this suspension took off sale, as a comma-separated list of ids.
+     *
+     * Suspending a seller has to actually stop them selling, and nothing in the catalogue reads
+     * seller status - products are listed on their own active flag alone. So suspension
+     * deactivates them, and reinstatement has to put back exactly what it took: a seller can
+     * have products they had deliberately delisted themselves, and blanket-reactivating
+     * everything would silently put those back on sale.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String suspendedProductIds;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -255,6 +270,13 @@ public class SellerRegistration {
     public void setRejectedAt(LocalDateTime rejectedAt) { this.rejectedAt = rejectedAt; }
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public LocalDateTime getSuspendedAt() { return suspendedAt; }
+    public void setSuspendedAt(LocalDateTime suspendedAt) { this.suspendedAt = suspendedAt; }
+    public String getSuspensionReason() { return suspensionReason; }
+    public void setSuspensionReason(String suspensionReason) { this.suspensionReason = suspensionReason; }
+    public String getSuspendedProductIds() { return suspendedProductIds; }
+    public void setSuspendedProductIds(String suspendedProductIds) { this.suspendedProductIds = suspendedProductIds; }
     public String getLicenses() { return licenses; }
     public void setLicenses(String licenses) { this.licenses = licenses; }
     public List<String> getApobList() { return apobList; }

@@ -100,6 +100,30 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    public void sendSellerSuspended(String to, String businessName, String reason) {
+        String subject = "Your Seller Account Has Been Suspended - Cauvery Store";
+        String body = "<h2 style='color:" + RED + ";margin-top:0;'>Selling Suspended</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Selling on <strong>"
+                + (businessName != null ? businessName : "your business")
+                + "</strong> has been suspended and your listings have been withdrawn from sale."
+                + (reason != null ? " Reason: <strong>" + reason + "</strong>" : "")
+                + "</p><p style='color:#4b5563;font-size:14px;'>Your account and registration remain "
+                + "intact. Reply to this email if you believe this is a mistake.</p>";
+        send(to, subject, wrapBranded(body));
+    }
+
+    public void sendSellerReinstated(String to, String businessName) {
+        String subject = "Your Seller Account Has Been Reinstated - Cauvery Store";
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Selling Reinstated</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>The suspension on <strong>"
+                + (businessName != null ? businessName : "your business")
+                + "</strong> has been lifted, and the listings it took down are back on sale.</p>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='https://cauverystore.in/seller/dashboard' style='background:" + TEAL
+                + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Go to Seller Dashboard</a></div>";
+        send(to, subject, wrapBranded(body));
+    }
+
     public void sendPasswordResetLink(String to, String resetUrl) {
         String subject = "Reset Your Password - Cauvery Store";
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Reset Your Password</h2>"

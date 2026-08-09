@@ -11,6 +11,7 @@ import com.cauverystore.service.SellerApprovalService;
 import com.cauverystore.service.SellerRegistrationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -212,10 +213,15 @@ public class SellerRegistrationController {
         return ResponseEntity.ok(registrationService.verifyDocument(adminId, documentId, approved, rejectionReason));
     }
 
+    /**
+     * @param status SUBMITTED, APPROVED, REJECTED, SUSPENDED, or ALL. Defaults to submitted, which
+     *               is what this endpoint used to return unconditionally despite its name.
+     */
     @GetMapping("/admin/registrations")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public ResponseEntity<?> listRegistrations() {
-        return ResponseEntity.ok(Map.of("content", approvalService.listPending()));
+    public ResponseEntity<?> listRegistrations(
+            @RequestParam(required = false, defaultValue = "SUBMITTED") String status) {
+        return ResponseEntity.ok(Map.of("content", approvalService.listByStatus(status)));
     }
 
     @GetMapping("/admin/registrations/{registrationId}")
@@ -229,7 +235,7 @@ public class SellerRegistrationController {
     public ResponseEntity<?> approveRegistration(@PathVariable Long registrationId) {
         Long adminId = getCurrentUserId();
         if (adminId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
-        return ResponseEntity.ok(approvalService.approve(adminId, registrationId));
+        return ResponseEntity.ok(approvalService.approve(adminId, registrationId, isSuperAdmin()));
     }
 
     @PostMapping("/admin/registrations/{registrationId}/reject")
@@ -237,7 +243,44 @@ public class SellerRegistrationController {
     public ResponseEntity<?> rejectRegistration(@PathVariable Long registrationId, @RequestBody Map<String, String> body) {
         Long adminId = getCurrentUserId();
         if (adminId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
-        return ResponseEntity.ok(approvalService.reject(adminId, registrationId, body.get("reason")));
+        return ResponseEntity.ok(approvalService.reject(adminId, registrationId, body.get("reason"), isSuperAdmin()));
+    }
+
+    /**
+     * Suspends a trading seller. Super admin only - an admin approves and rejects applications,
+     * but stopping a live business is final authority.
+     */
+    @PostMapping("/admin/registrations/{registrationId}/suspend")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> suspendSeller(@PathVariable Long registrationId,
+                                           @RequestBody(required = false) Map<String, String> body) {
+        Long id = getCurrentUserId();
+        if (id == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(approvalService.suspend(id, registrationId,
+                body == null ? null : body.get("reason")));
+    }
+
+    @PostMapping("/admin/registrations/{registrationId}/reinstate")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> reinstateSeller(@PathVariable Long registrationId) {
+        Long id = getCurrentUserId();
+        if (id == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(approvalService.reinstate(id, registrationId));
+    }
+
+    /**
+     * An admin overreaching gets a plain 403 saying so, rather than a 500 from an unhandled
+     * RuntimeException - the difference between "you may not" and "something broke".
+     */
+    @ExceptionHandler(SellerApprovalService.OverrideNotPermittedException.class)
+    public ResponseEntity<?> handleOverrideRefused(SellerApprovalService.OverrideNotPermittedException e) {
+        return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+    }
+
+    private boolean isSuperAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
     }
 }
 
