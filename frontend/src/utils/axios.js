@@ -90,22 +90,23 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
+        const hadToken =
+          !!localStorage.getItem('accessToken') || !!localStorage.getItem('admin_token');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
         localStorage.removeItem('role');
         localStorage.removeItem('admin_token');
-        if (!sessionStorage.getItem('auth_session_expired_told')) {
+        const path = window.location.pathname + window.location.search;
+        const alreadyOnLogin = /^\/(login|admin\/login)(\?|$)/.test(path);
+        if (hadToken && !alreadyOnLogin && !sessionStorage.getItem('auth_session_expired_told')) {
           sessionStorage.setItem('auth_session_expired_told', '1');
           const role = (localStorage.getItem('role') || '').toLowerCase();
-          const path = window.location.pathname + window.location.search;
           const isStaff = ['admin', 'super_admin', 'executive'].includes(role);
           const login = isStaff ? '/admin/login' : '/login';
           const redirect = isStaff ? '/admin' : (path.startsWith('/login') ? '' : path);
           window.location.replace(
             `${login}?reason=session-expired&redirect=${encodeURIComponent(redirect || '/')}`
           );
-        } else {
-          window.location.reload();
         }
         return Promise.reject(refreshError);
       } finally {
