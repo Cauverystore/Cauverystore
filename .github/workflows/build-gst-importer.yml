@@ -33,7 +33,7 @@ jobs:
       - name: Build GST Tool GUI exe
         if: runner.os == 'Windows'
         working-directory: gst-importer
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name GST_Tool gst_tool_gui.py
+        run: python -m PyInstaller --noconfirm --clean GST_Tool.spec
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

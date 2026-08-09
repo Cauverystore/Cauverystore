@@ -8,6 +8,7 @@ import {
   ShoppingCart, CreditCard, Users, ClipboardList, Ticket, Ship, Percent,
   Star, HelpCircle, FileEdit, Bell, FileSpreadsheet, FolderArchive,
   Image, Mail, Trophy, ArrowUpDown, ShieldCheck, Settings, Shield,
+  BookOpen,
 } from "lucide-react";
 
 const allLinks = [
@@ -30,6 +31,7 @@ const allLinks = [
   { to: "/admin/coupons", label: "Coupons", icon: Ticket, module: "coupons" },
   { to: "/admin/gst-rates", label: "GST Rates", icon: Percent, module: "gstRates" },
   { to: "/admin/gst-compliance", label: "GST Compliance", icon: ShieldCheck, module: "gstRates" },
+  { to: "/admin/gst-masters", label: "GST Masters", icon: BookOpen, module: "gstRates" },
   { to: "/admin/shipping", label: "Shipping", icon: Ship, module: "shipping" },
   { to: "/admin/reviews", label: "Reviews", icon: Star, module: "reviews" },
   { to: "/admin/qna", label: "Q&A", icon: HelpCircle, module: "qna" },

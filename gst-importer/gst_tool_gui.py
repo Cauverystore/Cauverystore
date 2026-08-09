@@ -45,6 +45,22 @@ TIMEOUT = 90
 TAG_RE = re.compile(r"<[^>]+>")
 
 
+def bundle_dir():
+    if getattr(sys, "frozen", False):
+        return getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def app_dir():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def data_dir():
+    return os.path.join(bundle_dir(), "data")
+
+
 def fetch_text(url, timeout=TIMEOUT, attempts=RETRIES):
     last = None
     for attempt in range(1, attempts + 1):
@@ -147,8 +163,7 @@ def runbook_rows():
     ]
 
 
-def rebuild_workbook(path, here):
-    data = os.path.join(here, "data")
+def rebuild_workbook(path, data):
     with open(os.path.join(data, "hsn_master.json"), "r", encoding="utf-8") as fh:
         hsn_all = json.load(fh)
     with open(os.path.join(data, "gst_rate_seed.json"), "r", encoding="utf-8") as fh:
@@ -209,9 +224,16 @@ class GstToolApp:
         except Exception:  # noqa: BLE001 - non-fatal
             pass
 
+    def _stale_path(self, path):
+        if not path:
+            return False
+        if "_MEI" in path:
+            return True
+        meipass = getattr(sys, "_MEIPASS", "")
+        return bool(meipass) and path.startswith(meipass)
+
     def _default_workbook(self):
-        here = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(here, "GST_Master.xlsx")
+        return os.path.join(app_dir(), "GST_Master.xlsx")
 
     # ------------------------------------------------------------------ UI
     def _build_ui(self):
@@ -244,7 +266,10 @@ class GstToolApp:
         ttk.Label(work, text="GST_Master.xlsx").grid(row=0, column=0, sticky="w")
         self.entry_book = ttk.Entry(work, width=62)
         self.entry_book.grid(row=0, column=1, sticky="we", padx=6)
-        self.entry_book.insert(0, self.config.get("workbook", self._default_workbook()))
+        book = self.config.get("workbook", "")
+        if self._stale_path(book):
+            book = ""
+        self.entry_book.insert(0, book or self._default_workbook())
         ttk.Button(work, text="Browse...", command=self._browse_book).grid(row=0, column=2, padx=8)
         work.columnconfigure(1, weight=1)
 
@@ -362,8 +387,7 @@ class GstToolApp:
 
     def _rebuild(self):
         path = self.entry_book.get().strip() or self._default_workbook()
-        here = os.path.dirname(os.path.abspath(__file__))
-        rebuild_workbook(path, here)
+        rebuild_workbook(path, data_dir())
 
     def task_refresh_pages(self):
         self._run(self._refresh_pages, "refresh workbook pages")
@@ -446,7 +470,14 @@ def selftest():
     wb = openpyxl.Workbook()
     write_sheet(wb, "hsn", ["code", "description"], [["0101", "desc"]])
     assert wb["hsn"]["A2"].value == "0101"
-    print("selftest OK")
+    import tempfile
+    out = os.path.join(tempfile.mkdtemp(), "GST_Master.xlsx")
+    rebuild_workbook(out, data_dir())
+    wb2 = openpyxl.load_workbook(out)
+    assert {"RUNBOOK", "hsn", "sac", "rates",
+            "state_master", "country_master", "currency_master",
+            "port_master", "uqc_master"} <= set(wb2.sheetnames), wb2.sheetnames
+    print("selftest OK (workbook rebuild with bundled data)")
     return 0
 
 

@@ -8,6 +8,8 @@ Endpoints:
     POST /upload-master-codes     load a saved Master Codes page HTML into the DB
     POST /upload-master-sheet     load the Excel master workbook into the DB
     GET  /update-gst-master/status  last run result
+    GET  /masters                 row counts for the five master lists
+    GET  /masters/<kind>          rows (code, description) for one master list
 
 The importer runs as a subprocess so the API host and the executable are the
 same process boundary that the cron wrapper uses. Set GST_IMPORTER_EXE to point
@@ -196,6 +198,46 @@ def upload_master_sheet():
 @app.route("/update-gst-master/status", methods=["GET"])
 def status():
     return jsonify(_last_run)
+
+
+MASTER_TABLES = {
+    "state": "gst_importer_state_master",
+    "country": "gst_importer_country_master",
+    "currency": "gst_importer_currency_master",
+    "port": "gst_importer_port_master",
+    "uqc": "gst_importer_uqc_master",
+}
+
+
+def _table_rows(table):
+    try:
+        import psycopg2
+        with psycopg2.connect(cfg.db_dsn()) as conn, conn.cursor() as cur:
+            cur.execute("SELECT code, description FROM %s ORDER BY code" % table)
+            return [{"code": code, "description": description}
+                    for code, description in cur.fetchall()]
+    except Exception:  # noqa: BLE001 - reported to the caller
+        return None
+
+
+@app.route("/masters", methods=["GET"])
+def masters():
+    counts = {}
+    for kind, table in MASTER_TABLES.items():
+        rows = _table_rows(table)
+        counts[kind] = len(rows) if rows is not None else None
+    return jsonify({"tables": counts})
+
+
+@app.route("/masters/<kind>", methods=["GET"])
+def masters_kind(kind):
+    table = MASTER_TABLES.get(kind)
+    if not table:
+        return jsonify({"error": "unknown master list: %s (state|country|currency|port|uqc)" % kind}), 404
+    rows = _table_rows(table)
+    if rows is None:
+        return jsonify({"error": "master table read failed - is the importer database available?"}), 500
+    return jsonify({"table": table, "count": len(rows), "rows": rows})
 
 
 if __name__ == "__main__":
