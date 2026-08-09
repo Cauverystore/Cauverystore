@@ -84,10 +84,19 @@ def header_matches(header, expected):
     return all(all(word in joined for word in exp.split()) for exp in expected)
 
 
-def fetch_text(url, timeout=90):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read().decode("utf-8", errors="replace")
+def fetch_text(url, timeout=90, attempts=3):
+    """GET a URL, retrying transient failures (GSTN drops connections)."""
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read().decode("utf-8", errors="replace")
+        except Exception as exc:  # noqa: BLE001 - retried below
+            last_error = exc
+            if attempt < attempts:
+                time.sleep(attempt * 5)
+    raise last_error
 
 
 def fetch_json(url, timeout=90):

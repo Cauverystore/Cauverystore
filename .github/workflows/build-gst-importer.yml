@@ -24,7 +24,7 @@ jobs:
 
       - name: Install build deps
         run: |
-          pip install --quiet pyinstaller requests "psycopg2-binary>=2.9.10"
+          pip install --quiet pyinstaller requests pandas "psycopg2-binary>=2.9.10"
 
       - name: Build one-file binary
         working-directory: gst-importer
