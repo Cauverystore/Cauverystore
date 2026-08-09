@@ -1,0 +1,38 @@
+name: build-gst-importer
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'gst-importer/**'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build deps
+        run: |
+          pip install --quiet pyinstaller requests "psycopg2-binary>=2.9.10"
+
+      - name: Build one-file binary
+        working-directory: gst-importer
+        run: python -m PyInstaller --noconfirm --clean gst_master_importer.spec
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gst_master_importer-${{ matrix.os }}
+          path: gst-importer/dist/gst_master_importer*
+          if-no-files-found: error

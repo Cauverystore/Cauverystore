@@ -121,10 +121,10 @@ const AdminGstRates = () => {
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   // Standalone importer API (optional). When set, the button runs the Python
-  // importer via VITE_GST_IMPORTER_URL/update-gst-master first and only falls
-  // back to the store's own refresh endpoint if it is unreachable.
-  const IMPORTER_URL = (import.meta.env.VITE_GST_IMPORTER_URL || "").replace(/\/+$/, "");
-  const IMPORTER_TOKEN = import.meta.env.VITE_GST_IMPORTER_TOKEN || "";
+  // importer via REACT_APP_GST_IMPORTER_URL/update-gst-master first and only
+  // falls back to the store's own refresh endpoint if it is unreachable.
+  const IMPORTER_URL = (process.env.REACT_APP_GST_IMPORTER_URL || "").replace(/\/+$/, "");
+  const IMPORTER_TOKEN = process.env.REACT_APP_GST_IMPORTER_TOKEN || "";
 
   /**
    * Re-applies the GST master files (HSN, units, states, rates) to the database.

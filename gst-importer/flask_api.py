@@ -146,6 +146,6 @@ def status():
 
 
 if __name__ == "__main__":
-    host = os.environ.get("GST_IMPORTER_HOST", "127.0.0.1")
-    port = int(os.environ.get("GST_IMPORTER_PORT", "5001"))
+    host = os.environ.get("GST_IMPORTER_HOST", "0.0.0.0")
+    port = int(os.environ.get("GST_IMPORTER_PORT", os.environ.get("PORT", "5001")))
     app.run(host=host, port=port, threaded=True)
