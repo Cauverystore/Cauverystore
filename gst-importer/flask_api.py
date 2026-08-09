@@ -6,6 +6,7 @@ Endpoints:
     GET  /                        service info + last run
     POST /update-gst-master       run the importer (subprocess), returns result
     POST /upload-master-codes     load a saved Master Codes page HTML into the DB
+    POST /upload-master-sheet     load the Excel master workbook into the DB
     GET  /update-gst-master/status  last run result
 
 The importer runs as a subprocess so the API host and the executable are the
@@ -166,6 +167,28 @@ def upload_master_codes():
         _append_log("[%s] Uploaded %d bytes of Master Codes HTML" % (time.strftime("%Y-%m-%d %H:%M:%S"), len(html)))
         return _run_importer({"GST_MASTER_CODES_FILE": page_file},
                              "GST Master Codes updated from uploaded page")
+    finally:
+        _lock.release()
+
+
+@app.route("/upload-master-sheet", methods=["POST"])
+def upload_master_sheet():
+    data = request.get_data() or b""
+    if len(data) < 1000 or data[:2] != b"PK":
+        return jsonify({"error": "Body is not a valid .xlsx workbook (expects the master sheet binary)"}), 400
+
+    if not _lock.acquire(blocking=False):
+        return jsonify({"error": "An update is already running - try again shortly."}), 409
+
+    try:
+        data_dir = os.path.join(BASE_DIR, "data")
+        os.makedirs(data_dir, exist_ok=True)
+        sheet_path = os.path.join(data_dir, "GST_Master.xlsx")
+        with open(sheet_path, "wb") as fh:
+            fh.write(data)
+        _append_log("[%s] Uploaded master workbook (%d bytes)" % (time.strftime("%Y-%m-%d %H:%M:%S"), len(data)))
+        return _run_importer({"GST_MASTER_SHEET": sheet_path},
+                             "GST Master updated from master workbook")
     finally:
         _lock.release()
 

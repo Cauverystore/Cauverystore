@@ -111,6 +111,9 @@ def fetch_master_codes():
         log("page: reading saved HTML %s" % saved)
         with open(saved, "r", encoding="utf-8", errors="replace") as fh:
             html = fh.read()
+    elif not cfg.page_fetch_enabled():
+        log("WARN  live page fetch disabled (GST_PAGE_FETCH=0) - page tables left unchanged")
+        return {}
     else:
         html = fetch_text(cfg.master_codes_url())
     tables = parse_tables(html)
@@ -185,6 +188,61 @@ def load_rates():
         rates[row["hsnCode"]] = (row["gstRate"], row.get("effectiveFrom"))
     log("OK    rates         %5d rows loaded" % len(rates))
     return rates
+
+
+def load_master_sheet(path):
+    """Reads the Excel master workbook (sheets: hsn, sac, rates, and the five
+    code-list sheets) and returns (page, hsn, sac, rates) like the live flow."""
+    excel = pd.ExcelFile(path)
+
+    def sheet_rows(name):
+        if name not in excel.sheet_names:
+            log("WARN  sheet '%s' missing from master workbook - skipping" % name)
+            return None
+        df = excel.parse(name, dtype=str).fillna("")
+        return df
+
+    page = {}
+    for filename, _, _ in PAGE_TABLES:
+        df = sheet_rows(filename)
+        if df is None:
+            continue
+        records = []
+        for code, description in df.values.tolist():
+            code = str(code).strip()
+            if filename == "state_master" and code.isdigit():
+                code = code.zfill(2)
+            if code:
+                records.append((code, str(description).strip()))
+        page[filename] = records
+        log("OK    %-16s %5d rows" % (filename, len(records)))
+
+    hsn = sac = []
+    df = sheet_rows("hsn")
+    if df is not None:
+        hsn = [(str(c).strip(), str(d).strip()) for c, d in df[["code", "description"]].values.tolist()]
+        log("OK    %-16s %5d rows" % ("hsn_master", len(hsn)))
+    df = sheet_rows("sac")
+    if df is not None:
+        sac = [(str(c).strip(), str(d).strip()) for c, d in df[["code", "description"]].values.tolist()]
+        log("OK    %-16s %5d rows" % ("sac_master", len(sac)))
+
+    rates = {}
+    df = sheet_rows("rates")
+    if df is not None:
+        for _, row in df.iterrows():
+            code = str(row.get("code", "")).strip()
+            if not code or code == "nan":
+                continue
+            rate = row.get("gst_rate", "")
+            eff = row.get("effective_date", "")
+            if rate in ("", "nan"):
+                rate = None
+            if eff in ("", "nan", "None"):
+                eff = None
+            rates[code] = (rate, eff)
+        log("OK    %-16s %5d rows loaded" % ("rates", len(rates)))
+    return page, hsn, sac, rates
 
 
 def ensure_schema(conn, tables):
@@ -263,16 +321,22 @@ def main(argv=None):
         ensure_schema(conn, sorted(page_tables.keys()))
 
         summary = {}
-        try:
-            page = fetch_master_codes()
-        except Exception as exc:  # noqa: BLE001 - GSTN blocks non-India hosts
-            log("WARN  Master Codes page unreachable: %s: %s" % (type(exc).__name__, exc))
-            log("WARN  page tables (state/country/currency/port/uqc) left unchanged")
+        sheet = cfg.master_sheet()
+        if sheet:
+            log("MST  using master workbook %s" % sheet)
+            page, hsn, sac, rates = load_master_sheet(sheet)
+        else:
             page = {}
-            summary["page_fetch"] = {"status": "unreachable",
-                                     "error": "%s: %s" % (type(exc).__name__, exc)[:4000]}
-        hsn, sac = load_hsn_sac()
-        rates = load_rates()
+            try:
+                page = fetch_master_codes()
+            except Exception as exc:  # noqa: BLE001 - GSTN blocks non-India hosts
+                log("WARN  Master Codes page unreachable: %s: %s" % (type(exc).__name__, exc))
+                log("WARN  page tables (state/country/currency/port/uqc) left unchanged")
+                page = {}
+                summary["page_fetch"] = {"status": "unreachable",
+                                         "error": "%s: %s" % (type(exc).__name__, exc)[:4000]}
+            hsn, sac = load_hsn_sac()
+            rates = load_rates()
 
         summary = {}
         # Code-list tables carry no rate by nature - gst_rate/effective_date stay null.

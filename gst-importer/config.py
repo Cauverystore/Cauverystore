@@ -53,6 +53,18 @@ def master_codes_url():
     return get("GST_MASTER_CODES_URL", "https://einvoice1.gst.gov.in/Others/MasterCodes")
 
 
+def page_fetch_enabled():
+    return get("GST_PAGE_FETCH", "1") != "0"
+
+
+def master_sheet():
+    """Path to the Excel master workbook, or None to use JSON/live sources."""
+    path = get("GST_MASTER_SHEET")
+    if path and os.path.exists(path):
+        return path
+    return None
+
+
 def master_codes_html():
     """A locally saved copy of the Master Codes page, or None to fetch live."""
     path = get("GST_MASTER_CODES_FILE")
