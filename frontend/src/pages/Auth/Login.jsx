@@ -74,6 +74,12 @@ const Login = () => {
     else navigateForRole(navigate, role);
   }, [navigate, searchParams]);
 
+  useEffect(() => {
+    if (searchParams.get('reason') === 'session-expired' && !error) {
+      setError('Your session expired. Please sign in again to continue.');
+    }
+  }, [searchParams]);
+
   const handleGoogleCredential = useCallback(async (response) => {
     setError('');
     try {

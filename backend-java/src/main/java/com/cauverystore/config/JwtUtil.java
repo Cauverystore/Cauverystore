@@ -17,8 +17,10 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
+    @Value("${jwt.refresh.expiry-millis:604800000}")
+    private long refreshTokenExpiry;
+
     private static final long ACCESS_TOKEN_EXPIRY = 900000L;
-    private static final long REFRESH_TOKEN_EXPIRY = 604800000L;
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
@@ -42,7 +44,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRY))
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiry))
                 .setId(UUID.randomUUID().toString())
                 .signWith(getSigningKey())
                 .compact();
