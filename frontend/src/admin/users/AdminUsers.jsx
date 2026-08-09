@@ -58,12 +58,18 @@ const AdminUsers = () => {
   };
 
   const handleSuspend = async (id, name) => {
-    if (!window.confirm(`Suspend ${name}? They will lose all access until revoked.`)) return;
+    // The reason is emailed to the person, so it is written for them rather than kept as an
+    // internal note. Suspension also signs them out immediately, not when their token expires.
+    const reason = window.prompt(
+      `Suspend ${name}? They are signed out at once and cannot sign in again.\n\nReason (sent to them):`
+    );
+    if (reason === null) return;
+    if (!reason.trim()) { alert('A suspension needs a reason'); return; }
     try {
-      await api.post(`/api/admin/users/${id}/suspend`);
+      await api.post(`/api/admin/users/${id}/suspend`, { reason: reason.trim() });
       alert(`${name} suspended successfully`);
       fetchUsers(page);
-    } catch (err) { alert(err.response?.data?.message || 'Failed to suspend user'); }
+    } catch (err) { alert(err.response?.data?.message || err.response?.data?.error || 'Failed to suspend user'); }
   };
 
   const handleRevoke = async (id, name) => {

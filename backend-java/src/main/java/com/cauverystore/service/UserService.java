@@ -39,12 +39,28 @@ public class UserService {
     }
 
     public User suspendUser(Long userId, Long suspendedByUserId) {
+        return suspendUser(userId, suspendedByUserId, null);
+    }
+
+    /**
+     * Stops one account. Works for a customer or a seller - the difference is only what the
+     * account can do, not how it is stopped.
+     *
+     * Clearing the refresh token was not enough on its own. It stops a new access token being
+     * issued but does nothing to the one the person is already holding, and JwtFilter only ever
+     * compared the token version - which nothing incremented. So suspending somebody mid-session
+     * blocked their next login while leaving them free to carry on browsing, filling a basket
+     * and placing orders until the token expired by itself. invalidateSessions bumps that
+     * version, which makes every token already issued stop passing on the very next request.
+     */
+    public User suspendUser(Long userId, Long suspendedByUserId, String reason) {
         User user = getUserById(userId);
         user.setActive(false);
         user.setStatus("SUSPENDED");
         user.setSuspendedBy(suspendedByUserId);
         user.setSuspendedAt(LocalDateTime.now());
-        user.setRefreshToken(null);
+        user.setSuspensionReason(reason);
+        user.invalidateSessions();
         return userRepo.save(user);
     }
 
@@ -54,6 +70,7 @@ public class UserService {
         user.setStatus("ACTIVE");
         user.setSuspendedBy(null);
         user.setSuspendedAt(null);
+        user.setSuspensionReason(null);
         return userRepo.save(user);
     }
 
@@ -61,6 +78,9 @@ public class UserService {
         User user = getUserById(userId);
         user.setActive(false);
         user.setStatus("BLOCKED");
+        // Same reasoning as suspendUser: without this the person keeps their live session and
+        // carries on as though nothing happened.
+        user.invalidateSessions();
         return userRepo.save(user);
     }
 
@@ -70,6 +90,7 @@ public class UserService {
         user.setStatus("ACTIVE");
         user.setSuspendedBy(null);
         user.setSuspendedAt(null);
+        user.setSuspensionReason(null);
         return userRepo.save(user);
     }
 

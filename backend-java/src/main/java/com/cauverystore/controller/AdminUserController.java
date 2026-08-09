@@ -6,6 +6,7 @@ import com.cauverystore.exception.AccessDeniedException;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.AuditService;
 import com.cauverystore.service.AuthorizationService;
+import com.cauverystore.service.EmailService;
 import com.cauverystore.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,7 @@ public class AdminUserController {
     private final AuditService auditService;
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     // Regular Admins may only create Seller/Customer accounts here - never Admin
     // or Super Admin, which would let an Admin hand out admin-level access to
@@ -121,15 +123,22 @@ public class AdminUserController {
         return ResponseEntity.ok(updated);
     }
 
+    /**
+     * Stops one customer. They are signed out on their next request, not whenever their token
+     * happens to expire, and they are told why.
+     */
     @PostMapping("/{id}/suspend")
-    public ResponseEntity<Map<String, Object>> suspendUser(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> suspendUser(@PathVariable Long id,
+                                                          @RequestBody(required = false) Map<String, String> body) {
         Long currentUserId = authorizationService.getCurrentUserId();
         String currentEmail = authorizationService.getCurrentUserEmail();
         User target = userService.getUser(id);
         if (target.getRole() == Role.SUPER_ADMIN || target.getRole() == Role.ADMIN) {
             throw new AccessDeniedException("Cannot suspend ADMIN or SUPER_ADMIN accounts");
         }
-        User updated = userService.suspendUser(id, currentUserId);
+        String reason = body == null ? null : body.get("reason");
+        User updated = userService.suspendUser(id, currentUserId, reason);
+        emailService.sendAccountSuspended(updated.getEmail(), updated.getFullName(), reason);
         auditService.logSuspend(currentEmail, currentUserId, id,
                 target.getRole().name(), target.getEmail());
         return ResponseEntity.ok(Map.of("message", "User suspended successfully",
@@ -149,6 +158,7 @@ public class AdminUserController {
             throw new RuntimeException("User is not currently suspended");
         }
         User updated = userService.revokeUser(id);
+        emailService.sendAccountReinstated(updated.getEmail(), updated.getFullName());
         auditService.logRevoke(currentEmail, currentUserId, id,
                 target.getRole().name(), target.getEmail());
         return ResponseEntity.ok(Map.of("message", "User suspension revoked successfully",

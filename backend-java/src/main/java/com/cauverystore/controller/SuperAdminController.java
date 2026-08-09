@@ -250,14 +250,17 @@ public class SuperAdminController {
     }
 
     @PostMapping("/users/{id}/suspend")
-    public ResponseEntity<Map<String, Object>> suspendUser(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> suspendUser(@PathVariable Long id,
+                                                           @RequestBody(required = false) Map<String, String> body) {
         Long currentUserId = authorizationService.getCurrentUserId();
         String currentEmail = authorizationService.getCurrentUserEmail();
         User target = userService.getUser(id);
         if (target.getRole() == Role.SUPER_ADMIN && !target.getId().equals(currentUserId)) {
             throw new AccessDeniedException("Cannot suspend another SUPER_ADMIN account");
         }
-        User updated = userService.suspendUser(id, currentUserId);
+        String reason = body == null ? null : body.get("reason");
+        User updated = userService.suspendUser(id, currentUserId, reason);
+        emailService.sendAccountSuspended(updated.getEmail(), updated.getFullName(), reason);
         auditService.logSuspend(currentEmail, currentUserId, id,
                 target.getRole().name(), target.getEmail());
         return ResponseEntity.ok(Map.of("message", "User suspended successfully",
@@ -274,6 +277,7 @@ public class SuperAdminController {
             throw new RuntimeException("User is not currently suspended");
         }
         User updated = userService.revokeUser(id);
+        emailService.sendAccountReinstated(updated.getEmail(), updated.getFullName());
         auditService.logRevoke(currentEmail, currentUserId, id,
                 target.getRole().name(), target.getEmail());
         return ResponseEntity.ok(Map.of("message", "User suspension revoked successfully",

@@ -33,10 +33,15 @@ import java.util.stream.Collectors;
  * approved, which is the whole of day-to-day work and is deliberately one-way: an admin who has
  * rejected somebody cannot quietly reconsider, and an admin cannot revoke a colleague's approval.
  *
- * A super admin can do all of that - approve a rejected applicant, withdraw an approval, suspend
- * a trading seller and reinstate them. That asymmetry is the point of having the two roles, and
- * it is enforced here rather than only in the endpoint annotations, because these methods are
- * reachable from more than one controller.
+ * A super admin can undo a decision - approve a rejected applicant, or withdraw an approval.
+ * That asymmetry is the point of having the two roles, and it is enforced here rather than only
+ * in the endpoint annotations, because these methods are reachable from more than one controller.
+ *
+ * Suspension is deliberately not part of that asymmetry. Either role can suspend and reinstate,
+ * because stopping a seller who is doing harm is day-to-day work and waiting for a super admin
+ * would leave the listings up in the meantime. It is also reversible, which is what makes it
+ * safe to hand to an admin: nothing is destroyed, and reinstating puts back exactly what was
+ * taken down.
  */
 @Service
 public class SellerApprovalService {
@@ -299,6 +304,10 @@ public class SellerApprovalService {
         if (user == null) return;
         user.setStatus("SUSPENDED");
         user.setActive(false);
+        user.setSuspensionReason(because);
+        // Otherwise the seller keeps the access token they are already holding and carries on
+        // working in Seller Centre until it expires on its own.
+        user.invalidateSessions();
         userRepo.save(user);
 
         List<Long> taken = new ArrayList<>();

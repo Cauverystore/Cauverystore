@@ -32,9 +32,13 @@ const SellerApproval = () => {
   const [statusTab, setStatusTab] = useState("SUBMITTED");
   const { showToast } = useToast();
 
-  // Suspending a live business and overturning a colleague's decision are super-admin only. The
-  // buttons are hidden for an admin rather than shown and then refused by the API.
-  const isSuperAdmin = (localStorage.getItem("role") || "").toUpperCase() === "SUPER_ADMIN";
+  const role = (localStorage.getItem("role") || "").toUpperCase();
+  // Overturning a colleague's decision is a super-admin power, so those buttons stay hidden for
+  // an admin rather than being shown and then refused by the API.
+  const isSuperAdmin = role === "SUPER_ADMIN";
+  // Suspension is open to both. Stopping a seller who is doing harm is day-to-day work, and
+  // waiting for a super admin would leave the listings up in the meantime.
+  const canSuspend = isSuperAdmin || role === "ADMIN";
 
   const fetchRegistrations = useCallback(async () => {
     setLoading(true);
@@ -186,12 +190,12 @@ const SellerApproval = () => {
             <button className="admin-btn admin-btn-sm admin-btn-success" onClick={() => handleApprove(regId)} disabled={actioning === regId || reg.status === 'APPROVED' || (reg.status === 'REJECTED' && !isSuperAdmin)}>
               {actioning === regId ? 'Approving...' : <><Check size={14} style={{ verticalAlign: 'middle' }} /> {reg.status === 'REJECTED' ? 'Overturn & Approve' : 'Approve & Activate'}</>}
             </button>
-            {isSuperAdmin && reg.status === 'APPROVED' && (
+            {canSuspend && reg.status === 'APPROVED' && (
               <button className="admin-btn admin-btn-sm admin-btn-outline" onClick={() => handleSuspend(regId)} disabled={actioning === regId} style={{ color: '#dc2626', borderColor: '#fecaca' }}>
                 <Ban size={14} style={{ verticalAlign: 'middle' }} /> Suspend
               </button>
             )}
-            {isSuperAdmin && reg.status === 'SUSPENDED' && (
+            {canSuspend && reg.status === 'SUSPENDED' && (
               <button className="admin-btn admin-btn-sm admin-btn-outline" onClick={() => handleReinstate(regId)} disabled={actioning === regId} style={{ color: '#146C43', borderColor: '#CFE8D6' }}>
                 <RotateCcw size={14} style={{ verticalAlign: 'middle' }} /> Reinstate
               </button>
@@ -390,7 +394,7 @@ const SellerApproval = () => {
                       <button className="admin-btn admin-btn-sm admin-btn-outline" onClick={() => openDetail(r.registrationId)}>
                         <ShieldCheck size={14} style={{ verticalAlign: 'middle' }} /> Review
                       </button>
-                      {isSuperAdmin && r.status === 'APPROVED' && (
+                      {canSuspend && r.status === 'APPROVED' && (
                         <button
                           className="admin-btn admin-btn-sm admin-btn-outline"
                           disabled={actioning === r.registrationId}
@@ -400,7 +404,7 @@ const SellerApproval = () => {
                           <Ban size={14} style={{ verticalAlign: 'middle' }} /> Suspend
                         </button>
                       )}
-                      {isSuperAdmin && r.status === 'SUSPENDED' && (
+                      {canSuspend && r.status === 'SUSPENDED' && (
                         <button
                           className="admin-btn admin-btn-sm admin-btn-outline"
                           disabled={actioning === r.registrationId}

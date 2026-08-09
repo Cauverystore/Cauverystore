@@ -247,11 +247,14 @@ public class SellerRegistrationController {
     }
 
     /**
-     * Suspends a trading seller. Super admin only - an admin approves and rejects applications,
-     * but stopping a live business is final authority.
+     * Suspends a trading seller: the account is signed out and every listing comes off sale.
+     *
+     * Open to an admin as well as a super admin - stopping a seller who is doing harm is
+     * day-to-day work and waiting for a super admin would leave the listings up. Overturning a
+     * colleague's decision stays a super-admin power; this is not that.
      */
     @PostMapping("/admin/registrations/{registrationId}/suspend")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> suspendSeller(@PathVariable Long registrationId,
                                            @RequestBody(required = false) Map<String, String> body) {
         Long id = getCurrentUserId();
@@ -261,7 +264,7 @@ public class SellerRegistrationController {
     }
 
     @PostMapping("/admin/registrations/{registrationId}/reinstate")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> reinstateSeller(@PathVariable Long registrationId) {
         Long id = getCurrentUserId();
         if (id == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));

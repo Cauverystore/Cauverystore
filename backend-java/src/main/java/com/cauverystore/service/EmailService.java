@@ -124,6 +124,26 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    public void sendAccountSuspended(String to, String name, String reason) {
+        String subject = "Your Cauvery Store Account Has Been Suspended";
+        String body = "<h2 style='color:" + RED + ";margin-top:0;'>Account Suspended</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Hello " + (name != null ? name : "there")
+                + ", your Cauvery Store account has been suspended and you have been signed out."
+                + (reason != null ? " Reason: <strong>" + reason + "</strong>" : "")
+                + "</p><p style='color:#4b5563;font-size:14px;'>Orders you have already placed are "
+                + "not affected. Reply to this email if you believe this is a mistake.</p>";
+        send(to, subject, wrapBranded(body));
+    }
+
+    public void sendAccountReinstated(String to, String name) {
+        String subject = "Your Cauvery Store Account Has Been Restored";
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Account Restored</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Hello " + (name != null ? name : "there")
+                + ", the suspension on your Cauvery Store account has been lifted. You can sign in "
+                + "again as usual.</p>";
+        send(to, subject, wrapBranded(body));
+    }
+
     public void sendPasswordResetLink(String to, String resetUrl) {
         String subject = "Reset Your Password - Cauvery Store";
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Reset Your Password</h2>"

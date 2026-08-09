@@ -69,6 +69,9 @@ public class User extends BaseEntity {
     private Integer tokenVersion = 0;
     private Long suspendedBy;
     private java.time.LocalDateTime suspendedAt;
+    /** Why the account was stopped. Shown to the person it happened to, so it is written for them. */
+    @Column(length = 500)
+    private String suspensionReason;
     private String mfaSecret;
     private String mfaMethod = "TOTP";
     private java.time.LocalDateTime passwordChangedAt;
@@ -315,6 +318,14 @@ public class User extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
+    public String getSuspensionReason() {
+        return this.suspensionReason;
+    }
+
+    public void setSuspensionReason(final String suspensionReason) {
+        this.suspensionReason = suspensionReason;
+    }
+
     public void setTokenVersion(final Integer tokenVersion) {
         this.tokenVersion = tokenVersion;
     }
