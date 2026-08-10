@@ -1,5 +1,6 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.OrderItem;
 import com.cauverystore.entities.ReturnRequest;
 import com.cauverystore.repository.ReturnRequestRepository;
 import org.springframework.stereotype.Service;
@@ -77,10 +78,14 @@ public class ReturnRequestService {
 
     private final ReturnRequestRepository returnRepo;
     private final CreditNoteService creditNoteService;
+    private final InventoryService inventoryService;
 
-    public ReturnRequestService(ReturnRequestRepository returnRepo, CreditNoteService creditNoteService) {
+    public ReturnRequestService(ReturnRequestRepository returnRepo,
+                                CreditNoteService creditNoteService,
+                                InventoryService inventoryService) {
         this.returnRepo = returnRepo;
         this.creditNoteService = creditNoteService;
+        this.inventoryService = inventoryService;
     }
 
     /**
@@ -123,15 +128,20 @@ public class ReturnRequestService {
         String to = normalise(status);
         String from = normalise(rr.getStatus());
 
-        if (!to.equals(from)) {
-            Set<String> permitted = ALLOWED.get(from);
-            if (permitted == null) {
-                throw new InvalidReturnTransitionException(
-                        "This return is in an unrecognised state (" + from + ") and cannot be moved.");
-            }
-            if (!permitted.contains(to)) {
-                throw new InvalidReturnTransitionException(explain(from, to, permitted));
-            }
+        // Re-posting the status a screen is already showing is not a move. It must not be
+        // rejected - screens do it routinely - but nothing may happen either: running the side
+        // effects again would put the returned goods back into stock a second time.
+        if (to.equals(from)) {
+            return rr;
+        }
+
+        Set<String> permitted = ALLOWED.get(from);
+        if (permitted == null) {
+            throw new InvalidReturnTransitionException(
+                    "This return is in an unrecognised state (" + from + ") and cannot be moved.");
+        }
+        if (!permitted.contains(to)) {
+            throw new InvalidReturnTransitionException(explain(from, to, permitted));
         }
 
         rr.setStatus(to);
@@ -139,9 +149,22 @@ public class ReturnRequestService {
         // than only implied by the status the return happened to land on.
         if (RECEIVED.equals(to)) rr.setQualityCheckStatus("PENDING");
         if (COMPLETED.equals(to)) rr.setQualityCheckStatus("PASSED");
-        if (REJECTED.equals(to) && RECEIVED.equals(from)) rr.setQualityCheckStatus("FAILED");
+        if (REJECTED.equals(to) && RECEIVED.equals(from)) {
+            rr.setQualityCheckStatus("FAILED");
+            // Goods came back but cannot be sold again. Recorded here rather than left implied
+            // by the rejection, because the difference between "customer never sent it" and
+            // "it arrived broken" is the difference between no loss and written-off stock.
+            rr.setCondition("UNSELLABLE");
+        }
 
         ReturnRequest saved = returnRepo.save(rr);
+
+        // Passing quality check is the point the goods rejoin sellable stock. Nothing did this
+        // before, so returned items were credited and refunded while the stock they came from
+        // stayed marked as sold - inventory drifting further from the shelf with every return.
+        if (COMPLETED.equals(to)) {
+            restock(saved);
+        }
 
         // Only now, with the goods back and accepted. A second credit note is not created for the
         // same return - CreditNoteService returns the existing one - so passing through COMPLETED
@@ -154,6 +177,36 @@ public class ReturnRequestService {
             }
         }
         return saved;
+    }
+
+    /**
+     * Puts accepted goods back on the shelf.
+     *
+     * A return may name its own product and quantity, or - for returns raised against a whole
+     * order, which is how the customer flow creates them - name neither. In that case everything
+     * in the order goes back, because the whole order is what came back.
+     *
+     * Best-effort on purpose: the goods are physically in the warehouse whatever happens here,
+     * and losing the quality-check result because a stock row could not be written would leave
+     * the return looking unprocessed while the parcel sits on a shelf.
+     */
+    private void restock(ReturnRequest rr) {
+        try {
+            if (rr.getProduct() != null) {
+                inventoryService.restoreStock(rr.getProduct(),
+                        rr.getQuantity() != null ? rr.getQuantity() : 1);
+                return;
+            }
+            if (rr.getOrder() != null && rr.getOrder().getItems() != null) {
+                for (OrderItem item : rr.getOrder().getItems()) {
+                    if (item.getProduct() != null) {
+                        inventoryService.restoreStock(item.getProduct(), item.getQuantity());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Restock skipped for return " + rr.getId() + ": " + e.getMessage());
+        }
     }
 
     /**

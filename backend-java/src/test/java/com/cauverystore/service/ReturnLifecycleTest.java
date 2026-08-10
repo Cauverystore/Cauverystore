@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -33,13 +34,14 @@ class ReturnLifecycleTest {
 
     @Mock private ReturnRequestRepository returnRepo;
     @Mock private CreditNoteService creditNoteService;
+    @Mock private InventoryService inventoryService;
 
     private ReturnRequestService service;
     private ReturnRequest rr;
 
     @BeforeEach
     void setUp() {
-        service = new ReturnRequestService(returnRepo, creditNoteService);
+        service = new ReturnRequestService(returnRepo, creditNoteService, inventoryService);
         rr = new ReturnRequest();
         rr.setStatus(ReturnRequestService.REQUESTED);
         when(returnRepo.findById(1L)).thenReturn(Optional.of(rr));
@@ -193,6 +195,106 @@ class ReturnLifecycleTest {
 
         assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.RECEIVED));
         assertEquals(ReturnRequestService.RECEIVED, rr.getStatus());
+    }
+
+    @Test
+    void passingQualityCheckPutsTheGoodsBackOnTheShelf() {
+        // Nothing did this before, so returned goods were credited and refunded while the stock
+        // they came from stayed marked as sold - inventory drifting from the shelf every time.
+        com.cauverystore.entities.Product p = new com.cauverystore.entities.Product();
+        p.setId(50L);
+        rr.setProduct(p);
+        rr.setQuantity(2);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+
+        service.updateStatus(1L, ReturnRequestService.COMPLETED);
+
+        verify(inventoryService).restoreStock(p, 2);
+    }
+
+    @Test
+    void goodsThatFailQualityCheckAreNotPutBackOnSale() {
+        // The whole point of inspecting them. Restocking a broken item sells it to somebody else.
+        com.cauverystore.entities.Product p = new com.cauverystore.entities.Product();
+        p.setId(50L);
+        rr.setProduct(p);
+        rr.setQuantity(1);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+
+        service.updateStatus(1L, ReturnRequestService.REJECTED);
+
+        verify(inventoryService, never()).restoreStock(any(), anyInt());
+        assertEquals("UNSELLABLE", rr.getCondition());
+    }
+
+    @Test
+    void movingOnToRefundedDoesNotRestockASecondTime() {
+        com.cauverystore.entities.Product p = new com.cauverystore.entities.Product();
+        p.setId(50L);
+        rr.setProduct(p);
+        rr.setQuantity(1);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+
+        service.updateStatus(1L, ReturnRequestService.COMPLETED);
+        service.updateStatus(1L, ReturnRequestService.REFUNDED);
+
+        verify(inventoryService, times(1)).restoreStock(any(), anyInt());
+    }
+
+    @Test
+    void rePostingCompletedDoesNotRestockTwice() {
+        // Screens re-post the status they are showing. Doing the work again would invent stock
+        // out of nothing, once per click.
+        com.cauverystore.entities.Product p = new com.cauverystore.entities.Product();
+        p.setId(50L);
+        rr.setProduct(p);
+        rr.setQuantity(3);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+
+        service.updateStatus(1L, ReturnRequestService.COMPLETED);
+        service.updateStatus(1L, ReturnRequestService.COMPLETED);
+
+        verify(inventoryService, times(1)).restoreStock(p, 3);
+        verify(creditNoteService, times(1)).generateReturnCreditNote(eq(1L), any());
+    }
+
+    @Test
+    void aWholeOrderReturnPutsEveryItemBack() {
+        // The customer flow raises returns against an order rather than a line, so the return
+        // names no product at all. Everything in the order came back, so everything goes back.
+        com.cauverystore.entities.Product a = new com.cauverystore.entities.Product();
+        a.setId(1L);
+        com.cauverystore.entities.Product b = new com.cauverystore.entities.Product();
+        b.setId(2L);
+        com.cauverystore.entities.OrderItem i1 = new com.cauverystore.entities.OrderItem();
+        i1.setProduct(a); i1.setQuantity(1);
+        com.cauverystore.entities.OrderItem i2 = new com.cauverystore.entities.OrderItem();
+        i2.setProduct(b); i2.setQuantity(4);
+        com.cauverystore.entities.Order order = new com.cauverystore.entities.Order();
+        order.setItems(new java.util.ArrayList<>(java.util.List.of(i1, i2)));
+        rr.setOrder(order);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+
+        service.updateStatus(1L, ReturnRequestService.COMPLETED);
+
+        verify(inventoryService).restoreStock(a, 1);
+        verify(inventoryService).restoreStock(b, 4);
+    }
+
+    @Test
+    void aFailedRestockDoesNotLoseTheQualityCheckResult() {
+        // The parcel is on the shelf either way. Losing the inspection result because a stock row
+        // would not write leaves the return looking unprocessed while the goods sit there.
+        com.cauverystore.entities.Product p = new com.cauverystore.entities.Product();
+        p.setId(50L);
+        rr.setProduct(p);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+        doThrow(new RuntimeException("inventory locked"))
+                .when(inventoryService).restoreStock(any(), anyInt());
+
+        assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.COMPLETED));
+        assertEquals(ReturnRequestService.COMPLETED, rr.getStatus());
+        assertEquals("PASSED", rr.getQualityCheckStatus());
     }
 
     @Test
