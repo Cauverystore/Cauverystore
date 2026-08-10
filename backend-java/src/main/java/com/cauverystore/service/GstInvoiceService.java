@@ -74,6 +74,7 @@ public class GstInvoiceService {
     private final TcsRecordRepository tcsRepo;
     private final StateMasterRepository stateRepo;
     private final PincodeStateRangeRepository pincodeRepo;
+    private final com.cauverystore.repository.SacMasterRepository sacRepo;
 
 
     private final GstRateResolver gstRateResolver;
@@ -88,7 +89,9 @@ public class GstInvoiceService {
                              StateMasterRepository stateRepo,
                              PincodeStateRangeRepository pincodeRepo,
                              GstRateResolver gstRateResolver,
-                             Gstr1ExportService gstr1ExportService) {
+                             Gstr1ExportService gstr1ExportService,
+                             com.cauverystore.repository.SacMasterRepository sacRepo) {
+        this.sacRepo = sacRepo;
         this.gstRateResolver = gstRateResolver;
         this.gstr1ExportService = gstr1ExportService;
         this.invoiceRepo = invoiceRepo;
@@ -104,6 +107,35 @@ public class GstInvoiceService {
         this.tcsRepo = tcsRepo;
         this.stateRepo = stateRepo;
         this.pincodeRepo = pincodeRepo;
+    }
+
+    /** Road transport of goods - what a delivery charge on this marketplace actually is. */
+    private static final String DELIVERY_SAC = "996511";
+
+    /**
+     * The published rate for a service code on a given date.
+     *
+     * Falls back to 18 only when the master cannot answer, and says so in the log rather than
+     * failing the invoice: an order that has been paid for has to produce a document, and a
+     * missing service rate is a data problem to chase rather than a reason to strand the buyer.
+     * Goods are treated more strictly - an unclassifiable product is refused outright - because
+     * a product can be fixed before it is sold, and a delivery charge cannot.
+     */
+    private double resolveSacRate(String sacCode, java.time.LocalDate onDate) {
+        try {
+            java.util.List<com.cauverystore.entities.SacMaster> rows =
+                    sacRepo.findApplicable(sacCode, onDate != null ? onDate : java.time.LocalDate.now());
+            for (com.cauverystore.entities.SacMaster row : rows) {
+                if ("VERIFIED".equals(row.getStatus()) && row.getGstRate() != null) {
+                    return row.getGstRate();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("SAC rate lookup failed for " + sacCode + ": " + e.getMessage());
+        }
+        System.err.println("No approved SAC rate for " + sacCode + " - falling back to 18%. "
+                + "Add or verify this code in the SAC master.");
+        return 18.0;
     }
 
     @Transactional
@@ -336,6 +368,11 @@ public class GstInvoiceService {
         // Delivery charge is a supply of services (courier/transport, SAC 996511) and is raised as
         // a separate line item so the HSN/SAC requirement (Req 7) and the tax split are correct for
         // goods vs services, instead of being folded into goods lines at the goods rate.
+        //
+        // The rate comes from the SAC master rather than a literal 18. It is 18 today, so nothing
+        // changes on this invoice - but a hardcoded rate is exactly the defect that was removed
+        // from goods, where a notification moved and the number in the code did not. A service
+        // rate can move the same way, and when it does the master is what gets updated.
         if (deliveryCharge > 0) {
             double deliveryTaxable = Math.round(deliveryCharge * 100.0) / 100.0;
             taxableAmount += deliveryTaxable;
@@ -347,17 +384,19 @@ public class GstInvoiceService {
             service.setUnitPrice(deliveryCharge);
             service.setTaxableValue(deliveryTaxable);
             service.setUnitOfMeasure("NOS");
+            double deliveryRate = resolveSacRate(DELIVERY_SAC, inv.getInvoiceDate());
             if (Boolean.TRUE.equals(inv.getIsInterState())) {
-                service.setIgstRate(18.0);
-                service.setIgstAmount(Math.round(deliveryTaxable * 18.0 / 100 * 100.0) / 100.0);
+                service.setIgstRate(deliveryRate);
+                service.setIgstAmount(Math.round(deliveryTaxable * deliveryRate / 100 * 100.0) / 100.0);
                 totalIgst += service.getIgstAmount();
                 service.setCgstRate(0.0); service.setCgstAmount(0.0);
                 service.setSgstRate(0.0); service.setSgstAmount(0.0);
             } else {
-                service.setCgstRate(9.0);
-                service.setCgstAmount(Math.round(deliveryTaxable * 9.0 / 100 * 100.0) / 100.0);
-                service.setSgstRate(9.0);
-                service.setSgstAmount(Math.round(deliveryTaxable * 9.0 / 100 * 100.0) / 100.0);
+                double half = deliveryRate / 2.0;
+                service.setCgstRate(half);
+                service.setCgstAmount(Math.round(deliveryTaxable * half / 100 * 100.0) / 100.0);
+                service.setSgstRate(half);
+                service.setSgstAmount(Math.round(deliveryTaxable * half / 100 * 100.0) / 100.0);
                 totalCgst += service.getCgstAmount();
                 totalSgst += service.getSgstAmount();
                 service.setIgstRate(0.0); service.setIgstAmount(0.0);

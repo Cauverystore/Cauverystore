@@ -35,6 +35,23 @@ public class EmailService {
             resend = new Resend(apiKey);
             configured = true;
         }
+
+        // Said once, loudly, at startup. Every send failure after this point is logged and
+        // swallowed - deliberately, because no order should fail because an email did - which
+        // means a misconfigured mailer looks exactly like a working one until somebody notices
+        // that no password reset has ever arrived. This is the only moment it can be announced
+        // before the silence starts.
+        if (!configured) {
+            log.error("EMAIL DISABLED: no usable RESEND_API_KEY. Password resets, seller "
+                    + "approvals and order confirmations will be logged and discarded, not sent.");
+            return;
+        }
+        String domain = fromEmail == null || !fromEmail.contains("@")
+                ? null
+                : fromEmail.substring(fromEmail.indexOf('@') + 1).replace(">", "").trim();
+        log.info("Email enabled, sending as {}. This only works if '{}' is a VERIFIED domain in "
+                + "Resend - an unverified sender is rejected per message, and those rejections are "
+                + "swallowed.", fromEmail, domain);
     }
 
     private static final String LOGO_URL = "https://cauverystore.in/images/logo.jpg";
