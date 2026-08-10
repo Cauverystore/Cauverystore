@@ -42,9 +42,15 @@ public class AccountRestrictionService {
     /** Nothing further can happen to an order in one of these on its own. */
     private static final Set<String> ORDER_FINISHED = Set.of("CANCELLED", "REFUNDED");
 
-    /** A return still being worked through. Anything else is settled. */
-    private static final Set<String> RETURN_OPEN =
-            Set.of("REQUESTED", "PENDING", "APPROVED", "IN_TRANSIT", "RECEIVED", "UNDER_REVIEW");
+    /**
+     * A return still being worked through. Anything else is settled.
+     *
+     * COMPLETED counts as open. It means the goods are back and accepted, which is where the
+     * credit note is issued - but the money has not necessarily left yet, and an account with a
+     * refund still owed is not finished. Only REFUNDED and REFUND_ISSUED close it.
+     */
+    private static final Set<String> RETURN_OPEN = Set.of(
+            "REQUESTED", "PENDING", "APPROVED", "IN_TRANSIT", "RECEIVED", "UNDER_REVIEW", "COMPLETED");
 
     /** Used when a product no longer says, or never said. */
     private static final int DEFAULT_RETURN_WINDOW_DAYS = 7;

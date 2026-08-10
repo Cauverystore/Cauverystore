@@ -36,6 +36,17 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", ex.getMessage()));
     }
 
+    /**
+     * A return moved somewhere it cannot go - most often an attempt to complete one before the
+     * goods are back. The message names the parcel rather than the state machine, so it is
+     * passed through as written.
+     */
+    @ExceptionHandler(com.cauverystore.service.ReturnRequestService.InvalidReturnTransitionException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidReturnTransition(
+            com.cauverystore.service.ReturnRequestService.InvalidReturnTransitionException ex) {
+        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

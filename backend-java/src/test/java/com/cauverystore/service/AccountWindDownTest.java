@@ -173,10 +173,23 @@ class AccountWindDownTest {
     void aSettledReturnDoesNotHoldTheAccountOpen() {
         ordersAre(order("DELIVERED", LocalDateTime.now().minusDays(60), 7));
         ReturnRequest done = new ReturnRequest();
-        done.setStatus("COMPLETED");
+        done.setStatus("REFUNDED");
         when(returnRepo.findByUserId(7L)).thenReturn(List.of(done));
 
         assertEquals(Boolean.TRUE, service.windDown(user).get("complete"));
+    }
+
+    @Test
+    void aCompletedReturnStillHoldsTheAccountOpenUntilTheMoneyIsBack() {
+        // Completed means the goods are back and accepted - which is where the credit note is
+        // issued - but not that the customer has been paid. Closing the account here would drop
+        // somebody who is still owed a refund.
+        ordersAre(order("DELIVERED", LocalDateTime.now().minusDays(60), 7));
+        ReturnRequest goodsBackNotYetPaid = new ReturnRequest();
+        goodsBackNotYetPaid.setStatus("COMPLETED");
+        when(returnRepo.findByUserId(7L)).thenReturn(List.of(goodsBackNotYetPaid));
+
+        assertEquals(Boolean.FALSE, service.windDown(user).get("complete"));
     }
 
     @Test
