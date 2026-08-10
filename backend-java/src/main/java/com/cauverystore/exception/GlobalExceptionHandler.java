@@ -47,6 +47,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
 
+    /** Goods that cannot come back. The wording is written for the customer, so it survives. */
+    @ExceptionHandler(com.cauverystore.service.ReturnEligibilityService.NotReturnableException.class)
+    public ResponseEntity<Map<String, String>> handleNotReturnable(
+            com.cauverystore.service.ReturnEligibilityService.NotReturnableException ex) {
+        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

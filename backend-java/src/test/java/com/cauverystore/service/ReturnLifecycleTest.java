@@ -165,6 +165,37 @@ class ReturnLifecycleTest {
     }
 
     @Test
+    void returnsStoredAsPendingAreStillMovable() {
+        // Every return raised through My Orders was written as PENDING. Introducing the lifecycle
+        // without recognising that name stranded all of them: the only answer to any move was
+        // "unrecognised state", so no return in the system could be progressed at all.
+        rr.setStatus("PENDING");
+
+        assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.APPROVED));
+        assertEquals(ReturnRequestService.APPROVED, rr.getStatus());
+    }
+
+    @Test
+    void aPendingReturnStillCannotJumpStraightToCompleted() {
+        // The alias must not become a way round the rule it was added alongside.
+        rr.setStatus("PENDING");
+
+        assertThrows(ReturnRequestService.InvalidReturnTransitionException.class,
+                () -> service.updateStatus(1L, ReturnRequestService.COMPLETED));
+        verifyNoInteractions(creditNoteService);
+    }
+
+    @Test
+    void olderWordingForTheSameStageIsUnderstood() {
+        // Screens say "Picked" where the lifecycle says IN_TRANSIT. Same stage, and a return
+        // must not be stranded over the choice of word.
+        rr.setStatus("PICKED");
+
+        assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.RECEIVED));
+        assertEquals(ReturnRequestService.RECEIVED, rr.getStatus());
+    }
+
+    @Test
     void anUnknownStatusIsRefusedRatherThanWritten() {
         assertThrows(ReturnRequestService.InvalidReturnTransitionException.class,
                 () -> service.updateStatus(1L, "DEFINITELY_NOT_A_STATUS"));

@@ -50,6 +50,7 @@ public class OrderService {
     private final CouponService couponService;
     private final ReturnRequestRepository returnRequestRepo;
     private final AccountRestrictionService accountRestrictionService;
+    private final ReturnEligibilityService returnEligibilityService;
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepo;
     private final CreditNoteService creditNoteService;
@@ -75,8 +76,10 @@ public class OrderService {
                         CreditNoteService creditNoteService,
                         CourierTrackingService courierTrackingService,
                         GstRateResolver gstRateResolver,
-                        AccountRestrictionService accountRestrictionService) {
+                        AccountRestrictionService accountRestrictionService,
+                        ReturnEligibilityService returnEligibilityService) {
         this.accountRestrictionService = accountRestrictionService;
+        this.returnEligibilityService = returnEligibilityService;
         this.orderRepo = orderRepo;
         this.orderItemRepo = orderItemRepo;
         this.cartRepo = cartRepo;
@@ -827,23 +830,43 @@ public class OrderService {
     // delivered. It raises a ReturnRequest for admin review instead of unilaterally
     // reversing the order/stock the way cancellation does.
     @Transactional
+    /**
+     * Answers whether a return can be raised, without raising one and without throwing.
+     *
+     * The refusal is a normal answer here rather than an error, because the screen asks this for
+     * every delivered order it lists and most of the "no" answers are ordinary - the window has
+     * simply passed.
+     */
+    public Map<String, Object> checkReturnEligibility(String authHeader, Long orderId, String reason) {
+        User user = extractUserFromHeader(authHeader);
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
+        verifyOrderOwnership(order, user.getId());
+        try {
+            return returnEligibilityService.check(order, reason);
+        } catch (ReturnEligibilityService.NotReturnableException e) {
+            return Map.of("returnable", false, "reason", e.getMessage());
+        }
+    }
+
     public Map<String, Object> createReturnRequest(String authHeader, Long orderId, String reason) {
         User user = extractUserFromHeader(authHeader);
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
         verifyOrderOwnership(order, user.getId());
-        if (!"DELIVERED".equals(order.getStatus())) {
-            throw new RuntimeException("Only delivered orders can be returned");
-        }
         if (reason == null || reason.isBlank()) {
             throw new RuntimeException("A reason is required to request a return");
         }
+        // Checks the window and the goods, not just that the order was delivered. Raised before
+        // anything is written, so a customer who cannot return is told now rather than after
+        // packing a parcel the warehouse will refuse.
+        Map<String, Object> terms = returnEligibilityService.check(order, reason);
 
         ReturnRequest rr = new ReturnRequest();
         rr.setOrder(order);
         rr.setUser(user);
         rr.setReason(reason);
-        rr.setStatus("PENDING");
+        rr.setStatus("REQUESTED");
         ReturnRequest saved = returnRequestRepo.save(rr);
 
         auditService.log(user.getId(), user.getEmail(), "RETURN_REQUESTED",
@@ -853,7 +876,14 @@ public class OrderService {
                 "Return Request Submitted",
                 "Your return request for order #" + orderId + " has been submitted.");
 
-        return Map.of("id", saved.getId(), "status", saved.getStatus());
+        // The return id is what the customer quotes to support, so it is given a readable form
+        // rather than leaving them to read out a database key.
+        String returnId = "RET-" + saved.getId();
+        Map<String, Object> out = new LinkedHashMap<>(terms);
+        out.put("id", saved.getId());
+        out.put("returnId", returnId);
+        out.put("status", saved.getStatus());
+        return out;
     }
 
     @Transactional

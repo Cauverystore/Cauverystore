@@ -83,6 +83,29 @@ public class ReturnRequestService {
         this.creditNoteService = creditNoteService;
     }
 
+    /**
+     * The names a return has been stored under, mapped onto the lifecycle.
+     *
+     * Returns raised through My Orders were written as PENDING, so introducing the lifecycle
+     * without this stranded every one of them: PENDING was not a state the map knew, so the only
+     * answer to any move was "unrecognised state" and the return could not be progressed at all.
+     * Normalising is better than rewriting the rows, because it also covers whatever a future
+     * caller invents, and older wording keeps working from a screen nobody has updated yet.
+     */
+    private static final Map<String, String> ALIASES = Map.of(
+            "PENDING", REQUESTED,
+            "UNDER_REVIEW", RECEIVED,
+            "PICKED", IN_TRANSIT,
+            "PICKED_UP", IN_TRANSIT,
+            "REFUND_INITIATED", REFUNDED);
+
+    /** The lifecycle name for a stored status, defaulting a blank one to the start. */
+    private String normalise(String status) {
+        if (status == null || status.isBlank()) return REQUESTED;
+        String upper = status.trim().toUpperCase();
+        return ALIASES.getOrDefault(upper, upper);
+    }
+
     public List<ReturnRequest> getAll() { return returnRepo.findAll(); }
     public ReturnRequest getById(Long id) { return returnRepo.findById(id).orElse(null); }
     public ReturnRequest create(ReturnRequest rr) {
@@ -97,9 +120,8 @@ public class ReturnRequestService {
             throw new InvalidReturnTransitionException("A return status is required.");
         }
 
-        String to = status.trim().toUpperCase();
-        String from = rr.getStatus() == null || rr.getStatus().isBlank()
-                ? REQUESTED : rr.getStatus().trim().toUpperCase();
+        String to = normalise(status);
+        String from = normalise(rr.getStatus());
 
         if (!to.equals(from)) {
             Set<String> permitted = ALLOWED.get(from);

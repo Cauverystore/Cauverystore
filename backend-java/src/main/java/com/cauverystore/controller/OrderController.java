@@ -105,6 +105,20 @@ public class OrderController {
         return ResponseEntity.ok(orderService.cancelOrder(authHeader, orderId, reason));
     }
 
+    /**
+     * The terms of a return before one is raised.
+     *
+     * Lets the screen say "returnable until 18 Aug, free pickup" - or why not - instead of
+     * offering a Return button that fails only once it is pressed.
+     */
+    @GetMapping("/{orderId}/return-eligibility")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<Map<String, Object>> returnEligibility(@PathVariable Long orderId,
+                                                                 @RequestParam(required = false) String reason,
+                                                                 @RequestHeader("Authorization") String authHeader) {
+        return ResponseEntity.ok(orderService.checkReturnEligibility(authHeader, orderId, reason));
+    }
+
     @PostMapping("/{orderId}/return")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<Map<String, Object>> requestReturn(@PathVariable Long orderId,
