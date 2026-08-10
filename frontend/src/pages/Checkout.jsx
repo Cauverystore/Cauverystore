@@ -202,8 +202,19 @@ const Checkout = () => {
         }
         const paymentRes = await api.post("/api/payment/create", { amount: total, ...payload });
         const paymentData = paymentRes.data;
+        // The backend is the only place that knows which Razorpay account this deployment is
+        // configured against, so it is the only acceptable source for the key. There used to be a
+        // chain of fallbacks ending in a literal "rzp_test_XXXXXXXXXXXXXXXXX": if the response
+        // ever arrived without a key, the customer was sent to Razorpay with a made-up one and
+        // got an opaque gateway error, when the actual fault was ours and on our side.
+        const razorpayKey = paymentData.key || paymentData.razorpayKey;
+        if (!razorpayKey) {
+          setError("Payment is not configured correctly. Please contact support - you have not been charged.");
+          setPlacing(false);
+          return;
+        }
         const options = {
-          key: paymentData.key || paymentData.razorpayKey || process.env.REACT_APP_RAZORPAY_KEY_ID || "rzp_test_XXXXXXXXXXXXXXXXX",
+          key: razorpayKey,
           amount: paymentData.amount || Math.round(total * 100),
           currency: paymentData.currency || "INR",
           name: "Cauvery Store",
