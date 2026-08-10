@@ -371,7 +371,7 @@ class GstToolApp:
         if not self.entry_api.get().strip():
             raise RuntimeError("API URL is empty")
         if not self.entry_token.get().strip():
-            raise RuntimeError("Token is empty")
+            raise RuntimeError("Token is empty - paste the importer API token in the 'Token' field, then retry")
 
     # ------------------------------------------------------------------ tasks
     def task_test(self):
@@ -387,7 +387,13 @@ class GstToolApp:
 
     def _rebuild(self):
         path = self.entry_book.get().strip() or self._default_workbook()
-        rebuild_workbook(path, data_dir())
+        try:
+            rebuild_workbook(path, data_dir())
+        except PermissionError:
+            print("ERROR The workbook is open/locked: close Excel (and any other app holding "
+                  "it), then retry Rebuild. File: %s" % path)
+            return
+        print("TIP    Rebuilt in place. Refresh the Excel window if it was already open.")
 
     def task_refresh_pages(self):
         self._run(self._refresh_pages, "refresh workbook pages")
@@ -409,7 +415,12 @@ class GstToolApp:
             ws.append(["code", "description"])
             for code, desc in page.get(name, []):
                 ws.append([code, desc])
-        wb.save(path)
+        try:
+            wb.save(path)
+        except PermissionError:
+            print("ERROR The workbook is open/locked: close Excel (and any other app holding "
+                  "it), then retry. File: %s" % path)
+            return
         print("workbook page tables updated - now upload it ('Upload workbook to server')")
 
     def task_upload_book(self):
