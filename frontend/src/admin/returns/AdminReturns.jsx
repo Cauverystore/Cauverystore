@@ -62,13 +62,18 @@ const AdminReturns = () => {
   const [statusTab, setStatusTab] = useState("All");
   const [reasonFilter, setReasonFilter] = useState("All");
   const [acting, setActing] = useState(null);
+  // Keyed by return id. Fetched only for returns that have reached the check, because a return
+  // nobody has inspected has nothing to pay yet.
+  const [refunds, setRefunds] = useState({});
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const { data } = await api.get("/api/admin/returns");
-      setReturns(Array.isArray(data) ? data : data?.content || []);
+      const list = Array.isArray(data) ? data : data?.content || [];
+      setReturns(list);
+      loadRefunds(list);
     } catch (err) {
       setError(err.response?.data?.error || "Failed to load returns");
       setReturns([]);
@@ -76,6 +81,41 @@ const AdminReturns = () => {
       setLoading(false);
     }
   }, []);
+
+  /**
+   * The refunds behind each settled return.
+   *
+   * A refund that failed at the gateway leaves a row saying so, and without showing it the return
+   * looks settled while the customer has been paid nothing. Failures are swallowed per row: not
+   * knowing about one refund is no reason to blank the table.
+   */
+  const loadRefunds = async (list) => {
+    const settled = list.filter((r) => ["COMPLETED", "REFUNDED", "REFUND_ISSUED"].includes(canonical(r.status)));
+    if (settled.length === 0) { setRefunds({}); return; }
+    const results = await Promise.all(settled.map((r) => {
+      const id = r.id || r._id;
+      return api.get(`/api/admin/returns/${id}/refunds`)
+        .then((res) => [id, Array.isArray(res.data) ? res.data : []])
+        .catch(() => null);
+    }));
+    setRefunds(Object.fromEntries(results.filter(Boolean)));
+  };
+
+  const retryRefund = async (id) => {
+    if (!window.confirm("Retry sending this refund to the customer's original payment method?")) return;
+    setActing(id);
+    setMessage("");
+    setError("");
+    try {
+      const { data } = await api.post(`/api/admin/returns/${id}/retry-refund`);
+      setMessage(`Refund ${data.refundId} is ${data.status}. ${data.expectedCredit || ""}`);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.error || "Refund retry failed");
+    } finally {
+      setActing(null);
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -179,7 +219,7 @@ const AdminReturns = () => {
 
   /** Exported from what is on screen, so a filtered view exports the same rows it shows. */
   const exportCsv = () => {
-    const headers = ["Return ID", "Order", "Product", "Customer", "Qty", "Reason", "Status", "QC", "Condition", "Refund Amount", "Requested"];
+    const headers = ["Return ID", "Order", "Product", "Customer", "Qty", "Reason", "Status", "QC", "Condition", "Refund Amount", "Refund ID", "Refund Status", "Requested"];
     const rows = visible.map((r) => {
       const id = r.id || r._id;
       return [
@@ -193,6 +233,8 @@ const AdminReturns = () => {
         r.qualityCheckStatus ?? "",
         r.condition ?? "",
         r.refundAmount ?? "",
+        (refunds[id] || []).map((f) => `RFND-${f.id}`).join(" ") || "",
+        (refunds[id] || []).map((f) => f.status).join(" ") || "",
         r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-IN") : "",
       ];
     });
@@ -285,7 +327,7 @@ const AdminReturns = () => {
             <thead>
               <tr>
                 <th>Return ID</th><th>Order</th><th>Product</th><th>Customer</th>
-                <th>Qty</th><th>Reason</th><th>Status</th><th>Actions</th>
+                <th>Qty</th><th>Reason</th><th>Status</th><th>Refund</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -312,6 +354,23 @@ const AdminReturns = () => {
                         </div>
                       )}
                     </td>
+                    <td style={{ fontSize: "0.78rem" }}>
+                      {(refunds[id] || []).length === 0
+                        ? <span style={{ color: "#9ca3af" }}>—</span>
+                        : (refunds[id] || []).map((f) => (
+                            <div key={f.id} style={{ marginBottom: "3px" }}>
+                              <span style={{ fontFamily: "monospace" }}>RFND-{f.id}</span>
+                              <span style={{
+                                marginLeft: "6px", fontWeight: 600,
+                                color: f.status === "COMPLETED" ? "#146C43"
+                                  : f.status === "FAILED" ? "#B91C1C" : "#92400E",
+                              }}>{f.status}</span>
+                              {f.expectedCredit && (
+                                <div style={{ color: "#6b7280", fontSize: "0.7rem" }}>{f.expectedCredit}</div>
+                              )}
+                            </div>
+                          ))}
+                    </td>
                     <td>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                         {acts.map((a) => (
@@ -329,7 +388,23 @@ const AdminReturns = () => {
                             {a.label}
                           </button>
                         ))}
-                        {acts.length === 0 && <span style={{ color: "#9ca3af", fontSize: "0.78rem" }}>—</span>}
+                        {["COMPLETED", "REFUNDED", "REFUND_ISSUED"].includes(canonical(r.status))
+                          && (refunds[id] || []).every((f) => f.status === "FAILED" || f.status === "AWAITING_MANUAL_TRANSFER") && (
+                          <button
+                            disabled={acting === id}
+                            onClick={() => retryRefund(id)}
+                            style={{
+                              padding: "5px 10px", background: "#fff", color: "#B91C1C",
+                              border: "1px solid #B91C1C", borderRadius: "4px",
+                              cursor: acting === id ? "not-allowed" : "pointer",
+                              fontSize: "0.75rem", fontWeight: 600,
+                            }}
+                          >
+                            Retry refund
+                          </button>
+                        )}
+                        {acts.length === 0 && (refunds[id] || []).some((f) => f.status === "COMPLETED")
+                          && <span style={{ color: "#9ca3af", fontSize: "0.78rem" }}>—</span>}
                       </div>
                     </td>
                   </tr>

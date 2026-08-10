@@ -1,6 +1,8 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.CreditNote;
 import com.cauverystore.entities.OrderItem;
+import com.cauverystore.entities.Refund;
 import com.cauverystore.entities.ReturnRequest;
 import com.cauverystore.repository.ReturnRequestRepository;
 import org.springframework.stereotype.Service;
@@ -79,13 +81,16 @@ public class ReturnRequestService {
     private final ReturnRequestRepository returnRepo;
     private final CreditNoteService creditNoteService;
     private final InventoryService inventoryService;
+    private final PaymentService paymentService;
 
     public ReturnRequestService(ReturnRequestRepository returnRepo,
                                 CreditNoteService creditNoteService,
-                                InventoryService inventoryService) {
+                                InventoryService inventoryService,
+                                PaymentService paymentService) {
         this.returnRepo = returnRepo;
         this.creditNoteService = creditNoteService;
         this.inventoryService = inventoryService;
+        this.paymentService = paymentService;
     }
 
     /**
@@ -170,13 +175,63 @@ public class ReturnRequestService {
         // same return - CreditNoteService returns the existing one - so passing through COMPLETED
         // and then REFUNDED does not credit twice.
         if (CREDIT_NOTE_TRIGGER_STATUSES.contains(to)) {
+            Double credited = null;
             try {
-                creditNoteService.generateReturnCreditNote(id, null);
+                Map<String, Object> result = creditNoteService.generateReturnCreditNote(id, null);
+                Object note = result.get("creditNote");
+                if (note instanceof CreditNote cn) credited = cn.getTotalAmount();
             } catch (Exception e) {
                 System.err.println("Auto credit note generation skipped for return " + id + ": " + e.getMessage());
             }
+            if (COMPLETED.equals(to)) {
+                payBack(saved, credited);
+            }
         }
         return saved;
+    }
+
+    /**
+     * Sends the money back once the goods have passed their check.
+     *
+     * <h2>Where the amount comes from</h2>
+     *
+     * The credit note, not the order. The credit note is the document that states what is being
+     * credited and carries the tax reversal that goes with it, so refunding anything else would
+     * put the money and the paperwork at different numbers - and the paperwork is the one the
+     * return is filed against.
+     *
+     * When no credit note could be produced, nothing is guessed: a refund is not attempted, and
+     * the return is left for somebody to settle by hand. Inventing an amount here would be
+     * paying out a figure no document supports.
+     *
+     * <h2>Speed</h2>
+     *
+     * Asked for at the instant rail with a fall back to the ordinary one, because a customer
+     * sending goods back has already waited once. Razorpay reports which it managed, and that is
+     * what the customer is told rather than what was asked for.
+     */
+    private void payBack(ReturnRequest rr, Double creditedAmount) {
+        if (creditedAmount == null || creditedAmount <= 0) {
+            System.err.println("Refund not attempted for return " + rr.getId()
+                    + ": no credit note amount to refund. Settle this one manually.");
+            return;
+        }
+        try {
+            Long orderId = rr.getOrder() != null ? rr.getOrder().getId() : null;
+            if (orderId == null) return;
+            Refund refund = paymentService.processRefundForReturn(
+                    rr.getId(), orderId, creditedAmount,
+                    "Return " + "RET-" + rr.getId() + (rr.getReason() != null ? ": " + rr.getReason() : ""),
+                    "optimum");
+            rr.setRefundAmount(creditedAmount);
+            returnRepo.save(rr);
+            System.out.println("Refund " + refund.getId() + " raised for return " + rr.getId()
+                    + " (" + refund.getStatus() + ")");
+        } catch (Exception e) {
+            // The goods are back and the credit note is issued either way. A refund that could
+            // not be raised is a queue item, not a reason to undo the quality check.
+            System.err.println("Refund could not be raised for return " + rr.getId() + ": " + e.getMessage());
+        }
     }
 
     /**

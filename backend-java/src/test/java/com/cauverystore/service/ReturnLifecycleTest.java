@@ -15,6 +15,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -35,13 +36,14 @@ class ReturnLifecycleTest {
     @Mock private ReturnRequestRepository returnRepo;
     @Mock private CreditNoteService creditNoteService;
     @Mock private InventoryService inventoryService;
+    @Mock private PaymentService paymentService;
 
     private ReturnRequestService service;
     private ReturnRequest rr;
 
     @BeforeEach
     void setUp() {
-        service = new ReturnRequestService(returnRepo, creditNoteService, inventoryService);
+        service = new ReturnRequestService(returnRepo, creditNoteService, inventoryService, paymentService);
         rr = new ReturnRequest();
         rr.setStatus(ReturnRequestService.REQUESTED);
         when(returnRepo.findById(1L)).thenReturn(Optional.of(rr));
@@ -295,6 +297,111 @@ class ReturnLifecycleTest {
         assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.COMPLETED));
         assertEquals(ReturnRequestService.COMPLETED, rr.getStatus());
         assertEquals("PASSED", rr.getQualityCheckStatus());
+    }
+
+    /** A credit note whose total is what the refund must match. */
+    private void creditNoteWorth(double total) {
+        com.cauverystore.entities.CreditNote cn = new com.cauverystore.entities.CreditNote();
+        cn.setTotalAmount(total);
+        when(creditNoteService.generateReturnCreditNote(any(), any()))
+                .thenReturn(java.util.Map.of("creditNote", cn));
+    }
+
+    private void orderIs(long id) {
+        com.cauverystore.entities.Order o = new com.cauverystore.entities.Order();
+        o.setId(id);
+        rr.setOrder(o);
+    }
+
+    @Test
+    void passingQualityCheckSendsTheMoneyBack() {
+        // Nothing did this. The return was credited on paper and the customer was never paid.
+        rr.setId(1L);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+        orderIs(900L);
+        creditNoteWorth(1180.0);
+        when(paymentService.processRefundForReturn(any(), any(), anyDouble(), any(), any()))
+                .thenReturn(new com.cauverystore.entities.Refund());
+
+        service.updateStatus(1L, ReturnRequestService.COMPLETED);
+
+        verify(paymentService).processRefundForReturn(eq(1L), eq(900L), eq(1180.0), any(), eq("optimum"));
+        assertEquals(1180.0, rr.getRefundAmount());
+    }
+
+    @Test
+    void theRefundMatchesTheCreditNoteNotTheOrder() {
+        // The credit note is the document the return is filed against and carries the tax
+        // reversal. Paying a different figure puts the money and the paperwork at odds.
+        rr.setId(1L);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+        orderIs(900L);
+        creditNoteWorth(499.5);
+        when(paymentService.processRefundForReturn(any(), any(), anyDouble(), any(), any()))
+                .thenReturn(new com.cauverystore.entities.Refund());
+
+        service.updateStatus(1L, ReturnRequestService.COMPLETED);
+
+        verify(paymentService).processRefundForReturn(any(), any(), eq(499.5), any(), any());
+    }
+
+    @Test
+    void noCreditNoteMeansNoRefundIsGuessed() {
+        // Paying out a figure no document supports is worse than leaving it for a person.
+        rr.setId(1L);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+        orderIs(900L);
+        when(creditNoteService.generateReturnCreditNote(any(), any()))
+                .thenThrow(new RuntimeException("no invoice for this order"));
+
+        assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.COMPLETED));
+
+        verify(paymentService, never()).processRefundForReturn(any(), any(), anyDouble(), any(), any());
+        assertEquals(ReturnRequestService.COMPLETED, rr.getStatus());
+    }
+
+    @Test
+    void failingQualityCheckPaysNobody() {
+        rr.setId(1L);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+        orderIs(900L);
+
+        service.updateStatus(1L, ReturnRequestService.REJECTED);
+
+        verify(paymentService, never()).processRefundForReturn(any(), any(), anyDouble(), any(), any());
+    }
+
+    @Test
+    void aRefundFailureDoesNotUndoTheQualityCheck() {
+        // The goods are back and the credit note is issued either way. A refund that could not
+        // be raised is a queue item, not a reason to reopen the inspection.
+        rr.setId(1L);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+        orderIs(900L);
+        creditNoteWorth(100.0);
+        when(paymentService.processRefundForReturn(any(), any(), anyDouble(), any(), any()))
+                .thenThrow(new RuntimeException("gateway down"));
+
+        assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.COMPLETED));
+        assertEquals(ReturnRequestService.COMPLETED, rr.getStatus());
+        assertEquals("PASSED", rr.getQualityCheckStatus());
+    }
+
+    @Test
+    void markingItRefundedAfterwardsDoesNotPayASecondTime() {
+        // The refund goes out once, at the check. Moving the return on to Refunded is somebody
+        // recording what already happened, not asking for it again.
+        rr.setId(1L);
+        rr.setStatus(ReturnRequestService.RECEIVED);
+        orderIs(900L);
+        creditNoteWorth(100.0);
+        when(paymentService.processRefundForReturn(any(), any(), anyDouble(), any(), any()))
+                .thenReturn(new com.cauverystore.entities.Refund());
+
+        service.updateStatus(1L, ReturnRequestService.COMPLETED);
+        service.updateStatus(1L, ReturnRequestService.REFUNDED);
+
+        verify(paymentService, times(1)).processRefundForReturn(any(), any(), anyDouble(), any(), any());
     }
 
     @Test

@@ -175,6 +175,100 @@ public class PaymentService {
     // record FAILED instead of blocking whatever order-lifecycle transaction called this
     // (mirrors how EmailService/GST-invoice failures are already swallowed elsewhere), so
     // customer-facing order cancellation can never be broken by a refund-side outage.
+    /**
+     * Refunds a return, back to whatever paid for it.
+     *
+     * <h2>Why this is not just processRefundForOrder with an extra argument</h2>
+     *
+     * A cancellation happens once. A return can be pressed twice - by two people looking at the
+     * same queue, or by one person on a slow connection - and the only thing that stood between
+     * that and paying a customer twice was nobody doing it. So this looks for a refund already
+     * raised against the same return before it moves any money, and treats a previous FAILED
+     * attempt as retryable while a successful one is final.
+     *
+     * <h2>Cash on delivery</h2>
+     *
+     * There is no payment to reverse, so nothing can be sent back down the rail it arrived on.
+     * That is recorded as awaiting a manual transfer rather than quietly marked COMPLETED, which
+     * would tell the books the customer had been paid when nobody had paid them.
+     *
+     * @param speedRequested Razorpay's wording - "optimum" tries the instant rail and falls back,
+     *                       "normal" is the ordinary 5-7 working day route.
+     */
+    @Transactional
+    public Refund processRefundForReturn(Long returnRequestId, Long orderId, double amountRupees,
+                                         String reason, String speedRequested) {
+        for (Refund existing : refundRepo.findByReturnRequestId(returnRequestId)) {
+            if (!"FAILED".equals(existing.getStatus())) {
+                log.info("Refund already raised for return {} (refund {}, status {}) - not repeating",
+                        returnRequestId, existing.getId(), existing.getStatus());
+                return existing;
+            }
+        }
+
+        Refund refund = new Refund();
+        refund.setReturnRequestId(returnRequestId);
+        refund.setOrderId(orderId);
+        refund.setAmount(amountRupees);
+        refund.setRefundDate(LocalDate.now());
+        refund.setReason(reason);
+
+        Optional<Payment> paymentOpt = paymentRepo.findByOrderId(orderId);
+        if (paymentOpt.isEmpty() || paymentOpt.get().getRazorpayPaymentId() == null) {
+            // Cash on delivery, or a linkage that has broken. Either way there is nothing to
+            // reverse, and saying so is the only honest outcome - somebody has to pay this by
+            // hand, and the queue is how they find out.
+            refund.setStatus("AWAITING_MANUAL_TRANSFER");
+            refund.setRefundMethod("MANUAL_BANK_TRANSFER");
+            refund.setExpectedCredit("Awaiting manual bank transfer - no online payment to reverse");
+            return refundRepo.save(refund);
+        }
+
+        Payment payment = paymentOpt.get();
+        String speed = ("optimum".equalsIgnoreCase(speedRequested)) ? "optimum" : "normal";
+        refund.setRefundMethod("ORIGINAL_METHOD");
+        try {
+            RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
+            JSONObject refundRequest = new JSONObject();
+            refundRequest.put("amount", (int) Math.round(amountRupees * 100));
+            refundRequest.put("speed", speed);
+            // Razorpay rejects a repeat of the same key, so a retry that crossed with a response
+            // we never saw cannot become a second payout.
+            JSONObject notes = new JSONObject();
+            notes.put("return_request_id", String.valueOf(returnRequestId));
+            refundRequest.put("notes", notes);
+            refundRequest.put("receipt", "RET-" + returnRequestId);
+
+            com.razorpay.Refund razorpayRefund = razorpay.payments.refund(payment.getRazorpayPaymentId(), refundRequest);
+            String gatewayStatus = razorpayRefund.get("status");
+            refund.setGatewayRefundId(razorpayRefund.get("id"));
+            // Razorpay reports the speed it actually managed, which is not always the one asked
+            // for - an instant refund is only possible on some rails.
+            String speedProcessed = safeString(razorpayRefund, "speed_processed");
+            refund.setSpeed(speedProcessed != null ? speedProcessed : speed);
+            refund.setStatus("processed".equals(gatewayStatus) ? "COMPLETED" : "PENDING");
+            refund.setExpectedCredit("instant".equals(refund.getSpeed())
+                    ? "Credited immediately to the original payment method"
+                    : "5-7 business days to the original payment method");
+        } catch (Exception e) {
+            log.error("Razorpay refund failed for return {} (orderId={}, paymentId={}, amount={}): {}",
+                    returnRequestId, orderId, payment.getRazorpayPaymentId(), amountRupees, e.getMessage(), e);
+            refund.setStatus("FAILED");
+            refund.setExpectedCredit("Refund could not be sent - being retried");
+            refund.setReason((reason != null ? reason + " " : "") + "[Gateway refund failed: " + e.getMessage() + "]");
+        }
+        return refundRepo.save(refund);
+    }
+
+    /** Razorpay omits fields it has no value for, and reading one absent throws. */
+    private String safeString(com.razorpay.Refund r, String field) {
+        try {
+            return r.get(field);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @Transactional
     public Refund processRefundForOrder(Long orderId, double amountRupees, String reason) {
         Refund refund = new Refund();
