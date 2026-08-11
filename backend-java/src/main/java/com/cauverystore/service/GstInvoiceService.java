@@ -9,6 +9,8 @@ import com.cauverystore.repository.PincodeStateRangeRepository;
 import com.cauverystore.entities.StateMaster;
 import com.cauverystore.repository.StateMasterRepository;
 import com.cauverystore.entities.GstConfiguration;
+import com.cauverystore.entities.CreditNote;
+import com.cauverystore.entities.DebitNote;
 import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.entities.TcsRecord;
 import com.cauverystore.entities.Order;
@@ -25,6 +27,8 @@ import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.repository.TcsRecordRepository;
+import com.cauverystore.repository.CreditNoteRepository;
+import com.cauverystore.repository.DebitNoteRepository;
 import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.util.PdfBrandingUtil;
 import com.cauverystore.util.ExcelExportUtil;
@@ -75,6 +79,8 @@ public class GstInvoiceService {
     private final StateMasterRepository stateRepo;
     private final PincodeStateRangeRepository pincodeRepo;
     private final com.cauverystore.repository.SacMasterRepository sacRepo;
+    private final CreditNoteRepository creditNoteRepo;
+    private final DebitNoteRepository debitNoteRepo;
 
 
     private final GstRateResolver gstRateResolver;
@@ -90,7 +96,11 @@ public class GstInvoiceService {
                              PincodeStateRangeRepository pincodeRepo,
                              GstRateResolver gstRateResolver,
                              Gstr1ExportService gstr1ExportService,
-                             com.cauverystore.repository.SacMasterRepository sacRepo) {
+                             com.cauverystore.repository.SacMasterRepository sacRepo,
+                             CreditNoteRepository creditNoteRepo,
+                             DebitNoteRepository debitNoteRepo) {
+        this.creditNoteRepo = creditNoteRepo;
+        this.debitNoteRepo = debitNoteRepo;
         this.sacRepo = sacRepo;
         this.gstRateResolver = gstRateResolver;
         this.gstr1ExportService = gstr1ExportService;
@@ -800,7 +810,16 @@ public class GstInvoiceService {
     public Map<String, List<Map<String, Object>>> getGstr1ForFiling(Long sellerId,
                                                                    LocalDate startDate,
                                                                    LocalDate endDate) {
-        return gstr1ExportService.allSections(invoicesForPeriod(sellerId, startDate, endDate));
+        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
+                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
+        LocalDate from = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate to = endDate != null ? endDate : LocalDate.now();
+        List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, from, to);
+        List<CreditNote> creditNotes = creditNoteRepo
+                .findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to);
+        List<DebitNote> debitNotes = debitNoteRepo
+                .findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to);
+        return gstr1ExportService.allSections(invoices, creditNotes, debitNotes);
     }
 
     /**
@@ -988,7 +1007,10 @@ public class GstInvoiceService {
         Map<String, Object> summary = getGstSummary(sellerId, startDate, endDate);
         Map<String, Object> tcs = new LinkedHashMap<>();
         tcs.put("totalTcsCollected", summary.get("totalTcs"));
-        tcs.put("tcsRate", "1%");
+        Double configured = configRepo.findBySellerId(sellerId)
+                .map(GstConfiguration::getTcsRate).orElse(null);
+        double tcsRate = configured != null ? configured : 0.5;
+        tcs.put("tcsRate", String.format("%.2f", tcsRate) + "%");
         tcs.put("totalInvoices", summary.get("totalInvoices"));
         tcs.put("totalTaxableAmount", summary.get("totalTaxableAmount"));
         tcs.put("periodStart", summary.get("periodStart"));
@@ -1028,7 +1050,7 @@ public class GstInvoiceService {
      */
     public Map<String, Object> saveConfiguration(GstConfiguration config) {
         validateConfiguration(config);
-        if (config.getTcsRate() == null) config.setTcsRate(1.0);
+        if (config.getTcsRate() == null) config.setTcsRate(0.5);
         if (config.getInvoicePrefix() == null) config.setInvoicePrefix("CS");
         config.setIsActive(true);
         GstConfiguration saved = configRepo.save(config);

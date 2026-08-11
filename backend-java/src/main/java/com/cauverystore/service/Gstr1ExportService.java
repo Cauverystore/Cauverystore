@@ -1,5 +1,9 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.CreditNote;
+import com.cauverystore.entities.CreditNoteItem;
+import com.cauverystore.entities.DebitNote;
+import com.cauverystore.entities.DebitNoteItem;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.GstInvoiceItem;
 import com.cauverystore.util.GstComplianceUtil;
@@ -30,6 +34,7 @@ import java.util.Map;
  *   b2b   (4A)  supplies to a registered buyer, i.e. one with a GSTIN
  *   b2cl  (5A)  inter-state supplies to consumers above the B2C-large threshold
  *   b2cs  (7)   remaining consumer supplies, aggregated by place of supply and rate
+ *   cdn   (9A/9B) credit and debit notes issued in the period, one row per note per rate
  *   hsn   (12)  the HSN-wise summary, which is mandatory and was missing entirely
  *
  * Nothing here is filed automatically. It produces files a human uploads and checks, which is
@@ -56,6 +61,19 @@ public class Gstr1ExportService {
             "Type", "Place Of Supply", "Applicable % of Tax Rate", "Rate", "Taxable Value",
             "Cess Amount", "E-Commerce GSTIN"};
 
+    /**
+     * Table 9A/9B - credit and debit notes issued in the period.
+     *
+     * Both notes share one shape in the offline utility, distinguished by the "Note Type"
+     * column: C for a credit note, D for a debit note. Only notes issued against a registered
+     * recipient (a GSTIN is present) are reported here; notes to consumers are netted inside
+     * B2CS rather than listed.
+     */
+    public static final String[] CDN_HEADERS = {
+            "GSTIN/UIN of Recipient", "Receiver Name", "Note Number", "Note date",
+            "Note Value", "Place Of Supply", "Reverse Charge", "Applicable % of Tax Rate",
+            "Note Type", "E-Commerce GSTIN", "Rate", "Taxable Value", "Cess Amount"};
+
     public static final String[] HSN_HEADERS = {
             "HSN", "Description", "UQC", "Total Quantity", "Total Value", "Rate",
             "Taxable Value", "Integrated Tax Amount", "Central Tax Amount",
@@ -65,6 +83,7 @@ public class Gstr1ExportService {
     private static class RateLine {
         double rate;
         double cess;
+        double cessAmount;
         double taxable;
         double igst;
         double cgst;
@@ -100,6 +119,7 @@ public class Gstr1ExportService {
                 return fresh;
             });
             line.taxable += nz(item.getTaxableValue());
+            line.cessAmount += nz(item.getCessAmount());
             line.igst += nz(item.getIgstAmount());
             line.cgst += nz(item.getCgstAmount());
             line.sgst += nz(item.getSgstAmount());
@@ -130,7 +150,7 @@ public class Gstr1ExportService {
                 row.put("E-Commerce GSTIN", "");
                 row.put("Rate", round(line.rate));
                 row.put("Taxable Value", round(line.taxable));
-                row.put("Cess Amount", round(line.cess));
+                row.put("Cess Amount", round(line.cessAmount));
                 rows.add(row);
             }
         }
@@ -152,7 +172,7 @@ public class Gstr1ExportService {
                 row.put("Applicable % of Tax Rate", "");
                 row.put("Rate", round(line.rate));
                 row.put("Taxable Value", round(line.taxable));
-                row.put("Cess Amount", round(line.cess));
+                row.put("Cess Amount", round(line.cessAmount));
                 row.put("E-Commerce GSTIN", "");
                 rows.add(row);
             }
@@ -187,7 +207,7 @@ public class Gstr1ExportService {
                     return fresh;
                 });
                 row.put("Taxable Value", round((Double) row.get("Taxable Value") + line.taxable));
-                row.put("Cess Amount", round((Double) row.get("Cess Amount") + line.cess));
+                row.put("Cess Amount", round((Double) row.get("Cess Amount") + line.cessAmount));
             }
         }
         return new ArrayList<>(aggregated.values());
@@ -237,12 +257,106 @@ public class Gstr1ExportService {
         return new ArrayList<>(byHsnAndRate.values());
     }
 
+    /**
+     * 9A/9B - credit and debit notes issued in the period.
+     *
+     * Reported only against a registered recipient (a GSTIN, not URP): notes to consumers are
+     * netted inside B2CS rather than listed. One row per note per rate, so a note that reversed
+     * lines at 5% and 18% splits the same way the original invoice did.
+     */
+    public List<Map<String, Object>> cdn(List<CreditNote> creditNotes, List<DebitNote> debitNotes) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        if (creditNotes != null) {
+            for (CreditNote cn : creditNotes) {
+                rows.addAll(cdnRows("C", cn.getBuyerGstin(), cn.getBuyerName(),
+                        cn.getCreditNoteNumber(), cn.getCreditNoteDate(), cn.getTotalAmount(),
+                        cn.getPlaceOfSupply(), creditItems(cn.getItems())));
+            }
+        }
+        if (debitNotes != null) {
+            for (DebitNote dn : debitNotes) {
+                rows.addAll(cdnRows("D", dn.getBuyerGstin(), dn.getBuyerName(),
+                        dn.getDebitNoteNumber(), dn.getDebitNoteDate(), dn.getTotalAmount(),
+                        dn.getPlaceOfSupply(), debitItems(dn.getItems())));
+            }
+        }
+        return rows;
+    }
+
+    private static class CdnItem {
+        double rate;
+        double taxable;
+    }
+
+    private List<CdnItem> creditItems(List<CreditNoteItem> items) {
+        List<CdnItem> out = new ArrayList<>();
+        for (CreditNoteItem it : items) {
+            CdnItem c = new CdnItem();
+            c.rate = nz(it.getIgstRate()) > 0 ? nz(it.getIgstRate())
+                    : nz(it.getCgstRate()) + nz(it.getSgstRate());
+            c.taxable = nz(it.getTaxableValue());
+            out.add(c);
+        }
+        return out;
+    }
+
+    private List<CdnItem> debitItems(List<DebitNoteItem> items) {
+        List<CdnItem> out = new ArrayList<>();
+        for (DebitNoteItem it : items) {
+            CdnItem c = new CdnItem();
+            c.rate = nz(it.getIgstRate()) > 0 ? nz(it.getIgstRate())
+                    : nz(it.getCgstRate()) + nz(it.getSgstRate());
+            c.taxable = nz(it.getTaxableValue());
+            out.add(c);
+        }
+        return out;
+    }
+
+    private List<Map<String, Object>> cdnRows(String noteType, String buyerGstin, String buyerName,
+                                              String noteNumber, java.time.LocalDate noteDate,
+                                              Double noteValue, String placeOfSupply,
+                                              List<CdnItem> items) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        if (isBlank(buyerGstin) || "URP".equalsIgnoreCase(buyerGstin.trim())) return rows;
+        Map<String, Double> taxableByRate = new LinkedHashMap<>();
+        for (CdnItem it : items) {
+            String key = String.valueOf(it.rate);
+            taxableByRate.merge(key, it.taxable, Double::sum);
+        }
+        for (Map.Entry<String, Double> e : taxableByRate.entrySet()) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("GSTIN/UIN of Recipient", buyerGstin.trim());
+            row.put("Receiver Name", buyerName);
+            row.put("Note Number", noteNumber);
+            row.put("Note date", noteDate == null ? "" : noteDate.format(GST_DATE));
+            row.put("Note Value", round(nz(noteValue)));
+            row.put("Place Of Supply", placeOfSupply);
+            row.put("Reverse Charge", "N");
+            row.put("Applicable % of Tax Rate", "");
+            row.put("Note Type", noteType);
+            row.put("E-Commerce GSTIN", "");
+            row.put("Rate", round(Double.parseDouble(e.getKey())));
+            row.put("Taxable Value", round(e.getValue()));
+            row.put("Cess Amount", 0.0);
+            rows.add(row);
+        }
+        return rows;
+    }
+
     /** Every section, keyed by the name the utility uses for it. */
     public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices) {
+        return allSections(invoices, List.of(), List.of());
+    }
+
+    /** Every section, including credit and debit notes for the period. */
+    public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices,
+                                                              List<CreditNote> creditNotes,
+                                                              List<DebitNote> debitNotes) {
         Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
         out.put("b2b", b2b(invoices));
         out.put("b2cl", b2cl(invoices));
         out.put("b2cs", b2cs(invoices));
+        out.put("cdn", cdn(creditNotes, debitNotes));
         out.put("hsn", hsnSummary(invoices));
         return out;
     }
@@ -252,9 +366,10 @@ public class Gstr1ExportService {
             case "b2b": return B2B_HEADERS;
             case "b2cl": return B2CL_HEADERS;
             case "b2cs": return B2CS_HEADERS;
+            case "cdn": return CDN_HEADERS;
             case "hsn": return HSN_HEADERS;
             default: throw new IllegalArgumentException(
-                    "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs or hsn.");
+                    "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs, cdn or hsn.");
         }
     }
 

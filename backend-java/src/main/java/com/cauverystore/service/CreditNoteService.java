@@ -127,7 +127,7 @@ public class CreditNoteService {
             cn.setIgstAmount(round(inv.getIgstAmount() * factor));
             cn.setTotalTax(round((cn.getCgstAmount() + cn.getSgstAmount() + cn.getIgstAmount())));
             cn.setTcsAmount(round(inv.getTcsAmount() * factor));
-            cn.setTotalAmount(round(cn.getTaxableAmount() + cn.getTotalTax() + cn.getTcsAmount()));
+            cn.setTotalAmount(round(cn.getTaxableAmount() + cn.getTotalTax()));
             cn.setItems(buildItemsFromInvoice(cn, inv, factor));
         } else {
             // No GST invoice was ever raised - compute reversal from the order itself.
@@ -366,7 +366,7 @@ public class CreditNoteService {
         cn.setIgstAmount(round(inv.getIgstAmount() * factor));
         cn.setTotalTax(round(cn.getCgstAmount() + cn.getSgstAmount() + cn.getIgstAmount()));
         cn.setTcsAmount(round(inv.getTcsAmount() * factor));
-        cn.setTotalAmount(round(cn.getTaxableAmount() + cn.getTotalTax() + cn.getTcsAmount()));
+        cn.setTotalAmount(round(cn.getTaxableAmount() + cn.getTotalTax()));
         cn.setItems(buildItemsFromInvoice(cn, inv, factor));
 
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));

@@ -1,5 +1,9 @@
 package com.cauverystore.service;
 
+import com.cauverystore.entities.CreditNote;
+import com.cauverystore.entities.CreditNoteItem;
+import com.cauverystore.entities.DebitNote;
+import com.cauverystore.entities.DebitNoteItem;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.GstInvoiceItem;
 import org.junit.jupiter.api.BeforeEach;
@@ -181,6 +185,72 @@ class Gstr1ExportServiceTest {
     }
 
     @Test
+    void cdn_shouldListCreditAndDebitNotesAgainstRegisteredRecipientsOnly() {
+        // Notes to a GSTIN go in table 9A/9B; notes to URP consumers are netted inside B2CS
+        // and listing them here would double-report the reversal.
+        CreditNote cn = new CreditNote();
+        cn.setCreditNoteNumber("CN-1");
+        cn.setCreditNoteDate(LocalDate.of(2026, 8, 7));
+        cn.setBuyerGstin("33AABCU9603R1ZM");
+        cn.setBuyerName("Registered Buyer");
+        cn.setPlaceOfSupply("33-Tamil Nadu");
+        cn.setTotalAmount(106.0);
+        CreditNoteItem cnItem = new CreditNoteItem();
+        cnItem.setProductName("Item");
+        cnItem.setHsnCode("1006");
+        cnItem.setTaxableValue(100.0);
+        cnItem.setCgstRate(2.5); cnItem.setSgstRate(2.5); cnItem.setIgstRate(0.0);
+        cn.setItems(new ArrayList<>(List.of(cnItem)));
+
+        CreditNote consumer = new CreditNote();
+        consumer.setCreditNoteNumber("CN-2");
+        consumer.setBuyerGstin("URP");
+        consumer.setBuyerName("Consumer");
+        consumer.setPlaceOfSupply("33-Tamil Nadu");
+        consumer.setTotalAmount(10.0);
+        consumer.setItems(new ArrayList<>());
+
+        List<Map<String, Object>> rows = service.cdn(List.of(cn, consumer), List.of());
+
+        assertEquals(1, rows.size());
+        Map<String, Object> row = rows.get(0);
+        assertEquals("33AABCU9603R1ZM", row.get("GSTIN/UIN of Recipient"));
+        assertEquals("CN-1", row.get("Note Number"));
+        assertEquals("07-Aug-2026", row.get("Note date"));
+        assertEquals("C", row.get("Note Type"));
+        assertEquals(100.0, row.get("Taxable Value"));
+        assertEquals(5.0, row.get("Rate"));
+    }
+
+    @Test
+    void cdn_shouldSplitANoteByRateAndMarkDebitNotesD() {
+        // A note that reversed lines at 5% and 18% reports one row per rate, like the invoice
+        // it corrects.
+        DebitNote dn = new DebitNote();
+        dn.setDebitNoteNumber("DN-1");
+        dn.setDebitNoteDate(LocalDate.of(2026, 8, 8));
+        dn.setBuyerGstin("33AABCU9603R1ZM");
+        dn.setBuyerName("Registered Buyer");
+        dn.setPlaceOfSupply("33-Tamil Nadu");
+        dn.setTotalAmount(600.0);
+        DebitNoteItem a = new DebitNoteItem();
+        a.setTaxableValue(200.0); a.setCgstRate(2.5); a.setSgstRate(2.5); a.setIgstRate(0.0);
+        DebitNoteItem b = new DebitNoteItem();
+        b.setTaxableValue(300.0); b.setCgstRate(9.0); b.setSgstRate(9.0); b.setIgstRate(0.0);
+        dn.setItems(new ArrayList<>(List.of(a, b)));
+
+        List<Map<String, Object>> rows = service.cdn(List.of(), List.of(dn));
+
+        assertEquals(2, rows.size());
+        assertEquals("D", rows.get(0).get("Note Type"));
+        assertEquals("DN-1", rows.get(0).get("Note Number"));
+        assertEquals(5.0, rows.get(0).get("Rate"));
+        assertEquals(200.0, rows.get(0).get("Taxable Value"));
+        assertEquals(18.0, rows.get(1).get("Rate"));
+        assertEquals(300.0, rows.get(1).get("Taxable Value"));
+    }
+
+    @Test
     void headersFor_shouldRefuseAnUnknownSection() {
         assertThrows(IllegalArgumentException.class, () -> service.headersFor("gstr9"));
     }
@@ -190,7 +260,7 @@ class Gstr1ExportServiceTest {
         GstInvoice inv = invoice("INV-1", null, false, 100.0,
                 item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
 
-        assertEquals(List.of("b2b", "b2cl", "b2cs", "hsn"),
+        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "hsn"),
                 List.copyOf(service.allSections(List.of(inv)).keySet()));
     }
 }

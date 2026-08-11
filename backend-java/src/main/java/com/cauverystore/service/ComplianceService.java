@@ -175,7 +175,7 @@ public class ComplianceService {
         result.put("totalTcsCollected", round(tcsAmount));
         result.put("recordCount", count);
         result.put("reversalCount", reversalCount);
-        result.put("tcsRate", "1%");
+        result.put("tcsRate", String.format("%.2f", resolveTcsRate(sellerId)) + "%");
         result.put("customerWiseTcs", byCustomer.entrySet().stream()
                 .map(e -> Map.of("customerGstin", e.getKey(), "tcsAmount", round(e.getValue())))
                 .toList());
@@ -307,6 +307,13 @@ public class ComplianceService {
     public String resolveGstin(Long sellerId) {
         return configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
+    }
+
+    /** The marketplace's configured TCS rate, defaulting to the 0.5% prescribed by s.52. */
+    public double resolveTcsRate(Long sellerId) {
+        Double rate = configRepo.findBySellerId(sellerId)
+                .map(GstConfiguration::getTcsRate).orElse(null);
+        return rate != null ? rate : 0.5;
     }
 
     public static String currentPeriod() {

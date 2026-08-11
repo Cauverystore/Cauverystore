@@ -288,9 +288,9 @@ public class GstInvoiceController {
     /**
      * GSTR-1 in the offline utility's format, ready to upload.
      *
-     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7) or hsn (12). Omit it to get
-     * every section as JSON, which is the quickest way to see what a month actually contains
-     * before filing any of it.
+     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7), cdn (9A/9B) or hsn (12). Omit
+     * it to get every section as JSON, which is the quickest way to see what a month actually
+     * contains before filing any of it.
      */
     @GetMapping("/gstr1/filing")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
@@ -310,7 +310,7 @@ public class GstInvoiceController {
         List<Map<String, Object>> rows = sections.get(section.toLowerCase());
         if (rows == null) {
             return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs or hsn."));
+                    "error", "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs, cdn or hsn."));
         }
         if ("json".equalsIgnoreCase(format)) return ResponseEntity.ok(rows);
 

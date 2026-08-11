@@ -92,7 +92,7 @@ public class DebitNoteService {
         dn.setIgstAmount(round(inv.getIgstAmount() * factor));
         dn.setTotalTax(round(nz(dn.getCgstAmount()) + nz(dn.getSgstAmount()) + nz(dn.getIgstAmount())));
         dn.setTcsAmount(round(inv.getTcsAmount() * factor));
-        dn.setTotalAmount(round(nz(dn.getTaxableAmount()) + nz(dn.getTotalTax()) + nz(dn.getTcsAmount())));
+        dn.setTotalAmount(round(nz(dn.getTaxableAmount()) + nz(dn.getTotalTax())));
         dn.setItems(buildItemsFromInvoice(dn, inv, factor));
 
         dn.setDebitNoteNumber(generateDebitNoteNumber("DN"));

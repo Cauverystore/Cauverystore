@@ -42,6 +42,8 @@ class GstInvoiceServiceTest {
     @Mock private GstRateResolver gstRateResolver;
     @Mock private StateMasterRepository stateRepo;
     @Mock private PincodeStateRangeRepository pincodeRepo;
+    @Mock private CreditNoteRepository creditNoteRepo;
+    @Mock private DebitNoteRepository debitNoteRepo;
 
     @InjectMocks
     private GstInvoiceService gstService;
