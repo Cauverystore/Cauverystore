@@ -111,6 +111,7 @@ public class HsnClassificationService {
                 Map<String, Object> option = new LinkedHashMap<>();
                 option.put("rateId", r.getId());
                 option.put("gstRate", r.getGstRate());
+                option.put("cessRate", r.getCessRate());
                 option.put("hsnCode", r.getHsnCode());
                 option.put("description", r.getConditionText());
                 option.put("source", r.getSource());
@@ -119,6 +120,29 @@ public class HsnClassificationService {
             return options;
         }
         return List.of();
+    }
+
+    /**
+     * The rate the master will actually apply to these goods, for a form preview.
+     *
+     * Uses the same walk as the invoice (see GstRateResolver.findRateRow), so the preview shows
+     * exactly what will be charged - including the cess line from the same published row. The
+     * seller's own cessRate entry is deliberately ignored here too, since it is a declaration,
+     * not a legal source. Empty map when the code is not yet resolvable: the form's rate-options
+     * question, or a missing/invalid code, is what stands in the way, not the preview.
+     */
+    public Map<String, Object> ratePreview(String hsnCode, Double unitPrice, Boolean prePackaged) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (hsnCode == null || hsnCode.isBlank()) return out;
+        Optional<GstRateMaster> row = rateResolver.findRateRow(
+                hsnCode, LocalDate.now(), unitPrice, prePackaged);
+        if (row.isEmpty()) return out;
+        GstRateMaster r = row.get();
+        out.put("gstRate", r.getGstRate());
+        out.put("cessRate", r.getCessRate());
+        out.put("hsnCode", r.getHsnCode());
+        out.put("description", r.getConditionText());
+        return out;
     }
 
     /** Codes matching a code prefix or a word in the description. */

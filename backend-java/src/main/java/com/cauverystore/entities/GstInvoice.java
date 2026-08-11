@@ -93,6 +93,12 @@ public class GstInvoice {
     @Column(nullable = false)
     private Double totalTax;
 
+    /**
+     * Total compensation cess across all lines, reported separately from GST in the returns and
+     * printed as its own total on the invoice. Zero for an invoice with no cess-bearing goods.
+     */
+    private Double totalCess = 0.0;
+
     @Column(nullable = false)
     private Double totalAmount;
 
@@ -312,6 +318,8 @@ public class GstInvoice {
     public void setIgstAmount(Double igstAmount) { this.igstAmount = igstAmount; }
     public Double getTotalTax() { return totalTax; }
     public void setTotalTax(Double totalTax) { this.totalTax = totalTax; }
+    public Double getTotalCess() { return totalCess; }
+    public void setTotalCess(Double totalCess) { this.totalCess = totalCess; }
     public Double getTotalAmount() { return totalAmount; }
     public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
     public Double getTcsAmount() { return tcsAmount; }

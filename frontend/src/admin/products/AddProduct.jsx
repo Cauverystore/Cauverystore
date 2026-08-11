@@ -4,6 +4,7 @@ import api from "../../api/axios";
 import { compressImages } from "../../utils/compressImage";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
+import GstPreview from "./GstPreview";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -11,6 +12,7 @@ const WARRANTY = ["6 Months","1 Year","2 Years","3 Years","No Warranty"];
 const RETURN_POLICY = ["7 Days","10 Days","15 Days","No Returns"];
 const SHIPPING_CLASS = ["Standard","Express","Heavy","Fragile"];
 const BADGES = ["None","New Arrival","Best Seller","Limited Offer","Discount"];
+const UNITS_OF_MEASURE = ["NOS","KG","G","ML","L","M","SQ.M","CBM","PAIR","PCS","BOX","SET","ROLL","PACK","BOTTLE","CAN","JAR","TUBE","STRIP","UNIT"];
 
 function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 80);
@@ -27,6 +29,7 @@ const AddProduct = () => {
     prePackagedAndLabelled: true, gstRateSelectionId: undefined,
     countryOfOrigin: "India", shortDescription: "", technicalSpecs: "",
     warranty: "1 Year", returnPolicy: "7 Days",
+    billDescription: "", cessRate: "", uom: "NOS",
     metaTitle: "", metaDescription: "", keywords: "", slug: "",
     weight: "", dimensions: "", shippingClass: "Standard", deliveryDays: "", badges: "None"
   });
@@ -118,6 +121,9 @@ const AddProduct = () => {
         technicalSpecs: form.technicalSpecs, warranty: form.warranty,
         returnPolicy: form.returnPolicy, metaTitle: form.metaTitle,
         metaDescription: form.metaDescription, metaKeywords: form.keywords,
+        billDescription: form.billDescription.trim() || null,
+        cessRate: form.cessRate !== "" ? parseFloat(form.cessRate) : null,
+        uom: form.uom || "NOS",
         slug: form.slug || slugify(form.name),
         weight: form.weight ? parseFloat(form.weight) : null,
         dimensions: form.dimensions, shippingClass: form.shippingClass,
@@ -302,6 +308,27 @@ const AddProduct = () => {
           value={form.gstRateSelectionId}
           onChange={(rateId) => set("gstRateSelectionId", rateId)}
         />
+        <GstPreview
+          hsnCode={form.hsnCode}
+          unitPrice={form.price ? parseFloat(form.price) : undefined}
+          prePackaged={form.prePackagedAndLabelled}
+        />
+
+        {/* Bill & Print — what a tax invoice shows for this line. Defaults to the product name,
+            so most sellers never touch it; it exists for the ones who need the invoice to read
+            differently from the listing (e.g. "Basmati Rice 5kg" on the shelf, "rice (premium
+            basmati)" on the bill). UOM prints next to the quantity; cess is a declaration and
+            is only ever charged at the CBIC's published rate for the code. */}
+        <h4 style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0B3D2E", margin: "1rem 0 0.5rem" }}>
+          Bill &amp; Print
+        </h4>
+        {fld("Bill / invoice description", "billDescription", "textarea", null,
+          "Printed on invoices and tax bills. Leave blank to use the product name.")}
+        <div style={S.grid2}>
+          {fld("Unit of measure", "uom", null, UNITS_OF_MEASURE, "Printed beside the quantity, e.g. 5 KG.")}
+          {fld("Cess rate %", "cessRate", "number", null,
+            "Declaration only — cess is charged at the CBIC rate for this code, never at this number.")}
+        </div>
         <div style={S.grid2}>
           {fld("Country of Origin", "countryOfOrigin", null, COUNTRIES)}
           {fld("Warranty", "warranty", null, WARRANTY)}

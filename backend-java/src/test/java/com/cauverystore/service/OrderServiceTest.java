@@ -132,7 +132,7 @@ class OrderServiceTest {
         order.setDeliveryCharge(null);
         order.setTotalAmount(840.0);
         when(gstRateResolver.resolve(any(), anyBoolean(), any(), any()))
-                .thenReturn(new GstRateResolver.Resolved(5.0, false, "1006", true));
+                .thenReturn(new GstRateResolver.Resolved(5.0, 0.0, false, "1006", true));
 
         InvoiceResponse invoice = orderService.getInvoice(44L, "Bearer token");
 

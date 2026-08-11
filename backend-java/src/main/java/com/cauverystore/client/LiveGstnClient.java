@@ -1,6 +1,7 @@
 package com.cauverystore.client;
 
 import com.cauverystore.entities.GstInvoice;
+import com.cauverystore.entities.GstInvoiceItem;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,10 +35,11 @@ import java.util.Map;
  * <h2>Read this before switching it on</h2>
  *
  * <b>This code has never made a single call to the IRP.</b> It was written from the published
- * API specification, and there was no sandbox account to try it against. Treat it as a
- * starting point that needs a run against the NIC sandbox before it goes anywhere near a real
- * invoice - the auth handshake in particular is the kind of thing that is either exactly right
- * or completely wrong, with little in between.
+ * API specification, and there was no sandbox account to try it against. The payload now
+ * carries the ItemList and supplier state code the schema makes mandatory (see
+ * buildInvoicePayload), but the auth handshake in particular is the kind of thing that is
+ * either exactly right or completely wrong, with little in between. Treat it as a starting
+ * point that needs a run against the NIC sandbox before it goes anywhere near a real invoice.
  *
  * Selected only when <code>gstn.simulated=false</code>. The default is the simulated client,
  * so nothing here runs by accident.
@@ -108,6 +111,12 @@ public class LiveGstnClient implements GstnClient {
         return false;
     }
 
+    @Override
+    public boolean isConfigured() {
+        return !isBlank(clientId) && !isBlank(clientSecret) && !isBlank(username)
+                && !isBlank(password) && !isBlank(gstin) && !isBlank(publicKeyBase64);
+    }
+
     /**
      * Fails fast when the portal is only half-configured.
      *
@@ -115,8 +124,7 @@ public class LiveGstnClient implements GstnClient {
      * the one invoice that needs registering, not prevent the whole store from booting.
      */
     private void assertConfigured() {
-        if (isBlank(clientId) || isBlank(clientSecret) || isBlank(username)
-                || isBlank(password) || isBlank(gstin) || isBlank(publicKeyBase64)) {
+        if (!isConfigured()) {
             throw new IrpException(
                     "The live e-invoice client is enabled (gstn.simulated=false) but not fully "
                             + "configured. It needs gstn.client-id, client-secret, username, "
@@ -245,8 +253,19 @@ public class LiveGstnClient implements GstnClient {
      *
      * Only the fields the portal requires are sent. Anything it does not ask for is left out
      * rather than guessed at, because a schema violation is rejected outright.
+     *
+     * The two things that changed since this was first written from the spec:
+     *
+     * - ItemList is mandatory. An invoice with header amounts but no lines is rejected - the
+     *   IRP re-derives the header totals from the lines and refuses a mismatch. Every line the
+     *   store charged (goods at their HSN, delivery at its SAC) goes up as its own entry with
+     *   its own GstRt, cess and TotItemVal.
+     *
+     * - SellerDtls must carry the supplier's state. Error 2258 rejects a supplier whose state
+     *   code does not match the state inside the GSTIN, so it is derived from the GSTIN rather
+     *   than trusted to the seller's address text, which a typo could split.
      */
-    private Map<String, Object> buildInvoicePayload(GstInvoice inv) {
+    Map<String, Object> buildInvoicePayload(GstInvoice inv) {
         Map<String, Object> doc = new LinkedHashMap<>();
         doc.put("Version", "1.1");
 
@@ -261,23 +280,101 @@ public class LiveGstnClient implements GstnClient {
                 "No", inv.getInvoiceNumber(),
                 "Dt", inv.getInvoiceDate() == null ? "" : inv.getInvoiceDate().format(IRP_DATE)));
 
-        doc.put("SellerDtls", Map.of("Gstin", inv.getSellerGstin()));
+        Map<String, Object> seller = new LinkedHashMap<>();
+        seller.put("Gstin", inv.getSellerGstin());
+        // The state code is the first two characters of the GSTIN by construction - the only
+        // value the IRP's state-code check will accept.
+        String sellerState = stateCodeOf(inv.getSellerGstin());
+        if (sellerState != null) seller.put("Stcd", sellerState);
+        if (!isBlank(inv.getSellerLegalName())) seller.put("LglNm", inv.getSellerLegalName());
+        if (!isBlank(inv.getSellerAddress())) seller.put("Addr1", inv.getSellerAddress());
+        doc.put("SellerDtls", seller);
 
         Map<String, Object> buyer = new LinkedHashMap<>();
         buyer.put("Gstin", isBlank(inv.getBuyerGstin()) ? "URP" : inv.getBuyerGstin());
         buyer.put("LglNm", inv.getBuyerName());
         buyer.put("Pos", posCode(inv));
         buyer.put("Addr1", inv.getBuyerAddress());
+        String buyerState = stateCodeOf(inv.getBuyerGstin());
+        if (buyerState == null) buyerState = normalizeStateCode(inv.getBuyerStateCode());
+        if (buyerState != null) buyer.put("Stcd", buyerState);
         doc.put("BuyerDtls", buyer);
 
+        doc.put("ItemList", buildItemList(inv));
         doc.put("ValDtls", Map.of(
                 "AssVal", nz(inv.getTaxableAmount()),
                 "CgstVal", nz(inv.getCgstAmount()),
                 "SgstVal", nz(inv.getSgstAmount()),
                 "IgstVal", nz(inv.getIgstAmount()),
+                "CessVal", nz(inv.getTotalCess()),
+                // No state cess exists under the present law, so the field is always zero;
+                // it is sent anyway because the portal's success responses carry it and the
+                // schema validates it as part of the amount reconciliation.
+                "StCesVal", 0.0,
                 "TotInvVal", nz(inv.getTotalAmount())));
 
         return doc;
+    }
+
+    /**
+     * One entry per invoice line, carrying the same figures the store charged the customer.
+     *
+     * TotItemVal is the assessable value plus the GST and cess on that line, which is what the
+     * IRP reconciles against the header totals - a line whose figures do not add up is a
+     * rejected invoice. The delivery line is a service (SAC), so IsServc is Y and its HSN cell
+     * carries the SAC, exactly as the portal expects for a service entry.
+     */
+    List<Map<String, Object>> buildItemList(GstInvoice inv) {
+        List<Map<String, Object>> items = new java.util.ArrayList<>();
+        if (inv.getItems() == null) return items;
+        int slNo = 1;
+        for (GstInvoiceItem line : inv.getItems()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("SlNo", String.valueOf(slNo++));
+            String hsn = line.getHsnCode();
+            boolean isService = isBlank(hsn) && !isBlank(line.getSacCode());
+            if (isService) hsn = line.getSacCode();
+            item.put("PrdDesc", !isBlank(line.getBillDescription())
+                    ? line.getBillDescription() : line.getProductName());
+            item.put("IsServc", isService ? "Y" : "N");
+            if (!isBlank(hsn)) item.put("HsnCd", hsn);
+            item.put("Qty", line.getQuantity() == null ? 1 : line.getQuantity());
+            item.put("Unit", !isBlank(line.getUnitOfMeasure()) ? line.getUnitOfMeasure() : "NOS");
+            item.put("UnitPrice", nz(line.getUnitPrice()));
+            double assAmt = nz(line.getTaxableValue());
+            item.put("TotAmt", assAmt);
+            item.put("AssAmt", assAmt);
+            // GstRt is the combined rate whether the supply is inter (IGST) or intra (CGST+SGST).
+            item.put("GstRt", nz(line.getIgstRate()) + nz(line.getCgstRate()) + nz(line.getSgstRate()));
+            item.put("IgstAmt", nz(line.getIgstAmount()));
+            item.put("CgstAmt", nz(line.getCgstAmount()));
+            item.put("SgstAmt", nz(line.getSgstAmount()));
+            if (nz(line.getCessRate()) > 0) {
+                item.put("CesRt", nz(line.getCessRate()));
+                item.put("CesAmt", nz(line.getCessAmount()));
+            }
+            item.put("TotItemVal", Math.round((assAmt
+                    + nz(line.getIgstAmount()) + nz(line.getCgstAmount())
+                    + nz(line.getSgstAmount()) + nz(line.getCessAmount())) * 100.0) / 100.0);
+            items.add(item);
+        }
+        return items;
+    }
+
+    /** First two characters of a GSTIN - the state code by construction. */
+    private static String stateCodeOf(String gstin) {
+        if (gstin == null || gstin.length() < 2) return null;
+        String code = gstin.substring(0, 2);
+        return code.chars().allMatch(Character::isDigit) ? code : null;
+    }
+
+    /** A stored state code is sometimes "7" instead of "07"; the IRP wants two digits. */
+    private static String normalizeStateCode(String code) {
+        if (code == null || code.isBlank()) return null;
+        String trimmed = code.trim();
+        if (trimmed.matches("\\d{2}")) return trimmed;
+        if (trimmed.matches("\\d{1}")) return "0" + trimmed;
+        return null;
     }
 
     /** Place of supply as the two-digit state code the IRP expects. */

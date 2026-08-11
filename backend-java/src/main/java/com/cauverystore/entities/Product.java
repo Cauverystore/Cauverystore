@@ -48,6 +48,35 @@ public class Product extends BaseEntity {
     private String hsnCode;
 
     /**
+     * What the seller wants printed on the bill and invoice for this product.
+     *
+     * Legal GST invoices must carry a description of the goods - Rule 46(b) of the CGST Rules
+     * calls it the description of goods - and the seller may want that text to differ from the
+     * marketing name shown in the shop. Falls back to the product name when left blank.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String billDescription;
+
+    /**
+     * Compensation cess rate for this product, percent of taxable value, when its HSN carries one.
+     *
+     * Cess is a separate charge from GST: it is levied on a subset of goods (pan masala,
+     * tobacco, aerated drinks, motor vehicles) under the GST (Compensation to States) Act 2017
+     * and is collected along with the tax, but reported and remitted separately. It is never
+     * guessed - a seller who sets it here for an HSN that does not carry cess will simply have
+     * it ignored when the rate master is consulted.
+     */
+    private Double cessRate;
+
+    /**
+     * Unit of measure for this product on the bill (NOS, KGS, MTR, BOX, ...).
+     *
+     * GSTR-1 and the e-invoice schema require the quantity's unit; the invoice must not print a
+     * bare "10" that could be ten bags or ten grams. Defaults to NOS when left blank.
+     */
+    private String uom;
+
+    /**
      * Whether this is supplied in pre-packaged and labelled form.
      *
      * Staples are taxed on packaging rather than on what they are - rice under 1006 is 5%
@@ -705,4 +734,22 @@ public class Product extends BaseEntity {
 
     @java.lang.SuppressWarnings("all")
     public void setMissingFields(final Integer missingFields) { this.missingFields = missingFields; }
+
+    @java.lang.SuppressWarnings("all")
+    public String getBillDescription() { return this.billDescription; }
+
+    @java.lang.SuppressWarnings("all")
+    public void setBillDescription(final String billDescription) { this.billDescription = billDescription; }
+
+    @java.lang.SuppressWarnings("all")
+    public Double getCessRate() { return this.cessRate; }
+
+    @java.lang.SuppressWarnings("all")
+    public void setCessRate(final Double cessRate) { this.cessRate = cessRate; }
+
+    @java.lang.SuppressWarnings("all")
+    public String getUom() { return this.uom; }
+
+    @java.lang.SuppressWarnings("all")
+    public void setUom(final String uom) { this.uom = uom; }
 }

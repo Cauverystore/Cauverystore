@@ -17,6 +17,14 @@ public class GstInvoiceItem {
     private GstInvoice invoice;
 
     private String productName;
+
+    /**
+     * The description printed on the invoice, copied from the product's bill description
+     * (falling back to the product name) at the moment the invoice is raised, so a seller who
+     * later edits the product does not rewrite what an issued invoice already says.
+     */
+    private String billDescription;
+
     private String hsnCode;
     private String sacCode;
     private String unitOfMeasure = "NOS";
@@ -29,6 +37,14 @@ public class GstInvoiceItem {
     private Double sgstAmount;
     private Double igstRate;
     private Double igstAmount;
+
+    /**
+     * Compensation cess on this line. Cess is a percentage of the taxable value like GST, but
+     * separate from it in every return and on the face of the invoice.
+     */
+    private Double cessRate;
+    private Double cessAmount;
+
     private Double totalAmount;
 
     /**
@@ -44,6 +60,8 @@ public class GstInvoiceItem {
     public void setInvoice(GstInvoice invoice) { this.invoice = invoice; }
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }
+    public String getBillDescription() { return billDescription; }
+    public void setBillDescription(String billDescription) { this.billDescription = billDescription; }
     public String getHsnCode() { return hsnCode; }
     public void setHsnCode(String hsnCode) { this.hsnCode = hsnCode; }
     public String getSacCode() { return sacCode; }
@@ -68,6 +86,10 @@ public class GstInvoiceItem {
     public void setIgstRate(Double igstRate) { this.igstRate = igstRate; }
     public Double getIgstAmount() { return igstAmount; }
     public void setIgstAmount(Double igstAmount) { this.igstAmount = igstAmount; }
+    public Double getCessRate() { return cessRate; }
+    public void setCessRate(Double cessRate) { this.cessRate = cessRate; }
+    public Double getCessAmount() { return cessAmount; }
+    public void setCessAmount(Double cessAmount) { this.cessAmount = cessAmount; }
     public Boolean getRateFromMaster() { return rateFromMaster; }
     public void setRateFromMaster(Boolean rateFromMaster) { this.rateFromMaster = rateFromMaster; }
     public Double getTotalAmount() { return totalAmount; }

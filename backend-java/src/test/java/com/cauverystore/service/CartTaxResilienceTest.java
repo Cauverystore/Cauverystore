@@ -124,7 +124,7 @@ class CartTaxResilienceTest {
         Product ok = add(1L, "Cotton Lungi", 450.0, 2);
         Product bad = add(2L, "Unclassified", 100.0, 1);
         when(gstRateResolver.resolve(eq(ok), anyBoolean(), any(), anyDouble()))
-                .thenReturn(new GstRateResolver.Resolved(5.0, false, "52095110", true));
+                .thenReturn(new GstRateResolver.Resolved(5.0, 0.0, false, "52095110", true));
         when(gstRateResolver.resolve(eq(bad), anyBoolean(), any(), anyDouble()))
                 .thenThrow(new GstRateResolver.GstRateUnresolvedException("no rate"));
 
@@ -138,7 +138,7 @@ class CartTaxResilienceTest {
     void shouldReportACleanCartAsComplete() {
         Product ok = add(1L, "Cotton Lungi", 450.0, 1);
         when(gstRateResolver.resolve(eq(ok), anyBoolean(), any(), anyDouble()))
-                .thenReturn(new GstRateResolver.Resolved(5.0, false, "52095110", true));
+                .thenReturn(new GstRateResolver.Resolved(5.0, 0.0, false, "52095110", true));
 
         Map<String, Object> details = service.getCartWithDetails(user);
 

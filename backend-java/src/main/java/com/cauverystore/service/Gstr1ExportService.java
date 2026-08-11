@@ -11,7 +11,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * Builds GSTR-1 in the shape the GST offline utility actually accepts.
@@ -65,6 +64,7 @@ public class Gstr1ExportService {
     /** One invoice line collapsed to the rate it was taxed at. */
     private static class RateLine {
         double rate;
+        double cess;
         double taxable;
         double igst;
         double cgst;
@@ -80,16 +80,23 @@ public class Gstr1ExportService {
      *
      * The rate is taken from the item, not the invoice header: the header holds a single rate
      * and an order can easily mix 5% staples with 18% electronics.
+     *
+     * Keyed on rate AND cess, because the two are independent: two HSNs at the same 28% can
+     * differ on whether compensation cess applies, and GSTR-1 reports the cess figure against
+     * the line it belongs to rather than across the whole rate.
      */
-    private Map<Double, RateLine> linesByRate(GstInvoice inv) {
-        Map<Double, RateLine> byRate = new TreeMap<>();
+    private Map<String, RateLine> linesByRate(GstInvoice inv) {
+        Map<String, RateLine> byRate = new LinkedHashMap<>();
         for (GstInvoiceItem item : inv.getItems()) {
             double rate = nz(item.getIgstRate()) > 0
                     ? nz(item.getIgstRate())
                     : nz(item.getCgstRate()) + nz(item.getSgstRate());
-            RateLine line = byRate.computeIfAbsent(rate, r -> {
+            double cess = nz(item.getCessRate());
+            String key = rate + "|" + cess;
+            RateLine line = byRate.computeIfAbsent(key, k -> {
                 RateLine fresh = new RateLine();
-                fresh.rate = r;
+                fresh.rate = rate;
+                fresh.cess = cess;
                 return fresh;
             });
             line.taxable += nz(item.getTaxableValue());
@@ -123,7 +130,7 @@ public class Gstr1ExportService {
                 row.put("E-Commerce GSTIN", "");
                 row.put("Rate", round(line.rate));
                 row.put("Taxable Value", round(line.taxable));
-                row.put("Cess Amount", 0.0);
+                row.put("Cess Amount", round(line.cess));
                 rows.add(row);
             }
         }
@@ -145,7 +152,7 @@ public class Gstr1ExportService {
                 row.put("Applicable % of Tax Rate", "");
                 row.put("Rate", round(line.rate));
                 row.put("Taxable Value", round(line.taxable));
-                row.put("Cess Amount", 0.0);
+                row.put("Cess Amount", round(line.cess));
                 row.put("E-Commerce GSTIN", "");
                 rows.add(row);
             }
@@ -167,7 +174,7 @@ public class Gstr1ExportService {
             if (GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) continue;
             boolean interState = Boolean.TRUE.equals(inv.getIsInterState());
             for (RateLine line : linesByRate(inv).values()) {
-                String key = (interState ? "INTER" : "INTRA") + "|" + inv.getPlaceOfSupply() + "|" + line.rate;
+                String key = (interState ? "INTER" : "INTRA") + "|" + inv.getPlaceOfSupply() + "|" + line.rate + "|" + line.cess;
                 Map<String, Object> row = aggregated.computeIfAbsent(key, k -> {
                     Map<String, Object> fresh = new LinkedHashMap<>();
                     fresh.put("Type", interState ? "INTER" : "INTRA");
@@ -180,6 +187,7 @@ public class Gstr1ExportService {
                     return fresh;
                 });
                 row.put("Taxable Value", round((Double) row.get("Taxable Value") + line.taxable));
+                row.put("Cess Amount", round((Double) row.get("Cess Amount") + line.cess));
             }
         }
         return new ArrayList<>(aggregated.values());
@@ -192,7 +200,7 @@ public class Gstr1ExportService {
      * the return being filed from this data.
      */
     public List<Map<String, Object>> hsnSummary(List<GstInvoice> invoices) {
-        Map<String, Map<String, Object>> byHsnAndRate = new TreeMap<>();
+        Map<String, Map<String, Object>> byHsnAndRate = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
             for (GstInvoiceItem item : inv.getItems()) {
                 double rate = nz(item.getIgstRate()) > 0
@@ -223,6 +231,7 @@ public class Gstr1ExportService {
                 add(row, "Integrated Tax Amount", nz(item.getIgstAmount()));
                 add(row, "Central Tax Amount", nz(item.getCgstAmount()));
                 add(row, "State/UT Tax Amount", nz(item.getSgstAmount()));
+                add(row, "Cess Amount", nz(item.getCessAmount()));
             }
         }
         return new ArrayList<>(byHsnAndRate.values());

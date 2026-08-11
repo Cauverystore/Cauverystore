@@ -203,9 +203,12 @@ public class CartServiceImpl implements CartService {
             double unitPrice = effectiveUnitPrice(item);
             double lineValue = unitPrice * item.getQuantity();
             try {
-                double rate = gstRateResolver
-                        .resolve(item.getProduct(), false, LocalDate.now(), unitPrice).getTotalRate();
-                cartTax += Math.round(lineValue * rate / 100.0 * 100.0) / 100.0;
+                GstRateResolver.Resolved resolved = gstRateResolver
+                        .resolve(item.getProduct(), false, LocalDate.now(), unitPrice);
+                cartTax += Math.round(lineValue * resolved.getTotalRate() / 100.0 * 100.0) / 100.0;
+                // Cess is charged to the customer like GST, so it belongs in the figure this
+                // page shows as tax, or the cart and the checkout bill would disagree.
+                cartTax += resolved.cessOn(lineValue);
             } catch (GstRateResolver.GstRateUnresolvedException e) {
                 // A cart is a display, not a tax point. Letting this escape made one
                 // unclassified product break the whole cart endpoint, so the basket would not

@@ -92,7 +92,8 @@ public class GstMasterDataLoader {
 
     /** Bump when the rate seed is regenerated from a newer CBIC notification. */
     private static final String RATE_SOURCE_VERSION =
-            "CBIC Notif. 09/2025-CT(Rate) as amended by 19/2025-CT(Rate) (eff. 01-02-2026) and 01/2026-CT(Rate) (eff. 01-05-2026)";
+            "CBIC Notif. 09/2025-CT(Rate) as amended by 19/2025-CT(Rate) (eff. 01-02-2026) and 01/2026-CT(Rate) (eff. 01-05-2026); "
+            + "compensation cess per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026";
 
     private final HsnMasterRepository hsnRepo;
     private final UnitMasterRepository unitRepo;
@@ -297,6 +298,9 @@ public class GstMasterDataLoader {
             r.setThresholdUnit(text(n, "thresholdUnit"));
             r.setConditionText(text(n, "conditionText"));
             r.setWholeChapter(n.hasNonNull("wholeChapter") && n.get("wholeChapter").asBoolean());
+            // A seed row may publish a compensation cess (a percentage of the taxable value,
+            // like GST). Absent, it is nil - which is a legal position, not a default.
+            r.setCessRate(n.hasNonNull("cessRate") ? n.get("cessRate").asDouble() : 0.0);
             if (!isAmbiguous) {
                 r.setVerifiedBy(AUTO_VERIFIER);
                 r.setVerifiedAt(LocalDateTime.now());
@@ -310,25 +314,28 @@ public class GstMasterDataLoader {
         int demoted = demoteStaleAutoVerified(existing, seedVerified, seedHeadings);
         int retracted = retractFabricatedCodes(existing);
         int flagged = backfillWholeChapterFlag(rows, existing);
+        int cessSynced = syncSeedCess(rows, existing);
 
-        if (inserted > 0 || demoted > 0 || closed > 0 || retracted > 0 || flagged > 0) {
+        if (inserted > 0 || demoted > 0 || closed > 0 || retracted > 0 || flagged > 0 || cessSynced > 0) {
             MasterUpdateLog entry = new MasterUpdateLog();
             entry.setFileName("gst_rate_seed.json");
             entry.setVersion(RATE_SOURCE_VERSION);
             entry.setRowsLoaded(rows.size());
             entry.setRowsInserted(inserted);
-            entry.setRowsUpdated(demoted);
+            entry.setRowsUpdated(demoted + cessSynced);
             entry.setStatus("SUCCESS");
             entry.setChangesDetected(inserted + " rate rows inserted; " + ambiguous
                     + " left UNVERIFIED because the heading carries more than one rate; "
                     + demoted + " previously auto-verified rows demoted for review; "
                     + closed + " rows closed off on the date a later notification ended them; "
                     + retracted + " rows retracted as not being real HSN headings; "
-                    + flagged + " chapter rows had their whole-chapter flag corrected");
+                    + flagged + " chapter rows had their whole-chapter flag corrected; "
+                    + cessSynced + " rows had their compensation cess aligned with the seed");
             logRepo.save(entry);
         }
         log.info("GST rates: {} rows in file, {} inserted ({} ambiguous held for review), "
-                        + "{} demoted, {} closed off", rows.size(), inserted, ambiguous, demoted, closed);
+                        + "{} demoted, {} closed off, {} cess rows synced", rows.size(), inserted,
+                ambiguous, demoted, closed, cessSynced);
         return rows.size();
     }
 
@@ -504,6 +511,52 @@ public class GstMasterDataLoader {
         String cond = (conditionType == null || conditionType.isBlank())
                 ? GstRateMaster.CONDITION_NONE : conditionType;
         return hsn + "|" + rate + "|" + from + "|" + cond;
+    }
+
+    /**
+     * Aligns the compensation cess on existing rows with what the seed publishes.
+     *
+     * The rate load is insert-only, so a cess the seed states never reaches a row that already
+     * exists - exactly the situation that makes the whole-chapter flag pass and the demotion
+     * pass necessary. Compensation cess follows the same rules as GST: the only lawful figure
+     * is one CBIC published, so when the seed now says nil (Notif. 03/2025-Compensation Cess
+     * (Rate) eff. 01-02-2026) and the database still carries an older positive figure, the row
+     * must not go on charging it.
+     *
+     * Only rows this loader itself approved are touched, mirroring demoteStaleAutoVerified:
+     * a cess a human set (or a row a human verified) is their call, not the generator's. And a
+     * row the seed does not speak to - it has no cessRate cell - is never rewritten, because an
+     * admin may have entered a positive cess by hand precisely for goods the seed has no view on.
+     */
+    private int syncSeedCess(List<JsonNode> rows, Map<String, List<GstRateMaster>> existing) {
+        Map<String, Double> seedCess = new HashMap<>();
+        for (JsonNode n : rows) {
+            if (!n.hasNonNull("cessRate")) continue;
+            String hsn = text(n, "hsnCode");
+            if (hsn == null || n.get("gstRate") == null || text(n, "effectiveFrom") == null) continue;
+            seedCess.put(rateKey(hsn, n.get("gstRate").asDouble(),
+                    text(n, "effectiveFrom"), text(n, "conditionType")), n.get("cessRate").asDouble());
+        }
+        if (seedCess.isEmpty()) return 0;
+
+        List<GstRateMaster> toSync = new ArrayList<>();
+        for (List<GstRateMaster> perHsn : existing.values()) {
+            for (GstRateMaster r : perHsn) {
+                if (!r.isVerified() || !AUTO_VERIFIER.equals(r.getVerifiedBy())) continue;
+                Double wanted = seedCess.get(rateKey(r.getHsnCode(), r.getGstRate(),
+                        r.getEffectiveFrom() == null ? null : r.getEffectiveFrom().toString(),
+                        r.getConditionType()));
+                if (wanted == null) continue;
+                if (Double.compare(r.getCessRate() == null ? 0.0 : r.getCessRate(), wanted) == 0) continue;
+                r.setCessRate(wanted);
+                toSync.add(r);
+            }
+        }
+        if (!toSync.isEmpty()) {
+            rateRepo.saveAll(toSync);
+            log.info("Aligned compensation cess on {} existing rate row(s) with the seed.", toSync.size());
+        }
+        return toSync.size();
     }
 
     private int loadHsn() {

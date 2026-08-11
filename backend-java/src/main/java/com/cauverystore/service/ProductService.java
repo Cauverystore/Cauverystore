@@ -514,6 +514,18 @@ public class ProductService {
           if (product.getGstRateSelectionId() != null) {
               existing.setGstRateSelectionId(product.getGstRateSelectionId());
           }
+          // Print details: what appears on the bill, the seller's declared cess rate (which is
+          // only ever confirmed against the master, never charged on its say-so), and the unit
+          // of measure. Null in the payload means "unchanged", matching the fields above.
+          if (product.getBillDescription() != null) {
+              existing.setBillDescription(product.getBillDescription());
+          }
+          if (product.getCessRate() != null) {
+              existing.setCessRate(product.getCessRate());
+          }
+          if (product.getUom() != null) {
+              existing.setUom(product.getUom());
+          }
           hsnClassificationService.validate(existing);
           withdrawFromSaleIfUntaxable(existing);
           Product saved = productRepo.save(existing);

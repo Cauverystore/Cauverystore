@@ -141,6 +141,7 @@ const DebitNoteView = () => {
   if (!debitNote) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>Debit note not found.</div>;
 
   const dn = debitNote;
+  const hasCess = (dn.items || []).some((i) => (i.cessAmount || 0) > 0);
 
   return (
     <>
@@ -224,6 +225,7 @@ const DebitNoteView = () => {
                     <th style={{ textAlign: "right" }}>Taxable Value</th>
                     {!dn.isInterState && <><th style={{ textAlign: "right" }}>CGST</th><th style={{ textAlign: "right" }}>{dn.utgstApplied ? "UTGST" : "SGST"}</th></>}
                     {dn.isInterState && <th style={{ textAlign: "right" }}>IGST</th>}
+                    {hasCess && <th style={{ textAlign: "right" }}>Cess</th>}
                     <th style={{ textAlign: "right" }}>Total</th>
                   </tr>
                 </thead>
@@ -232,12 +234,13 @@ const DebitNoteView = () => {
                     <tr key={i}>
                       <td>{i + 1}</td>
                       <td className="giv-hsn">{item.hsnCode || "-"}</td>
-                      <td>{item.productName}</td>
-                      <td className="giv-amt">{item.quantity}</td>
+                      <td>{item.billDescription || item.productName}</td>
+                      <td className="giv-amt">{item.quantity}{item.unitOfMeasure && item.unitOfMeasure !== "NOS" ? " " + item.unitOfMeasure : ""}</td>
                       <td className="giv-amt">&#8377;{(item.unitPrice || 0).toFixed(2)}</td>
                       <td className="giv-amt">&#8377;{(item.taxableValue || 0).toFixed(2)}</td>
                       {!dn.isInterState && <><td className="giv-amt">{(item.cgstRate || 0)}%<br />&#8377;{(item.cgstAmount || 0).toFixed(2)}</td><td className="giv-amt">{(item.sgstRate || 0)}%<br />&#8377;{(item.sgstAmount || 0).toFixed(2)}</td></>}
                       {dn.isInterState && <td className="giv-amt">{(item.igstRate || 0)}%<br />&#8377;{(item.igstAmount || 0).toFixed(2)}</td>}
+                      {hasCess && <td className="giv-amt">{(item.cessRate || 0)}%<br />&#8377;{(item.cessAmount || 0).toFixed(2)}</td>}
                       <td className="giv-amt giv-amt-total">&#8377;{(item.totalAmount || 0).toFixed(2)}</td>
                     </tr>
                   ))}
@@ -252,6 +255,7 @@ const DebitNoteView = () => {
                   {!dn.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(dn.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>{dn.utgstApplied ? "UTGST" : "SGST"}</td><td style={{ color: "#7c3aed" }}>&#8377;{(dn.sgstAmount || 0).toFixed(2)}</td></tr></>}
                   {dn.isInterState && <tr><td>IGST</td><td style={{ color: "#d97706" }}>&#8377;{(dn.igstAmount || 0).toFixed(2)}</td></tr>}
                   <tr><td>Total Tax</td><td>&#8377;{(dn.totalTax || 0).toFixed(2)}</td></tr>
+                  {dn.totalCess > 0 && <tr><td>Compensation Cess</td><td style={{ color: "#b45309" }}>&#8377;{(dn.totalCess || 0).toFixed(2)}</td></tr>}
                   {dn.tcsAmount > 0 && <tr><td>TCS</td><td style={{ color: "#dc2626" }}>&#8377;{(dn.tcsAmount || 0).toFixed(2)}</td></tr>}
                   <tr className="giv-sum-total"><td>Total Amount Payable</td><td>&#8377;{(dn.totalAmount || 0).toFixed(2)}</td></tr>
                 </tbody>

@@ -76,7 +76,7 @@ class CheckoutBillServiceTest {
     }
 
     private GstRateResolver.Resolved resolved(double rate, boolean interState, String hsn) {
-        return new GstRateResolver.Resolved(rate, interState, hsn, true);
+        return new GstRateResolver.Resolved(rate, 0.0, interState, hsn, true);
     }
 
     @SuppressWarnings("unchecked")

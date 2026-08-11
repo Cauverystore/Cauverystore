@@ -58,7 +58,7 @@ class GstInvoiceServiceTest {
         // These tests are about invoice structure, not rate sourcing - GstRateResolverTest
         // covers where the rate comes from. A flat 12% keeps the expected figures readable.
         lenient().when(gstRateResolver.resolve(any(), anyBoolean(), any(), any()))
-                .thenAnswer(i -> new GstRateResolver.Resolved(12.0, i.getArgument(1), "1006", true));
+                .thenAnswer(i -> new GstRateResolver.Resolved(12.0, 0.0, i.getArgument(1), "1006", true));
 
         config = new GstConfiguration();
         config.setGstin(SELLER_GSTIN_TN);
@@ -246,6 +246,74 @@ class GstInvoiceServiceTest {
         assertNotNull(inv.getAckNo());
         assertTrue(GstComplianceUtil.requiresEInvoice(config.getAnnualTurnover()));
         verify(gstnClient).generateIrn(inv);
+    }
+
+    @Test
+    void generate_shouldChargeCessFromThePublishedRow_andPutItOnTheLine() {
+        stubCommonRepos();
+        when(gstRateResolver.resolve(any(), anyBoolean(), any(), any()))
+                .thenReturn(new GstRateResolver.Resolved(12.0, 5.0, false, "1006", true));
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        assertEquals(1, inv.getItems().size());
+        GstInvoiceItem line = inv.getItems().get(0);
+        assertEquals(5.0, line.getCessRate(), 0.001);
+        assertEquals(50.0, line.getCessAmount(), 0.01, "1000 taxable x 5% cess");
+        assertEquals(50.0, inv.getTotalCess(), 0.01);
+        assertEquals(1000.0, inv.getTaxableAmount(), 0.01);
+        assertEquals(60.0, inv.getCgstAmount(), 0.01);
+        assertEquals(60.0, inv.getSgstAmount(), 0.01);
+        assertEquals(120.0, inv.getTotalTax(), 0.01);
+        assertEquals(1170.0, inv.getTotalAmount(), 0.01,
+                "total is taxable + tax + cess; the customer pays the cess");
+        assertEquals(1170.0, line.getTotalAmount(), 0.01,
+                "the line's own total carries its cess too");
+    }
+
+    @Test
+    void generate_shouldIgnoreTheSellersOwnCessEntry_whenThePublishedRowHasNone() {
+        // The product's cessRate is a declaration, not a source: cess comes from the same
+        // published row that decides the GST rate. A seller entering a rate here must not
+        // invent a charge the CBIC has not put on these goods.
+        stubCommonRepos();
+        product.setCessRate(12.0);
+        when(gstRateResolver.resolve(any(), anyBoolean(), any(), any()))
+                .thenReturn(new GstRateResolver.Resolved(12.0, 0.0, false, "1006", true));
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        assertEquals(0.0, inv.getTotalCess(), 0.01);
+        assertEquals(1120.0, inv.getTotalAmount(), 0.01, "taxable 1000 + 12% GST, no cess");
+    }
+
+    @Test
+    void generate_shouldUseTheSellersBillDescriptionAndUnitOfMeasure() {
+        stubCommonRepos();
+        product.setBillDescription("Kurta, handloom cotton");
+        product.setUom("PAIR");
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        GstInvoiceItem line = inv.getItems().get(0);
+        assertEquals("Kurta, handloom cotton", line.getBillDescription());
+        assertEquals("PAIR", line.getUnitOfMeasure());
+    }
+
+    @Test
+    void generate_shouldFallBackToTheProductName_andNos_whenNothingIsSet() {
+        stubCommonRepos();
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        GstInvoiceItem line = inv.getItems().get(0);
+        assertEquals("Cotton Kurta", line.getBillDescription(),
+                "the invoice description falls back to the product name");
+        assertEquals("NOS", line.getUnitOfMeasure());
     }
 
     @Test

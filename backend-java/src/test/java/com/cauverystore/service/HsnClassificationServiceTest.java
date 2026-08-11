@@ -21,6 +21,7 @@ import org.mockito.quality.Strictness;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -379,5 +380,55 @@ class HsnClassificationServiceTest {
         assertTrue(java.util.Arrays.stream(HsnClassificationService.class.getDeclaredFields())
                         .noneMatch(f -> f.getName().toLowerCase().contains("require")),
                 "no configurable escape hatch may exist on this guard");
+    }
+
+    @Test
+    void ratePreview_shouldResolveThroughTheSameRowTheInvoiceWouldUse() {
+        // The form's preview is only worth anything if it shows what will actually be charged -
+        // the same walk as the invoice, cess and all. It must not re-derive the rate separately,
+        // or a conditional heading could preview one rate and invoice another.
+        GstRateMaster row = new GstRateMaster();
+        row.setHsnCode("0901");
+        row.setGstRate(5.0);
+        row.setCessRate(0.0);
+        row.setConditionText("Coffee, roasted");
+        when(rateResolver.findRateRow("0901", LocalDate.now(), null, true))
+                .thenReturn(Optional.of(row));
+
+        Map<String, Object> preview = service.ratePreview("0901", null, true);
+
+        assertEquals(5.0, preview.get("gstRate"));
+        assertEquals(0.0, preview.get("cessRate"));
+        assertEquals("0901", preview.get("hsnCode"));
+        assertEquals("Coffee, roasted", preview.get("description"));
+    }
+
+    @Test
+    void ratePreview_shouldIncludeThePublishedCess_whenTheRowCarriesOne() {
+        // A pan masala heading previewed without its cess would understate what the customer
+        // pays by more than half, which is not a preview anyone can rely on.
+        GstRateMaster row = new GstRateMaster();
+        row.setHsnCode("2404");
+        row.setGstRate(28.0);
+        row.setCessRate(40.0);
+        row.setConditionText("Chewing tobacco");
+        when(rateResolver.findRateRow(anyString(), any(), any(), any()))
+                .thenReturn(Optional.of(row));
+
+        Map<String, Object> preview = service.ratePreview("2404", null, null);
+
+        assertEquals(40.0, preview.get("cessRate"));
+    }
+
+    @Test
+    void ratePreview_shouldBeEmpty_whenTheCodeCannotYetBeResolved() {
+        // Empty, not an error: the rate-options question or a missing code is what stands in
+        // the way, and the form shows that instead of a preview.
+        when(rateResolver.findRateRow(anyString(), any(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        assertTrue(service.ratePreview("0901", null, true).isEmpty());
+        assertTrue(service.ratePreview(null, null, true).isEmpty());
+        assertTrue(service.ratePreview("  ", null, true).isEmpty());
     }
 }

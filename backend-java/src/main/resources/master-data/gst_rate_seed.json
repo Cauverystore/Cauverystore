@@ -3470,6 +3470,7 @@
   {
     "hsnCode": "21069020",
     "gstRate": 40.0,
+    "cessRate": 0.0,
     "effectiveFrom": "2026-02-01",
     "effectiveTo": null,
     "status": "VERIFIED",
@@ -3477,7 +3478,7 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Pan masala",
-    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate))",
+    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate)); compensation cess Nil per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026",
     "notes": ""
   },
   {
@@ -3951,6 +3952,7 @@
   {
     "hsnCode": "2401",
     "gstRate": 40.0,
+    "cessRate": 0.0,
     "effectiveFrom": "2026-02-01",
     "effectiveTo": null,
     "status": "UNVERIFIED",
@@ -3958,12 +3960,13 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Unmanufactured tobacco; tobacco refuse [other than tobacco leaves]",
-    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate))",
+    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate)); compensation cess Nil per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026",
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
   },
   {
     "hsnCode": "2402",
     "gstRate": 40.0,
+    "cessRate": 0.0,
     "effectiveFrom": "2026-02-01",
     "effectiveTo": null,
     "status": "VERIFIED",
@@ -3971,12 +3974,13 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Cigars, cheroots, cigarillos and cigarettes, of tobacco or of tobacco substitutes",
-    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate))",
+    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate)); compensation cess Nil per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026",
     "notes": ""
   },
   {
     "hsnCode": "2403",
     "gstRate": 40.0,
+    "cessRate": 0.0,
     "effectiveFrom": "2026-02-01",
     "effectiveTo": null,
     "status": "VERIFIED",
@@ -3984,12 +3988,13 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Other manufactured tobacco and manufactured tobacco substitutes; homogenised or reconstituted tobacco; tobacco extracts and essences [other than biris; biris are 18% under 2403 19 21 / 2403 19 29]",
-    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate))",
+    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate)); compensation cess Nil per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026",
     "notes": ""
   },
   {
     "hsnCode": "24031921",
     "gstRate": 18.0,
+    "cessRate": 0.0,
     "effectiveFrom": "2026-02-01",
     "effectiveTo": null,
     "status": "VERIFIED",
@@ -3997,12 +4002,13 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Biris",
-    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate))",
+    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate)); compensation cess Nil per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026",
     "notes": ""
   },
   {
     "hsnCode": "24031929",
     "gstRate": 18.0,
+    "cessRate": 0.0,
     "effectiveFrom": "2026-02-01",
     "effectiveTo": null,
     "status": "VERIFIED",
@@ -4010,12 +4016,13 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Biris",
-    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate))",
+    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate)); compensation cess Nil per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026",
     "notes": ""
   },
   {
     "hsnCode": "24041100",
     "gstRate": 40.0,
+    "cessRate": 0.0,
     "effectiveFrom": "2026-02-01",
     "effectiveTo": null,
     "status": "VERIFIED",
@@ -4023,7 +4030,7 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Products containing tobacco or reconstituted tobacco and intended for inhalation without combustion",
-    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate))",
+    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate)); compensation cess Nil per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026",
     "notes": ""
   },
   {
@@ -4042,6 +4049,7 @@
   {
     "hsnCode": "24041900",
     "gstRate": 40.0,
+    "cessRate": 0.0,
     "effectiveFrom": "2026-02-01",
     "effectiveTo": null,
     "status": "VERIFIED",
@@ -4049,7 +4057,7 @@
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "Products containing tobacco or nicotine substitutes and intended for inhalation without combustion",
-    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate))",
+    "source": "CBIC Notif. 19/2025-CT(Rate) eff. 01-02-2026 (amends 09/2025-CT(Rate)); compensation cess Nil per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026",
     "notes": ""
   },
   {

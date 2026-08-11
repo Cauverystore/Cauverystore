@@ -445,4 +445,95 @@ class GstMasterDataLoaderTest {
         assertFalse(narrowChapterRow.coversWholeChapter(),
                 "chapter 71's entry is the Reserve Bank exemption, not a rate for all jewellery");
     }
+
+    // ---------------------------------------------------- compensation cess
+
+    @Test
+    void shouldCarryTheSeedsNilCessAndItsCitationOntoInsertedTobaccoRows() {
+        // Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026 set the whole tobacco and
+        // pan masala schedule to nil. The seed publishes that explicitly now, and the loader
+        // must read the cell - before this, the figure silently defaulted and no trace of the
+        // notification survived on the row.
+        when(rateRepo.findAll()).thenReturn(List.of());
+
+        List<GstRateMaster> saved = runAndCaptureSaves();
+
+        GstRateMaster cigarettes = saved.stream()
+                .filter(r -> "2402".equals(r.getHsnCode()))
+                .findFirst().orElseThrow();
+        assertEquals(0.0, cigarettes.getCessRate(),
+                "compensation cess on tobacco has been nil since 01-02-2026");
+        assertTrue(cigarettes.getSource() != null
+                        && cigarettes.getSource().contains("03/2025-Compensation Cess (Rate)"),
+                "the notification that made it nil must be traceable on the row");
+
+        GstRateMaster biris = saved.stream()
+                .filter(r -> "24031921".equals(r.getHsnCode()))
+                .findFirst().orElseThrow();
+        assertEquals(18.0, biris.getGstRate());
+        assertEquals(0.0, biris.getCessRate());
+
+        GstRateMaster panMasala = saved.stream()
+                .filter(r -> "21069020".equals(r.getHsnCode()))
+                .findFirst().orElseThrow();
+        assertEquals(0.0, panMasala.getCessRate());
+    }
+
+    @Test
+    void shouldNotInventAPositiveCessAnywhereInTheSeed() {
+        // The September 2025 reform folded the cess on aerated drinks, coal and the rest into
+        // the 40% slab, and 03/2025-Compensation Cess (Rate) did the same for tobacco from
+        // 01-02-2026. A stale positive figure anywhere would be a levy nobody published.
+        when(rateRepo.findAll()).thenReturn(List.of());
+
+        List<GstRateMaster> saved = runAndCaptureSaves();
+
+        assertTrue(saved.stream().allMatch(r -> r.getCessRate() == null || r.getCessRate() == 0.0),
+                "the current seed levies no compensation cess on any heading");
+    }
+
+    @Test
+    void shouldSyncTheSeedsNilCessOntoAnExistingAutoVerifiedTobaccoRow() {
+        // The rate load is insert-only, so a row written while tobacco still carried a positive
+        // cess keeps it unless something actively corrects it - and there is nothing between the
+        // old notification and the new one to justify 12%, so the store would go on overcharging.
+        GstRateMaster staleCess = autoVerified("2402", 40.0);
+        staleCess.setEffectiveFrom(LocalDate.of(2026, 2, 1));
+        staleCess.setCessRate(12.0);
+        when(rateRepo.findAll()).thenReturn(List.of(staleCess));
+
+        runAndCaptureSaves();
+
+        assertEquals(0.0, staleCess.getCessRate(),
+                "the row must stop charging the cess the seed now says is nil");
+    }
+
+    @Test
+    void shouldNotOverwriteACessAHumanSet() {
+        // An admin may hold a different view on a specific heading than the seed's generator;
+        // like a demotion, the sync only touches what the generator itself approved.
+        GstRateMaster humanCess = autoVerified("2402", 40.0);
+        humanCess.setEffectiveFrom(LocalDate.of(2026, 2, 1));
+        humanCess.setVerifiedBy("CA review 2026-08");
+        humanCess.setCessRate(15.0);
+        when(rateRepo.findAll()).thenReturn(List.of(humanCess));
+
+        runAndCaptureSaves();
+
+        assertEquals(15.0, humanCess.getCessRate(),
+                "a signed-off cess must survive the restart");
+    }
+
+    @Test
+    void shouldLeaveAloneARowTheSeedDoesNotSpeakTo() {
+        // Goods with no cess cell in the seed might carry a hand-entered cess the generator has
+        // no view on; rewriting it to zero would be inventing a legal position.
+        GstRateMaster bespoke = autoVerified("220210", 40.0);
+        bespoke.setCessRate(3.0);
+        when(rateRepo.findAll()).thenReturn(List.of(bespoke));
+
+        runAndCaptureSaves();
+
+        assertEquals(3.0, bespoke.getCessRate());
+    }
 }

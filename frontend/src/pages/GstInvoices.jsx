@@ -325,7 +325,7 @@ const GstInvoices = () => {
               <div className="gst-table-wrap">
                 <table className="gst-table">
                   <thead>
-                    <tr><th>Invoice #</th><th>Order ID</th><th>Date</th><th>Taxable Amt</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th><th>TCS</th><th>ITC</th><th>IRN</th><th>Status</th><th>Actions</th></tr>
+                    <tr><th>Invoice #</th><th>Order ID</th><th>Date</th><th>Taxable Amt</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Cess</th><th>Total</th><th>TCS</th><th>ITC</th><th>IRN</th><th>Status</th><th>Actions</th></tr>
                   </thead>
                   <tbody>
                     {invoices.map((inv) => (
@@ -338,6 +338,7 @@ const GstInvoices = () => {
                           <td>&#8377;{(inv.cgstAmount || 0).toFixed(2)}</td>
                           <td>&#8377;{(inv.sgstAmount || 0).toFixed(2)}</td>
                           <td>&#8377;{(inv.igstAmount || 0).toFixed(2)}</td>
+                          <td style={{ color: (inv.totalCess || 0) > 0 ? "#b45309" : "#94a3b8" }}>&#8377;{(inv.totalCess || 0).toFixed(2)}</td>
                           <td style={{ fontWeight: 600 }}>&#8377;{(inv.totalAmount || 0).toFixed(2)}</td>
                           <td>&#8377;{(inv.tcsAmount || 0).toFixed(2)}</td>
                           <td>
@@ -368,7 +369,7 @@ const GstInvoices = () => {
                           </td>
                         </tr>
                         {expandedInvoice === inv.id && (
-                          <tr><td colSpan={13} style={{ padding: "0.5rem 1rem 1rem", background: "#f8fafc" }}>
+                          <tr><td colSpan={14} style={{ padding: "0.5rem 1rem 1rem", background: "#f8fafc" }}>
                             <div style={{ fontSize: "0.82rem", color: "#475569" }}>
                               <strong>Buyer:</strong> {inv.buyerName} ({inv.buyerGstin}) |
                               <strong> Place of Supply:</strong> {inv.placeOfSupply} |

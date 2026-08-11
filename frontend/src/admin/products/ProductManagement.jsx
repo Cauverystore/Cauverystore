@@ -5,6 +5,7 @@ import api from "../../api/axios";
 import { imgUrl } from "../../utils/images";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
+import GstPreview from "./GstPreview";
 import "../../styles/admin.css";
 
 const CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"];
@@ -13,6 +14,7 @@ const WARRANTY = ["6 Months","1 Year","2 Years","3 Years","No Warranty"];
 const RETURN_POLICY = ["7 Days","10 Days","15 Days","No Returns"];
 const SHIPPING_CLASS = ["Standard","Express","Heavy","Fragile"];
 const BADGES = ["None","New Arrival","Best Seller","Limited Offer","Discount"];
+const UNITS_OF_MEASURE = ["NOS","KG","G","ML","L","M","SQ.M","CBM","PAIR","PCS","BOX","SET","ROLL","PACK","BOTTLE","CAN","JAR","TUBE","STRIP","UNIT"];
 
 function slugify(t) { return t.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").substring(0,80); }
 
@@ -35,7 +37,7 @@ const ProductManagement = () => {
   const canManageCategories = isAdmin || role === "EXECUTIVE" || isSuperAdmin;
 
   const [tab, setTab] = useState("add");
-  const [form, setForm] = useState({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
+  const [form, setForm] = useState({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",billDescription:"",cessRate:"",uom:"NOS",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState(null);
   const [products, setProducts] = useState([]);
@@ -89,10 +91,10 @@ const ProductManagement = () => {
     setSubmitting(true); setMsg(null);
     try {
       const ep = isSeller?"/api/seller/products":"/api/admin/products/add";
-      const data = { name:form.name,brand:form.brand,price:parseFloat(form.price),stock:parseInt(form.stock),sku:form.sku,description:form.description,manufacturer:form.manufacturer,modelNumber:form.modelNumber,barcode:form.barcode,hsnCode:form.hsnCode,prePackagedAndLabelled:form.prePackagedAndLabelled,gstRateSelectionId:form.gstRateSelectionId??null,countryOfOrigin:form.countryOfOrigin,shortDescription:form.shortDescription,technicalSpecs:form.technicalSpecs,warranty:form.warranty,returnPolicy:form.returnPolicy,metaTitle:form.metaTitle,metaDescription:form.metaDescription,metaKeywords:form.keywords,slug:form.slug||slugify(form.name),weight:form.weight?parseFloat(form.weight):null,dimensions:form.dimensions,shippingClass:form.shippingClass,deliveryDays:form.deliveryDays?parseInt(form.deliveryDays):null,badges:form.badges!=="None"?[form.badges]:[] };
+      const data = { name:form.name,brand:form.brand,price:parseFloat(form.price),stock:parseInt(form.stock),sku:form.sku,description:form.description,manufacturer:form.manufacturer,modelNumber:form.modelNumber,barcode:form.barcode,hsnCode:form.hsnCode,prePackagedAndLabelled:form.prePackagedAndLabelled,gstRateSelectionId:form.gstRateSelectionId??null,countryOfOrigin:form.countryOfOrigin,shortDescription:form.shortDescription,technicalSpecs:form.technicalSpecs,warranty:form.warranty,returnPolicy:form.returnPolicy,metaTitle:form.metaTitle,metaDescription:form.metaDescription,metaKeywords:form.keywords,billDescription:form.billDescription.trim()||null,cessRate:form.cessRate!==""?parseFloat(form.cessRate):null,uom:form.uom||"NOS",slug:form.slug||slugify(form.name),weight:form.weight?parseFloat(form.weight):null,dimensions:form.dimensions,shippingClass:form.shippingClass,deliveryDays:form.deliveryDays?parseInt(form.deliveryDays):null,badges:form.badges!=="None"?[form.badges]:[] };
       await api.post(ep, data);
       setMsg({type:"success",text:"Product created!"}); loadProducts();
-      setForm({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
+      setForm({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",billDescription:"",cessRate:"",uom:"NOS",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
     } catch (err) { setMsg({type:"error",text:err.response?.data?.error||"Failed"}); }
     setSubmitting(false);
   };
@@ -250,6 +252,17 @@ const ProductManagement = () => {
             value={form.gstRateSelectionId}
             onChange={(rateId)=>set("gstRateSelectionId",rateId)}
           />
+          <GstPreview
+            hsnCode={form.hsnCode}
+            unitPrice={form.price?parseFloat(form.price):undefined}
+            prePackaged={form.prePackagedAndLabelled}
+          />
+          <h4 style={{margin:"1rem 0 0.5rem",fontSize:"0.9rem",fontWeight:600,color:"#0B3D2E"}}>Bill & Print</h4>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
+            {fld("Unit of measure","uom",null,UNITS_OF_MEASURE,"Printed beside the quantity, e.g. 5 KG.")}
+            {fld("Cess rate %","cessRate","number",null,"Declaration only — cess is charged at the CBIC rate for this code.")}
+          </div>
+          {fld("Bill / invoice description","billDescription","textarea",null,"Printed on invoices. Leave blank to use the product name.")}
         </div>
         <div style={S.section}><h3 style={S.sTitle}>SEO</h3>
           {fld("Meta Title","metaTitle",null,null,"Max 60 chars")}{fld("Meta Description","metaDescription","textarea",null,"Max 160 chars")}
@@ -313,7 +326,7 @@ const ProductManagement = () => {
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.85rem"}}>
               <thead><tr style={{background:"#f8f8f8"}}>
                 <th style={{padding:"10px",width:30}}><input type="checkbox" checked={selected.size===filtered.length&&filtered.length>0} onChange={selectAll} /></th>
-                <th style={{padding:"10px",textAlign:"left"}}>Image</th><th style={{padding:"10px",textAlign:"left"}}>Code</th><th style={{padding:"10px",textAlign:"left"}}>Name</th><th style={{padding:"10px",textAlign:"left"}}>Price</th><th style={{padding:"10px",textAlign:"left"}}>Stock</th><th style={{padding:"10px",textAlign:"left"}}>Status</th><th style={{padding:"10px",textAlign:"left"}}>Actions</th>
+                <th style={{padding:"10px",textAlign:"left"}}>Image</th><th style={{padding:"10px",textAlign:"left"}}>Code</th><th style={{padding:"10px",textAlign:"left"}}>Name</th><th style={{padding:"10px",textAlign:"left"}}>Price</th><th style={{padding:"10px",textAlign:"left"}}>Stock</th><th style={{padding:"10px",textAlign:"left"}}>GST</th><th style={{padding:"10px",textAlign:"left"}}>Status</th><th style={{padding:"10px",textAlign:"left"}}>Actions</th>
               </tr></thead>
               <tbody>{filtered.map(p=><tr key={p.id} style={{borderBottom:"1px solid var(--sn-border)"}}>
                 <td style={{padding:"10px"}}><input type="checkbox" checked={selected.has(p.id)} onChange={()=>toggleSel(p.id)} /></td>
@@ -332,6 +345,10 @@ const ProductManagement = () => {
                 <td style={{padding:"10px",fontFamily:"monospace"}}>{p.productCode||"N/A"}</td><td style={{padding:"10px"}}>{p.name}</td>
                 <td style={{padding:"10px"}}>₹{p.price?.toLocaleString()}</td>
                 <td style={{padding:"10px",color:p.stock<5?"#dc2626":"inherit",fontWeight:p.stock<5?700:400}}>{p.stock??0}</td>
+                <td style={{padding:"10px",fontSize:"0.78rem",color:"#4b5563"}}>
+                  <span style={{fontFamily:"monospace",fontSize:"0.72rem"}}>{p.hsnCode||"—"}</span>
+                  <span style={{display:"block",fontSize:"0.72rem"}}>{p.uom||"NOS"}{p.billDescription ? ` · ${p.billDescription}` : ""}</span>
+                </td>
                 <td style={{padding:"10px"}}>
                   <select value={p.active?"active":"suspended"} onChange={e=>toggleStatus(p.id,e.target.value==="active")}
                     style={{padding:"2px 6px",borderRadius:"4px",fontSize:"0.75rem",border:"1px solid #CFE8D6",background:p.active?"#EAF7EE":"#fef2f2",color:p.active?"#146C43":"#dc2626"}}>
@@ -340,7 +357,7 @@ const ProductManagement = () => {
                 </td>
                 <td style={{padding:"10px",display:"flex",gap:"6px",flexWrap:"wrap"}}>
                   <button onClick={()=>navigate(`/admin/products/${p.id}/images`)} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#EAF7EE",color:"#146C43",cursor:"pointer",fontSize:"0.75rem",fontWeight:600}}>Images</button>
-                  <button onClick={()=>{setEditing(p);setEditForm({name:p.name||"",price:p.price||"",stock:p.stock||"",description:p.description||"",brand:p.brand||"",hsnCode:p.hsnCode||"",prePackagedAndLabelled:p.prePackagedAndLabelled!==false,gstRateSelectionId:p.gstRateSelectionId??undefined});switchTab("edit")}} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Edit</button>
+                  <button onClick={()=>{setEditing(p);setEditForm({name:p.name||"",price:p.price||"",stock:p.stock||"",description:p.description||"",brand:p.brand||"",hsnCode:p.hsnCode||"",prePackagedAndLabelled:p.prePackagedAndLabelled!==false,gstRateSelectionId:p.gstRateSelectionId??undefined,billDescription:p.billDescription||"",cessRate:p.cessRate??"",uom:p.uom||"NOS"});switchTab("edit")}} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Edit</button>
                   <button onClick={()=>delProduct(p.id)} style={{padding:"4px 10px",border:"1px solid #fecaca",borderRadius:"4px",background:"#fef2f2",color:"#dc2626",cursor:"pointer",fontSize:"0.8rem"}}>Delete</button>
                 </td>
               </tr>)}</tbody>
@@ -393,6 +410,29 @@ const ProductManagement = () => {
               onChange={(rateId)=>setEditForm(f=>({...f,gstRateSelectionId:rateId}))}
               productStatus={editing.status}
             />
+            <GstPreview
+              hsnCode={editForm.hsnCode}
+              unitPrice={editForm.price?parseFloat(editForm.price):undefined}
+              prePackaged={editForm.prePackagedAndLabelled}
+            />
+            <div style={{borderTop:"1px solid #EAF7EE",marginTop:"0.75rem",paddingTop:"0.75rem"}}>
+              <h4 style={{margin:"0 0 0.6rem",fontSize:"0.9rem",fontWeight:600,color:"#146C43"}}>Bill & Print</h4>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
+                <div style={S.field}><label style={S.label}>Unit of measure</label>
+                  <select style={S.select} value={editForm.uom||"NOS"} onChange={e=>setEditForm(f=>({...f,uom:e.target.value}))}>
+                    {UNITS_OF_MEASURE.map(o=><option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div style={S.field}><label style={S.label}>Cess rate %</label>
+                  <input style={S.input} type="number" min="0" value={editForm.cessRate??""} onChange={e=>setEditForm(f=>({...f,cessRate:e.target.value}))} />
+                  <div style={{fontSize:"0.7rem",color:"#64748B",marginTop:"2px"}}>Declaration only — cess is charged at the CBIC rate for this code.</div>
+                </div>
+              </div>
+              <div style={S.field}><label style={S.label}>Bill / invoice description</label>
+                <textarea style={S.textarea} value={editForm.billDescription||""} onChange={e=>setEditForm(f=>({...f,billDescription:e.target.value}))} />
+                <div style={{fontSize:"0.7rem",color:"#64748B",marginTop:"2px"}}>Printed on invoices. Leave blank to use the product name.</div>
+              </div>
+            </div>
           </div>
 
           <div style={{display:"flex",gap:"10px",marginTop:"0.75rem",justifyContent:"flex-end"}}>

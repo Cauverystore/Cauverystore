@@ -171,6 +171,7 @@ const GstInvoiceView = () => {
   if (!invoice) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>Invoice not found.</div>;
 
   const statusClass = invoice.status === "SYNCED" ? "giv-status-synced" : invoice.status === "SYNC_FAILED" ? "giv-status-failed" : invoice.status === "GENERATED" ? "giv-status-generated" : "giv-status-draft";
+  const hasCess = (invoice.items || []).some((i) => (i.cessAmount || 0) > 0);
 
   return (
     <>
@@ -271,6 +272,7 @@ const GstInvoiceView = () => {
                     <th style={{ textAlign: "right" }}>Taxable Value</th>
                     {!invoice.isInterState && <><th style={{ textAlign: "right" }}>CGST</th><th style={{ textAlign: "right" }}>{invoice.utgstApplied ? "UTGST" : "SGST"}</th></>}
                     {invoice.isInterState && <th style={{ textAlign: "right" }}>IGST</th>}
+                    {hasCess && <th style={{ textAlign: "right" }}>Cess</th>}
                     <th style={{ textAlign: "right" }}>Total</th>
                   </tr>
                 </thead>
@@ -279,12 +281,13 @@ const GstInvoiceView = () => {
                     <tr key={i}>
                       <td>{i + 1}</td>
                       <td className="giv-hsn">{item.hsnCode || "-"}</td>
-                      <td>{item.productName}</td>
-                      <td className="giv-amt">{item.quantity}</td>
+                      <td>{item.billDescription || item.productName}</td>
+                      <td className="giv-amt">{item.quantity}{item.unitOfMeasure && item.unitOfMeasure !== "NOS" ? " " + item.unitOfMeasure : ""}</td>
                       <td className="giv-amt">&#8377;{(item.unitPrice || 0).toFixed(2)}</td>
                       <td className="giv-amt">&#8377;{(item.taxableValue || 0).toFixed(2)}</td>
                       {!invoice.isInterState && <><td className="giv-amt">{(item.cgstRate || 0)}%<br />&#8377;{(item.cgstAmount || 0).toFixed(2)}</td><td className="giv-amt">{(item.sgstRate || 0)}%<br />&#8377;{(item.sgstAmount || 0).toFixed(2)}</td></>}
                       {invoice.isInterState && <td className="giv-amt">{(item.igstRate || 0)}%<br />&#8377;{(item.igstAmount || 0).toFixed(2)}</td>}
+                      {hasCess && <td className="giv-amt">{(item.cessRate || 0)}%<br />&#8377;{(item.cessAmount || 0).toFixed(2)}</td>}
                       <td className="giv-amt giv-amt-total">&#8377;{(item.totalAmount || 0).toFixed(2)}</td>
                     </tr>
                   ))}
@@ -332,6 +335,12 @@ const GstInvoiceView = () => {
                   <div className="giv-tax-label">Total Tax</div>
                   <div className="giv-tax-value">&#8377;{(invoice.totalTax || 0).toFixed(2)}</div>
                 </div>
+                {(invoice.totalCess > 0) && (
+                  <div className="giv-tax-card">
+                    <div className="giv-tax-label">Compensation Cess</div>
+                    <div className="giv-tax-value" style={{ color: "#b45309" }}>&#8377;{(invoice.totalCess || 0).toFixed(2)}</div>
+                  </div>
+                )}
                 <div className="giv-tax-card">
                   <div className="giv-tax-label">TCS @ {(invoice.tcsRate || 1)}%</div>
                   <div className="giv-tax-value" style={{ color: "#dc2626" }}>&#8377;{(invoice.tcsAmount || 0).toFixed(2)}</div>
@@ -348,6 +357,7 @@ const GstInvoiceView = () => {
                   {!invoice.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(invoice.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>{invoice.utgstApplied ? "UTGST" : "SGST"}</td><td style={{ color: "#7c3aed" }}>&#8377;{(invoice.sgstAmount || 0).toFixed(2)}</td></tr></>}
                   {invoice.isInterState && <tr><td>IGST</td><td style={{ color: "#d97706" }}>&#8377;{(invoice.igstAmount || 0).toFixed(2)}</td></tr>}
                   <tr><td>Total Tax</td><td>&#8377;{(invoice.totalTax || 0).toFixed(2)}</td></tr>
+                  {(invoice.totalCess > 0) && <tr><td>Compensation Cess</td><td style={{ color: "#b45309" }}>&#8377;{(invoice.totalCess || 0).toFixed(2)}</td></tr>}
                   <tr><td>TCS @ {(invoice.tcsRate || 1)}%</td><td style={{ color: "#dc2626" }}>&#8377;{(invoice.tcsAmount || 0).toFixed(2)}</td></tr>
                   <tr className="giv-sum-total"><td>Total Amount</td><td>&#8377;{(invoice.totalAmount || 0).toFixed(2)}</td></tr>
                 </tbody>

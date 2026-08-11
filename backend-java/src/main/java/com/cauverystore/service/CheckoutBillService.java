@@ -89,7 +89,7 @@ public class CheckoutBillService {
 
         List<Map<String, Object>> lines = new ArrayList<>();
         List<Map<String, Object>> blocked = new ArrayList<>();
-        double taxable = 0, cgst = 0, sgst = 0, igst = 0;
+        double taxable = 0, cgst = 0, sgst = 0, igst = 0, cess = 0;
         boolean anyInterState = false;
 
         // With no destination there is no place of supply, and every line's tax heads are
@@ -126,6 +126,7 @@ public class CheckoutBillService {
             double lineCgst = round(lineValue * resolved.getCgstRate() / 100.0);
             double lineSgst = round(lineValue * resolved.getSgstRate() / 100.0);
             double lineIgst = round(lineValue * resolved.getIgstRate() / 100.0);
+            double lineCess = round(lineValue * resolved.getCessRate() / 100.0);
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("productId", product.getId());
@@ -138,29 +139,34 @@ public class CheckoutBillService {
             row.put("cgstRate", resolved.getCgstRate());
             row.put("sgstRate", resolved.getSgstRate());
             row.put("igstRate", resolved.getIgstRate());
+            row.put("cessRate", resolved.getCessRate());
             row.put("cgstAmount", lineCgst);
             row.put("sgstAmount", lineSgst);
             row.put("igstAmount", lineIgst);
+            row.put("cessAmount", lineCess);
             row.put("taxAmount", round(lineCgst + lineSgst + lineIgst));
             // What this line actually costs, which is the number a customer is looking for.
-            row.put("lineTotal", round(lineValue + lineCgst + lineSgst + lineIgst));
+            row.put("lineTotal", round(lineValue + lineCgst + lineSgst + lineIgst + lineCess));
             lines.add(row);
 
             taxable += lineValue;
             cgst += lineCgst;
             sgst += lineSgst;
             igst += lineIgst;
+            cess += lineCess;
         }
 
         double totalTax = round(cgst + sgst + igst);
+        double totalCess = round(cess);
         Map<String, Object> bill = new LinkedHashMap<>();
         bill.put("lines", lines);
         bill.put("taxableValue", round(taxable));
         bill.put("cgstAmount", round(cgst));
         bill.put("sgstAmount", round(sgst));
         bill.put("igstAmount", round(igst));
+        bill.put("totalCess", totalCess);
         bill.put("totalTax", totalTax);
-        bill.put("payable", round(taxable + totalTax));
+        bill.put("payable", round(taxable + totalTax + totalCess));
         bill.put("placeOfSupply", deliveryStateCode);
         bill.put("taxType", deliveryStateCode == null ? null : (anyInterState ? "IGST" : "CGST+SGST"));
         bill.put("blocked", blocked);

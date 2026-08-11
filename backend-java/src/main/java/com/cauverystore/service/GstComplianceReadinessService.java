@@ -1,5 +1,6 @@
 package com.cauverystore.service;
 
+import com.cauverystore.client.GstnClient;
 import com.cauverystore.entities.GstConfiguration;
 import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.entities.GstInvoice;
@@ -45,6 +46,7 @@ public class GstComplianceReadinessService {
     private final GstRateFreshnessService freshnessService;
     private final GstRateMasterRepository rateRepo;
     private final SellerRegistrationRepository sellerRegRepo;
+    private final GstnClient gstnClient;
 
     public GstComplianceReadinessService(ProductRepository productRepo,
                                          HsnMasterRepository hsnRepo,
@@ -53,7 +55,8 @@ public class GstComplianceReadinessService {
                                          GstConfigurationRepository configRepo,
                                          GstRateFreshnessService freshnessService,
                                          GstRateMasterRepository rateRepo,
-                                         SellerRegistrationRepository sellerRegRepo) {
+                                         SellerRegistrationRepository sellerRegRepo,
+                                         GstnClient gstnClient) {
         this.productRepo = productRepo;
         this.hsnRepo = hsnRepo;
         this.rateResolver = rateResolver;
@@ -62,6 +65,7 @@ public class GstComplianceReadinessService {
         this.freshnessService = freshnessService;
         this.rateRepo = rateRepo;
         this.sellerRegRepo = sellerRegRepo;
+        this.gstnClient = gstnClient;
     }
 
     /** Why one product cannot be taxed correctly, and what fixes it. */
@@ -240,7 +244,44 @@ public class GstComplianceReadinessService {
         out.put("pendingRateNotifications", freshnessService.pendingNotifications());
         out.put("invoicesTaxedByFallbackCount", badInvoices.size());
         out.put("invoicesTaxedByFallback", badInvoices);
+        out.put("irp", irpStatus());
         return out;
+    }
+
+    /**
+     * Whether the e-invoice portal is really registering invoices, and what stands between the
+     * operator and it.
+     *
+     * The store runs on the simulator unless someone has both selected the live client and
+     * given it every credential - a live client that is selected but half-configured refuses
+     * registration rather than guessing, which this surfaces as MISCONFIGURED so the refusal is
+     * not mistaken for a quiet breakage.
+     */
+    private Map<String, Object> irpStatus() {
+        Map<String, Object> status = new LinkedHashMap<>();
+        boolean simulated = gstnClient.isSimulated();
+        boolean configured = gstnClient.isConfigured();
+        status.put("mode", simulated ? "SIMULATED" : "LIVE");
+        status.put("configured", configured);
+        status.put("active", !simulated && configured);
+        if (simulated) {
+            status.put("status", "INACTIVE");
+            status.put("message", "The e-invoice portal is not in use. Every invoice gets a locally "
+                    + "drawn IRN and QR that the government portal has never seen - correct for "
+                    + "development, and fine below the e-invoicing threshold. To switch on, set "
+                    + "gstn.simulated=false and add the six gstn.* credentials after a run against "
+                    + "the NIC sandbox.");
+        } else if (!configured) {
+            status.put("status", "MISCONFIGURED");
+            status.put("message", "The live client is selected (gstn.simulated=false) but not fully "
+                    + "configured. Invoice registration is refused, never simulated. Supply the six "
+                    + "gstn.* credentials (client-id, client-secret, username, password, gstin, "
+                    + "public-key) to activate.");
+        } else {
+            status.put("status", "ACTIVE");
+            status.put("message", "Invoices are registered with the live IRP and carry a genuine IRN.");
+        }
+        return status;
     }
 
     private List<String> marketplaceGaps() {

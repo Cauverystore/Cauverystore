@@ -44,14 +44,16 @@ public class GstRateResolver {
     /** The GST split that applies to one supply. */
     public static class Resolved {
         private final double totalRate;
+        private final double cessRate;
         private final double cgstRate;
         private final double sgstRate;
         private final double igstRate;
         private final String hsnCode;
         private final boolean fromMaster;
 
-        Resolved(double totalRate, boolean interState, String hsnCode, boolean fromMaster) {
+        Resolved(double totalRate, double cessRate, boolean interState, String hsnCode, boolean fromMaster) {
             this.totalRate = totalRate;
+            this.cessRate = cessRate;
             this.hsnCode = hsnCode;
             this.fromMaster = fromMaster;
             if (interState) {
@@ -66,6 +68,13 @@ public class GstRateResolver {
         }
 
         public double getTotalRate() { return totalRate; }
+        /**
+         * Compensation cess, percent of taxable value, from the same master row that gave the
+         * GST rate. Zero for goods the CBIC has not put cess on. Always the published rate:
+         * like the GST rate it is never guessed, so the seller's own cessRate entry cannot make
+         * a charge appear where the master says none exists.
+         */
+        public double getCessRate() { return cessRate; }
         public double getCgstRate() { return cgstRate; }
         public double getSgstRate() { return sgstRate; }
         public double getIgstRate() { return igstRate; }
@@ -84,6 +93,7 @@ public class GstRateResolver {
         public double cgstOn(double taxableValue) { return round(taxableValue * cgstRate / 100.0); }
         public double sgstOn(double taxableValue) { return round(taxableValue * sgstRate / 100.0); }
         public double igstOn(double taxableValue) { return round(taxableValue * igstRate / 100.0); }
+        public double cessOn(double taxableValue) { return round(taxableValue * cessRate / 100.0); }
 
         /**
          * Total tax as the sum of the components actually printed on the invoice.
@@ -121,6 +131,19 @@ public class GstRateResolver {
      */
     public Optional<Double> findRate(String hsnCode, LocalDate onDate,
                                      Double unitPrice, Boolean prePackaged) {
+        return findRateRow(hsnCode, onDate, unitPrice, prePackaged).map(GstRateMaster::getGstRate);
+    }
+
+    /**
+     * The verified master row that prices these goods on the given date, if any.
+     *
+     * Shared by findRate and resolve: the row that decides the GST rate also carries the cess
+     * rate, and the two must come from the same row or a conditional heading could split its
+     * cess from its GST. A caller that only needs the rate uses findRate; one that charges or
+     * prints the line needs this row so it can carry both.
+     */
+    Optional<GstRateMaster> findRateRow(String hsnCode, LocalDate onDate,
+                                        Double unitPrice, Boolean prePackaged) {
         if (hsnCode == null || hsnCode.isBlank()) return Optional.empty();
         String hsn = hsnCode.replaceAll("\\s", "");
         LocalDate date = onDate != null ? onDate : LocalDate.now();
@@ -152,14 +175,14 @@ public class GstRateResolver {
                     .filter(r -> r.appliesTo(unitPrice, prePackaged))
                     .toList();
             if (conditionMatches.size() == 1) {
-                return Optional.of(conditionMatches.get(0).getGstRate());
+                return Optional.of(conditionMatches.get(0));
             }
 
             List<GstRateMaster> unconditional = hits.stream()
                     .filter(r -> !r.isConditional())
                     .toList();
             if (unconditional.size() == 1) {
-                return Optional.of(unconditional.get(0).getGstRate());
+                return Optional.of(unconditional.get(0));
             }
             if (unconditional.size() > 1) {
                 // Several unconditional rates on one heading: the goods description decides,
@@ -202,15 +225,17 @@ public class GstRateResolver {
         // A seller who has picked the published line describing their goods has answered the
         // question the rate table cannot: 0901 is 5% roasted and nil green, and only they know
         // which they sell. Their answer wins over the automatic walk below.
-        Optional<Double> chosen = selectedRate(product, onDate);
+        Optional<GstRateMaster> chosen = selectedRateRow(product, onDate);
         if (chosen.isPresent()) {
-            return new Resolved(chosen.get(), interState, hsn, true);
+            GstRateMaster row = chosen.get();
+            return new Resolved(row.getGstRate(), nzCess(row.getCessRate()), interState, hsn, true);
         }
 
-        Optional<Double> rate = findRate(hsn, onDate, unitPrice, prePackaged);
+        Optional<GstRateMaster> rowOpt = findRateRow(hsn, onDate, unitPrice, prePackaged);
 
-        if (rate.isPresent()) {
-            return new Resolved(rate.get(), interState, hsn, true);
+        if (rowOpt.isPresent()) {
+            GstRateMaster row = rowOpt.get();
+            return new Resolved(row.getGstRate(), nzCess(row.getCessRate()), interState, hsn, true);
         }
 
         // There is no fallback. Every rate charged has to be one CBIC published for these
@@ -228,7 +253,7 @@ public class GstRateResolver {
     }
 
     /**
-     * The rate from the line the seller picked, if it still stands up.
+     * The rate row the seller picked, if it still stands up.
      *
      * Deliberately accepts an UNVERIFIED row. Unverified means "ambiguous for this heading in
      * general", not "wrong" - it is exactly the state of a line that needs a human, and the
@@ -236,7 +261,7 @@ public class GstRateResolver {
      * product's code and was in force on the supply date, so a selection cannot outlive the
      * notification that published it or survive the product being re-coded.
      */
-    private Optional<Double> selectedRate(Product product, LocalDate onDate) {
+    private Optional<GstRateMaster> selectedRateRow(Product product, LocalDate onDate) {
         if (product == null || product.getGstRateSelectionId() == null) return Optional.empty();
         LocalDate date = onDate != null ? onDate : LocalDate.now();
 
@@ -262,7 +287,11 @@ public class GstRateResolver {
                     + "notification has moved on. Re-classify it.", product.getName(), date);
             return Optional.empty();
         }
-        return Optional.of(rate.getGstRate());
+        return Optional.of(rate);
+    }
+
+    private static double nzCess(Double cess) {
+        return cess == null ? 0.0 : cess;
     }
 
     /** Thrown in strict mode when a supply cannot be taxed correctly. */

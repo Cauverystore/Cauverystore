@@ -269,7 +269,7 @@ public class GstInvoiceService {
         inv.setInvoiceStatus("PENDING");
 
         double taxableAmount = 0;
-        double totalCgst = 0, totalSgst = 0, totalIgst = 0;
+        double totalCgst = 0, totalSgst = 0, totalIgst = 0, totalCess = 0;
         List<GstInvoiceItem> items = new ArrayList<>();
 
         // Product-level discounts are already baked into OrderItem.price. Coupon discounts are
@@ -320,6 +320,14 @@ public class GstInvoiceService {
             GstInvoiceItem item = new GstInvoiceItem();
             item.setInvoice(inv);
             item.setProductName(p != null ? p.getName() : "Product");
+            // The description printed on the invoice comes from the product's bill description
+            // (Rule 46(b) calls for a description of the goods; a seller may want that text to
+            // differ from the marketing name). Falls back to the product name when not set.
+            String billDescription = (p != null && p.getBillDescription() != null
+                    && !p.getBillDescription().isBlank())
+                    ? p.getBillDescription().trim()
+                    : (p != null ? p.getName() : "Product");
+            item.setBillDescription(billDescription);
             // Mandatory HSN/SAC classification for every line item (Rule 46 & HSN Annexure, CGST
             // Rules): refuse to issue the invoice when the product lacks a classification code
             // instead of silently defaulting to a generic code.
@@ -334,7 +342,8 @@ public class GstInvoiceService {
             item.setUnitPrice(oi.getPrice());
             item.setTaxableValue(taxable);
             item.setRateFromMaster(resolved.isFromMaster());
-            item.setUnitOfMeasure("NOS");
+            item.setUnitOfMeasure(p != null && p.getUom() != null && !p.getUom().isBlank()
+                    ? p.getUom().trim() : "NOS");
 
             if (Boolean.TRUE.equals(inv.getIsInterState())) {
                 item.setIgstRate(gstPct);
@@ -352,6 +361,16 @@ public class GstInvoiceService {
                 item.setIgstRate(0.0); item.setIgstAmount(0.0);
             }
 
+            // Compensation cess from the same master row that priced the GST, charged to the
+            // customer like GST but kept and reported separately. Zero for goods without cess,
+            // whatever the seller may have typed on the product - a published rate is the only
+            // legal figure here, exactly as it is for GST itself.
+            if (resolved.getCessRate() > 0) {
+                item.setCessRate(resolved.getCessRate());
+                item.setCessAmount(Math.round(taxable * resolved.getCessRate() / 100 * 100.0) / 100.0);
+                totalCess += item.getCessAmount();
+            }
+
             if (!goodsTaxSet) {
                 goodsCgstRate = item.getCgstRate() != null ? item.getCgstRate() : 0.0;
                 goodsSgstRate = item.getSgstRate() != null ? item.getSgstRate() : 0.0;
@@ -361,7 +380,8 @@ public class GstInvoiceService {
 
             item.setTotalAmount(taxable + (item.getIgstAmount() != null ? item.getIgstAmount() : 0)
                     + (item.getCgstAmount() != null ? item.getCgstAmount() : 0)
-                    + (item.getSgstAmount() != null ? item.getSgstAmount() : 0));
+                    + (item.getSgstAmount() != null ? item.getSgstAmount() : 0)
+                    + (item.getCessAmount() != null ? item.getCessAmount() : 0));
             items.add(item);
         }
 
@@ -409,6 +429,7 @@ public class GstInvoiceService {
         inv.setTaxableAmount(Math.round(taxableAmount * 100.0) / 100.0);
         inv.setB2cLarge(GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount()));
         inv.setTotalTax(Math.round((totalCgst + totalSgst + totalIgst) * 100.0) / 100.0);
+        inv.setTotalCess(Math.round(totalCess * 100.0) / 100.0);
         inv.setCgstAmount(Math.round(totalCgst * 100.0) / 100.0);
         inv.setSgstAmount(Math.round(totalSgst * 100.0) / 100.0);
         inv.setIgstAmount(Math.round(totalIgst * 100.0) / 100.0);
@@ -473,7 +494,11 @@ public class GstInvoiceService {
         //
         // The amount is still recorded on the invoice, because it is what has to be paid over
         // and declared in GSTR-8. It just is not part of what the customer owes.
-        inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax()) * 100.0) / 100.0);
+        //
+        // Cess is different: it is the customer's to pay, a charge on the goods like GST, and
+        // the total must include it or the bill and the payment would disagree.
+        inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax()
+                + nz(inv.getTotalCess())) * 100.0) / 100.0);
 
         // Supplier signature (Req 11): bind supplier GSTIN + fiscal identity + amounts with a digest
         // so the invoice cannot be altered without invalidating the recorded signature.
@@ -736,6 +761,7 @@ public class GstInvoiceService {
                 endDate != null ? endDate : LocalDate.now());
 
         double totalTaxable = 0, totalCgst = 0, totalSgst = 0, totalIgst = 0, totalTcs = 0;
+        double totalCess = 0;
         int intraState = 0, interState = 0;
 
         for (GstInvoice inv : invoices) {
@@ -743,6 +769,7 @@ public class GstInvoiceService {
             totalCgst += inv.getCgstAmount() != null ? inv.getCgstAmount() : 0;
             totalSgst += inv.getSgstAmount() != null ? inv.getSgstAmount() : 0;
             totalIgst += inv.getIgstAmount() != null ? inv.getIgstAmount() : 0;
+            totalCess += inv.getTotalCess() != null ? inv.getTotalCess() : 0;
             totalTcs += inv.getTcsAmount() != null ? inv.getTcsAmount() : 0;
             if (Boolean.TRUE.equals(inv.getIsInterState())) interState++; else intraState++;
         }
@@ -753,6 +780,7 @@ public class GstInvoiceService {
         summary.put("totalCgst", Math.round(totalCgst * 100.0) / 100.0);
         summary.put("totalSgst", Math.round(totalSgst * 100.0) / 100.0);
         summary.put("totalIgst", Math.round(totalIgst * 100.0) / 100.0);
+        summary.put("totalCess", Math.round(totalCess * 100.0) / 100.0);
         summary.put("totalTax", Math.round((totalCgst + totalSgst + totalIgst) * 100.0) / 100.0);
         summary.put("totalTcs", Math.round(totalTcs * 100.0) / 100.0);
         summary.put("intraStateCount", intraState);
@@ -1421,8 +1449,10 @@ public class GstInvoiceService {
         for (GstInvoiceItem item : items) {
             table.addCell(new Phrase(String.valueOf(sn++), normal9));
             table.addCell(new Phrase(safeStr(item.getSacCode() != null ? item.getSacCode() : item.getHsnCode()), small8));
-            table.addCell(new Phrase(safeStr(item.getProductName()), normal9));
-            table.addCell(new Phrase(String.valueOf(item.getQuantity()), normal9));
+            table.addCell(new Phrase(safeStr(item.getBillDescription() != null
+                    ? item.getBillDescription() : item.getProductName()), normal9));
+            table.addCell(new Phrase(String.valueOf(item.getQuantity())
+                    + (item.getUnitOfMeasure() != null ? " " + item.getUnitOfMeasure() : ""), normal9));
             table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getUnitPrice() != null ? item.getUnitPrice() : 0), normal9));
             table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getTaxableValue() != null ? item.getTaxableValue() : 0), normal9));
             if (Boolean.TRUE.equals(inv.getIsInterState())) {
@@ -1448,6 +1478,7 @@ public class GstInvoiceService {
         double sgst = inv.getSgstAmount() != null ? inv.getSgstAmount() : 0;
         double igst = inv.getIgstAmount() != null ? inv.getIgstAmount() : 0;
         double ttax = inv.getTotalTax() != null ? inv.getTotalTax() : 0;
+        double cess = inv.getTotalCess() != null ? inv.getTotalCess() : 0;
         double tcs = inv.getTcsAmount() != null ? inv.getTcsAmount() : 0;
         double total = inv.getTotalAmount() != null ? inv.getTotalAmount() : 0;
         double cgstRate = inv.getCgstRate() != null ? inv.getCgstRate() : 0;
@@ -1476,6 +1507,11 @@ public class GstInvoiceService {
             addBreakupCell(breakupTable, "CGST @ " + cgstRate + "%", "\u20B9" + String.format("%.2f", cgst), normal9);
             addBreakupCell(breakupTable, stateLabel + " @ " + sgstRate + "%", "\u20B9" + String.format("%.2f", sgst), normal9);
         }
+        // Cess is a charge on the goods like GST but collected separately; a buyer checking the
+        // total against the payment needs to see it, and it is not part of the "Total Tax".
+        if (cess > 0) {
+            addBreakupCell(breakupTable, "Cess", "\u20B9" + String.format("%.2f", cess), normal9);
+        }
         addBreakupCell(breakupTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
         // TCS is deliberately not in this breakup. It is not a tax on this supply and the
         // customer does not pay it - printing it beside CGST and SGST read as though they did.
@@ -1500,6 +1536,9 @@ public class GstInvoiceService {
         } else {
             addSumRow(sumTable, "CGST", "\u20B9" + String.format("%.2f", cgst), normal9);
             addSumRow(sumTable, stateLabel, "\u20B9" + String.format("%.2f", sgst), normal9);
+        }
+        if (cess > 0) {
+            addSumRow(sumTable, "Cess", "\u20B9" + String.format("%.2f", cess), normal9);
         }
         addSumRow(sumTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
         // TCS sat here, between Total Tax and Total Amount, which is exactly where a customer

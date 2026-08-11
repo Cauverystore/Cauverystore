@@ -13,6 +13,18 @@ public interface GstnClient {
         return true;
     }
 
+    /**
+     * Whether this client can actually call its portal right now.
+     *
+     * The simulator needs nothing and is always ready. The live client answers whether all six
+     * of its credentials are set; the readiness screen reads this to tell an operator whether
+     * the e-invoice portal is really on, because "configured" and "selected" are different
+     * things and only one of them registers invoices.
+     */
+    default boolean isConfigured() {
+        return true;
+    }
+
     Map<String, Object> generateIrn(GstInvoice invoice);
 
     Map<String, Object> generateEwayBill(GstInvoice invoice);

@@ -114,6 +114,21 @@ public class HsnController {
         return ResponseEntity.ok(service.rateOptionsFor(hsnCode, unitPrice, prePackaged));
     }
 
+    /**
+     * The rate the master will actually apply to these goods, for the form's live preview.
+     *
+     * Uses the same walk as the invoice, so what the seller sees is what will be charged.
+     * Empty map when the code cannot be resolved yet - the rate-options question is what stands
+     * in the way, and the form shows that instead.
+     */
+    @GetMapping("/rate-preview")
+    public ResponseEntity<Map<String, Object>> ratePreview(
+            @RequestParam("hsnCode") String hsnCode,
+            @RequestParam(required = false) Double unitPrice,
+            @RequestParam(required = false) Boolean prePackaged) {
+        return ResponseEntity.ok(service.ratePreview(hsnCode, unitPrice, prePackaged));
+    }
+
     /** The government's description of one code, for showing next to an already-saved product. */
     @GetMapping("/{hsnCode}")
     public ResponseEntity<Map<String, Object>> describe(@PathVariable String hsnCode) {

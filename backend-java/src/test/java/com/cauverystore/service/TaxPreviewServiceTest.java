@@ -49,7 +49,7 @@ class TaxPreviewServiceTest {
     }
 
     private GstRateResolver.Resolved resolved(double total, boolean interState) {
-        return new GstRateResolver.Resolved(total, interState, "52095110", true);
+        return new GstRateResolver.Resolved(total, 0.0, interState, "52095110", true);
     }
 
     @SuppressWarnings("unchecked")

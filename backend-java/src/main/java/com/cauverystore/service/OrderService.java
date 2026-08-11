@@ -141,6 +141,9 @@ public class OrderService {
             GstRateResolver.Resolved resolved = gstRateResolver.resolve(
                     item.getProduct(), false, supplyDate, item.getPrice());
             tax += Math.round(taxable * resolved.getTotalRate() / 100.0 * 100.0) / 100.0;
+            // Compensation cess is a charge on the goods like GST and the customer pays it, so
+            // it must be inside the amount collected and reported against the order.
+            tax += resolved.cessOn(taxable);
         }
         return Math.round(tax * 100.0) / 100.0;
     }

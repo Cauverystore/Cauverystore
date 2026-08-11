@@ -42,13 +42,14 @@ class GstReviewPriorityTest {
     @Mock private GstRateFreshnessService freshnessService;
     @Mock private GstRateMasterRepository rateRepo;
     @Mock private SellerRegistrationRepository sellerRegRepo;
+    @Mock private com.cauverystore.client.GstnClient gstnClient;
 
     private GstComplianceReadinessService service;
 
     @BeforeEach
     void setUp() {
         service = new GstComplianceReadinessService(productRepo, hsnRepo, rateResolver,
-                invoiceRepo, configRepo, freshnessService, rateRepo, sellerRegRepo);
+                invoiceRepo, configRepo, freshnessService, rateRepo, sellerRegRepo, gstnClient);
         when(hsnRepo.existsById(any())).thenReturn(true);
         when(rateResolver.findRate(any(), any(), any(), any())).thenReturn(Optional.empty());
         when(rateRepo.findByHsnCodeOrderByEffectiveFromDesc(any())).thenReturn(List.of());
@@ -271,5 +272,52 @@ class GstReviewPriorityTest {
         when(sellerRegRepo.findAll()).thenReturn(List.of(pending));
 
         assertTrue(service.sellerGaps().isEmpty());
+    }
+
+    // ------------------------------------------------------------ IRP status
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> irp() {
+        return (Map<String, Object>) service.readiness().get("irp");
+    }
+
+    @Test
+    void shouldReportTheSimulatorAsInactiveUntilCredentialsAreAdded() {
+        // The store runs on the simulator by default. "Inactive" has to be the visible answer,
+        // or someone will assume the IRP is on because the field exists.
+        when(gstnClient.isSimulated()).thenReturn(true);
+        when(gstnClient.isConfigured()).thenReturn(true);
+
+        Map<String, Object> status = irp();
+
+        assertEquals("INACTIVE", status.get("status"));
+        assertEquals("SIMULATED", status.get("mode"));
+        assertEquals(Boolean.FALSE, status.get("active"));
+    }
+
+    @Test
+    void shouldReportALiveButUnconfiguredClientAsMisconfigured() {
+        // Selecting the live client without credentials must refuse rather than simulate - and
+        // the readiness screen has to say so, not describe it as active.
+        when(gstnClient.isSimulated()).thenReturn(false);
+        when(gstnClient.isConfigured()).thenReturn(false);
+
+        Map<String, Object> status = irp();
+
+        assertEquals("MISCONFIGURED", status.get("status"));
+        assertEquals("LIVE", status.get("mode"));
+        assertEquals(Boolean.FALSE, status.get("active"));
+        assertTrue(String.valueOf(status.get("message")).contains("refused"));
+    }
+
+    @Test
+    void shouldReportALiveAndConfiguredClientAsActive() {
+        when(gstnClient.isSimulated()).thenReturn(false);
+        when(gstnClient.isConfigured()).thenReturn(true);
+
+        Map<String, Object> status = irp();
+
+        assertEquals("ACTIVE", status.get("status"));
+        assertEquals(Boolean.TRUE, status.get("active"));
     }
 }
