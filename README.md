@@ -177,5 +177,8 @@ noyyal-store/
 └── README.md
 ```
 
+## Documentation
+- **E-Invoice Procedure** — [docs/einvoice-procedure.md](docs/einvoice-procedure.md): IRN creation flow, sandbox vs production, API endpoints, payload schema, and how the repo implements it.
+
 ## License
 MIT
