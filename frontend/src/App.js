@@ -124,6 +124,7 @@ const AdminSupportTickets = lazy(() => import("./admin/support/AdminSupportTicke
 const AdminNewsletter = lazy(() => import("./admin/newsletter/AdminNewsletter"));
 const AdminLoyalty = lazy(() => import("./admin/loyalty/AdminLoyalty"));
 const StockMovements = lazy(() => import("./admin/inventory/StockMovements"));
+const AdminAddresses = lazy(() => import("./admin/addresses/AdminAddresses"));
 
 function App() {
   return (
@@ -266,6 +267,7 @@ function App() {
             <Route path="newsletter" element={<AdminNewsletter />} />
             <Route path="loyalty" element={<AdminLoyalty />} />
             <Route path="stock-movements" element={<StockMovements />} />
+            <Route path="addresses" element={<AdminAddresses />} />
           </Route>
 
           <Route path="/super-admin" element={<ProtectedRoute requiredRole={['SUPER_ADMIN']}><SuperAdminLayout /></ProtectedRoute>}>

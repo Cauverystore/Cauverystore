@@ -13,6 +13,8 @@ const PAGE_TITLES = {
   "/admin/refunds": "Refunds",
   "/admin/users": "Users",
   "/admin/customers": "Customers",
+  "/admin/addresses": "Addresses",
+  "/admin/addresses": "Addresses",
   "/admin/categories": "Categories",
   "/admin/brands": "Brands",
   "/admin/inventory": "Inventory",

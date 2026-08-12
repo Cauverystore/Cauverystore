@@ -156,6 +156,60 @@ public class OrderService {
         return user;
     }
 
+    private String primaryLine(Address a) {
+        return a.getLine1() != null && !a.getLine1().isBlank() ? a.getLine1() : a.getStreet();
+    }
+
+    private String formatAddress(Address a) {
+        List<String> parts = new ArrayList<>();
+        if (a.getLine1() != null && !a.getLine1().isBlank()) parts.add(a.getLine1());
+        else if (a.getStreet() != null) parts.add(a.getStreet());
+        if (a.getLine2() != null && !a.getLine2().isBlank()) parts.add(a.getLine2());
+        if (a.getCity() != null) parts.add(a.getCity());
+        if (a.getState() != null) parts.add(a.getState());
+        if (a.getPincode() != null) parts.add(a.getPincode());
+        if (a.getCountry() != null && !"India".equalsIgnoreCase(a.getCountry().trim())) parts.add(a.getCountry());
+        return String.join(", ", parts);
+    }
+
+    /**
+     * Attaches an address to the order without minting a duplicate row. If the incoming address
+     * already exists in the database (chosen from the address book at checkout) it is returned
+     * as-is; otherwise the user's active addresses are searched on the dedupe key
+     * (user + line1-or-street + pincode) and a match is reused instead of saved again.
+     */
+    private Address resolveOrCreateAddress(User user, Address incoming) {
+        incoming.setUser(user);
+        if (incoming.getId() != null) {
+            return incoming;
+        }
+        String line = primaryLine(incoming);
+        String pincode = incoming.getPincode();
+        if (line != null && pincode != null) {
+            Address existing = addressRepo.findByUserAndActiveFlagTrue(user).stream()
+                    .filter(a -> pincode.equalsIgnoreCase(a.getPincode()))
+                    .filter(a -> line.equalsIgnoreCase(primaryLine(a)))
+                    .findFirst()
+                    .orElse(null);
+            if (existing != null) {
+                return existing;
+            }
+        }
+        if (incoming.getActiveFlag() == null) {
+            incoming.setActiveFlag(true);
+        }
+        if (incoming.getCountry() == null || incoming.getCountry().isBlank()) {
+            incoming.setCountry("India");
+        }
+        if (incoming.getLine1() == null || incoming.getLine1().isBlank()) {
+            incoming.setLine1(incoming.getStreet());
+        }
+        if (incoming.getStreet() == null || incoming.getStreet().isBlank()) {
+            incoming.setStreet(incoming.getLine1());
+        }
+        return addressRepo.save(incoming);
+    }
+
     public Order placeOrder(String username, Address address, String paymentMethod) {
         return placeOrder(username, address, paymentMethod, null);
     }
@@ -168,8 +222,7 @@ public class OrderService {
         // A suspended account may see out the orders it already has, but may not start another.
         accountRestrictionService.requireMayPlaceOrder(user);
 
-        address.setUser(user);
-        Address savedAddress = addressRepo.save(address);
+        Address savedAddress = resolveOrCreateAddress(user, address);
 
         Cart cart = cartService.getCart(user);
         List<CartItem> activeItems = cart.getItems().stream()
@@ -334,7 +387,7 @@ public class OrderService {
             Address addr = order.getAddress();
             Map<String, Object> shippingAddress = new HashMap<>();
             shippingAddress.put("name", addr.getFullName());
-            shippingAddress.put("address", addr.getStreet());
+            shippingAddress.put("address", formatAddress(addr));
             shippingAddress.put("city", addr.getCity());
             shippingAddress.put("state", addr.getState());
             shippingAddress.put("pincode", addr.getPincode());
@@ -366,11 +419,7 @@ public class OrderService {
 
         if (order.getAddress() != null) {
             Address addr = order.getAddress();
-            invoice.setAddress(String.join(", ",
-                    addr.getStreet() != null ? addr.getStreet() : "",
-                    addr.getCity() != null ? addr.getCity() : "",
-                    addr.getState() != null ? addr.getState() : "",
-                    addr.getPincode() != null ? addr.getPincode() : ""));
+            invoice.setAddress(formatAddress(addr));
         }
 
         invoice.setOrderDate(order.getCreatedAt() != null ? order.getCreatedAt().toString() : "");
@@ -618,13 +667,32 @@ public class OrderService {
     @Transactional
     public Map<String, Object> placeOrder(String authHeader, Map<String, Object> body) {
         User user = extractUserFromHeader(authHeader);
-        Address address = new Address();
-        address.setFullName((String) body.getOrDefault("fullName", user.getFullName()));
-        address.setPhone((String) body.getOrDefault("phone", user.getPhone()));
-        address.setStreet((String) body.get("street"));
-        address.setCity((String) body.get("city"));
-        address.setState((String) body.get("state"));
-        address.setPincode((String) body.get("pincode"));
+
+        // Checkout sends an addressId when the customer picked one of their saved addresses.
+        // The saved row is the shipping record then - never a fresh copy of it - so repeat
+        // checkouts keep reusing the same address instead of accumulating lookalike rows.
+        Object addressIdRaw = body.get("addressId");
+        Address address;
+        if (addressIdRaw != null && !addressIdRaw.toString().isBlank()) {
+            Long addressId = Long.valueOf(addressIdRaw.toString());
+            address = addressRepo.findById(addressId)
+                    .orElseThrow(() -> new RuntimeException("Address not found"));
+            if (!address.getUser().getId().equals(user.getId())) {
+                throw new RuntimeException("Access denied: this address does not belong to you");
+            }
+        } else {
+            address = new Address();
+            address.setFullName((String) body.getOrDefault("fullName", user.getFullName()));
+            address.setPhone((String) body.getOrDefault("phone", user.getPhone()));
+            address.setLine1((String) body.get("line1"));
+            address.setLine2((String) body.get("line2"));
+            address.setStreet((String) body.get("street"));
+            address.setCity((String) body.get("city"));
+            address.setState((String) body.get("state"));
+            address.setPincode((String) body.get("pincode"));
+            Object country = body.get("country");
+            address.setCountry(country != null ? country.toString() : "India");
+        }
 
         // B2B supply: optional buyer GSTIN + registered legal name captured at checkout. When a
         // GSTIN is supplied it must be structurally valid, otherwise the B2B classification and

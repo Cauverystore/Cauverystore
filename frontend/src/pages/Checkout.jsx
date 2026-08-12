@@ -30,7 +30,7 @@ const Checkout = () => {
   const [buyerLegalName, setBuyerLegalName] = useState("");
 
   const [shipping, setShipping] = useState({
-    fullName: "", phone: "", street: "", city: "", state: "", pincode: ""
+    fullName: "", phone: "", line1: "", line2: "", street: "", city: "", state: "", pincode: "", country: "India"
   });
 
   const [paymentMethod, setPaymentMethod] = useState("COD");
@@ -120,7 +120,7 @@ const Checkout = () => {
     if (step === 0) {
       if (!shipping.fullName?.trim()) return "Full name is required";
       if (!shipping.phone?.trim() || shipping.phone.length < 10) return "Valid phone number is required";
-      if (!shipping.street?.trim()) return "Address is required";
+      if (!shipping.line1?.trim() && !shipping.street?.trim()) return "Address is required";
       if (!shipping.city?.trim()) return "City is required";
       if (!shipping.state?.trim()) return "State is required";
       if (!shipping.pincode?.trim() || shipping.pincode.length < 5) return "Valid pincode is required";
@@ -174,6 +174,7 @@ const Checkout = () => {
         quantity: item.quantity || 1
       })),
       ...shipping,
+      ...(selectedAddrId && !showNewAddr ? { addressId: selectedAddrId } : {}),
       paymentMethod: paymentMethod,
       subtotal, discount, delivery, total,
       ...(promoApplied && { promoCode: promoCode.trim() }),
@@ -318,12 +319,12 @@ const Checkout = () => {
                     }}>
                     <div style={{ fontWeight: 500 }}>{addr.name || addr.fullName}</div>
                     <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
-                      {addr.street}, {addr.city}, {addr.state} - {addr.pincode}
+                      {addr.line1 || addr.street}{addr.line2 ? `, ${addr.line2}` : ""}, {addr.city}, {addr.state} - {addr.pincode}
                     </div>
                     <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>Phone: {addr.phone}</div>
                   </button>
                 ))}
-                <button onClick={() => setShowNewAddr(true)} style={{
+                <button onClick={() => { setShowNewAddr(true); setSelectedAddrId(null); }} style={{
                   padding: "0.5rem 1rem", border: "1px dashed var(--color-primary)", borderRadius: "var(--radius-sm)",
                   background: "transparent", color: "var(--color-primary)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500
                 }}>+ Add New Address</button>
@@ -335,10 +336,12 @@ const Checkout = () => {
                 {[
                   { label: "Full Name", name: "fullName", placeholder: "Enter full name" },
                   { label: "Phone Number", name: "phone", placeholder: "Enter 10-digit phone number" },
-                  { label: "Address", name: "street", placeholder: "Street, area, landmark" },
+                  { label: "Address Line 1", name: "line1", placeholder: "House no, building, street" },
+                  { label: "Address Line 2", name: "line2", placeholder: "Area, landmark (optional)" },
                   { label: "City", name: "city", placeholder: "City" },
                   { label: "State", name: "state", placeholder: "State" },
                   { label: "Pincode", name: "pincode", placeholder: "6-digit pincode" },
+                  { label: "Country", name: "country", placeholder: "Country" },
                 ].map((field) => (
                   <div key={field.name} style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                     <label htmlFor={`shipping-${field.name}`} style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{field.label}</label>
@@ -448,7 +451,7 @@ const Checkout = () => {
               <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Shipping To</h3>
               <div style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>
                 {shipping.fullName}, {shipping.phone}<br />
-                {shipping.street}, {shipping.city}, {shipping.state} - {shipping.pincode}
+                {shipping.line1 || shipping.street}{shipping.line2 ? `, ${shipping.line2}` : ""}, {shipping.city}, {shipping.state} - {shipping.pincode}{shipping.country && shipping.country !== "India" ? `, ${shipping.country}` : ""}
               </div>
             </div>
             <div style={{ marginBottom: "1rem" }}>

@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -20,6 +21,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByStatus(String status, Pageable pageable);
 
     List<Order> findByUserOrderByCreatedAtDesc(User user);
+
+    // Address management: how often an address has been used, and whether any still-active order
+    // (anything other than a terminal CANCELLED/REFUNDED/DELIVERED) is tied to it - an address
+    // in use by a live order must not be removed.
+    long countByAddress_Id(Long addressId);
+
+    long countByAddress_IdAndStatusNotIn(Long addressId, Collection<String> statuses);
 
     @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
     List<Order> getRecentOrders();

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import userService from "../services/userService";
 import "../styles/account.css";
 
-const initialForm = { fullName: "", street: "", city: "", state: "", pincode: "", phone: "", isDefault: false };
+const initialForm = { fullName: "", phone: "", line1: "", line2: "", street: "", city: "", state: "", pincode: "", country: "India", isDefault: false };
 
 const AddressBook = () => {
   const [addresses, setAddresses] = useState([]);
@@ -61,7 +61,7 @@ const AddressBook = () => {
 
   const openEdit = (addr) => {
     setEditId(addr.id || addr._id);
-    setForm({ fullName: addr.fullName, street: addr.street, city: addr.city, state: addr.state, pincode: addr.pincode, phone: addr.phone, isDefault: addr.isDefault || false });
+    setForm({ fullName: addr.fullName, phone: addr.phone, line1: addr.line1, line2: addr.line2, street: addr.street, city: addr.city, state: addr.state, pincode: addr.pincode, country: addr.country || "India", isDefault: addr.isDefault || false });
     setShowForm(true);
   };
 
@@ -101,8 +101,12 @@ const AddressBook = () => {
                   <input id="addr-phone" className="admin-form-input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
                 </div>
                 <div className="admin-form-group full-width">
-                  <label className="admin-form-label" htmlFor="addr-street">Address</label>
-                  <input id="addr-street" className="admin-form-input" value={form.street} onChange={(e) => setForm({ ...form, street: e.target.value })} required />
+                  <label className="admin-form-label" htmlFor="addr-line1">Address Line 1</label>
+                  <input id="addr-line1" className="admin-form-input" value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} required />
+                </div>
+                <div className="admin-form-group full-width">
+                  <label className="admin-form-label" htmlFor="addr-line2">Address Line 2</label>
+                  <input id="addr-line2" className="admin-form-input" value={form.line2} onChange={(e) => setForm({ ...form, line2: e.target.value })} placeholder="Area, landmark (optional)" />
                 </div>
                 <div className="admin-form-group">
                   <label className="admin-form-label" htmlFor="addr-city">City</label>
@@ -115,6 +119,10 @@ const AddressBook = () => {
                 <div className="admin-form-group">
                   <label className="admin-form-label" htmlFor="addr-pincode">Pincode</label>
                   <input id="addr-pincode" className="admin-form-input" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} required />
+                </div>
+                <div className="admin-form-group">
+                  <label className="admin-form-label" htmlFor="addr-country">Country</label>
+                  <input id="addr-country" className="admin-form-input" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
                 </div>
               </div>
               <div className="admin-form-actions">
@@ -137,7 +145,7 @@ const AddressBook = () => {
               <div key={addr.id || addr._id} className={`address-card ${addr.isDefault ? "default" : ""}`}>
                 {addr.isDefault && <span className="address-card-badge">Default</span>}
                 <div className="address-card-name">{addr.fullName}</div>
-                <div className="address-card-detail">{addr.street}, {addr.city}, {addr.state} - {addr.pincode}</div>
+                <div className="address-card-detail">{addr.line1 || addr.street}{addr.line2 ? `, ${addr.line2}` : ""}, {addr.city}, {addr.state} - {addr.pincode}</div>
                 <div className="address-card-phone">{addr.phone}</div>
                 <div className="address-card-actions">
                   <button className="address-card-action" onClick={() => openEdit(addr)}>Edit</button>

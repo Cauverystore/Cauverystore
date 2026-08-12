@@ -32,5 +32,8 @@ const userService = {
   blockUser: (id) => api.put(`/api/admin/users/${id}/block`),
   unblockUser: (id) => api.put(`/api/admin/users/${id}/unblock`),
   deleteUser: (id) => api.delete(`/api/admin/users/${id}`),
+
+  getAdminAddresses: () => api.get("/api/admin/addresses"),
+  restoreAddress: (id) => api.post(`/api/admin/addresses/${id}/restore`),
 };
 export default userService;

@@ -47,6 +47,7 @@ export function canAccessModule(role, module) {
     analytics: ['ADMIN', 'SUPER_ADMIN'],
     reports: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     customers: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
+    addresses: ['ADMIN', 'SUPER_ADMIN'],
     orders: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     refunds: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     returns: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],

@@ -9,13 +9,22 @@ import jakarta.persistence.*;
 public class Address extends BaseEntity {
     private String fullName;
     private String phone;
+    private String line1;
+    private String line2;
     private String street;
     private String city;
     private String state;
     private String pincode;
+    private String country = "India";
     private String label;
     private String landmark;
     private String deliveryInstructions;
+
+    /**
+     * Soft-delete flag. Addresses referenced by orders must never be hard-deleted, so removal
+     * flips this off instead; the row stays for the order history and for admin restoration.
+     */
+    private Boolean activeFlag = true;
 
     /**
      * GSTIN registered at this address.
@@ -45,6 +54,16 @@ public class Address extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
+    public String getLine1() {
+        return this.line1;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getLine2() {
+        return this.line2;
+    }
+
+    @java.lang.SuppressWarnings("all")
     public String getStreet() {
         return this.street;
     }
@@ -62,6 +81,11 @@ public class Address extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public String getPincode() {
         return this.pincode;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public String getCountry() {
+        return this.country;
     }
 
     @java.lang.SuppressWarnings("all")
@@ -85,6 +109,11 @@ public class Address extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
+    public Boolean getActiveFlag() {
+        return this.activeFlag;
+    }
+
+    @java.lang.SuppressWarnings("all")
     public Boolean getIsBilling() {
         return this.isBilling;
     }
@@ -102,6 +131,16 @@ public class Address extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setPhone(final String phone) {
         this.phone = phone;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setLine1(final String line1) {
+        this.line1 = line1;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setLine2(final String line2) {
+        this.line2 = line2;
     }
 
     @java.lang.SuppressWarnings("all")
@@ -125,6 +164,11 @@ public class Address extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
+    public void setCountry(final String country) {
+        this.country = country;
+    }
+
+    @java.lang.SuppressWarnings("all")
     public void setLabel(final String label) {
         this.label = label;
     }
@@ -142,6 +186,11 @@ public class Address extends BaseEntity {
     @java.lang.SuppressWarnings("all")
     public void setIsDefault(final Boolean isDefault) {
         this.isDefault = isDefault;
+    }
+
+    @java.lang.SuppressWarnings("all")
+    public void setActiveFlag(final Boolean activeFlag) {
+        this.activeFlag = activeFlag;
     }
 
     @java.lang.SuppressWarnings("all")
