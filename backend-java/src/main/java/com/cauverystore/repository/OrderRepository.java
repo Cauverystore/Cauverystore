@@ -5,6 +5,7 @@ import com.cauverystore.entities.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -28,6 +29,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByAddress_Id(Long addressId);
 
     long countByAddress_IdAndStatusNotIn(Long addressId, Collection<String> statuses);
+
+    @Modifying
+    @Query("UPDATE Order o SET o.address = :canonical WHERE o.address = :dupe")
+    int redirectOrders(@Param("dupe") com.cauverystore.entities.Address dupe,
+                       @Param("canonical") com.cauverystore.entities.Address canonical);
 
     @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
     List<Order> getRecentOrders();

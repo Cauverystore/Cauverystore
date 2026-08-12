@@ -29,7 +29,7 @@ public class AddressService {
     private final OrderRepository orderRepo;
 
     public List<Address> getUserAddresses(User user) {
-        return addressRepo.findByUserAndActiveFlagTrue(user);
+        return addressRepo.findActiveByUser(user);
     }
 
     public Address getDefaultAddress(User user) {
@@ -167,7 +167,7 @@ public class AddressService {
         if (line == null || pincode == null) {
             return null;
         }
-        return addressRepo.findByUserAndActiveFlagTrue(user).stream()
+        return addressRepo.findActiveByUser(user).stream()
                 .filter(a -> pincode.equals(a.getPincode() != null ? a.getPincode().trim().toLowerCase() : null))
                 .filter(a -> line.equals(normalizeLine(a)))
                 .findFirst()
@@ -204,3 +204,4 @@ public class AddressService {
         });
     }
 }
+

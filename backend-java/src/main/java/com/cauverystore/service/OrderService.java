@@ -186,7 +186,7 @@ public class OrderService {
         String line = primaryLine(incoming);
         String pincode = incoming.getPincode();
         if (line != null && pincode != null) {
-            Address existing = addressRepo.findByUserAndActiveFlagTrue(user).stream()
+            Address existing = addressRepo.findActiveByUser(user).stream()
                     .filter(a -> pincode.equalsIgnoreCase(a.getPincode()))
                     .filter(a -> line.equalsIgnoreCase(primaryLine(a)))
                     .findFirst()
@@ -1144,3 +1144,4 @@ public class OrderService {
         return dashboard;
     }
 }
+
