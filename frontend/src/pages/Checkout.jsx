@@ -28,6 +28,12 @@ const Checkout = () => {
   const [b2b, setB2b] = useState(false);
   const [gstin, setGstin] = useState("");
   const [buyerLegalName, setBuyerLegalName] = useState("");
+  // Section 10(1)(b): the buyer is having the goods delivered to somebody else. It moves the
+  // place of supply to the buyer's own registered state, which changes whether the invoice
+  // carries IGST or CGST+SGST - so it has to be declared, never inferred from the addresses.
+  const [billToShipTo, setBillToShipTo] = useState(false);
+  const [consigneeName, setConsigneeName] = useState("");
+  const [consigneeAddress, setConsigneeAddress] = useState("");
 
   const [shipping, setShipping] = useState({
     fullName: "", phone: "", line1: "", line2: "", street: "", city: "", state: "", pincode: "", country: "India"
@@ -129,6 +135,16 @@ const Checkout = () => {
         if (g.length !== 15) return "GSTIN must be exactly 15 characters";
         if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(g)) return "Invalid GSTIN format";
         if (!buyerLegalName.trim()) return "Registered legal name is required for a GST invoice";
+        // Rule 46(o) requires the consignee on the invoice when they are not the buyer. Caught
+        // here rather than at the API, so nobody reaches the payment step and is turned back.
+        if (billToShipTo && !consigneeName.trim()) {
+          return "Tell us who is receiving the goods - the invoice has to name the consignee";
+        }
+      }
+      // Only a registered buyer can declare this: the rule turns on a third person's principal
+      // place of business, and an unregistered buyer has none.
+      if (billToShipTo && !b2b) {
+        return "Delivery to a third party needs your GSTIN. Tick 'Buying for a business' first.";
       }
     }
     return null;
@@ -180,7 +196,12 @@ const Checkout = () => {
       ...(promoApplied && { promoCode: promoCode.trim() }),
       ...(giftWrap && { giftWrap: true }),
       ...(b2b && gstin.trim() && { buyerGstin: gstin.trim().toUpperCase() }),
-      ...(b2b && buyerLegalName.trim() && { buyerLegalName: buyerLegalName.trim() })
+      ...(b2b && buyerLegalName.trim() && { buyerLegalName: buyerLegalName.trim() }),
+      ...(b2b && billToShipTo && {
+        billToShipTo: true,
+        consigneeName: consigneeName.trim(),
+        ...(consigneeAddress.trim() && { consigneeAddress: consigneeAddress.trim() })
+      })
     };
 
     setPlacing(true);
@@ -383,6 +404,58 @@ const Checkout = () => {
                   <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>
                     Your invoice will be issued as a B2B tax invoice in your business name with ITC-eligible tax.
                   </p>
+
+                  {/*
+                    Section 10(1)(b). Declared, never guessed: a delivery address in another
+                    state is not by itself a bill-to / ship-to, and reading it as one would move
+                    the place of supply - and with it the whole tax split - on an ordinary order
+                    that simply ships somewhere else.
+                  */}
+                  <div style={{ paddingTop: "0.75rem", borderTop: "1px dashed var(--color-border-light)" }}>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", cursor: "pointer" }}>
+                      <input type="checkbox" checked={billToShipTo}
+                        onChange={(e) => setBillToShipTo(e.target.checked)} style={{ marginTop: "0.2rem" }} />
+                      <span>
+                        <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>Deliver to someone else</span>
+                        <span style={{ display: "block", fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>
+                          Bill this to my business, but send the goods to a different party -
+                          a branch, a customer of ours, or a job site.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+
+                  {billToShipTo && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                        <label htmlFor="consignee-name" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>
+                          Who is receiving the goods <span style={{ color: "var(--color-error)" }}>*</span>
+                        </label>
+                        <input id="consignee-name" name="consigneeName" value={consigneeName}
+                          onChange={(e) => setConsigneeName(e.target.value)}
+                          placeholder="Name of the consignee"
+                          style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none" }} />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                        <label htmlFor="consignee-address" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>
+                          Their address
+                        </label>
+                        <textarea id="consignee-address" name="consigneeAddress" value={consigneeAddress}
+                          onChange={(e) => setConsigneeAddress(e.target.value)} rows={2}
+                          placeholder="Leave blank to use the delivery address above"
+                          style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none", resize: "vertical" }} />
+                      </div>
+                      {/*
+                        Said plainly, because it is the part that surprises people: the tax
+                        follows the buyer's registered state, not where the parcel goes.
+                      */}
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>
+                        Under section 10(1)(b) the place of supply is your own registered state,
+                        not the delivery address - so the tax on this invoice follows your GSTIN.
+                        The consignee is named on the invoice as required by rule 46(o).
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

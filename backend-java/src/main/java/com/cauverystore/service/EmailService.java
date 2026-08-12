@@ -161,6 +161,24 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    /**
+     * One message per stage of a return.
+     *
+     * A single method rather than six near-identical ones, because the only thing that varies is
+     * the sentence - and six copies of the same branded wrapper is how they drift apart until
+     * one of them says something the others do not.
+     */
+    public void sendReturnStageUpdate(String to, String returnId, String heading, String body) {
+        String subject = heading + " - Return " + returnId + " - Cauvery Store";
+        String html = "<h2 style='color:" + TEAL + ";margin-top:0;'>" + heading + "</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Return <strong>" + returnId + "</strong></p>"
+                + "<p style='color:#4b5563;font-size:14px;'>" + body + "</p>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='https://cauverystore.in/orders' style='background:" + TEAL
+                + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Track this return</a></div>";
+        send(to, subject, wrapBranded(html));
+    }
+
     public void sendPasswordResetLink(String to, String resetUrl) {
         String subject = "Reset Your Password - Cauvery Store";
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Reset Your Password</h2>"

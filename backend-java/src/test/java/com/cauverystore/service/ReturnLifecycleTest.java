@@ -37,13 +37,16 @@ class ReturnLifecycleTest {
     @Mock private CreditNoteService creditNoteService;
     @Mock private InventoryService inventoryService;
     @Mock private PaymentService paymentService;
+    @Mock private NotificationService notificationService;
+    @Mock private EmailService emailService;
 
     private ReturnRequestService service;
     private ReturnRequest rr;
 
     @BeforeEach
     void setUp() {
-        service = new ReturnRequestService(returnRepo, creditNoteService, inventoryService, paymentService);
+        service = new ReturnRequestService(returnRepo, creditNoteService, inventoryService,
+                paymentService, notificationService, emailService);
         rr = new ReturnRequest();
         rr.setStatus(ReturnRequestService.REQUESTED);
         when(returnRepo.findById(1L)).thenReturn(Optional.of(rr));
@@ -402,6 +405,62 @@ class ReturnLifecycleTest {
         service.updateStatus(1L, ReturnRequestService.REFUNDED);
 
         verify(paymentService, times(1)).processRefundForReturn(any(), any(), anyDouble(), any(), any());
+    }
+
+    private void customerIs(long id, String email) {
+        com.cauverystore.entities.User u = new com.cauverystore.entities.User();
+        u.setId(id);
+        u.setEmail(email);
+        rr.setUser(u);
+        rr.setId(1L);
+    }
+
+    @Test
+    void theCustomerIsToldAtEveryStage() {
+        // A return is a stretch of not knowing whether you are getting your money back. Silence
+        // through it is the complaint, not the outcome.
+        customerIs(7L, "buyer@example.com");
+
+        service.updateStatus(1L, ReturnRequestService.APPROVED);
+        service.updateStatus(1L, ReturnRequestService.IN_TRANSIT);
+        service.updateStatus(1L, ReturnRequestService.RECEIVED);
+
+        verify(emailService, times(3)).sendReturnStageUpdate(eq("buyer@example.com"), eq("RET-1"), any(), any());
+        verify(notificationService, times(3)).createNotification(eq(7L), eq("RETURN"), any(), any());
+    }
+
+    @Test
+    void theRejectionMessageSaysWhichKindOfRejectionItWas() {
+        // Refusing a request and refusing the goods that came back are different situations, and
+        // a customer who posted a parcel deserves to be told which one happened to them.
+        customerIs(7L, "buyer@example.com");
+        rr.setStatus(ReturnRequestService.RECEIVED);
+
+        service.updateStatus(1L, ReturnRequestService.REJECTED);
+
+        org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendReturnStageUpdate(any(), any(), any(), body.capture());
+        assertTrue(body.getValue().contains("did not pass"), body.getValue());
+    }
+
+    @Test
+    void aFailedNotificationDoesNotUndoTheTransition() {
+        // The parcel has moved whatever the mail server did. Losing that would leave the system
+        // and the warehouse disagreeing about where it is.
+        customerIs(7L, "buyer@example.com");
+        doThrow(new RuntimeException("smtp down"))
+                .when(emailService).sendReturnStageUpdate(any(), any(), any(), any());
+
+        assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.APPROVED));
+        assertEquals(ReturnRequestService.APPROVED, rr.getStatus());
+    }
+
+    @Test
+    void aReturnWithNoCustomerAttachedDoesNotBlowUp() {
+        rr.setId(1L);
+
+        assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.APPROVED));
+        verifyNoInteractions(emailService);
     }
 
     @Test

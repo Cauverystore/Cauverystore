@@ -82,15 +82,21 @@ public class ReturnRequestService {
     private final CreditNoteService creditNoteService;
     private final InventoryService inventoryService;
     private final PaymentService paymentService;
+    private final NotificationService notificationService;
+    private final EmailService emailService;
 
     public ReturnRequestService(ReturnRequestRepository returnRepo,
                                 CreditNoteService creditNoteService,
                                 InventoryService inventoryService,
-                                PaymentService paymentService) {
+                                PaymentService paymentService,
+                                NotificationService notificationService,
+                                EmailService emailService) {
         this.returnRepo = returnRepo;
         this.creditNoteService = creditNoteService;
         this.inventoryService = inventoryService;
         this.paymentService = paymentService;
+        this.notificationService = notificationService;
+        this.emailService = emailService;
     }
 
     /**
@@ -174,6 +180,8 @@ public class ReturnRequestService {
         // Only now, with the goods back and accepted. A second credit note is not created for the
         // same return - CreditNoteService returns the existing one - so passing through COMPLETED
         // and then REFUNDED does not credit twice.
+        notify(saved, to, from);
+
         if (CREDIT_NOTE_TRIGGER_STATUSES.contains(to)) {
             Double credited = null;
             try {
@@ -188,6 +196,78 @@ public class ReturnRequestService {
             }
         }
         return saved;
+    }
+
+    /**
+     * Tells the customer where their return has got to.
+     *
+     * Every stage, because a return is a period of not knowing whether you are getting your money
+     * back - and silence during it is the complaint, not the outcome. The wording says what has
+     * happened and what happens next, since "status updated" tells somebody nothing they can act
+     * on.
+     *
+     * Best-effort. The return has already moved and been saved by this point; failing the
+     * transition because a message could not be sent would leave the warehouse and the system
+     * disagreeing about where a parcel is, which is worse than a missed email.
+     */
+    private void notify(ReturnRequest rr, String to, String from) {
+        String heading;
+        String body;
+        switch (to) {
+            case APPROVED -> {
+                heading = "Return approved";
+                body = "Send the item back using the instructions on your orders page. Once it "
+                        + "reaches us we will check it and start your refund.";
+            }
+            case IN_TRANSIT -> {
+                heading = "Return picked up";
+                body = "We have collected the item and it is on its way back to us.";
+            }
+            case RECEIVED -> {
+                heading = "Return received";
+                body = "The item is back with us and is being checked. This usually takes a "
+                        + "day or two, and we will write again either way.";
+            }
+            case COMPLETED -> {
+                heading = "Return accepted - refund on its way";
+                body = "The item passed our check and your refund has been sent to your original "
+                        + "payment method. Instant refunds arrive within minutes; otherwise allow "
+                        + "5-7 business days.";
+            }
+            case REFUNDED, REFUND_ISSUED -> {
+                heading = "Refund sent";
+                body = "Your refund has been released to the payment method you used. If it has "
+                        + "not appeared within 7 business days, reply to this email.";
+            }
+            case REJECTED -> {
+                heading = "Return not accepted";
+                // Split, because the two rejections are different situations: one is a decision
+                // about the request, the other is a decision about the goods that came back.
+                body = RECEIVED.equals(from)
+                        ? "The item did not pass our check, so we are unable to accept this "
+                                + "return and no refund has been issued."
+                                + (rr.getReason() != null ? " Return reason given: " + rr.getReason() + "." : "")
+                        : "We are unable to accept this return request.";
+            }
+            case CANCELLED -> {
+                heading = "Return cancelled";
+                body = "This return request has been cancelled. Nothing further will happen.";
+            }
+            default -> { return; }
+        }
+
+        String returnId = "RET-" + rr.getId();
+        try {
+            if (rr.getUser() != null && rr.getUser().getId() != null) {
+                notificationService.createNotification(rr.getUser().getId(), "RETURN", heading,
+                        returnId + ": " + body);
+            }
+            if (rr.getUser() != null && rr.getUser().getEmail() != null) {
+                emailService.sendReturnStageUpdate(rr.getUser().getEmail(), returnId, heading, body);
+            }
+        } catch (Exception e) {
+            System.err.println("Return notification skipped for " + returnId + ": " + e.getMessage());
+        }
     }
 
     /**
