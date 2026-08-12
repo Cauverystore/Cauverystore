@@ -380,6 +380,17 @@ const SellerApproval = () => {
                   <td>
                     <div>{r.gstin}</div>
                     <StatusBadge value={r.gstinStatus} />
+                    {/*
+                      VERIFIED is the same word whether the GST portal said it or the stand-in
+                      did, and only one of them means the registration exists. Approving a seller
+                      on the strength of a green tick that came from a simulator is the mistake
+                      this line is here to prevent.
+                    */}
+                    {r.gstinStatus === "VERIFIED" && r.gstinVerificationSource !== "GSTN" && (
+                      <div style={{ fontSize: "0.7rem", color: "#92400e", marginTop: "3px", maxWidth: "170px" }}>
+                        Format check only — not confirmed against the GST portal
+                      </div>
+                    )}
                   </td>
                   <td><StatusBadge value={r.bankStatus} /></td>
                   <td style={{ fontSize: '0.85rem' }}>{r.documentsVerified}/{r.documentsTotal}</td>

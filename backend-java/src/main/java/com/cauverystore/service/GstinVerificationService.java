@@ -57,19 +57,31 @@ public class GstinVerificationService {
                     sg.setGstin(gstin.toUpperCase());
                     return sg;
                 });
+        boolean simulated = gstnClient.isSimulated();
+
         record.setStatus(valid ? "VERIFIED" : "FAILED");
-        record.setLegalName((String) gstnResp.get("legalName"));
-        record.setTradeName((String) gstnResp.get("tradeName"));
+        // A simulator does not know anybody's registered name, and writing the one it makes up
+        // into the field that holds the real one leaves "SIMULATED LEGAL NAME" sitting in the
+        // database looking like a fact somebody checked. Nothing is better than something false.
+        record.setLegalName(simulated ? null : (String) gstnResp.get("legalName"));
+        record.setTradeName(simulated ? null : (String) gstnResp.get("tradeName"));
+        // The state code is the first two characters of the GSTIN itself, so it is true whoever
+        // answered - it is read off the number, not looked up.
         record.setStateCode((String) gstnResp.get("stateCode"));
-        record.setVerificationRef("GSTN-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase());
-        record.setSource(gstnClient.isSimulated() ? "SIMULATED" : "GSTN");
+        // Prefixed by who actually answered. A reference beginning GSTN- reads as something the
+        // portal issued and can be quoted back to it; for a simulated check there is no such
+        // thing, and inventing one is how a made-up number ends up in a compliance file.
+        record.setVerificationRef((simulated ? "SIM-" : "GSTN-")
+                + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase());
+        record.setSource(simulated ? "SIMULATED" : "GSTN");
         record.setVerifiedBy(userId);
         record.setVerifiedAt(LocalDateTime.now());
         gstinRepo.save(record);
 
         reg.setGstinStatus(valid ? "VERIFIED" : "FAILED");
         reg.setGstinVerifiedAt(LocalDateTime.now());
-        reg.setGstinLegalName((String) gstnResp.get("legalName"));
+        reg.setGstinVerificationSource(simulated ? "SIMULATED" : "GSTN");
+        reg.setGstinLegalName(simulated ? null : (String) gstnResp.get("legalName"));
         reg.setGstinStateCode((String) gstnResp.get("stateCode"));
         regRepo.save(reg);
 
@@ -79,6 +91,15 @@ public class GstinVerificationService {
         Map<String, Object> result = new LinkedHashMap<>(gstnResp);
         result.put("gstinStatus", record.getStatus());
         result.put("verificationRef", record.getVerificationRef());
+        result.put("verificationSource", record.getSource());
+        result.put("simulated", simulated);
+        if (simulated) {
+            // Said to the seller too, not only to the admin. Somebody who watches their GSTIN go
+            // green should not believe it has been checked against the register when it has not.
+            result.put("verificationNote", "This GSTIN passed a format and check-digit test only. "
+                    + "It has not been confirmed against the GST portal, so it has not been "
+                    + "checked that the registration exists or is active.");
+        }
         result.put("records", gstinRepo.findBySellerId(userId));
         return result;
     }

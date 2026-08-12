@@ -112,6 +112,10 @@ public class SellerApprovalService {
                 row.put("businessType", r.getBusinessType());
                 row.put("gstin", r.getGstin());
                 row.put("gstinStatus", r.getGstinStatus());
+                // Shown beside the status, because VERIFIED is the same word whether the portal
+                // said it or a stand-in did, and an admin approving a seller is entitled to know
+                // which. Nothing has confirmed the registration exists until this says GSTN.
+                row.put("gstinVerificationSource", r.getGstinVerificationSource());
                 row.put("bankStatus", r.getBankStatus());
                 row.put("submittedAt", r.getSubmittedAt());
                 // A list that shows only names and dates cannot answer the question an admin
@@ -363,6 +367,11 @@ public class SellerApprovalService {
         Map<String, Boolean> map = new LinkedHashMap<>();
         SellerRegistration r = regRepo.findByUserId(userId).orElse(null);
         map.put("gstinVerified", r != null && "VERIFIED".equals(r.getGstinStatus()));
+        // Deliberately separate from gstinVerified rather than folded into it. Approval is not
+        // blocked on having a real portal check - there is no GSP contract, so nothing would
+        // ever be approved - but the difference has to be visible to whoever approves.
+        map.put("gstinVerifiedAgainstPortal",
+                r != null && "GSTN".equals(r.getGstinVerificationSource()));
         map.put("bankVerified", r != null && "VERIFIED".equals(r.getBankStatus()));
         long mandatoryIncomplete = complianceRepo.findByUserIdAndIsCompletedFalse(userId).stream()
                 .filter(c -> Boolean.TRUE.equals(c.getIsMandatory()))

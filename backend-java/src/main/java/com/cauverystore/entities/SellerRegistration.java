@@ -106,6 +106,14 @@ public class SellerRegistration {
     private Boolean compositionScheme;
 
     private String gstinStatus = "UNVERIFIED";
+
+    /**
+     * Who said the GSTIN was good: GSTN for the portal, SIMULATED for the stand-in.
+     *
+     * Kept next to the status because the status alone is what the approval screen reads, and a
+     * green VERIFIED that came from a simulator is the same word for a very different fact.
+     */
+    private String gstinVerificationSource;
     private LocalDateTime gstinVerifiedAt;
     private String gstinLegalName;
     private String gstinStateCode;
@@ -220,6 +228,9 @@ public class SellerRegistration {
     /** True only when the seller has said yes. Unanswered is not a no. */
     @jakarta.persistence.Transient
     public boolean isOnCompositionScheme() { return Boolean.TRUE.equals(compositionScheme); }
+    public String getGstinVerificationSource() { return gstinVerificationSource; }
+    public void setGstinVerificationSource(String gstinVerificationSource) { this.gstinVerificationSource = gstinVerificationSource; }
+
     public String getGstinStatus() { return gstinStatus; }
     public void setGstinStatus(String gstinStatus) { this.gstinStatus = gstinStatus; }
     public LocalDateTime getGstinVerifiedAt() { return gstinVerifiedAt; }
