@@ -119,6 +119,21 @@ public class GstInvoiceService {
         this.pincodeRepo = pincodeRepo;
     }
 
+    /**
+     * Notes a GSTIN that is well-formed but cannot be genuine.
+     *
+     * Not an exception: see generateInvoiceFromOrder. A line in the log is what turns "we
+     * tolerate this" into "we know about this", and these are worth chasing - an invoice
+     * carrying an impossible GSTIN will not reconcile against anybody's returns.
+     */
+    private void warnIfChecksumFails(String gstin, String whose) {
+        if (gstin != null && !GstComplianceUtil.isGstinChecksumValid(gstin)) {
+            System.err.println("Invoicing against a " + whose + " GSTIN that fails its check digit: "
+                    + gstin.trim().toUpperCase() + ". It cannot be a real registration and will "
+                    + "not reconcile. Correct it on the registration.");
+        }
+    }
+
     /** Road transport of goods - what a delivery charge on this marketplace actually is. */
     private static final String DELIVERY_SAC = "996511";
 
@@ -160,9 +175,16 @@ public class GstInvoiceService {
 
     @Transactional
     public Map<String, Object> generateInvoiceFromOrder(Long orderId, Long userId, String gstin, String buyerGstin, String deliveryStateCode) {
-        GstComplianceUtil.validateGstin(gstin);
+        // Structure only, deliberately. By the time an invoice is raised the order has been paid
+        // for, and refusing it because a GSTIN captured weeks earlier fails its check digit would
+        // withhold the document the customer is owed over somebody else's typo. The check digit
+        // is enforced where the number is entered, which is where it can still be corrected.
+        // Logged here so a bad one is visible rather than merely tolerated.
+        GstComplianceUtil.validateGstinFormat(gstin);
+        warnIfChecksumFails(gstin, "seller");
         if (buyerGstin != null && !buyerGstin.isBlank() && !"URP".equalsIgnoreCase(buyerGstin.trim())) {
-            GstComplianceUtil.validateGstin(buyerGstin);
+            GstComplianceUtil.validateGstinFormat(buyerGstin);
+            warnIfChecksumFails(buyerGstin, "buyer");
         }
 
         Order order = orderRepo.findById(orderId)

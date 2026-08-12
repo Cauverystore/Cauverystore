@@ -65,13 +65,73 @@ public class GstComplianceUtil {
         return ifsc != null && IFSC_PATTERN.matcher(ifsc.trim().toUpperCase()).matches();
     }
 
-    public static void validateGstin(String gstin) {
+    /**
+     * The alphabet a GSTIN check digit is computed over: 0-9 then A-Z, values 0 to 35.
+     */
+    private static final String GSTIN_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    /**
+     * Structure only - the right length, and each position the right kind of character.
+     *
+     * Used where a GSTIN has already been accepted and the order it belongs to has been paid
+     * for. Refusing to raise an invoice at that point would strand a customer over a number
+     * somebody else typed wrongly weeks earlier, and the invoice is the thing they are owed.
+     * The full check belongs at the point of entry, where it can still be corrected.
+     */
+    public static void validateGstinFormat(String gstin) {
         if (gstin == null || gstin.trim().isEmpty()) {
             throw new IllegalArgumentException("GSTIN is required");
         }
         if (!GSTIN_PATTERN.matcher(gstin.trim().toUpperCase()).matches()) {
             throw new IllegalArgumentException("Invalid GSTIN format: " + gstin
                     + ". Expected 15 characters: 2-digit state code + 10-digit PAN + 1 entity code + 1 blank + 1 checksum");
+        }
+    }
+
+    /**
+     * Whether the 15th character is the check digit the first fourteen produce.
+     *
+     * Each character is weighted alternately by one and two, and what is added is the quotient
+     * plus the remainder of that product over 36 - so a transposition changes the total, which
+     * a plain sum would not catch.
+     *
+     * This proves a GSTIN is well-formed, not that it exists. Only the portal can say whether it
+     * was ever issued, or is still active, or belongs to the person quoting it. What it does do
+     * is reject typos and numbers somebody has simply made up, and until there is a GSP contract
+     * that is the whole of the defence.
+     */
+    public static boolean isGstinChecksumValid(String gstin) {
+        if (gstin == null) return false;
+        String g = gstin.trim().toUpperCase();
+        if (g.length() != 15) return false;
+
+        int sum = 0;
+        for (int i = 0; i < 14; i++) {
+            int value = GSTIN_ALPHABET.indexOf(g.charAt(i));
+            if (value < 0) return false;
+            int product = value * (i % 2 == 0 ? 1 : 2);
+            sum += (product / 36) + (product % 36);
+        }
+        char expected = GSTIN_ALPHABET.charAt((36 - (sum % 36)) % 36);
+        return expected == g.charAt(14);
+    }
+
+    /**
+     * The full check: structure and check digit.
+     *
+     * The error message used to promise a checksum and never compute one, so anything shaped
+     * like a GSTIN was accepted - including numbers invented for tests. That mattered more than
+     * it looks: seller approval refuses to activate an account without a VERIFIED GSTIN, and
+     * with no GSP contract the "verification" behind that gate is a simulator which answers yes
+     * to whatever this method accepts. Until the portal can be asked, this is the gate.
+     */
+    public static void validateGstin(String gstin) {
+        validateGstinFormat(gstin);
+        if (!isGstinChecksumValid(gstin)) {
+            throw new IllegalArgumentException("GSTIN " + gstin.trim().toUpperCase()
+                    + " is not valid - its last character does not match the check digit the "
+                    + "rest of the number produces. Check it against your registration "
+                    + "certificate; a single mistyped character will do this.");
         }
     }
 
