@@ -307,10 +307,30 @@ public class EmailService {
                 + "</td><td style='padding:4px 0;font-weight:600;'>" + value + "</td></tr>";
     }
 
+    /**
+     * The address as the customer entered it.
+     *
+     * Reads line1 and line2 in preference to street. New addresses are captured in the two-line
+     * form and leave street empty, so a street-only formatter sent a confirmation whose address
+     * began at the city - the house and road absent from the one document a customer checks
+     * before their parcel goes out. Street is still read for rows predating the split.
+     *
+     * Country is omitted for India, being the default; anywhere else it is the line that matters
+     * most.
+     */
     private static String formatAddress(Address addr) {
         if (addr == null) return "-";
-        return String.join(", ",
-                safe(addr.getStreet()), safe(addr.getCity()), safe(addr.getState()) + " - " + safe(addr.getPincode()));
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        if (addr.getLine1() != null && !addr.getLine1().isBlank()) parts.add(addr.getLine1().trim());
+        else if (addr.getStreet() != null && !addr.getStreet().isBlank()) parts.add(addr.getStreet().trim());
+        if (addr.getLine2() != null && !addr.getLine2().isBlank()) parts.add(addr.getLine2().trim());
+        if (addr.getCity() != null && !addr.getCity().isBlank()) parts.add(addr.getCity().trim());
+        parts.add(safe(addr.getState()) + " - " + safe(addr.getPincode()));
+        if (addr.getCountry() != null && !addr.getCountry().isBlank()
+                && !"India".equalsIgnoreCase(addr.getCountry().trim())) {
+            parts.add(addr.getCountry().trim());
+        }
+        return String.join(", ", parts);
     }
 
     private static String safe(String s) {

@@ -695,16 +695,7 @@ public class CreditNoteService {
         cn.setBuyerGstin("URP");
         cn.setBuyerName(buyer != null ? buyer.getFullName() : "Walk-in Customer");
         Address addr = order.getAddress();
-        if (addr != null) {
-            cn.setBuyerAddress(String.join(", ",
-                    addr.getStreet() != null ? addr.getStreet() : "",
-                    addr.getCity() != null ? addr.getCity() : "",
-                    addr.getState() != null ? addr.getState() : "",
-                    addr.getPincode() != null ? addr.getPincode() : ""
-            ).replaceAll("^,\\s*|,\\s*$", "").replaceAll(",\\s*,", ","));
-        } else {
-            cn.setBuyerAddress("");
-        }
+        cn.setBuyerAddress(formatBuyerAddress(addr));
         String buyerStateCode = order.getAddress() != null ? getStateCode(order.getAddress().getState()) : "33";
         String sellerStateCode = "33";
         cn.setBuyerStateCode(buyerStateCode);
@@ -847,6 +838,30 @@ public class CreditNoteService {
             seq = Integer.parseInt(parts[parts.length - 1]) + 1;
         }
         return prefixPattern + String.format("%05d", seq);
+    }
+
+    /**
+     * The buyer's address for a credit note.
+     *
+     * A credit note reverses an invoice and must identify the same party the same way, so this
+     * follows the invoice's own formatter: line1 and line2 first, falling back to street for rows
+     * captured before the address was split. The street-only version dropped the first line
+     * entirely, leaving the document naming a city rather than somebody's address.
+     */
+    private String formatBuyerAddress(Address addr) {
+        if (addr == null) return "";
+        List<String> parts = new ArrayList<>();
+        if (addr.getLine1() != null && !addr.getLine1().isBlank()) parts.add(addr.getLine1().trim());
+        else if (addr.getStreet() != null && !addr.getStreet().isBlank()) parts.add(addr.getStreet().trim());
+        if (addr.getLine2() != null && !addr.getLine2().isBlank()) parts.add(addr.getLine2().trim());
+        if (addr.getCity() != null && !addr.getCity().isBlank()) parts.add(addr.getCity().trim());
+        if (addr.getState() != null && !addr.getState().isBlank()) parts.add(addr.getState().trim());
+        if (addr.getPincode() != null && !addr.getPincode().isBlank()) parts.add(addr.getPincode().trim());
+        if (addr.getCountry() != null && !addr.getCountry().isBlank()
+                && !"India".equalsIgnoreCase(addr.getCountry().trim())) {
+            parts.add(addr.getCountry().trim());
+        }
+        return String.join(", ", parts);
     }
 
     private String getStateCode(String stateName) {

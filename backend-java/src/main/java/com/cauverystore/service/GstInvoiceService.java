@@ -1285,14 +1285,31 @@ public class GstInvoiceService {
                 .replaceAll("[^A-Z]", "");
     }
 
+    /**
+     * The recipient's address as it goes on the invoice.
+     *
+     * Rule 46 requires the recipient's address, and one missing its first line is not an address.
+     * Addresses are captured as line1 plus line2 now, so a street-only formatter dropped both and
+     * produced invoices starting at the city - a defect invisible until somebody tries to deliver
+     * against the document. Street is still read for rows captured before the split.
+     *
+     * Blanks are filtered before joining rather than stripped afterwards with a regex, so a
+     * missing middle field cannot leave ", ," behind on a tax document.
+     */
     private String formatAddress(Address addr) {
         if (addr == null) return "";
-        return String.join(", ",
-            addr.getStreet() != null ? addr.getStreet() : "",
-            addr.getCity() != null ? addr.getCity() : "",
-            addr.getState() != null ? addr.getState() : "",
-            addr.getPincode() != null ? addr.getPincode() : ""
-        ).replaceAll("^,\\s*|,\\s*$", "").replaceAll(",\\s*,", ",");
+        List<String> parts = new ArrayList<>();
+        if (addr.getLine1() != null && !addr.getLine1().isBlank()) parts.add(addr.getLine1().trim());
+        else if (addr.getStreet() != null && !addr.getStreet().isBlank()) parts.add(addr.getStreet().trim());
+        if (addr.getLine2() != null && !addr.getLine2().isBlank()) parts.add(addr.getLine2().trim());
+        if (addr.getCity() != null && !addr.getCity().isBlank()) parts.add(addr.getCity().trim());
+        if (addr.getState() != null && !addr.getState().isBlank()) parts.add(addr.getState().trim());
+        if (addr.getPincode() != null && !addr.getPincode().isBlank()) parts.add(addr.getPincode().trim());
+        if (addr.getCountry() != null && !addr.getCountry().isBlank()
+                && !"India".equalsIgnoreCase(addr.getCountry().trim())) {
+            parts.add(addr.getCountry().trim());
+        }
+        return String.join(", ", parts);
     }
 
     private String sha256Digest(String input) {

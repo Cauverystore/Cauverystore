@@ -21,8 +21,11 @@ const TABS = [
   { key: "security", label: "Security" },
 ];
 
+// line1/line2 are the current shape; street is kept because addresses saved before the split
+// still carry it, and an edit form that ignored it would blank a line the customer never touched.
 const initialAddr = () => ({
-  fullName: "", phone: "", street: "", city: "", state: "", pincode: "",
+  fullName: "", phone: "", line1: "", line2: "", street: "", city: "", state: "", pincode: "",
+  country: "India",
   label: "HOME", landmark: "", deliveryInstructions: "", isDefault: false, isBilling: false
 });
 
@@ -145,7 +148,10 @@ const Profile = () => {
   };
 
   const handleAddAddress = async () => {
-    if (!editingAddr.fullName?.trim() || !editingAddr.street?.trim() || !editingAddr.city?.trim() || !editingAddr.state?.trim() || !editingAddr.pincode?.trim()) {
+    // A legacy address supplies its first line as street, a new one as line1. Requiring line1
+    // outright would make an old address unsaveable until it was retyped.
+    const firstLine = editingAddr.line1?.trim() || editingAddr.street?.trim();
+    if (!editingAddr.fullName?.trim() || !firstLine || !editingAddr.city?.trim() || !editingAddr.state?.trim() || !editingAddr.pincode?.trim()) {
       notify("Please fill all required fields", "error"); return;
     }
     setSaving(true);
@@ -166,7 +172,12 @@ const Profile = () => {
       await userService.deleteAddress(id);
       setAddresses(addresses.filter(a => (a.id || a._id) !== id));
       notify("Address deleted");
-    } catch (err) { notify("Failed to delete address", "error"); }
+    } catch (err) {
+      // The server refuses to delete an address an order still points at, and says why - it is
+      // needed for the invoice and for the delivery. Replacing that with "Failed to delete"
+      // leaves somebody clicking a button that will never work and no idea what to do instead.
+      notify(err.response?.data?.error || err.response?.data?.message || "Failed to delete address", "error");
+    }
   };
 
   const handleAddPayment = async () => {
@@ -371,9 +382,18 @@ const Profile = () => {
                 onChange={(e) => setEditingAddr({ ...editingAddr, phone: e.target.value })} />
             </div>
             <div className="pf-group full-width">
-              <label className="pf-label">Street / Address *</label>
-              <input className="pf-input" value={editingAddr?.street || ""}
-                onChange={(e) => setEditingAddr({ ...editingAddr, street: e.target.value })} />
+              <label className="pf-label">Address line 1 *</label>
+              {/* Falls back to street so an address saved before the split shows what it holds
+                  rather than an empty box the customer would have to fill in again. */}
+              <input className="pf-input" value={editingAddr?.line1 ?? editingAddr?.street ?? ""}
+                onChange={(e) => setEditingAddr({ ...editingAddr, line1: e.target.value })}
+                placeholder="House / flat number and street" />
+            </div>
+            <div className="pf-group full-width">
+              <label className="pf-label">Address line 2</label>
+              <input className="pf-input" value={editingAddr?.line2 || ""}
+                onChange={(e) => setEditingAddr({ ...editingAddr, line2: e.target.value })}
+                placeholder="Area, locality (optional)" />
             </div>
             <div className="pf-group">
               <label className="pf-label">City *</label>
@@ -389,6 +409,11 @@ const Profile = () => {
               <label className="pf-label">Pincode *</label>
               <input className="pf-input" value={editingAddr?.pincode || ""}
                 onChange={(e) => setEditingAddr({ ...editingAddr, pincode: e.target.value })} />
+            </div>
+            <div className="pf-group">
+              <label className="pf-label">Country</label>
+              <input className="pf-input" value={editingAddr?.country ?? "India"}
+                onChange={(e) => setEditingAddr({ ...editingAddr, country: e.target.value })} />
             </div>
             <div className="pf-group">
               <label className="pf-label">Label</label>
@@ -451,14 +476,26 @@ const Profile = () => {
               </div>
               <div className="profile-addr-details">
                 <div className="profile-addr-name">{addr.fullName}</div>
-                <div className="profile-addr-line">{addr.street}</div>
+                {/* Same precedence as the server-side formatters: line1 then street, so an
+                    address renders identically here, on the invoice and in the email. */}
+                <div className="profile-addr-line">{addr.line1 || addr.street}</div>
+                {addr.line2 && <div className="profile-addr-line">{addr.line2}</div>}
                 <div className="profile-addr-line">{addr.city}, {addr.state} - {addr.pincode}</div>
+                {addr.country && addr.country.trim().toLowerCase() !== "india" && (
+                  <div className="profile-addr-line">{addr.country}</div>
+                )}
                 {addr.landmark && <div className="profile-addr-line">Near: {addr.landmark}</div>}
                 <div className="profile-addr-phone">Phone: {addr.phone}</div>
                 {addr.deliveryInstructions && <div className="profile-addr-instr">Note: {addr.deliveryInstructions}</div>}
               </div>
               <div className="profile-addr-actions">
-                <button className="pf-btn-sm pf-btn-edit" onClick={() => { setEditingAddr({ ...addr }); setShowAddrForm(true); }}>Edit</button>
+                <button className="pf-btn-sm pf-btn-edit" onClick={() => {
+                  // Seeded from street when line1 is empty, so opening an address saved before
+                  // the split and pressing Update actually migrates it rather than saving the
+                  // old shape back unchanged.
+                  setEditingAddr({ ...addr, line1: addr.line1 || addr.street || "", country: addr.country || "India" });
+                  setShowAddrForm(true);
+                }}>Edit</button>
                 <button className="pf-btn-sm pf-btn-danger" onClick={() => handleDeleteAddress(aid)}>Delete</button>
               </div>
             </div>
