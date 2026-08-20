@@ -94,6 +94,11 @@ const AdminGstCompliance = () => {
   const ready = readiness?.ready;
   const blockers = readiness?.blockingProducts || [];
   const gaps = readiness?.marketplaceGaps || [];
+  // The same subject as `gaps`, as a checklist rather than a list of complaints. Gaps alone read
+  // identically whether every field was checked and passed or nothing was checked at all, and
+  // before filing anything the question is "what has been confirmed?" not "any problems?".
+  const identity = readiness?.marketplaceIdentity;
+  const identityItems = identity?.items || [];
   const badInvoices = readiness?.invoicesTaxedByFallback || [];
   const freshness = readiness?.rateFreshness;
   const pendingNotifications = readiness?.pendingRateNotifications || [];
@@ -185,14 +190,80 @@ const AdminGstCompliance = () => {
         </div>
       )}
 
-      {gaps.length > 0 && (
+      {identity && (
         <div style={{ ...card, marginBottom: "1.5rem" }}>
-          <h3 style={{ marginTop: 0, fontSize: "1.05rem", fontWeight: 600 }}>
-            Marketplace registration
-          </h3>
-          <ul style={{ fontSize: "0.87rem", color: "#92400e", paddingLeft: "1.1rem" }}>
-            {gaps.map((g, i) => <li key={i} style={{ marginBottom: 4 }}>{g}</li>)}
-          </ul>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", flexWrap: "wrap" }}>
+            <h3 style={{ marginTop: 0, marginBottom: 4, fontSize: "1.05rem", fontWeight: 600 }}>
+              Marketplace registration
+            </h3>
+            <span style={{
+              fontSize: "0.78rem", fontWeight: 600, padding: "2px 10px", borderRadius: "12px",
+              background: identity.readyToFile ? "#EAF7EE" : "#FEF3C7",
+              color: identity.readyToFile ? "#146C43" : "#92400E",
+            }}>
+              {identity.readyToFile ? "Complete" : `${identity.outstanding} outstanding`}
+            </span>
+          </div>
+          <p style={{ ...hint, marginTop: 0, marginBottom: "0.9rem" }}>
+            {identity.summary}
+          </p>
+
+          {!identity.configured ? (
+            <p style={{ fontSize: "0.87rem", color: "#92400e", margin: 0 }}>
+              Section 24(x) requires an e-commerce operator collecting TCS to register whatever its
+              turnover. Until this is recorded, invoices have no supplier and there is nothing to
+              file GSTR-8 under.
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+              {identityItems.map((it) => {
+                const ok = it.status === "OK";
+                const invalid = it.status === "INVALID";
+                return (
+                  <div key={it.field} style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
+                    <span style={{
+                      flexShrink: 0, width: "1.1rem", textAlign: "center", fontWeight: 700,
+                      color: ok ? "#146C43" : invalid ? "#B91C1C" : "#92400E",
+                    }}>
+                      {ok ? "✓" : invalid ? "✗" : "•"}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: "0.87rem", fontWeight: 600, color: "#111827" }}>
+                        {it.label}
+                        {it.value && (
+                          <span style={{ fontWeight: 400, color: "#6b7280", marginLeft: "0.5rem", fontFamily: "monospace", fontSize: "0.8rem" }}>
+                            {it.value}
+                          </span>
+                        )}
+                        {!ok && (
+                          <span style={{ fontWeight: 600, color: invalid ? "#B91C1C" : "#92400E", marginLeft: "0.5rem", fontSize: "0.78rem" }}>
+                            {invalid ? "invalid" : "not set"}
+                          </span>
+                        )}
+                      </div>
+                      {/* The reason is shown only where something is wrong. Repeating it beside a
+                          field that already passes turns a checklist into a wall of text. */}
+                      {!ok && (
+                        <div style={{ fontSize: "0.8rem", color: "#4b5563", marginTop: 2 }}>
+                          {it.why}{it.fix ? ` ${it.fix}` : ""}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Anything the prose check raises that is not one of the fields above - the turnover
+              warning in particular, which is a judgement about a value rather than a missing one. */}
+          {gaps.length > 0 && (
+            <div style={{ marginTop: "0.9rem", paddingTop: "0.8rem", borderTop: "1px solid rgba(0,0,0,0.08)" }}>
+              <ul style={{ fontSize: "0.83rem", color: "#92400e", paddingLeft: "1.1rem", margin: 0 }}>
+                {gaps.map((g, i) => <li key={i} style={{ marginBottom: 4 }}>{g}</li>)}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

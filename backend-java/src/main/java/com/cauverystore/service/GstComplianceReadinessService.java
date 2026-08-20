@@ -237,6 +237,9 @@ public class GstComplianceReadinessService {
         out.put("blockingProductCount", blockers.size());
         out.put("blockingProducts", blockers);
         out.put("marketplaceGaps", marketplaceGaps);
+        // The same subject said as a checklist rather than a list of complaints, so a reader can
+        // see what has been confirmed and not only what is missing.
+        out.put("marketplaceIdentity", marketplaceIdentity());
         out.put("sellerGaps", sellerGaps());
         // Rate freshness is reported alongside, because a store whose products all resolve is
         // still not compliant if the rates they resolve to were superseded months ago.
@@ -282,6 +285,135 @@ public class GstComplianceReadinessService {
             status.put("message", "Invoices are registered with the live IRP and carry a genuine IRN.");
         }
         return status;
+    }
+
+    /**
+     * One line per thing the marketplace's own registration needs, said as present or not.
+     *
+     * marketplaceGaps below returns prose, and prose only lists what is wrong - which reads the
+     * same whether five things were checked and passed or nothing was checked at all. Before
+     * filing anything, the useful question is not "any problems?" but "what has actually been
+     * confirmed?", so this reports every field either way.
+     *
+     * It also checks what is there rather than only that something is there. A GSTIN nobody could
+     * hold, a state code that disagrees with the GSTIN it sits beside, or a PAN that is not the
+     * one embedded in the GSTIN are all fields that are populated and wrong - and a screen that
+     * counts them as done is worse than one that leaves them blank.
+     */
+    public Map<String, Object> marketplaceIdentity() {
+        GstConfiguration config = configRepo.findAll().stream().findFirst().orElse(null);
+        List<Map<String, Object>> items = new ArrayList<>();
+
+        if (config == null) {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("configured", false);
+            out.put("summary", "No marketplace GST configuration exists. Nothing can be invoiced "
+                    + "or filed until the marketplace's own registration is recorded.");
+            out.put("items", items);
+            out.put("readyToFile", false);
+            return out;
+        }
+
+        String gstin = config.getGstin();
+        check(items, "gstin", "Marketplace GSTIN", gstin,
+                "Section 24(x) requires an e-commerce operator collecting TCS to register, "
+                        + "whatever its turnover. Every invoice names it as the supplier.");
+        if (!isBlank(gstin) && !GstComplianceUtil.isGstinChecksumValid(gstin)) {
+            fail(items, "gstin", "Marketplace GSTIN", mask(gstin),
+                    "This GSTIN fails its own check digit, so it is not a number anybody was "
+                            + "issued. Every invoice raised carries it as the supplier.",
+                    "Re-enter it from the registration certificate.");
+        }
+
+        String tcsGstin = config.resolveTcsGstin().orElse(null);
+        check(items, "tcsGstin", "TCS registration (s.52)", tcsGstin,
+                "GSTR-8 is filed under the TCS registration. Filed under the regular GSTIN it "
+                        + "is rejected, so TCS cannot be filed at all.");
+        if (tcsGstin != null && !GstComplianceUtil.isGstinChecksumValid(tcsGstin)) {
+            fail(items, "tcsGstin", "TCS registration (s.52)", mask(tcsGstin),
+                    "Fails its check digit - GSTR-8 would be filed under a number that does not "
+                            + "exist.", "Re-enter it from the TCS registration certificate.");
+        }
+
+        check(items, "legalName", "Registered legal name", config.getLegalName(),
+                "Rule 46 requires the supplier's name on every tax invoice.");
+        check(items, "address", "Registered address", config.getAddress(),
+                "Rule 46 requires the supplier's address on every tax invoice.");
+        check(items, "pan", "PAN", config.getPan(), "Printed on the marketplace's own invoices.");
+        check(items, "cin", "CIN", config.getCin(),
+                "The MCA corporate identity number, printed on the marketplace's invoices.");
+        check(items, "nodalAccountNumber", "Nodal escrow account", config.getNodalAccountNumber(),
+                "Money collected for sellers is held, not owned. Settlement cannot be reconciled "
+                        + "without a separate account for it.");
+
+        // Cross-checks: fields that are individually filled in and cannot all be true at once.
+        if (!isBlank(gstin) && !isBlank(config.getStateCode())
+                && !gstin.trim().toUpperCase().startsWith(config.getStateCode().trim())) {
+            fail(items, "stateCode", "State code", config.getStateCode(),
+                    "The state code does not match the first two characters of the GSTIN, and the "
+                            + "GSTIN is the one that decides whether a supply is inter-state.",
+                    "Set it to " + gstin.trim().substring(0, 2) + ", or correct the GSTIN.");
+        }
+        if (!isBlank(gstin) && !isBlank(config.getPan())
+                && gstin.trim().length() == 15
+                && !GstComplianceUtil.panMatchesGstin(config.getPan(), gstin)) {
+            fail(items, "pan", "PAN", config.getPan(),
+                    "A GSTIN carries its holder's PAN at characters 3 to 12, and this PAN is not "
+                            + "the one inside the GSTIN. One of the two belongs to somebody else.",
+                    "Check both against the registration certificate.");
+        }
+
+        long missing = items.stream().filter(i -> !"OK".equals(i.get("status"))).count();
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("configured", true);
+        out.put("items", items);
+        out.put("outstanding", missing);
+        // Separate from "compliant". This says the marketplace can identify itself on an invoice
+        // and file a return - not that its catalogue is correctly classified, which is what the
+        // rest of the readiness screen is about.
+        out.put("readyToFile", missing == 0);
+        out.put("summary", missing == 0
+                ? "The marketplace's own registration is complete."
+                : missing + " item(s) outstanding on the marketplace's own registration. Invoices "
+                        + "and returns depend on these, not on the catalogue.");
+        return out;
+    }
+
+    private void check(List<Map<String, Object>> items, String field, String label,
+                       String value, String why) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("field", field);
+        item.put("label", label);
+        item.put("status", isBlank(value) ? "MISSING" : "OK");
+        item.put("value", isBlank(value) ? null : mask(value));
+        item.put("why", why);
+        items.add(item);
+    }
+
+    /** Replaces an earlier OK for the same field - a populated wrong value is not done. */
+    private void fail(List<Map<String, Object>> items, String field, String label,
+                      String value, String why, String fix) {
+        items.removeIf(i -> field.equals(i.get("field")));
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("field", field);
+        item.put("label", label);
+        item.put("status", "INVALID");
+        item.put("value", value);
+        item.put("why", why);
+        item.put("fix", fix);
+        items.add(item);
+    }
+
+    /**
+     * Enough of a value to recognise it, not enough to copy it.
+     *
+     * The bank account in particular has no business being echoed in full to a screen that only
+     * needs to say whether it is set.
+     */
+    private String mask(String value) {
+        String v = value.trim();
+        if (v.length() <= 4) return v;
+        return v.substring(0, 2) + "…" + v.substring(v.length() - 4);
     }
 
     private List<String> marketplaceGaps() {

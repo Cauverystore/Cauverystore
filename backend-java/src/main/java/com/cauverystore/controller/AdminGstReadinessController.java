@@ -49,6 +49,18 @@ public class AdminGstReadinessController {
      * only headings something on sale resolves through, ordered by how many products each one
      * would release.
      */
+    /**
+     * Whether the marketplace can identify itself on an invoice and file a return.
+     *
+     * Deliberately its own endpoint. It answers a different question from the rest of the
+     * readiness screen - that one is about the catalogue, this is about the operator - and it is
+     * the one that has to be right before a single invoice is issued.
+     */
+    @GetMapping("/readiness/marketplace-identity")
+    public ResponseEntity<Map<String, Object>> marketplaceIdentity() {
+        return ResponseEntity.ok(service.marketplaceIdentity());
+    }
+
     @GetMapping("/readiness/review-priority")
     public ResponseEntity<List<Map<String, Object>>> reviewPriority() {
         return ResponseEntity.ok(service.reviewPriority());
