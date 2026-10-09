@@ -411,19 +411,20 @@ input[type="range"]::-moz-range-thumb {
   color: var(--color-text-secondary);
 }
 
-/* SEO intro copy on category pages - styled as the same kind of card the toolbar/count
-   bar above it uses, so it reads as part of the page design rather than bare unstyled
-   text dropped in above the product grid. */
+/* SEO intro copy on category pages - tinted with the site's own teal/green brand color
+   (--color-primary-lighter background, --color-primary-dark text) instead of a plain
+   white box, and full-width (no max-width clamp) so it reads as a banner spanning the
+   layout rather than a narrow card stuck in the corner. */
 .cat-products-intro {
   font-size: var(--font-size-sm);
   line-height: 1.6;
-  color: var(--color-text-secondary);
-  background: var(--white);
-  border: 1px solid var(--color-border);
+  color: var(--color-primary-dark);
+  background: var(--color-primary-lighter);
+  border: 1px solid var(--color-primary-light);
   border-radius: var(--radius-xl);
   padding: var(--spacing-3) var(--spacing-4);
   margin: 0 0 var(--spacing-4);
-  max-width: 70ch;
+  width: 100%;
 }
 
 .products-toolbar-count strong {
