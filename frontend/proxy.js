@@ -102,10 +102,20 @@ export default async function proxy(request) {
     });
 
     if (prerendered.ok) {
-      // Pass through Prerender.io's response (HTML, status code and headers) as-is.
+      // Pass through Prerender.io's response, but NOT its raw headers verbatim: fetch()
+      // already transparently decompresses a gzip-encoded body, yet the original
+      // Content-Encoding/Content-Length headers stay attached to prerendered.headers and
+      // would still claim the (now plain) body is gzip-compressed with the original
+      // (now wrong) byte length. A lenient browser ignores that mismatch, but strict
+      // scrapers (Facebook's Sharing Debugger among them) try to gzip-decode an
+      // already-decoded body and fail with a curl/content-encoding error. Strip both so
+      // the headers describe the body we're actually sending.
+      const headers = new Headers(prerendered.headers);
+      headers.delete("content-encoding");
+      headers.delete("content-length");
       return new Response(prerendered.body, {
         status: prerendered.status,
-        headers: prerendered.headers,
+        headers,
       });
     }
   } catch (err) {
