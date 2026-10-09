@@ -4,12 +4,12 @@ import { Shield, Truck, IndianRupee, HeadphonesIcon, BadgeCheck, Store, HeartHan
 import StaticLayout from "../components/StaticLayout";
 
 const features = [
-  { icon: Store, title: "Extensive Product Range", text: "From traditional Indian wear to daily essentials, discover thousands of products curated just for you." },
+  { icon: Store, title: "Real Tamil Nadu Sellers", text: "Every listing comes from a verified shop or trader based in Tamil Nadu, not an anonymous warehouse SKU." },
   { icon: BadgeCheck, title: "Value You Can Trust", text: "Every product is verified for quality and authenticity, ensuring you get the best value for your money." },
   { icon: Shield, title: "Secure Shopping Experience", text: "Shop with confidence with bank-grade encryption, multiple payment options, and 100% buyer protection via Razorpay." },
-  { icon: Truck, title: "Fast & Reliable Delivery", text: "Lightning-fast shipping across India with real-time tracking and free delivery on eligible orders." },
+  { icon: Truck, title: "Delivery You Can Track", text: "Delivery times and coverage depend on the seller, shown clearly at checkout, with real-time tracking on every order." },
   { icon: HeartHandshake, title: "Easy Returns & Support", text: "Hassle-free returns within 7-15 days and a dedicated support team ready to help you around the clock." },
-  { icon: IndianRupee, title: "Empowering Indian Businesses", text: "We partner with local artisans, small businesses, and trusted brands across India to bring you the best." },
+  { icon: IndianRupee, title: "Keeping Business Local", text: "Buying here keeps more of what you spend with Tamil Nadu's own shops and traders, instead of a national chain." },
 ];
 
 const faqs = [
@@ -29,20 +29,42 @@ const AboutUs = () => {
       }}
     >
       <Helmet>
-        <title>About Us | Cauvery Store</title>
-        <meta name="description" content="Learn more about Cauvery Store — your trusted Indian online marketplace. Discover our mission, vision, and commitment to quality." />
+        <title>About Us | Cauvery Store - Shop Direct from Tamil Nadu Sellers</title>
+        <meta name="description" content="Cauvery Store connects you directly with real shops and traders across Tamil Nadu. Learn who we are and why we built a marketplace this way." />
+        <link rel="canonical" href="https://cauverystore.in/about" />
+        <meta property="og:title" content="About Cauvery Store" />
+        <meta property="og:description" content="Cauvery Store connects you directly with real shops and traders across Tamil Nadu." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://cauverystore.in/about" />
+        <meta property="og:image" content="https://cauverystore.in/logo512.png" />
       </Helmet>
 
       <div className="static-section">
         <h2>Welcome to Cauvery Store</h2>
         <p>
-          Cauvery Store was founded with a simple vision: to make quality products accessible to every Indian home
-          while empowering local businesses and artisans. Named after the vibrant Cauvery river — a lifeline of South India —
-          our marketplace flows with the same energy, connecting buyers with the best sellers across the country.
+          Cauvery Store was founded with a simple vision: to make it easy to buy directly from the shops and traders
+          of Tamil Nadu, instead of routing every purchase through an anonymous national warehouse. Named after the
+          vibrant Cauvery river — a lifeline of South India — our marketplace flows with the same energy, connecting
+          buyers with real local sellers they can actually see and know.
         </p>
         <p>
-          Whether you are looking for the latest electronics, traditional apparel, daily groceries, or unique handcrafted
-          goods, Cauvery Store brings you a seamless shopping experience backed by trust, transparency, and technology.
+          Whether you are looking for electronics, fashion, home and kitchen essentials, books, or sports gear, every
+          listing on Cauvery Store comes from a seller based in Tamil Nadu — not a faceless fulfillment center.
+        </p>
+      </div>
+
+      <div className="static-section">
+        <h2>Real Sellers, Not a Warehouse</h2>
+        <p>
+          Every shop on Cauvery Store is run by a real trader or small business — the kind of shop you could walk
+          into in Coimbatore or any town across Tamil Nadu, now also reachable online. Each seller account goes
+          through our verification process before they can list, and you can see a seller's store details before
+          you buy, not just a generic "Sold by Marketplace" line.
+        </p>
+        <p>
+          Buying this way keeps more of what you spend with local businesses, and gives you someone real to reach
+          if a product needs an exchange, a question, or a warranty claim — rather than a support queue with no
+          name attached.
         </p>
       </div>
 
