@@ -56,7 +56,33 @@ const BOT_USER_AGENT_PATTERN = new RegExp(
   "i"
 );
 
+// The backend generates this live from the database (see SitemapController.java /
+// SitemapService.java on the Railway service) - CRA has no backend of its own to put this
+// logic in, so the frontend's own routing layer is what forwards the request there. Handled
+// here directly (rather than via a vercel.json "rewrites" entry to an external URL) because
+// mixing the newer "proxy" entrypoint with a static external-destination rewrite in the same
+// vercel.json did not reliably take effect - this keeps all custom routing in one place.
+const BACKEND_URL = "https://cauvery-store-backend-production.up.railway.app";
+
 export default async function proxy(request) {
+  const url = new URL(request.url);
+
+  if (url.pathname === "/sitemap.xml") {
+    try {
+      const sitemap = await fetch(BACKEND_URL + "/api/sitemap.xml");
+      if (sitemap.ok) {
+        return new Response(sitemap.body, {
+          status: sitemap.status,
+          headers: sitemap.headers,
+        });
+      }
+    } catch (err) {
+      // Backend unreachable - fall through to the normal SPA rather than hard-failing;
+      // a missing sitemap for a few minutes is far less harmful than an opaque 500.
+    }
+    return next();
+  }
+
   const userAgent = request.headers.get("user-agent") || "";
   const token = process.env.PRERENDER_TOKEN;
 
