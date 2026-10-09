@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@vercel/functions": "^1.0.0",
     "@capacitor/android": "^8.4.2",
     "@capacitor/browser": "^8.0.4",
     "@capacitor/cli": "^8.4.2",

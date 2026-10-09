@@ -91,7 +91,6 @@ export default async function proxy(request) {
     return next();
   }
 
-  const url = new URL(request.url);
   const prerenderUrl = "https://service.prerender.io/" + url.toString();
 
   try {
