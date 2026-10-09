@@ -411,20 +411,41 @@ input[type="range"]::-moz-range-thumb {
   color: var(--color-text-secondary);
 }
 
-/* SEO intro copy on category pages - tinted with the site's own teal/green brand color
-   (--color-primary-lighter background, --color-primary-dark text) instead of a plain
-   white box, and full-width (no max-width clamp) so it reads as a banner spanning the
-   layout rather than a narrow card stuck in the corner. */
-.cat-products-intro {
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-  color: var(--color-primary-dark);
+/* SEO intro copy on category pages, built as an actual banner (icon + bold label + body
+   text, left accent border, generous padding) rather than a single tinted line - tinted
+   with the site's own teal/green brand color, full-width so it spans the layout. */
+.cat-products-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  width: 100%;
   background: var(--color-primary-lighter);
   border: 1px solid var(--color-primary-light);
+  border-left: 4px solid var(--color-primary);
   border-radius: var(--radius-xl);
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-5);
   margin: 0 0 var(--spacing-4);
-  width: 100%;
+}
+
+.cat-products-banner-icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+.cat-products-banner-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-dark);
+  margin-bottom: var(--spacing-1);
+}
+
+.cat-products-banner-text {
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin: 0;
 }
 
 .products-toolbar-count strong {

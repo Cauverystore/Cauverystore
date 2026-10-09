@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { Store } from "lucide-react";
 import { searchProducts } from "../services/productService";
 import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
@@ -145,9 +146,13 @@ const CategoryProducts = () => {
           <h2 className="section-title">{category}</h2>
           <span className="products-toolbar-count">{products.length} products</span>
         </div>
-        <p className="cat-products-intro">
-          {seoCopy.intro}
-        </p>
+        <div className="cat-products-banner">
+          <Store size={22} className="cat-products-banner-icon" aria-hidden="true" />
+          <div>
+            <strong className="cat-products-banner-label">Why shop {category} here</strong>
+            <p className="cat-products-banner-text">{seoCopy.intro}</p>
+          </div>
+        </div>
 
         {loading ? (
           <div className="pt-grid">
