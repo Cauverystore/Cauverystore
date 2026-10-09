@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import {
   Zap, Shirt, Home as HomeIcon, BookOpen, Smartphone, Laptop, Tv,
   Sparkles, Cookie, Flame, Star, Store, Landmark, CreditCard, Package
@@ -154,6 +155,22 @@ const Home = () => {
 
   return (
     <div className="sn-page">
+      <Helmet>
+        <title>Cauvery Store | Shop Direct from Tamil Nadu Sellers</title>
+        <meta
+          name="description"
+          content="Buy straight from Tamil Nadu makers and local shops. See who sells it and where they are, pay by UPI or card, and get it delivered to your door."
+        />
+        <link rel="canonical" href="https://cauverystore.in/" />
+        <meta property="og:title" content="Cauvery Store | Shop Direct from Tamil Nadu Sellers" />
+        <meta
+          property="og:description"
+          content="Buy straight from Tamil Nadu makers and local shops. See who sells it and where they are, pay by UPI or card, and get it delivered to your door."
+        />
+        <meta property="og:image" content="https://cauverystore.in/logo512.png" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://cauverystore.in/" />
+      </Helmet>
       {toast && (
         <div className={`sn-toast sn-toast-${toast.type}`} role="status" aria-live="polite">
           {toast.text}

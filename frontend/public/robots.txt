@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /profile
+Disallow: /orders
+Disallow: /wishlist
+Disallow: /seller/
+Disallow: /admin/
+Disallow: /super-admin/
+Disallow: /search
+Disallow: /api/
+
+Sitemap: https://cauverystore.in/sitemap.xml

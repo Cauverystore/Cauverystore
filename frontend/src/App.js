@@ -139,7 +139,8 @@ function App() {
           <meta property="og:title" content="Cauvery Store" />
           <meta property="og:description" content="Your one-stop shop for everything." />
           <meta property="og:type" content="website" />
-          <meta property="og:image" content="/logo192.png" />
+          <meta property="og:image" content="https://cauverystore.in/logo512.png" />
+          <meta property="og:url" content="https://cauverystore.in" />
           <meta name="twitter:card" content="summary_large_image" />
         </Helmet>
         <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({

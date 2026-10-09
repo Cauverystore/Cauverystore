@@ -1,8 +1,16 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "https://cauvery-store-backend-production.up.railway.app/api/sitemap.xml" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "buildCommand": "react-scripts build",
   "outputDirectory": "build",
-  "framework": "create-react-app"
+  "framework": "create-react-app",
+  "proxy": {
+    "entrypoint": "proxy.js",
+    "matcher": [
+      "/((?!api|static|favicon.ico|manifest.json|robots.txt|sitemap.xml|service-worker.js|.*\\.(?:png|jpg|jpeg|svg|ico|css|js|map|json|webp|woff2?)).*)"
+    ]
+  }
 }

@@ -61,6 +61,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/super-admin/login").permitAll()
                 .requestMatchers("/api/executive/login").permitAll()
                 .requestMatchers("/api/health").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/sitemap.xml").permitAll()
                 .requestMatchers("/api/otp/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
@@ -114,7 +115,15 @@ public class SecurityConfig {
         CorsConfiguration c = new CorsConfiguration();
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         c.setAllowedOrigins(origins);
-        c.setAllowedOriginPatterns(List.of("http://localhost:*"));
+        // Vercel mints a fresh, unpredictable hash-based URL for every single deployment
+        // (frontend-<hash>-cauverystorein-6256s-projects.vercel.app), so an exact-match list in
+        // CORS_ALLOWED_ORIGINS can never keep up with it the way it can with the two fixed
+        // production domains. This pattern covers every deployment under that one Vercel
+        // project/team without having to add a new origin by hand each time one is created.
+        c.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "https://frontend-*-cauverystorein-6256s-projects.vercel.app"
+        ));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
         c.setExposedHeaders(List.of("Authorization", "Set-Cookie"));

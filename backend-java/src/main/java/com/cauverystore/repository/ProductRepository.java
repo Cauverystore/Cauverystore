@@ -62,6 +62,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     long countByCategory(Category category);
 
+    /** Only products a shopper can actually see - used to decide whether a category/section is worth listing (sitemap, homepage). */
+    long countByCategoryAndActiveTrue(Category category);
+
     long countBySellerId(Long sellerId);
 
     List<Product> findByApprovalStatus(String approvalStatus);
