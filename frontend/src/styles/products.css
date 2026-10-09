@@ -411,6 +411,21 @@ input[type="range"]::-moz-range-thumb {
   color: var(--color-text-secondary);
 }
 
+/* SEO intro copy on category pages - styled as the same kind of card the toolbar/count
+   bar above it uses, so it reads as part of the page design rather than bare unstyled
+   text dropped in above the product grid. */
+.cat-products-intro {
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  background: var(--white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin: 0 0 var(--spacing-4);
+  max-width: 70ch;
+}
+
 .products-toolbar-count strong {
   color: var(--color-text-primary);
 }

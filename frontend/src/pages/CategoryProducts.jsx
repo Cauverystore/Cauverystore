@@ -145,7 +145,7 @@ const CategoryProducts = () => {
           <h2 className="section-title">{category}</h2>
           <span className="products-toolbar-count">{products.length} products</span>
         </div>
-        <p className="cat-products-intro" style={{ margin: "0 0 20px", color: "var(--text-secondary, #555)", maxWidth: "70ch", lineHeight: 1.6 }}>
+        <p className="cat-products-intro">
           {seoCopy.intro}
         </p>
 
