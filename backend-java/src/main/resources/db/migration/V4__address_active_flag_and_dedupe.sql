@@ -17,7 +17,9 @@ UPDATE addresses SET active_flag = true WHERE active_flag IS NULL;
 
 -- 2) Cluster addresses per user + primary line (line1, falling back to street) + pincode;
 --    rank each cluster by order usage, then repoint orders and soft-delete the losers.
-WITH keyed AS (
+--    Ranked once into temp tables: a WITH clause is visible only to the single statement it is
+--    attached to, and re-ranking after the soft-delete below would no longer see the losers.
+CREATE TEMP TABLE keyed ON COMMIT DROP AS
     SELECT id, user_id,
            lower(coalesce(nullif(btrim(line1), ''), btrim(street))) AS norm_line,
            lower(btrim(pincode)) AS norm_pincode,
@@ -32,10 +34,10 @@ WITH keyed AS (
     FROM addresses a
     WHERE active_flag IS NOT FALSE
       AND nullif(btrim(pincode), '') IS NOT NULL
-      AND nullif(coalesce(nullif(btrim(line1), ''), btrim(street)), '') IS NOT NULL
-),
-survivors AS (SELECT * FROM keyed WHERE rn = 1),
-losers     AS (SELECT * FROM keyed WHERE rn > 1)
+      AND nullif(coalesce(nullif(btrim(line1), ''), btrim(street)), '') IS NOT NULL;
+
+CREATE TEMP TABLE survivors ON COMMIT DROP AS SELECT * FROM keyed WHERE rn = 1;
+CREATE TEMP TABLE losers    ON COMMIT DROP AS SELECT * FROM keyed WHERE rn > 1;
 
 UPDATE orders o SET address_id = s.id
 FROM survivors s

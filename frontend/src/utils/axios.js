@@ -61,7 +61,12 @@ api.interceptors.response.use(
       window.location.reload();
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // A 401 from a sign-in attempt means the credentials were refused, not that a session
+    // expired. Trying to refresh there fails with "Refresh token is required", which then
+    // replaces the real reason on the login form.
+    const isSignInAttempt = /\/login(-2fa)?$/.test((originalRequest?.url || '').split('?')[0]);
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isSignInAttempt) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

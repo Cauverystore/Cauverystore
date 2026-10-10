@@ -10,9 +10,9 @@ const BulkUpload = () => {
   const [result, setResult] = useState(null);
   const fileRef = useRef();
 
-  const templateUrl = isSeller
+  const templateUrl = (api.defaults.baseURL || "http://localhost:9091") + (isSeller
     ? "/api/seller/template.xlsx"
-    : "/api/admin/template.xlsx";
+    : "/api/admin/template.xlsx");
 
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
 
