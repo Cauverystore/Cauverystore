@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import api from "../api/axios";
 import { getProductById } from "../services/productService";
@@ -68,7 +68,30 @@ const ProductDetails = () => {
   const safeJsonLd = (obj) => JSON.stringify(obj, null, 2).replace(/</g, "\\u003c");
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
-  if (!product) return <div style={{ textAlign: "center", padding: "3rem" }}>Product not found</div>;
+  if (!product) return (
+    <div style={{ textAlign: "center", padding: "3rem" }}>
+      {/* Tells Prerender.io to return a real 404 to crawlers instead of a 200 "soft 404". */}
+      <Helmet>
+        <title>Product not found - Cauvery Store</title>
+        <meta name="prerender-status-code" content="404" />
+        <meta name="robots" content="noindex" />
+      </Helmet>
+      Product not found
+    </div>
+  );
+
+  const canonicalUrl = `https://cauverystore.in/product/${id}`;
+  // Cut at a word boundary instead of mid-word, and fall back to a sentence that carries
+  // the site's real differentiator rather than a bare product name.
+  const trimAt = (text, max) => {
+    const t = (text || "").replace(/\s+/g, " ").trim();
+    if (t.length <= max) return t;
+    const cut = t.slice(0, max - 1);
+    return cut.slice(0, cut.lastIndexOf(" ") > 40 ? cut.lastIndexOf(" ") : cut.length).replace(/[,.;:\s]+$/, "") + "…";
+  };
+  const metaDescription = product.description
+    ? trimAt(product.description, 155)
+    : `Buy ${product.name} direct from Tamil Nadu sellers on Cauvery Store. Pay by UPI or card and get it delivered to your door.`;
 
   const selImage = product.images?.[selectedImage];
   const mainSrc = fullUrl(selImage) || fullUrl(product.image) || "/images/placeholder.svg";
@@ -83,11 +106,17 @@ const ProductDetails = () => {
     <div className="product-detail-page">
       <Helmet>
         <title>{product.name} - Cauvery Store</title>
-        <meta name="description" content={product.description?.substring(0, 160) || `${product.name} at Cauvery Store`} />
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={canonicalUrl} />
         <meta property="og:title" content={`${product.name} - Cauvery Store`} />
-        <meta property="og:description" content={product.description?.substring(0, 200) || `${product.name} at Cauvery Store`} />
+        <meta property="og:description" content={metaDescription} />
         <meta property="og:image" content={fullUrl(product.images?.[0]) || fullUrl(product.image) || siteDefaultImage} />
         <meta property="og:type" content="product" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${product.name} - Cauvery Store`} />
+        <meta name="twitter:description" content={metaDescription} />
+        <meta name="twitter:image" content={fullUrl(product.images?.[0]) || fullUrl(product.image) || siteDefaultImage} />
       </Helmet>
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html: safeJsonLd({
         "@context": "https://schema.org/",
@@ -99,10 +128,9 @@ const ProductDetails = () => {
         "brand": product.brand ? { "@type": "Brand", "name": product.brand } : undefined,
         "offers": {
           "@type": "Offer",
-          "url": window.location.href,
+          "url": canonicalUrl,
           "priceCurrency": "INR",
           "price": product.dealPrice || product.price,
-          "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
           "itemCondition": "https://schema.org/NewCondition",
           "availability": (product.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
         },
@@ -118,7 +146,7 @@ const ProductDetails = () => {
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" },
           ...(categoryName ? [{ "@type": "ListItem", "position": 2, "name": categoryName, "item": window.location.origin + "/category/" + encodeURIComponent(categoryName) }] : []),
-          { "@type": "ListItem", "position": categoryName ? 3 : 2, "name": product.name, "item": window.location.href }
+          { "@type": "ListItem", "position": categoryName ? 3 : 2, "name": product.name, "item": canonicalUrl }
         ]
       })}} />
       <Breadcrumb items={[
@@ -222,19 +250,18 @@ const ProductDetails = () => {
               const img = fullUrl(p.images?.[0]) || fullUrl(p.image);
               const price = p.dealPrice || p.price || 0;
               return (
-                <button
-                  type="button"
+                <Link
                   key={pid}
+                  to={`/product/${pid}`}
                   className="related-product-card"
-                  onClick={() => navigate(`/product/${pid}`)}
-                  style={{ display: "block", fontFamily: "inherit", color: "inherit", textAlign: "left" }}
+                  style={{ display: "block", fontFamily: "inherit", color: "inherit", textAlign: "left", textDecoration: "none" }}
                 >
                   <img src={img || "/images/placeholder.svg"} alt={p.name} width="200" height="200" loading="lazy" className="related-product-img" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
                   <div className="related-product-info">
                     <p className="related-product-name">{p.name}</p>
                     <p className="related-product-price">{"\u20B9"}{price.toLocaleString()}</p>
                   </div>
-                </button>
+                </Link>
               );
             })}
           </div>

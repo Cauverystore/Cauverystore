@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark, ArrowRightCircle, Trash2, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../api/axios";
 import { useWishlist } from "../context/WishlistContext";
@@ -281,7 +281,18 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
 
       <div className="pt-body">
         {brand && <div className="pt-brand">{brand}</div>}
-        <h3 className="pt-name">{name}</h3>
+        {/* Real <a href> so crawlers can follow the link; the card itself is a div with an
+            onClick, which search engines do not treat as a link. stopPropagation avoids a
+            double navigation with the card's own click handler. */}
+        <h3 className="pt-name">
+          <Link
+            to={`/product/${pid}`}
+            style={{ color: "inherit", textDecoration: "none" }}
+            onClick={(e) => { e.stopPropagation(); trackSelectItem(product, "product_list"); }}
+          >
+            {name}
+          </Link>
+        </h3>
 
         <PriceBlock price={price} originalPrice={originalPrice} discount={discount} />
 
