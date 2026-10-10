@@ -55,6 +55,16 @@ const BOT_USER_AGENT_PATTERN = new RegExp(
     // Owner's own SEO audit tool (RankForge): lets it see the prerendered page that
     // search engines get, instead of the empty JavaScript shell.
     "RankForgeAuditBot",
+    // AI search and answer crawlers: without these they get the empty JS shell
+    "GPTBot",
+    "OAI-SearchBot",
+    "ChatGPT-User",
+    "ClaudeBot",
+    "Claude-SearchBot",
+    "Claude-User",
+    "PerplexityBot",
+    "Perplexity-User",
+    "DuckDuckBot",
   ].join("|"),
   "i"
 );

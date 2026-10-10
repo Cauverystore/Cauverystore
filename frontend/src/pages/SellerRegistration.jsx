@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Building2, ShieldCheck, Landmark, UploadCloud, FileText, CheckSquare, ChevronLeft, ChevronRight, Check, AlertTriangle, Upload, Info, ExternalLink, X, Clock, BadgeCheck, BadgeX } from "lucide-react";
 import api from "../api/axios";
+import { trackSellerRegisterStarted, trackSellerRegisterCompleted } from "../utils/analytics";
 import { useAuth } from "../context/AuthContext";
 import "../styles/sellerRegistration.css";
 
@@ -116,6 +117,7 @@ const SellerRegistration = () => {
         if (r.data.compliance) setCompliance(r.data.compliance);
       } else {
         api.post("/api/seller-registration/start").then((s) => {
+          trackSellerRegisterStarted();
           setRegData(s.data.registration);
           setStep(s.data.step || 1);
           setMaxStep(s.data.step || 1);
@@ -207,6 +209,7 @@ const SellerRegistration = () => {
       setSubmitting(true);
       try {
         await api.post("/api/seller-registration/submit");
+        trackSellerRegisterCompleted();
         setStatus("SUBMITTED");
       } catch (err) { setError(err.response?.data?.error || "Failed to submit registration"); }
       finally { setSubmitting(false); }

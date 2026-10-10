@@ -1,44 +1,17 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import {
-  Zap, Shirt, Home as HomeIcon, BookOpen, Smartphone, Laptop, Tv,
-  Sparkles, Cookie, Flame, Star, Store, Landmark, CreditCard, Package
-} from "lucide-react";
+import { Flame, Star, Package, Store, MapPin, Zap, Shirt } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import "../styles/shopnest-home.css";
 
+// Hero slides describe what the store really is. Add real offers here only once they exist.
 const BANNERS = [
-  { id: 1, title: "Big Summer Sale", subtitle: "Up to 70% off on Electronics", cta: "Shop Now", bg: "#0B3D2E", accent: "#1B7A45", color: "#7FFFD4" },
-  { id: 2, title: "Fashion Week", subtitle: "New arrivals starting at \u20B9299", cta: "Explore Styles", bg: "#146C43", accent: "#1B7A45", color: "#7FFFD4" },
-  { id: 3, title: "Home Makeover", subtitle: "Kitchen essentials & furniture deals", cta: "Upgrade Now", bg: "#115035", accent: "#0B3D2E", color: "#7FFFD4" },
-  { id: 4, title: "Book Bonanza", subtitle: "Bestsellers at flat 40% off", cta: "Browse Books", bg: "#146C43", accent: "#1B7A45", color: "#7FFFD4" },
+  { id: 1, title: "Shop direct from Tamil Nadu sellers", subtitle: "See who sells it and where they are. Pay by UPI or card.", cta: "Browse products", to: "/products", bg: "#0B3D2E", accent: "#1B7A45", color: "#7FFFD4", Icon: MapPin },
+  { id: 2, title: "Sell on Cauvery Store", subtitle: "Reach customers across Tamil Nadu with your own seller page.", cta: "Become a seller", to: "/seller/register", bg: "#146C43", accent: "#1B7A45", color: "#7FFFD4", Icon: Store },
 ];
-const BANNER_ICONS = [Zap, Shirt, HomeIcon, BookOpen];
-
-const BRAND_STORES = [
-  { name: "Samsung", icon: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=100", offer: "Up to 40% Off" },
-  { name: "Apple", icon: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=100", offer: "Exchange Bonus" },
-  { name: "Nike", icon: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100", offer: "Min 50% Off" },
-  { name: "Sony", icon: "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=100", offer: "Audio Fest" },
-  { name: "Puma", icon: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=100", offer: "40-70% Off" },
-  { name: "OnePlus", icon: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=100", offer: "Launch Deals" },
-];
-
-const QUICK_CATEGORIES = [
-  { icon: Smartphone, label: "Mobiles", slug: "Electronics" },
-  { icon: Laptop, label: "Laptops", slug: "Electronics" },
-  { icon: Shirt, label: "Fashion", slug: "Fashion" },
-  { icon: HomeIcon, label: "Home", slug: "Home & Kitchen" },
-  { icon: Tv, label: "TVs", slug: "Electronics" },
-  { icon: Sparkles, label: "Beauty", slug: "Fashion" },
-  { icon: Cookie, label: "Grocery", slug: "Home & Kitchen" },
-  { icon: BookOpen, label: "Books", slug: "Books" },
-];
-
-const CATEGORIES = ["Electronics", "Fashion", "Home & Kitchen", "Grocery", "Beauty", "Appliances", "Books", "Sports", "Toys", "Deals"];
 
 function normalizeProduct(p) {
   if (!p) return null;
@@ -56,32 +29,6 @@ function normalizeProduct(p) {
   return { ...p, image: img, price, originalPrice: origPrice, discount: discPct, rating, reviews: reviewCount, stock: p.stock ?? p.stockQuantity ?? (p.active ? 1 : 0) };
 }
 
-function DealCountdown() {
-  const [time, setTime] = useState(() => {
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    return end.getTime() - Date.now();
-  });
-
-  useEffect(() => {
-    const id = setInterval(() => setTime(prev => Math.max(0, prev - 1000)), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const h = Math.floor(time / 3600000);
-  const m = Math.floor((time % 3600000) / 60000);
-  const s = Math.floor((time % 60000) / 1000);
-
-  return (
-    <div className="sn-countdown">
-      <span className="sn-countdown-label">Ends in</span>
-      <span className="sn-countdown-block">{String(h).padStart(2, '0')}</span><span>:</span>
-      <span className="sn-countdown-block">{String(m).padStart(2, '0')}</span><span>:</span>
-      <span className="sn-countdown-block">{String(s).padStart(2, '0')}</span>
-    </div>
-  );
-}
-
 function getCategoryName(p) {
   if (!p.category) return "";
   return typeof p.category === "object" ? (p.category.name || "") : p.category;
@@ -94,7 +41,6 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [bannerIdx, setBannerIdx] = useState(0);
   const [toast, setToast] = useState(null);
-  const [brandStoresEnabled, setBrandStoresEnabled] = useState(false);
 
   useEffect(() => {
     Promise.all([api.get("/api/products"), api.get("/api/categories")])
@@ -104,12 +50,6 @@ const Home = () => {
       })
       .catch(() => { setAllProducts([]); setCategories([]); })
       .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    api.get("/api/settings/homepage")
-      .then(res => setBrandStoresEnabled(!!res.data?.brandStoresEnabled))
-      .catch(() => setBrandStoresEnabled(false));
   }, []);
 
   useEffect(() => {
@@ -184,10 +124,10 @@ const Home = () => {
               {BANNERS.map((b, i) => (
                 <div key={b.id} className={`sn-hero-slide ${i === bannerIdx ? "active" : ""}`} style={{ backgroundColor: b.bg }}>
                   <div className="sn-hero-content">
-                    <span className="sn-hero-icon">{React.createElement(BANNER_ICONS[i], { size: 48, color: b.color })}</span>
+                    <span className="sn-hero-icon"><b.Icon size={48} color={b.color} /></span>
                     <h2 style={{ color: b.color }}>{b.title}</h2>
                     <p style={{ color: b.color, opacity: 0.85 }}>{b.subtitle}</p>
-                    <button className="sn-hero-cta" style={{ backgroundColor: b.accent }}>{b.cta}</button>
+                    <Link to={b.to} className="sn-hero-cta" style={{ backgroundColor: b.accent, display: "inline-block", textDecoration: "none" }}>{b.cta}</Link>
                   </div>
                   <div className="sn-hero-visual">
                     <div className="sn-hero-shape" />
@@ -207,66 +147,41 @@ const Home = () => {
       <section className="sn-quick-cats">
         <div className="sn-container">
           <div className="sn-quick-cats-grid">
-            {QUICK_CATEGORIES.map(cat => (
-              <button key={cat.label} className="sn-quick-cat" onClick={() => navigate(`/products?category=${encodeURIComponent(cat.slug)}`)}>
-                <span className="sn-quick-cat-icon"><cat.icon size={28} /></span>
-                <span className="sn-quick-cat-label">{cat.label}</span>
-              </button>
-            ))}
+            {categories.slice(0, 8).map(cat => {
+              const name = typeof cat === "string" ? cat : (cat.name || cat.title || "");
+              if (!name) return null;
+              return (
+                <Link key={name} className="sn-quick-cat" to={`/category/${encodeURIComponent(name)}`} style={{ textDecoration: "none" }}>
+                  <span className="sn-quick-cat-icon"><Package size={28} /></span>
+                  <span className="sn-quick-cat-label">{name}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
 
+      {(loading || productsWithDiscount.length > 0) && (
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <div className="sn-section-title-row">
-              <h2 className="sn-section-title"><Flame size={22} color="#fa8900" className="sn-section-icon" /> Deals of the Day</h2>
-              <DealCountdown />
-            </div>
-            <button className="sn-view-all" onClick={() => navigate("/offers")}>View All Deals {"\u2192"}</button>
+            <h2 className="sn-section-title"><Flame size={22} color="#fa8900" className="sn-section-icon" /> Discounted now</h2>
+            <Link className="sn-view-all" to="/offers" style={{ textDecoration: "none" }}>View all offers {"\u2192"}</Link>
           </div>
           <div className="sn-product-scroll">
             {productsWithDiscount.length > 0
               ? productsWithDiscount.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)
-              : (loading ? [...Array(6)].map((_, i) => <LoadingSkeleton key={i} />) : null)}
+              : [...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}
           </div>
         </div>
       </section>
-
-      <section className="sn-section">
-        <div className="sn-container">
-          <div className="sn-offer-strip">
-            <div className="sn-offer-card">
-              <span className="sn-offer-icon"><Landmark size={24} color="#146C43" /></span>
-              <div>
-                <strong>10% Instant Discount</strong>
-                <p>with HDFC Bank Credit Cards on orders above {"\u20B9"}5,000</p>
-              </div>
-            </div>
-            <div className="sn-offer-card">
-              <span className="sn-offer-icon"><CreditCard size={24} color="#146C43" /></span>
-              <div>
-                <strong>Flat {"\u20B9"}500 Cashback</strong>
-                <p>on first order with SBI Debit Card. Use code: SHOP500</p>
-              </div>
-            </div>
-            <div className="sn-offer-card">
-              <span className="sn-offer-icon"><Package size={24} color="#146C43" /></span>
-              <div>
-                <strong>No Cost EMI</strong>
-                <p>starting at {"\u20B9"}499/month on select products</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      )}
 
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title"><Star size={22} color="#fa8900" className="sn-section-icon" /> Top Picks for You</h2>
-            <button className="sn-view-all" onClick={() => navigate("/products")}>View All {"\u2192"}</button>
+            <h2 className="sn-section-title"><Star size={22} color="#fa8900" className="sn-section-icon" /> New from Tamil Nadu sellers</h2>
+            <Link className="sn-view-all" to="/products" style={{ textDecoration: "none" }}>View all {"\u2192"}</Link>
           </div>
           {loading ? (
             <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
@@ -284,7 +199,7 @@ const Home = () => {
         <div className="sn-container">
           <div className="sn-section-top">
             <h2 className="sn-section-title"><Zap size={22} color="#fa8900" className="sn-section-icon" /> Trending Electronics</h2>
-            <button className="sn-view-all" onClick={() => navigate("/products?category=Electronics")}>View All {"\u2192"}</button>
+            <Link className="sn-view-all" to="/category/Electronics" style={{ textDecoration: "none" }}>View all {"\u2192"}</Link>
           </div>
           {loading ? (
             <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
@@ -302,7 +217,7 @@ const Home = () => {
         <div className="sn-container">
           <div className="sn-section-top">
             <h2 className="sn-section-title"><Shirt size={22} color="#2E9B57" className="sn-section-icon" /> Fashion Essentials</h2>
-            <button className="sn-view-all" onClick={() => navigate("/products?category=Fashion")}>View All {"\u2192"}</button>
+            <Link className="sn-view-all" to="/category/Fashion" style={{ textDecoration: "none" }}>View all {"\u2192"}</Link>
           </div>
           {loading ? (
             <div className="sn-product-scroll">{[...Array(4)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
@@ -315,26 +230,6 @@ const Home = () => {
           )}
         </div>
       </section>
-
-      {brandStoresEnabled && (
-        <section className="sn-section">
-          <div className="sn-container">
-            <div className="sn-section-top">
-              <h2 className="sn-section-title"><Store size={22} color="#2E9B57" className="sn-section-icon" /> Brand Stores</h2>
-              <button className="sn-view-all" onClick={() => navigate("/products")}>View All {"\u2192"}</button>
-            </div>
-            <div className="sn-brand-scroll">
-              {BRAND_STORES.map(b => (
-                <div key={b.name} className="sn-brand-card">
-                  <img src={b.icon} alt={b.name} width="120" height="60" className="sn-brand-img" />
-                  <span className="sn-brand-name">{b.name}</span>
-                  <span className="sn-brand-offer">{b.offer}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       <style>{`
         .sn-toast {

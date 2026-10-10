@@ -72,6 +72,26 @@ export function trackSearch(searchTerm) {
   trackEvent("search", { search_term: searchTerm });
 }
 
+export function trackSignUp(method = "email") {
+  trackEvent("sign_up", { method });
+}
+
+export function trackLogin(method = "email") {
+  trackEvent("login", { method });
+}
+
+export function trackSellerRegisterStarted() {
+  trackEvent("seller_register_started");
+}
+
+export function trackSellerRegisterCompleted() {
+  trackEvent("seller_register_completed");
+}
+
+export function trackSellerFirstProductAdded() {
+  trackEvent("seller_first_product_added");
+}
+
 function toItem(p) {
   if (!p) return {};
   const id = p.id || p._id || p.productId;

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../context/AuthContext';
 import GoogleAuthNative from '../../utils/googleAuthNative';
+import { trackSignUp } from '../../utils/analytics';
 import '../../styles/auth.css';
 
 const isNativeApp = Capacitor.isNativePlatform();
@@ -121,6 +122,7 @@ const Register = () => {
         phone: form.phone,
         password: form.password,
       });
+      trackSignUp('email');
       setSuccess('Account created successfully! Redirecting to login...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {

@@ -96,7 +96,7 @@ const Footer = () => {
             Seller Services
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/seller/dashboard" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Sell on Cauvery Store</Link>
+            <Link to="/seller/register" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Sell on Cauvery Store</Link>
             <Link to="/seller/dashboard" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Seller Dashboard</Link>
             <Link to="/contact" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Partner Support</Link>
           </div>

@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import api from "../api/axios";
 import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
@@ -67,8 +68,18 @@ const ProductList = () => {
     if (res.ok) navigate("/checkout");
   };
 
+  // /products?category=X shows the same items as /category/X, so point search engines at
+  // the category URL. Other filters (search, sort, page) stay on /products.
+  const listCanonical = category
+    ? `https://cauverystore.in/category/${encodeURIComponent(category)}`
+    : "https://cauverystore.in/products";
+
   return (
     <div className="products-page">
+      <Helmet>
+        <title>{category ? `${category} | Shop Direct from Tamil Nadu Sellers - Cauvery Store` : "All Products | Shop Direct from Tamil Nadu Sellers - Cauvery Store"}</title>
+        <link rel="canonical" href={listCanonical} />
+      </Helmet>
       <div className="pl-layout">
         <aside className="pl-sidebar">
           <div className="pl-sidebar-section">
