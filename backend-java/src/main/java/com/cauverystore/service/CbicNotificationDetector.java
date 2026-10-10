@@ -72,6 +72,13 @@ public class CbicNotificationDetector {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Drafts the changes and sends the alert. Injected by field so that the detector still
+     * works, and still records notifications, in a context where the drafting side is absent.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private GstRateChangeService changeService;
+
     @Value("${gst.cbic-detector.enabled:true}")
     private boolean enabled;
 
@@ -136,6 +143,7 @@ public class CbicNotificationDetector {
                 // is only worth anything if the document can be shown to be unchanged since it
                 // was read. Failing to fetch it must not lose the alert, which is the part that
                 // actually protects anyone.
+                int drafted = 0;
                 try {
                     Document doc = fetchDocument(u.documentId());
                     if (doc != null && pending != null) {
@@ -145,6 +153,16 @@ public class CbicNotificationDetector {
                         sourceRepo.save(pending);
                         log.info("Archived the fingerprint of {} ({}, {} bytes, sha256 {}).",
                                 u.number(), doc.fileName(), doc.bytes().length, doc.sha256());
+                        // Draft what it changes while the bytes are in hand. A reading failure
+                        // costs the draft, not the alert.
+                        if (changeService != null) {
+                            try {
+                                drafted = changeService.draft(pending, doc.bytes());
+                            } catch (Exception readFailure) {
+                                log.warn("Recorded {} but could not draft its changes: {}. Read "
+                                        + "it by hand.", u.number(), readFailure.getMessage());
+                            }
+                        }
                     }
                 } catch (Exception docFailure) {
                     log.warn("Recorded {} but could not fetch its PDF: {}. The notification still "
@@ -152,6 +170,7 @@ public class CbicNotificationDetector {
                             u.number(), docFailure.getMessage());
                 }
                 recorded++;
+                if (changeService != null && pending != null) changeService.alertAdmins(pending, drafted);
                 log.error("GST COMPLIANCE: CBIC has published {} ({}), which this store has not "
                                 + "applied. Read it and import the rates before invoicing "
                                 + "anything it covers. {}",
@@ -322,6 +341,33 @@ public class CbicNotificationDetector {
     private String text(JsonNode node, String field) {
         JsonNode v = node.get(field);
         return v == null || v.isNull() ? null : v.asText();
+    }
+
+    /**
+     * Fetches a recorded notification again and drafts its changes.
+     *
+     * For a notification that was recorded before drafting existed, or whose PDF could not be
+     * fetched on the morning it was found.
+     */
+    public int draftChangesFor(Long sourceId) {
+        if (changeService == null) throw new IllegalStateException("Rate drafting is not available.");
+        GstRateSource source = sourceRepo.findById(sourceId)
+                .orElseThrow(() -> new IllegalArgumentException("That notification is not recorded."));
+        if (source.getCbicDocumentId() == null) {
+            throw new IllegalStateException("No CBIC document is recorded for "
+                    + source.getNotificationNumber() + ", so it cannot be fetched automatically.");
+        }
+        Document doc = fetchDocument(source.getCbicDocumentId());
+        if (doc == null) throw new IllegalStateException("CBIC returned no document for "
+                + source.getNotificationNumber() + ".");
+        // The document read must be the one fingerprinted when it was found, or the proposals
+        // would be drafted from something other than what the record says was published.
+        if (source.getDocumentSha256() != null && !source.getDocumentSha256().equals(doc.sha256())) {
+            throw new IllegalStateException("The document CBIC serves for "
+                    + source.getNotificationNumber() + " today is not the one recorded when it was "
+                    + "found. Compare the two before drafting anything from it.");
+        }
+        return changeService.draft(source, doc.bytes());
     }
 
     /** Notifications found but not yet applied, newest first. */

@@ -458,6 +458,39 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    /**
+     * Tells an admin that CBIC has published a GST rate notification the store has not applied.
+     *
+     * Says what to do next rather than only that something happened: the changes are already
+     * drafted and waiting, and nothing is charged differently until somebody accepts them.
+     */
+    public void sendGstRateNotificationAlert(String to, String notificationNumber,
+                                             java.time.LocalDate dated, java.time.LocalDate effectiveFrom,
+                                             String description, int drafted) {
+        String subject = "New GST rate notification " + notificationNumber + " - review needed";
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>New GST rate notification</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>CBIC has published <strong>" + escape(notificationNumber)
+                + "</strong>" + (dated == null ? "" : ", dated " + dated) + ".</p>"
+                + (effectiveFrom == null
+                    ? "<p style='color:" + RED + ";font-size:14px;'>The date it comes into force could not be read. Open the notification to find it.</p>"
+                    : "<p style='color:#4b5563;font-size:14px;'>It comes into force on <strong>" + effectiveFrom + "</strong>.</p>")
+                + (description == null || description.isBlank() ? ""
+                    : "<p style='color:#4b5563;font-size:14px;'>" + escape(description) + "</p>")
+                + "<p style='color:#4b5563;font-size:14px;'>" + (drafted > 0
+                    ? drafted + " change(s) have been drafted from it and are waiting for your decision."
+                    : "No changes could be drafted from it automatically, so it needs reading by hand.")
+                + " <strong>No rate has been changed.</strong> Nothing is charged differently until the "
+                + "changes are accepted.</p>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='https://cauverystore.in/admin/gst-rates' style='background:" + TEAL
+                + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Review the changes</a></div>";
+        send(to, subject, wrapBranded(body));
+    }
+
+    private static String escape(String s) {
+        return s == null ? "" : s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
     private void send(String to, String subject, String html) {
         if (!configured) {
             log.warn("Email not configured. Would have sent to {} with subject: {}", to, subject);

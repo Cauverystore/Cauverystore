@@ -30,12 +30,79 @@ public class AdminGstRateController {
     private final GstRateAdminService service;
     private final GstRateImportService importService;
     private final GstMasterDataLoader loader;
+    private final com.cauverystore.service.GstRateChangeService changeService;
+    private final com.cauverystore.service.CbicNotificationDetector detector;
 
     public AdminGstRateController(GstRateAdminService service, GstRateImportService importService,
-                                  GstMasterDataLoader loader) {
+                                  GstMasterDataLoader loader,
+                                  com.cauverystore.service.GstRateChangeService changeService,
+                                  com.cauverystore.service.CbicNotificationDetector detector) {
         this.service = service;
         this.importService = importService;
         this.loader = loader;
+        this.changeService = changeService;
+        this.detector = detector;
+    }
+
+    /**
+     * Rate changes drafted from CBIC notifications, waiting for a decision.
+     *
+     * Each carries the clause it was read from, the rate charged today, the rate it would
+     * become and the products it touches. Nothing listed here is charged to anyone.
+     */
+    @GetMapping("/changes")
+    public ResponseEntity<Map<String, Object>> changes(@RequestParam(required = false) String status) {
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("summary", changeService.summary());
+        out.put("changes", changeService.list(status));
+        return ResponseEntity.ok(out);
+    }
+
+    /** Accepts one drafted change. This is what causes the new rate to be charged. */
+    @PostMapping("/changes/{id}/accept")
+    public ResponseEntity<?> acceptChange(@PathVariable Long id,
+                                          @RequestBody(required = false) Map<String, String> body,
+                                          java.security.Principal principal) {
+        return changeResult(() -> changeService.accept(id, name(principal), body == null ? null : body.get("note")));
+    }
+
+    @PostMapping("/changes/{id}/reject")
+    public ResponseEntity<?> rejectChange(@PathVariable Long id, @RequestBody Map<String, String> body,
+                                          java.security.Principal principal) {
+        return changeResult(() -> changeService.reject(id, name(principal), body.get("note")));
+    }
+
+    /** For a clause with no rate to accept: records that it was read and dealt with by hand. */
+    @PostMapping("/changes/{id}/acknowledge")
+    public ResponseEntity<?> acknowledgeChange(@PathVariable Long id, @RequestBody Map<String, String> body,
+                                               java.security.Principal principal) {
+        return changeResult(() -> changeService.acknowledge(id, name(principal), body.get("note")));
+    }
+
+    /** Accepts every change of one notification that the reader had no doubt about. */
+    @PostMapping("/changes/notification/{sourceId}/accept-clean")
+    public ResponseEntity<?> acceptClean(@PathVariable Long sourceId, java.security.Principal principal) {
+        return changeResult(() -> changeService.acceptClean(sourceId, name(principal)));
+    }
+
+    /** Fetches a recorded notification from CBIC again and drafts its changes. */
+    @PostMapping("/changes/notification/{sourceId}/read")
+    public ResponseEntity<?> readNotification(@PathVariable Long sourceId) {
+        return changeResult(() -> Map.of("drafted", detector.draftChangesFor(sourceId)));
+    }
+
+    private static String name(java.security.Principal principal) {
+        return principal != null ? principal.getName() : null;
+    }
+
+    /** A refusal here is an answer for the person at the desk, not a server fault. */
+    private ResponseEntity<?> changeResult(java.util.function.Supplier<Object> action) {
+        try {
+            return ResponseEntity.ok(action.get());
+        } catch (com.cauverystore.service.GstRateChangeService.RateChangeException
+                 | IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**

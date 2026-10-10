@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../../api/axios";
+import GstRateChanges from "./GstRateChanges";
 
 const inp = { width: "100%", padding: "0.5rem", border: "1px solid #d1d5db", borderRadius: 6, fontSize: "0.85rem" };
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "1.25rem" };
@@ -252,6 +253,8 @@ const AdminGstRates = () => {
           </button>
         </div>
       </div>
+
+      <GstRateChanges onChanged={load} />
 
       {error && (
         <div style={{ ...card, borderColor: "#fecaca", background: "#fef2f2", color: "#b91c1c", marginBottom: "1rem", fontSize: "0.85rem" }}>
