@@ -69,7 +69,8 @@ public class CbicNotificationDetector {
 
     private final GstRateSourceRepository sourceRepo;
     private final GstRateFreshnessService freshnessService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    /** Built by CbicTls: the portal omits its intermediate certificate, which Java will not fetch. */
+    private final RestTemplate restTemplate = CbicTls.restTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
