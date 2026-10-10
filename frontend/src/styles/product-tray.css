@@ -666,6 +666,11 @@
   .pt-bottom-bar { display: none; }
 }
 
+/* Floating buttons (chat launcher, back to top) read this to sit above the bar. */
+@media (max-width: 767px) {
+  :root { --bottom-bar-offset: calc(56px + env(safe-area-inset-bottom, 0px)); }
+}
+
 .pt-bottom-btn {
   display: flex;
   flex-direction: column;

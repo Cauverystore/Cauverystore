@@ -33,7 +33,7 @@ const SearchResults = () => {
         setProducts(res.data.content || res.data || []);
         setTotalPages(res.data.totalPages || 1);
       } catch (err) {
-        setError(err.response?.data?.error || "Search failed");
+        setError(err.response?.data?.error || "Please check your internet connection and try again.");
       }
       setLoading(false);
     };
@@ -54,8 +54,8 @@ const SearchResults = () => {
       <div className="products-page">
         <div className="products-empty">
           <div className="products-empty-icon">🔍</div>
-          <h3 className="products-empty-title">Search for products</h3>
-          <p className="products-empty-text">Enter a search term to find products.</p>
+          <h3 className="products-empty-title">What are you looking for?</h3>
+          <p className="products-empty-text">Type a product name or category in the search box above.</p>
         </div>
       </div>
     );
@@ -88,16 +88,16 @@ const SearchResults = () => {
           ) : error ? (
             <div className="products-error">
               <div className="products-error-icon">!</div>
-              <h3 className="products-error-title">Search failed</h3>
+              <h3 className="products-error-title">We couldn't run that search</h3>
               <p className="products-error-text">{error}</p>
               <button className="products-error-retry" onClick={() => window.location.reload()}>Try Again</button>
             </div>
           ) : products.length === 0 ? (
             <div className="products-empty">
               <div className="products-empty-icon">📦</div>
-              <h3 className="products-empty-title">No products found</h3>
-              <p className="products-empty-text">Try a different search term or browse categories.</p>
-              <Link to="/products" className="products-empty-action">Browse All Products</Link>
+              <h3 className="products-empty-title">No results for "{query}"</h3>
+              <p className="products-empty-text">Check the spelling, try a shorter word, or browse everything our sellers offer.</p>
+              <Link to="/products" className="products-empty-action">Browse all products</Link>
             </div>
           ) : (
             <>

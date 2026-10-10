@@ -134,10 +134,10 @@ function App() {
         <WishlistProvider>
         <PageViewTracker />
         <Helmet>
-          <title>Cauvery Store - Your One-Stop Shop</title>
-          <meta name="description" content="Shop the best products at Cauvery Store. Electronics, fashion, home & kitchen, and more." />
+          <title>Cauvery Store | Shop Direct from Tamil Nadu Sellers</title>
+          <meta name="description" content="Shop direct from real shops and traders in Tamil Nadu. Free delivery on orders of ₹500 or more and 7-day returns." />
           <meta property="og:title" content="Cauvery Store" />
-          <meta property="og:description" content="Your one-stop shop for everything." />
+          <meta property="og:description" content="Shop direct from real shops and traders in Tamil Nadu." />
           <meta property="og:type" content="website" />
           <meta property="og:image" content="https://cauverystore.in/logo512.png" />
           <meta property="og:url" content="https://cauverystore.in" />
@@ -145,12 +145,31 @@ function App() {
         </Helmet>
         <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "Store",
-          "name": "Cauvery Store",
-          "url": "https://cauverystore.in",
-          "logo": "https://cauverystore.in/logo192.png",
-          "description": "Your one-stop shop for electronics, fashion, home & kitchen, and more.",
-          "address": { "@type": "PostalAddress", "addressCountry": "IN" }
+          "@graph": [
+            {
+              // OnlineStore, not Store: Store describes a physical shop with a street address.
+              "@type": "OnlineStore",
+              "@id": "https://cauverystore.in/#organization",
+              "name": "Cauvery Store",
+              "url": "https://cauverystore.in/",
+              "logo": "https://cauverystore.in/logo512.png",
+              "description": "Online marketplace to shop direct from real shops and traders based in Tamil Nadu. Pay by UPI or card.",
+              "address": { "@type": "PostalAddress", "addressCountry": "IN" },
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "customer support",
+                "email": "support@cauverystore.in",
+                "areaServed": "IN"
+              }
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://cauverystore.in/#website",
+              "name": "Cauvery Store",
+              "url": "https://cauverystore.in/",
+              "publisher": { "@id": "https://cauverystore.in/#organization" }
+            }
+          ]
         })}} />
         <ImpersonationBanner />
         <PasswordExpiryBanner />
@@ -169,6 +188,9 @@ function App() {
             <Route path="/about" element={<AboutUs />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/policies" element={<Policies />} />
+            <Route path="/privacy-policy" element={<Policies tab="privacy" />} />
+            <Route path="/terms-and-conditions" element={<Policies tab="terms" />} />
+            <Route path="/shipping-policy" element={<Policies tab="shipping" />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/login" element={<Login />} />

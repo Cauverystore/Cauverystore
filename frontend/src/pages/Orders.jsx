@@ -151,9 +151,9 @@ const Orders = () => {
       {sorted.length === 0 ? (
         <div className="orders-empty">
           <div className="orders-empty-icon">&#128230;</div>
-          <h2 className="orders-empty-title">You have no orders yet</h2>
-          <p className="orders-empty-text">Start shopping now! Browse our wide selection of products and find something you love.</p>
-          <button className="orders-empty-btn" onClick={() => navigate("/products")}>Start Shopping</button>
+          <h2 className="orders-empty-title">No orders yet</h2>
+          <p className="orders-empty-text">When you place an order, you can track it, cancel it or return it from here.</p>
+          <button className="orders-empty-btn" onClick={() => navigate("/products")}>Browse products</button>
         </div>
       ) : (
         <div className="orders-list">

@@ -5,10 +5,10 @@ import StaticLayout from "../components/StaticLayout";
 
 const features = [
   { icon: Store, title: "Real Tamil Nadu Sellers", text: "Every listing comes from a verified shop or trader based in Tamil Nadu, not an anonymous warehouse SKU." },
-  { icon: BadgeCheck, title: "Value You Can Trust", text: "Every product is verified for quality and authenticity, ensuring you get the best value for your money." },
-  { icon: Shield, title: "Secure Shopping Experience", text: "Shop with confidence with bank-grade encryption, multiple payment options, and 100% buyer protection via Razorpay." },
+  { icon: BadgeCheck, title: "Clear Prices", text: "The price, GST and delivery charge are shown before you pay. Delivery is free on orders of ₹500 or more." },
+  { icon: Shield, title: "Secure Payments", text: "Pay by UPI, card or net banking through Razorpay. We never see or store your card details." },
   { icon: Truck, title: "Delivery You Can Track", text: "Delivery times and coverage depend on the seller, shown clearly at checkout, with real-time tracking on every order." },
-  { icon: HeartHandshake, title: "Easy Returns & Support", text: "Hassle-free returns within 7-15 days and a dedicated support team ready to help you around the clock." },
+  { icon: HeartHandshake, title: "7-Day Returns & Support", text: "Return most items within 7 days of delivery, free if the item is faulty or wrong. Our support team is available Monday to Saturday, 9 AM to 6 PM." },
   { icon: IndianRupee, title: "Keeping Business Local", text: "Buying here keeps more of what you spend with Tamil Nadu's own shops and traders, instead of a national chain." },
 ];
 
@@ -25,7 +25,7 @@ const AboutUs = () => {
     <StaticLayout
       hero={{
         title: "About Cauvery Store",
-        subtitle: "Your trusted online marketplace — built with care, driven by values, delivered with pride.",
+        subtitle: "An online marketplace where every seller is a real shop or trader in Tamil Nadu.",
       }}
     >
       <Helmet>

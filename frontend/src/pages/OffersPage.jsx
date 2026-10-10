@@ -44,10 +44,10 @@ const OffersPage = () => {
     if (!token) { navigate("/login"); return; }
     try {
       await addToCart(product.id || product._id, 1);
-      setCartMsg(`${product.name} added to cart!`);
+      setCartMsg(`${product.name} added to your cart`);
       setTimeout(() => setCartMsg(null), 2500);
     } catch {
-      setCartMsg("Failed to add to cart");
+      setCartMsg("We couldn't add that to your cart. Please try again.");
       setTimeout(() => setCartMsg(null), 2500);
     }
   };
@@ -59,7 +59,7 @@ const OffersPage = () => {
       await addToCart(product.id || product._id, 1);
       navigate("/checkout");
     } catch {
-      setCartMsg("Failed to add to cart");
+      setCartMsg("We couldn't add that to your cart. Please try again.");
       setTimeout(() => setCartMsg(null), 2500);
     }
   };
@@ -68,7 +68,7 @@ const OffersPage = () => {
     <div className="products-page">
       {cartMsg && <div className="pt-toast" role="status" aria-live="polite">{cartMsg}</div>}
       <div className="section-header">
-        <h2 className="section-title">Deals of the Day</h2>
+        <h2 className="section-title">Current offers</h2>
         <span className="products-toolbar-count">{products.length} products</span>
       </div>
 
@@ -79,9 +79,9 @@ const OffersPage = () => {
       ) : products.length === 0 ? (
         <div className="products-empty">
           <div className="products-empty-icon">&#128722;</div>
-          <h3 className="products-empty-title">No deals available right now</h3>
-          <p className="products-empty-text">Check back later for fresh deals.</p>
-          <button className="products-empty-action" onClick={() => navigate("/products")}>Browse All Products</button>
+          <h3 className="products-empty-title">No offers running right now</h3>
+          <p className="products-empty-text">Sellers add offers through the week. Until then, browse everything they have listed.</p>
+          <button className="products-empty-action" onClick={() => navigate("/products")}>Browse all products</button>
         </div>
       ) : (
         <>

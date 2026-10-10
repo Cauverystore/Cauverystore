@@ -24,7 +24,7 @@ const Wishlist = () => {
         const res = await getWishlist();
         setItems(res.data || []);
       } catch (err) {
-        setError("Failed to load wishlist");
+        setError("We couldn't load your wishlist. Please try again.");
       }
       setLoading(false);
     };
@@ -37,13 +37,13 @@ const Wishlist = () => {
 
   const handleAddToCart = async (product) => {
     const res = await addToCartOrLogin(navigate, product, 1);
-    if (!res.ok) setError("Failed to add item to cart");
+    if (!res.ok) setError("We couldn't add that to your cart. Please try again.");
   };
 
   const handleMoveToCart = async (product) => {
     const pid = product.id || product._id;
     const res = await addToCartOrLogin(navigate, product, 1);
-    if (!res.ok) { setError("Failed to move item to cart"); return; }
+    if (!res.ok) { setError("We couldn't move that to your cart. Please try again."); return; }
     await toggleWishlist(pid);
   };
 
@@ -52,7 +52,7 @@ const Wishlist = () => {
     try {
       await toggleWishlist(pid);
     } catch {
-      setError("Failed to remove item from wishlist");
+      setError("We couldn't remove that item. Please try again.");
     }
   };
 
@@ -80,8 +80,8 @@ const Wishlist = () => {
           <div className="wishlist-empty">
             <div className="wishlist-empty-icon">❤️</div>
             <h3 className="wishlist-empty-title">Your wishlist is empty</h3>
-            <p className="wishlist-empty-text">Save items you love to your wishlist and find them here.</p>
-            <Link to="/products" className="products-empty-action">Browse Products</Link>
+            <p className="wishlist-empty-text">Tap the heart on any product to save it here for later.</p>
+            <Link to="/products" className="products-empty-action">Browse products</Link>
           </div>
         ) : (
           <div className="pt-grid">

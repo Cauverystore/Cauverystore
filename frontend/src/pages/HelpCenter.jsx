@@ -21,8 +21,8 @@ const fallbackFaqs = {
   ],
   shipping: [
     { q: "What are the shipping charges?", a: "We offer free shipping on orders above a certain value. For smaller orders, a nominal shipping fee applies based on weight and location." },
-    { q: "How long does delivery take?", a: "Standard delivery takes 3-7 business days across most Indian cities. Remote areas may take longer." },
-    { q: "Do you ship internationally?", a: "Currently, we ship only within India. We plan to expand internationally soon." },
+    { q: "How long does delivery take?", a: "Sellers normally dispatch within 1-2 business days. After that, delivery usually takes 2-4 business days within Tamil Nadu and 4-7 business days to the rest of India. Remote areas may take longer." },
+    { q: "Do you ship internationally?", a: "No. We deliver to addresses in India only." },
     { q: "Can I change my delivery address after ordering?", a: "You can update the address before the order is shipped. Once shipped, changes are not possible." },
   ],
   returns: [
@@ -55,8 +55,14 @@ const HelpCenter = () => {
     api.get("/api/faqs").then((r) => {
       if (r.data && Array.isArray(r.data)) {
         const grouped = {};
+        const seen = new Set();
         r.data.forEach((f) => {
-          const cat = f.category || "general";
+          // FAQs saved without one of the tab categories go under "general" so they
+          // still show; the same question saved twice is only listed once.
+          const cat = categories.some((c) => c.id === f.category) ? f.category : "general";
+          const key = cat + "|" + (f.question || "").trim().toLowerCase();
+          if (!f.question || seen.has(key)) return;
+          seen.add(key);
           if (!grouped[cat]) grouped[cat] = [];
           grouped[cat].push({ q: f.question, a: f.answer });
         });
@@ -66,7 +72,25 @@ const HelpCenter = () => {
   }, []);
 
   const data = faqs || fallbackFaqs;
-  const currentFaqs = data[activeTab] || [];
+  // Only offer tabs that have questions, so no tab opens onto an empty list.
+  const tabs = [{ id: "general", label: "General" }, ...categories]
+    .filter((c) => data[c.id]?.length > 0)
+    .map((c) => ({ id: c.id, label: c.label }));
+  const currentTab = tabs.some((t) => t.id === activeTab) ? activeTab : tabs[0]?.id;
+  const currentFaqs = data[currentTab] || [];
+
+  // Describes every question the page offers (all tabs), built from the same data
+  // that is rendered, so the markup cannot drift from what visitors see. Skipped for
+  // the built-in fallback list, which only shows when the FAQ service is unreachable.
+  const faqJsonLd = !faqs ? null : {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": tabs.flatMap((t) => data[t.id]).map((item) => ({
+      "@type": "Question",
+      "name": item.q,
+      "acceptedAnswer": { "@type": "Answer", "text": item.a },
+    })),
+  };
 
   const filtered = searchTerm.trim()
     ? currentFaqs.filter(
@@ -76,8 +100,6 @@ const HelpCenter = () => {
       )
     : currentFaqs;
 
-  const tabs = categories.map((c) => ({ id: c.id, label: c.label }));
-
   return (
     <StaticLayout
       hero={{
@@ -85,12 +107,17 @@ const HelpCenter = () => {
         subtitle: "Find answers to common questions or reach out to our support team.",
       }}
       tabs={tabs}
-      activeTab={activeTab}
+      activeTab={currentTab}
       onTabChange={setActiveTab}
     >
       <Helmet>
         <title>Help Center | Cauvery Store</title>
+        {/* /faq and /help both render this page; /faq is the one in the sitemap. */}
+        <link rel="canonical" href="https://cauverystore.in/faq" />
         <meta name="description" content="Get answers to frequently asked questions about orders, shipping, returns, account, and payments at Cauvery Store." />
+        {faqJsonLd && faqJsonLd.mainEntity.length > 0 && (
+          <script type="application/ld+json">{JSON.stringify(faqJsonLd).replace(/</g, "\\u003c")}</script>
+        )}
       </Helmet>
 
       <div className="static-search">
@@ -107,7 +134,7 @@ const HelpCenter = () => {
         <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>Loading FAQs...</p>
       ) : filtered.length === 0 ? (
         <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>
-          No FAQs found for "{searchTerm}". Try a different keyword.
+          {searchTerm.trim() ? `No FAQs found for "${searchTerm}". Try a different keyword.` : "No FAQs available at the moment."}
         </p>
       ) : (
         <div className="static-accordion">

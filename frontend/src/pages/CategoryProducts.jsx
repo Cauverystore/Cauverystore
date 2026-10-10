@@ -96,7 +96,7 @@ const CategoryProducts = () => {
         setProducts(res.data.content || res.data || []);
         setTotalPages(res.data.totalPages || 1);
       } catch (err) {
-        setError(err.response?.data?.error || "Failed to load products");
+        setError(err.response?.data?.error || "Please check your internet connection and try again.");
       }
       setLoading(false);
     };
@@ -163,16 +163,16 @@ const CategoryProducts = () => {
         ) : error ? (
           <div className="products-error">
             <div className="products-error-icon">!</div>
-            <h3 className="products-error-title">Something went wrong</h3>
+            <h3 className="products-error-title">We couldn't load this category</h3>
             <p className="products-error-text">{error}</p>
             <button className="products-error-retry" onClick={() => window.location.reload()}>Try Again</button>
           </div>
         ) : products.length === 0 ? (
           <div className="products-empty">
             <div className="products-empty-icon">📦</div>
-            <h3 className="products-empty-title">No products in this category</h3>
-            <p className="products-empty-text">Try browsing other categories.</p>
-            <Link to="/products" className="products-empty-action">Browse All Products</Link>
+            <h3 className="products-empty-title">Nothing here yet</h3>
+            <p className="products-empty-text">Our sellers have not listed products in this category yet. See what is available now.</p>
+            <Link to="/products" className="products-empty-action">Browse all products</Link>
           </div>
         ) : (
           <>

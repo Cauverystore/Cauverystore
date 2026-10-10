@@ -13,7 +13,7 @@ const Footer = () => {
       setMsg(res.data.message || "Subscribed!");
       setEmail("");
       setTimeout(() => setMsg(""), 3000);
-    } catch { setMsg("Failed to subscribe"); setTimeout(() => setMsg(""), 3000); }
+    } catch { setMsg("We couldn't sign you up just now. Please try again."); setTimeout(() => setMsg(""), 3000); }
   };
 
   return (
@@ -29,16 +29,16 @@ const Footer = () => {
         gap: "2rem", flexWrap: "wrap"
       }}>
         <div style={{ flex: 1, minWidth: "250px" }}>
-          <h3 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 0.35rem" }}>Stay in the loop</h3>
+          <h3 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 0.35rem" }}>New from Tamil Nadu sellers, in your inbox</h3>
           <p style={{ fontSize: "0.85rem", opacity: 0.85, margin: 0 }}>
-            Get exclusive deals, new launches, and personalized recommendations straight to your inbox.
+            Hear when sellers add new products and offers. Unsubscribe any time.
           </p>
           {msg && <p style={{ fontSize:"0.8rem", marginTop:"0.5rem", color:"#fbbf24" }}>{msg}</p>}
         </div>
         <form onSubmit={handleSubscribe} style={{
           display: "flex", gap: "0.5rem", flexShrink: 0, width: "100%", maxWidth: "420px"
         }}>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email address" aria-label="Email address for newsletter" required style={{
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email address" aria-label="Email address for newsletter" required style={{
             flex: 1, padding: "0.6rem 0.85rem", border: "none", borderRadius: "6px",
             fontSize: "0.85rem", outline: "none"
           }} />
@@ -85,8 +85,11 @@ const Footer = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
             <Link to="/contact" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
             <Link to="/orders" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Your Orders</Link>
-            <Link to="/refund-policy" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Returns, Refunds & FAQ</Link>
-            <Link to="/policies" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Privacy & Terms</Link>
+            {/* One link per policy: payment partners and shoppers look for each by name. */}
+            <Link to="/refund-policy" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Cancellations & Refunds</Link>
+            <Link to="/shipping-policy" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Shipping Policy</Link>
+            <Link to="/terms-and-conditions" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Terms & Conditions</Link>
+            <Link to="/privacy-policy" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Privacy Policy</Link>
           </div>
         </div>
 
@@ -171,7 +174,7 @@ const Footer = () => {
 
     {/* Back to Top */}
     <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title="Back to top" aria-label="Back to top" style={{
-      position: "fixed", bottom: "80px", right: "1.5rem", zIndex: 50,
+      position: "fixed", bottom: "calc(80px + var(--bottom-bar-offset, 0px))", right: "1.5rem", zIndex: 50,
       width: 40, height: 40, borderRadius: "50%", background: "var(--color-primary, #16a34a)",
       color: "#fff", border: "none", cursor: "pointer", display: "flex",
       alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.2)"

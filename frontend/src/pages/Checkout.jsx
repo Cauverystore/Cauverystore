@@ -7,6 +7,8 @@ import { trackBeginCheckout } from "../utils/analytics";
 import "../styles/checkout.css";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
+// Shown on the review step, so the customer reads "Cash on Delivery" rather than "COD".
+const PAYMENT_LABELS = { COD: "Cash on Delivery", CARD: "Credit / Debit Card", UPI: "UPI", NET_BANKING: "Net Banking", WALLET: "Wallet" };
 
 const Checkout = () => {
   const [step, setStep] = useState(0);
@@ -218,7 +220,7 @@ const Checkout = () => {
           await loadRazorpay();
           rzp = window.Razorpay;
         } catch (e) {
-          setError("Razorpay SDK not loaded. Please try COD.");
+          setError("We couldn't open the payment window. Check your internet connection and try again, or choose Cash on Delivery.");
           setPlacing(false);
           return;
         }
@@ -258,11 +260,11 @@ const Checkout = () => {
               const orderId = orderRes.data?.id || orderRes.data?._id || orderRes.data?.orderId;
               navigate(`/order-success?id=${orderId}`);
             } catch (errInner) {
-              setError("Payment verification failed. Please contact support.");
+              setError("We couldn't confirm your payment. If money has left your account, email support@cauverystore.in with your order details and we will sort it out.");
               setPlacing(false);
             }
           },
-          modal: { ondismiss: function () { setError("Payment was cancelled."); setPlacing(false); } }
+          modal: { ondismiss: function () { setError("Payment was cancelled. You have not been charged, and your cart is still here."); setPlacing(false); } }
         };
         const rzpInst = new rzp(options);
         rzpInst.on("payment.failed", function (response) {
@@ -286,11 +288,11 @@ const Checkout = () => {
       <div style={{ textAlign: "center", padding: "3rem" }}>
         <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>&#128722;</div>
         <h2 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.5rem" }}>Your cart is empty</h2>
-        <p style={{ color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>Add some items before checking out.</p>
+        <p style={{ color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>Add a product to your cart and it will be waiting here.</p>
         <button onClick={() => navigate("/")} style={{
           padding: "0.75rem 2rem", border: "none", borderRadius: "var(--radius-sm)",
           background: "var(--color-primary)", color: "#fff", cursor: "pointer", fontSize: "1rem", fontWeight: 600
-        }}>Continue Shopping</button>
+        }}>Browse products</button>
       </div>
     );
   }
@@ -468,12 +470,12 @@ const Checkout = () => {
             padding: "1.25rem", border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)", background: "var(--color-surface)"
           }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>Payment Method</h2>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>How would you like to pay?</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {[
-                { value: "COD", label: "Cash on Delivery", desc: "Pay when you receive your order" },
-                { value: "CARD", label: "Credit / Debit Card", desc: "Visa, Mastercard, Rupay" },
-                { value: "UPI", label: "UPI", desc: "Google Pay, PhonePe, Paytm" },
+                { value: "COD", label: "Cash on Delivery", desc: "Pay in cash when your order arrives" },
+                { value: "CARD", label: "Credit / Debit Card", desc: "Visa, Mastercard and RuPay" },
+                { value: "UPI", label: "UPI", desc: "Google Pay, PhonePe, Paytm or any UPI app" },
                 { value: "NET_BANKING", label: "Net Banking", desc: "All major banks" },
                 { value: "WALLET", label: "Wallet", desc: "Paytm, Amazon Pay, Mobikwik" },
               ].map((opt) => (
@@ -519,9 +521,9 @@ const Checkout = () => {
             padding: "1.25rem", border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)", background: "var(--color-surface)"
           }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>Review Your Order</h2>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>Check your order</h2>
             <div style={{ marginBottom: "1rem" }}>
-              <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Shipping To</h3>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Delivering to</h3>
               <div style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>
                 {shipping.fullName}, {shipping.phone}<br />
                 {shipping.line1 || shipping.street}{shipping.line2 ? `, ${shipping.line2}` : ""}, {shipping.city}, {shipping.state} - {shipping.pincode}{shipping.country && shipping.country !== "India" ? `, ${shipping.country}` : ""}
@@ -529,7 +531,7 @@ const Checkout = () => {
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Payment Method</h3>
-              <div style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>{paymentMethod}</div>
+              <div style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>{PAYMENT_LABELS[paymentMethod] || paymentMethod}</div>
             </div>
             <div>
               <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Items ({cartItems.length})</h3>
@@ -559,11 +561,14 @@ const Checkout = () => {
         return (
           <div style={{ textAlign: "center", padding: "2rem" }}>
             <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>&#9989;</div>
-            <h2 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.5rem" }}>Ready to Place Order</h2>
+            <h2 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.5rem" }}>One last look</h2>
             <p style={{ color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>
-              Please confirm your order of <strong>&#8377;{total.toFixed(2)}</strong>
+              Your total is <strong>&#8377;{total.toFixed(2)}</strong>, including GST and delivery.
             </p>
-            {giftWrap && <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>Includes Gift Wrap</p>}
+            <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
+              You can cancel free of charge any time before your order ships.
+            </p>
+            {giftWrap && <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>Includes gift wrap</p>}
           </div>
         );
 
@@ -614,7 +619,7 @@ const Checkout = () => {
                   background: placing ? "var(--color-gray-300)" : "var(--color-primary)", color: "#fff",
                   cursor: placing ? "not-allowed" : "pointer", fontSize: "1rem", fontWeight: 700
                 }}>
-                {placing ? "Placing..." : `Place Order - \u20B9${total.toFixed(2)}`}
+                {placing ? "Placing your order..." : `Place order \u00B7 \u20B9${total.toFixed(2)}`}
               </button>
             )}
           </div>

@@ -114,7 +114,9 @@ export default async function proxy(request) {
       },
     });
 
-    if (prerendered.ok) {
+    // A 404 is a real answer too (a page that set prerender-status-code=404): pass it
+    // through, otherwise it falls to next() below and the crawler gets a 200 empty shell.
+    if (prerendered.ok || prerendered.status === 404) {
       // Pass through Prerender.io's response, but NOT its raw headers verbatim: fetch()
       // already transparently decompresses a gzip-encoded body, yet the original
       // Content-Encoding/Content-Length headers stay attached to prerendered.headers and

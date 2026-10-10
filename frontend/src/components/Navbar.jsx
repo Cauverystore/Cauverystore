@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import CartDrawer from "./CartDrawer";
-
-const CATEGORIES = ["Electronics", "Fashion", "Home & Kitchen", "Grocery", "Beauty", "Appliances", "Books", "Sports", "Toys", "Deals"];
+import api from "../api/axios";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -20,6 +19,15 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  // Menu links come from the live category list so the menu never points at a
+  // category the store does not have. "Deals" is the offers page, not a category.
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    api.get("/api/categories")
+      .then((r) => setCategories((Array.isArray(r.data) ? r.data : []).map((c) => c.name).filter(Boolean)))
+      .catch(() => {});
+  }, []);
+  const navLinks = [...categories.map((name) => ({ label: name, to: `/category/${name}` })), { label: "Deals", to: "/offers" }];
   const searchRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const menuFocusRestore = useRef(null);
@@ -233,8 +241,8 @@ const Navbar = () => {
           maxWidth: "var(--container-max, 1200px)", display: "flex",
           gap: "0.25rem", padding: "0 1rem", width: "100%"
         }}>
-          {CATEGORIES.map((cat) => (
-            <Link key={cat} to={`/category/${cat}`} style={{
+          {navLinks.map((item) => (
+            <Link key={item.label} to={item.to} style={{
               padding: "0.55rem 0.7rem", fontSize: "0.82rem", fontWeight: 500,
               color: "var(--gray-600)", textDecoration: "none", whiteSpace: "nowrap",
               display: "flex", alignItems: "center", gap: "2px",
@@ -243,7 +251,7 @@ const Navbar = () => {
             onMouseEnter={(e) => { e.target.style.color = "var(--color-primary)"; e.target.style.borderBottomColor = "var(--color-primary)"; }}
             onMouseLeave={(e) => { e.target.style.color = ""; e.target.style.borderBottomColor = "transparent"; }}
             >
-              {cat}
+              {item.label}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M6 9l6 6 6-6"/>
               </svg>
@@ -290,11 +298,11 @@ const Navbar = () => {
                 background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem"
               }}>&times;</button>
             </div>
-            {CATEGORIES.map((cat) => (
-              <Link key={cat} to={`/category/${cat}`} onClick={() => setMobileOpen(false)} style={{
+            {navLinks.map((item) => (
+              <Link key={item.label} to={item.to} onClick={() => setMobileOpen(false)} style={{
                 display: "block", padding: "0.6rem 0.5rem", fontSize: "0.9rem",
                 color: "var(--gray-700)", textDecoration: "none", borderBottom: "1px solid var(--color-border-light)"
-              }}>{cat}</Link>
+              }}>{item.label}</Link>
             ))}
             <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--color-border)" }}>
               {token ? (

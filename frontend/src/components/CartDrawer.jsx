@@ -106,8 +106,9 @@ const CartDrawer = ({ open, onClose }) => {
             <div className="cart-drawer-empty">
               <ShoppingCart size={40} />
               <p>Your cart is empty</p>
+              <p style={{ fontSize: "0.85rem", color: "#64748b", margin: 0 }}>Delivery is free on orders of {"\u20B9"}500 or more.</p>
               <button className="cart-drawer-shop-btn" onClick={() => { onClose(); navigate("/products"); }}>
-                Start Shopping
+                Browse products
               </button>
             </div>
           ) : (
@@ -150,7 +151,7 @@ const CartDrawer = ({ open, onClose }) => {
               <span>{"\u20B9"}{subtotal.toLocaleString()}</span>
             </div>
             <button className="cart-drawer-checkout-btn" onClick={() => { onClose(); navigate("/cart"); }}>
-              View Cart & Checkout
+              View cart and checkout
             </button>
           </div>
         )}

@@ -82,10 +82,12 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const price = product?.price || product?.dealPrice || product?.sellingPrice || 0;
   const originalPrice = product?.originalPrice || product?.mrp || price;
   const discount = product?.discount || product?.discountPercent || (originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0);
-  const rating = product?.rating || 4.0;
+  const rating = product?.rating || 0;
   const reviewCount = product?.reviews?.length || product?.reviewCount || 0;
   const stock = product?.stock ?? product?.stockQuantity ?? (product?.inStock ? 1 : 0);
   const inStock = stock > 0;
+  // The seller's own return period for this product; 7 days is the marketplace default.
+  const returnDays = product?.returnWindow ?? 7;
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
   const toThumb = (img) => typeof img === "object" && img?.thumbUrl ? img.thumbUrl : "";
   const images = product?.images || (product?.image ? [toUrl(product.image)] : []);
@@ -216,7 +218,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         />
         {badge && <span className="pt-badge">{badge}</span>}
         {discount > 0 && !badge && <span className="pt-badge pt-badge-discount">{discount}% OFF</span>}
-        {!inStock && <div className="pt-out-label">Out of Stock</div>}
+        {!inStock && <div className="pt-out-label">Out of stock</div>}
         {isLowStock && <div className="pt-low-stock">Only {stock} left</div>}
 
         <div className="pt-image-overlay">
@@ -296,20 +298,22 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
 
         <PriceBlock price={price} originalPrice={originalPrice} discount={discount} />
 
-        <StarRating rating={rating} reviewCount={reviewCount} />
+        {/* No stars until a product has a real rating - a made-up default misleads shoppers. */}
+        {rating > 0 && <StarRating rating={rating} reviewCount={reviewCount} />}
 
         <div className="pt-delivery">
           {inStock ? (
-            <span className="pt-delivery-instock">In Stock</span>
+            <span className="pt-delivery-instock">In stock</span>
           ) : (
-            <span className="pt-delivery-ostock">Currently Unavailable</span>
+            <span className="pt-delivery-ostock">Out of stock</span>
           )}
-          {inStock && stock > 5 && <span className="pt-delivery-est">Free Delivery</span>}
+          {/* Matches the cart rule: delivery is free on orders of 500 or more. */}
+          {inStock && price >= 500 && <span className="pt-delivery-est">Free delivery</span>}
         </div>
 
         <div className="pt-trust-row">
-          <TrustBadge text="Secure" type="secure" />
-          <TrustBadge text="Easy Returns" type="return" />
+          <TrustBadge text="Secure payment" type="secure" />
+          {returnDays > 0 && <TrustBadge text={`${returnDays}-day returns`} type="return" />}
         </div>
 
         <div className="pt-actions">

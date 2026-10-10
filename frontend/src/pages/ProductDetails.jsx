@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { Truck, RotateCcw, ShieldCheck, Store } from "lucide-react";
 import api from "../api/axios";
 import { getProductById } from "../services/productService";
 import { addToCartOrLogin } from "../utils/cartActions";
@@ -19,12 +20,17 @@ const ProductDetails = () => {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [cartMsg, setCartMsg] = useState("");
+  // Shop name and town of an approved seller, or null when there is none to name.
+  const [seller, setSeller] = useState(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
+      setSeller(null);
       try {
         const res = await getProductById(id);
         setProduct(res.data);
+        // Loaded separately and allowed to fail: the page works without it.
+        api.get(`/api/products/${id}/seller`).then(r => setSeller(r.data?.name ? r.data : null)).catch(() => {});
         if (res.data.images?.length > 0) setSelectedImage(0);
         if (res.data.variants?.length > 0) setSelectedVariant(res.data.variants[0]);
         const cat = res.data.category;
@@ -48,14 +54,14 @@ const ProductDetails = () => {
   const handleAddToCart = async () => {
     const res = await addToCartOrLogin(navigate, product, quantity);
     if (res.needLogin) return;
-    setCartMsg(res.ok ? "Added to cart!" : "Failed to add to cart");
+    setCartMsg(res.ok ? "Added to your cart" : "We couldn't add that to your cart. Please try again.");
     setTimeout(() => setCartMsg(""), 2000);
   };
 
   const handleBuyNow = async () => {
     const res = await addToCartOrLogin(navigate, product, quantity);
     if (res.ok) navigate("/checkout");
-    else if (!res.needLogin) { setCartMsg("Failed to add to cart"); setTimeout(() => setCartMsg(""), 2000); }
+    else if (!res.needLogin) { setCartMsg("We couldn't start checkout. Please try again."); setTimeout(() => setCartMsg(""), 2000); }
   };
 
   const toUrl = (img) => (typeof img === "object" ? img?.previewUrl || img?.url || "" : img || "");
@@ -81,6 +87,9 @@ const ProductDetails = () => {
   );
 
   const canonicalUrl = `https://cauverystore.in/product/${id}`;
+  // The seller's own return period; 7 days is the marketplace default. "No Returns" on the
+  // product overrides it, the same way the order system decides.
+  const returnDays = /no return/i.test(product.returnPolicy || "") ? 0 : (product.returnWindow ?? 7);
   // Cut at a word boundary instead of mid-word, and fall back to a sentence that carries
   // the site's real differentiator rather than a bare product name.
   const trimAt = (text, max) => {
@@ -134,10 +143,11 @@ const ProductDetails = () => {
           "itemCondition": "https://schema.org/NewCondition",
           "availability": (product.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
         },
-        "aggregateRating": product.rating ? {
+        // Google rejects a rating with zero reviews, so only emit it when there are some.
+        "aggregateRating": (product.rating && product.reviewCount > 0) ? {
           "@type": "AggregateRating",
           "ratingValue": product.rating,
-          "reviewCount": product.reviewCount || 0
+          "reviewCount": product.reviewCount
         } : undefined
       })}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{__html: safeJsonLd({
@@ -207,9 +217,40 @@ const ProductDetails = () => {
           <button className="btn-add-cart" onClick={handleAddToCart}>Add to Cart</button>
         </div>
 
+        {/* Answers the questions that stop a purchase - delivery cost, returns, payment, who
+            sells it - next to the buttons. Figures mirror the cart (free delivery from 500,
+            otherwise 40) and the product's own return period, so keep them in step. */}
+        <ul className="pd-assurance">
+          <li>
+            <Truck size={18} />
+            <span>
+              <strong>{(product.dealPrice || product.price) >= 500 ? "Free delivery" : "Free delivery on orders of ₹500 or more"}</strong>
+              {(product.dealPrice || product.price) < 500 && <> ({"₹"}40 below that)</>}
+            </span>
+          </li>
+          <li>
+            <RotateCcw size={18} />
+            <span>
+              {returnDays > 0
+                ? <><strong>{returnDays}-day returns</strong>, free if the item is faulty or wrong. <Link to="/refund-policy">Returns policy</Link></>
+                : <><strong>This item cannot be returned</strong> unless it arrives damaged or wrong. <Link to="/refund-policy">Returns policy</Link></>}
+            </span>
+          </li>
+          <li>
+            <ShieldCheck size={18} />
+            <span><strong>Secure payment</strong> by UPI, card or net banking through Razorpay</span>
+          </li>
+          <li>
+            <Store size={18} />
+            {seller
+              ? <span>Sold by <strong>{seller.name}</strong>{seller.city ? `, ${seller.city}` : ""}{seller.state && seller.state !== seller.city ? `, ${seller.state}` : ""}</span>
+              : <span><strong>Sold by a Tamil Nadu seller</strong>, a real shop or trader</span>}
+          </li>
+        </ul>
+
         {(product.reviews || []).length > 0 && (
           <div className="reviews-section">
-            <h3>Reviews</h3>
+            <h3>Customer reviews</h3>
             {product.reviews.map((r, i) => (
               <div key={i} className="review-card">
                 <div className="review-header"><span className="review-user">{r.user || r.name || "Anonymous"}</span><span>{'★'.repeat(r.rating)}</span></div>
@@ -221,11 +262,11 @@ const ProductDetails = () => {
 
         {(product.qnas || []).length > 0 && (
           <div className="qna-section">
-            <h3>Q&A</h3>
+            <h3>Questions and answers</h3>
             {product.qnas.map((q, i) => (
               <div key={i} className="review-card">
                 <p style={{ fontWeight: 500 }}>Q: {q.question}</p>
-                <p style={{ color: "#475569" }}>A: {q.answer || "Awaiting response..."}</p>
+                <p style={{ color: "#475569" }}>A: {q.answer || "The seller has not answered this yet."}</p>
               </div>
             ))}
           </div>
@@ -243,7 +284,7 @@ const ProductDetails = () => {
       {/* Related Products Carousel */}
       {relatedProducts.length > 0 && (
         <section className="related-products-section">
-          <h2 className="related-products-title">Related Products</h2>
+          <h2 className="related-products-title">You may also like</h2>
           <div className="related-products-scroll">
             {relatedProducts.map((p) => {
               const pid = p.id || p._id;
@@ -269,6 +310,11 @@ const ProductDetails = () => {
       )}
 
       <style>{`
+        .pd-assurance { list-style: none; margin: 1.25rem 0 0; padding: 0.9rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; display: grid; gap: 0.6rem; }
+        .pd-assurance li { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.88rem; color: #334155; line-height: 1.45; }
+        .pd-assurance svg { flex-shrink: 0; color: #16a34a; margin-top: 1px; }
+        .pd-assurance strong { color: #0f172a; }
+        .pd-assurance a { color: #16a34a; white-space: nowrap; }
         .related-products-section { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
         .related-products-title { font-size: 1.25rem; font-weight: 700; margin: 0 0 1rem; color: #1e293b; }
         .related-products-scroll { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }

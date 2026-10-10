@@ -30,7 +30,7 @@ const Cart = () => {
       setCart(res.data);
     } catch (err) {
         void err;
-      setError("Failed to load cart. Please try again.");
+      setError("We couldn't load your cart. Please try again.");
     }
     setLoading(false);
   }, []);
@@ -68,7 +68,7 @@ const Cart = () => {
       await fetchCart();
     } catch (err) {
                 void err;
-      setError("Failed to update quantity. Please try again.");
+      setError("We couldn't update the quantity. Please try again.");
     }
     setAction(key, false);
   };
@@ -82,7 +82,7 @@ const Cart = () => {
       await fetchCart();
     } catch (err) {
                 void err;
-      setError("Failed to remove item. Please try again.");
+      setError("We couldn't remove that item. Please try again.");
     }
     setAction(key, false);
   };
@@ -95,10 +95,10 @@ const Cart = () => {
     try {
       await api.post(`/api/cart/save-for-later/${itemId}`);
       await fetchCart();
-      setSuccessMsg("Item moved to Save for Later.");
+      setSuccessMsg("Saved for later. You'll find it below your cart.");
     } catch (err) {
                 void err;
-      setError("Failed to save item for later. Please try again.");
+      setError("We couldn't save that item for later. Please try again.");
     }
     setAction(key, false);
   };
@@ -112,7 +112,7 @@ const Cart = () => {
       await toggleWishlistCtx(productId);
     } catch (err) {
       void err;
-      setError("Failed to update wishlist. Please try again.");
+      setError("We couldn't update your wishlist. Please try again.");
     }
     setAction(key, false);
   };
@@ -125,10 +125,10 @@ const Cart = () => {
     try {
       await api.post(`/api/cart/move-to-cart/${itemId}`);
       await fetchCart();
-      setSuccessMsg("Item moved back to your cart.");
+      setSuccessMsg("Moved back to your cart.");
     } catch (err) {
                 void err;
-      setError("Failed to move item to cart. Please try again.");
+      setError("We couldn't move that item to your cart. Please try again.");
     }
     setAction(key, false);
   };
@@ -142,7 +142,7 @@ const Cart = () => {
       await fetchCart();
     } catch (err) {
                 void err;
-      setError("Failed to add item to cart. Please try again.");
+      setError("We couldn't add that item to your cart. Please try again.");
     }
     setAction(key, false);
   };
@@ -153,7 +153,7 @@ const Cart = () => {
       navigate("/checkout");
     } catch (err) {
                 void err;
-      setError("Failed to process Buy Now. Please try again.");
+      setError("We couldn't start checkout. Please try again.");
     }
   };
 
@@ -180,7 +180,7 @@ const Cart = () => {
     return (
       <div style={{ maxWidth: "var(--container-wide)", margin: "0 auto", padding: "var(--spacing-4)", display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
         <div className="cart-empty">
-          <div style={{ color: "var(--color-text-secondary)" }}>Loading cart...</div>
+          <div style={{ color: "var(--color-text-secondary)" }}>Loading your cart...</div>
         </div>
       </div>
     );
@@ -240,7 +240,9 @@ const Cart = () => {
         <h1 className="cart-title">Shopping Cart</h1>
         <div className="cart-empty">
           <span className="cart-empty-icon">&#128722;</span>
-          <span className="cart-empty-text">Your cart is empty.</span>
+          <span className="cart-empty-text">Your cart is empty</span>
+          <span style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>Delivery is free on orders of &#8377;500 or more.</span>
+          <Link to="/products" className="products-empty-action" style={{ marginTop: "0.5rem" }}>Browse products</Link>
         </div>
       </div>
     );
@@ -282,8 +284,8 @@ const Cart = () => {
             {subtotal < 500 && (
               <div className="cart-shipping-progress">
                 <div className="cart-shipping-progress-text">
-                  {subtotal === 0 ? "Add items to get " : <>Add <strong>&#8377;{(500 - subtotal).toFixed(2)}</strong> more for </>}
-                  FREE Delivery
+                  {subtotal === 0 ? "Add items to get " : <>Add <strong>&#8377;{(500 - subtotal).toFixed(2)}</strong> more to get </>}
+                  free delivery
                 </div>
                 <div className="cart-shipping-progress-bar">
                   <div className={`cart-shipping-progress-fill ${shippingProgress >= 100 ? "complete" : ""}`} style={{ width: `${shippingProgress}%` }} />
@@ -292,7 +294,7 @@ const Cart = () => {
             )}
             {subtotal >= 500 && (
               <div className="cart-shipping-progress">
-                <div className="cart-shipping-progress-free">&#10003; Your order qualifies for FREE Delivery!</div>
+                <div className="cart-shipping-progress-free">&#10003; You get free delivery on this order</div>
                 <div className="cart-shipping-progress-bar">
                   <div className="cart-shipping-progress-fill complete" style={{ width: "100%" }} />
                 </div>
@@ -489,7 +491,7 @@ const Cart = () => {
 
             {discount > 0 && (
               <div className="cart-summary-savings">
-                You're saving &#8377;{discount.toFixed(2)} on this order!
+                You save &#8377;{discount.toFixed(2)} on this order
               </div>
             )}
 
@@ -497,7 +499,7 @@ const Cart = () => {
               <input
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="Enter coupon code"
+                placeholder="Coupon code"
                 aria-label="Enter coupon code"
                 disabled={!!appliedCoupon}
               />
@@ -516,15 +518,15 @@ const Cart = () => {
             <div className="cart-trust-row">
               <span className="cart-trust-badge">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-                Secure Payment
+                Secure payment
               </span>
               <span className="cart-trust-badge">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-                Easy Returns
+                7-day returns
               </span>
               <span className="cart-trust-badge">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                100% Authentic
+                Tamil Nadu sellers
               </span>
             </div>
 

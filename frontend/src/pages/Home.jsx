@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Flame, Star, Package, Store, MapPin, Zap, Shirt } from "lucide-react";
+import { Flame, Star, Package, Store, MapPin, Zap, Shirt, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
@@ -9,8 +9,17 @@ import "../styles/shopnest-home.css";
 
 // Hero slides describe what the store really is. Add real offers here only once they exist.
 const BANNERS = [
-  { id: 1, title: "Shop direct from Tamil Nadu sellers", subtitle: "See who sells it and where they are. Pay by UPI or card.", cta: "Browse products", to: "/products", bg: "#0B3D2E", accent: "#1B7A45", color: "#7FFFD4", Icon: MapPin },
-  { id: 2, title: "Sell on Cauvery Store", subtitle: "Reach customers across Tamil Nadu with your own seller page.", cta: "Become a seller", to: "/seller/register", bg: "#146C43", accent: "#1B7A45", color: "#7FFFD4", Icon: Store },
+  { id: 1, title: "Shop direct from Tamil Nadu sellers", subtitle: "Every seller is a real shop or trader in Tamil Nadu. Free delivery on orders of ₹500 or more.", cta: "Browse products", to: "/products", bg: "#0B3D2E", accent: "#1B7A45", color: "#7FFFD4", Icon: MapPin },
+  { id: 2, title: "Own a shop in Tamil Nadu?", subtitle: "List your products and sell to customers across the state from your own seller page.", cta: "Start selling", to: "/seller/register", bg: "#146C43", accent: "#1B7A45", color: "#7FFFD4", Icon: Store },
+];
+
+// The promises a first-time shopper looks for, stated once under the hero. Each one mirrors
+// what the cart and order system really do - update them together.
+const PROMISES = [
+  { Icon: Truck, title: "Free delivery", text: "on orders of ₹500 or more" },
+  { Icon: RotateCcw, title: "7-day returns", text: "free if the item is faulty or wrong" },
+  { Icon: ShieldCheck, title: "Secure payment", text: "UPI, card or net banking" },
+  { Icon: Store, title: "Tamil Nadu sellers", text: "real shops and traders" },
 ];
 
 function normalizeProduct(p) {
@@ -24,7 +33,8 @@ function normalizeProduct(p) {
     discPct = Math.round(discount.value);
     origPrice = Math.round(price / (1 - discPct / 100));
   }
-  const rating = p.rating || (p.reviews?.length > 0 ? p.reviews.reduce((s,r)=>s+(r.rating||0),0)/p.reviews.length : 4.0);
+  // 0 when nobody has rated it yet - the card then shows no stars rather than an invented score.
+  const rating = p.rating || (p.reviews?.length > 0 ? p.reviews.reduce((s,r)=>s+(r.rating||0),0)/p.reviews.length : 0);
   const reviewCount = p.reviews?.length || 0;
   return { ...p, image: img, price, originalPrice: origPrice, discount: discPct, rating, reviews: reviewCount, stock: p.stock ?? p.stockQuantity ?? (p.active ? 1 : 0) };
 }
@@ -76,9 +86,9 @@ const Home = () => {
     if (!isLoggedIn) { navigate("/login"); return; }
     try {
       await addToCart(p.id, 1);
-      setToast({ type: "success", text: `${p.name} added to cart!` });
+      setToast({ type: "success", text: `${p.name} added to your cart` });
     } catch {
-      setToast({ type: "error", text: "Failed to add to cart" });
+      setToast({ type: "error", text: "We couldn't add that to your cart. Please try again." });
     }
   }, [navigate]);
 
@@ -89,7 +99,7 @@ const Home = () => {
       await addToCart(p.id, 1);
       navigate("/checkout");
     } catch {
-      setToast({ type: "error", text: "Failed to process Buy Now" });
+      setToast({ type: "error", text: "We couldn't start checkout. Please try again." });
     }
   }, [navigate]);
 
@@ -144,6 +154,19 @@ const Home = () => {
         </div>
       </section>
 
+      <section className="sn-promises" aria-label="Why shop at Cauvery Store">
+        <div className="sn-container">
+          <ul className="sn-promises-grid">
+            {PROMISES.map(({ Icon, title, text }) => (
+              <li key={title} className="sn-promise">
+                <Icon size={22} />
+                <span><strong>{title}</strong> {text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <section className="sn-quick-cats">
         <div className="sn-container">
           <div className="sn-quick-cats-grid">
@@ -190,15 +213,22 @@ const Home = () => {
               {normalized.slice(0, 6).map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
             </div>
           ) : (
-            <div className="sn-empty-section">No products available</div>
+            <div className="sn-empty-section">
+              <p style={{ margin: "0 0 0.5rem", fontWeight: 600, color: "#0f172a" }}>Our sellers are adding their first products</p>
+              <p style={{ margin: "0 0 1rem" }}>Please check back soon. Own a shop in Tamil Nadu? You can be among the first to list here.</p>
+              <Link to="/seller/register" className="sn-hero-cta" style={{ backgroundColor: "#1B7A45", display: "inline-block", textDecoration: "none" }}>Start selling</Link>
+            </div>
           )}
         </div>
       </section>
 
+      {/* Category rows only appear once they have products, so the page never shows an
+          empty "No products available" block under a heading. */}
+      {(loading || electronics.length > 0) && (
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title"><Zap size={22} color="#fa8900" className="sn-section-icon" /> Trending Electronics</h2>
+            <h2 className="sn-section-title"><Zap size={22} color="#fa8900" className="sn-section-icon" /> Electronics</h2>
             <Link className="sn-view-all" to="/category/Electronics" style={{ textDecoration: "none" }}>View all {"\u2192"}</Link>
           </div>
           {loading ? (
@@ -207,16 +237,16 @@ const Home = () => {
             <div className="sn-product-scroll">
               {electronics.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
             </div>
-          ) : (
-            <div className="sn-empty-section">No products available</div>
-          )}
+          ) : null}
         </div>
       </section>
+      )}
 
+      {(loading || fashion.length > 0) && (
       <section className="sn-section sn-section-accent">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title"><Shirt size={22} color="#2E9B57" className="sn-section-icon" /> Fashion Essentials</h2>
+            <h2 className="sn-section-title"><Shirt size={22} color="#2E9B57" className="sn-section-icon" /> Fashion</h2>
             <Link className="sn-view-all" to="/category/Fashion" style={{ textDecoration: "none" }}>View all {"\u2192"}</Link>
           </div>
           {loading ? (
@@ -225,13 +255,18 @@ const Home = () => {
             <div className="sn-product-scroll">
               {fashion.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
             </div>
-          ) : (
-            <div className="sn-empty-section">No products available</div>
-          )}
+          ) : null}
         </div>
       </section>
+      )}
 
       <style>{`
+        .sn-promises { padding: 12px 0 0; }
+        .sn-promises-grid { list-style: none; margin: 0; padding: 12px 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; }
+        .sn-promise { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: #475569; line-height: 1.35; }
+        .sn-promise svg { flex-shrink: 0; color: #1B7A45; }
+        .sn-promise strong { display: block; color: #0f172a; }
+        @media (max-width: 768px) { .sn-promises-grid { grid-template-columns: repeat(2, 1fr); } }
         .sn-toast {
           position: fixed; top: 100px; right: 20px; z-index: 9999;
           padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
