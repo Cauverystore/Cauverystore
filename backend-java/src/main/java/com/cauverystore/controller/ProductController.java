@@ -3,6 +3,7 @@ package com.cauverystore.controller;
 import com.cauverystore.entities.Product;
 import com.cauverystore.service.AuthorizationService;
 import com.cauverystore.service.ProductService;
+import com.cauverystore.service.PublicSellerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ public class ProductController {
 
     private final ProductService productService;
     private final AuthorizationService authorizationService;
+    private final PublicSellerService publicSellerService;
 
     @GetMapping
     public ResponseEntity<List<Product>> getActiveProducts() {
@@ -66,6 +68,16 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductById(id));
+    }
+
+    /**
+     * Who sells this product: shop name and town only, and only for an approved seller.
+     * Open to everyone like the rest of the product reads, so see PublicSellerService for
+     * what is deliberately left out.
+     */
+    @GetMapping("/{id}/seller")
+    public ResponseEntity<Map<String, Object>> getProductSeller(@PathVariable Long id) {
+        return ResponseEntity.ok(publicSellerService.sellerOfProduct(id));
     }
 
     @GetMapping("/{id}/similar")

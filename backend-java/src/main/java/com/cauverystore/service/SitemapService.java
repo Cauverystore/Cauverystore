@@ -54,7 +54,10 @@ public class SitemapService {
         addUrl(xml, base + "/about", null, "monthly", "0.5");
         addUrl(xml, base + "/contact", null, "monthly", "0.5");
         addUrl(xml, base + "/faq", null, "monthly", "0.4");
-        addUrl(xml, base + "/policies", null, "monthly", "0.3");
+        addUrl(xml, base + "/privacy-policy", null, "monthly", "0.3");
+        addUrl(xml, base + "/terms-and-conditions", null, "monthly", "0.3");
+        addUrl(xml, base + "/shipping-policy", null, "monthly", "0.3");
+        addUrl(xml, base + "/refund-policy", null, "monthly", "0.3");
         addUrl(xml, base + "/offers", LocalDateTime.now(), "daily", "0.6");
 
         // Categories: only ones with enough live stock to not look like a dead shelf.
