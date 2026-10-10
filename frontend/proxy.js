@@ -52,6 +52,9 @@ const BOT_USER_AGENT_PATTERN = new RegExp(
     "SkypeUriPreview",
     "vkShare",
     "W3C_Validator",
+    // Owner's own SEO audit tool (RankForge): lets it see the prerendered page that
+    // search engines get, instead of the empty JavaScript shell.
+    "RankForgeAuditBot",
   ].join("|"),
   "i"
 );
