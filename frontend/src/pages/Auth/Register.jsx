@@ -285,8 +285,8 @@ const Register = () => {
               />
               <label htmlFor="terms">
                 I agree to the{' '}
-                <Link to="/policies#terms" className="auth-link">Terms of Service</Link> and{' '}
-                <Link to="/policies#privacy" className="auth-link">Privacy Policy</Link>
+                <Link to="/terms-and-conditions" className="auth-link">Terms &amp; Conditions</Link> and{' '}
+                <Link to="/privacy-policy" className="auth-link">Privacy Policy</Link>
               </label>
             </div>
 

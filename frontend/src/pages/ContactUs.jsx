@@ -86,13 +86,17 @@ const ContactUs = () => {
                 <a href="mailto:support@cauverystore.in">support@cauverystore.in</a>
               </div>
             </div>
+            {/* Shown only when a real number is configured - a made-up fallback number
+                misleads customers and fails a payment partner's contact-details check. */}
+            {process.env.REACT_APP_CONTACT_PHONE && (
             <div className="contact-detail-item">
               <Phone size={18} />
               <div>
                 <strong>Phone</strong>
-                <span>{process.env.REACT_APP_CONTACT_PHONE || "+91 98765 43210"}</span>
+                <span>{process.env.REACT_APP_CONTACT_PHONE}</span>
               </div>
             </div>
+            )}
             <div className="contact-detail-item">
               <MapPin size={18} />
               <div>
