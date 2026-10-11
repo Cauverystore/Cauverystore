@@ -181,11 +181,11 @@ const CartDrawer = ({ open, onClose }) => {
         .cart-drawer-empty svg { margin-bottom: 1rem; }
         .cart-drawer-empty p { margin: 0 0 1rem; }
         .cart-drawer-shop-btn {
-          padding: 0.6rem 1.5rem; background: #16a34a !important; color: #fff !important; border: none !important;
+          padding: 0.6rem 1.5rem; background: #0E5C5C !important; color: #fff !important; border: none !important;
           border-radius: 8px; font-weight: 600; cursor: pointer;
         }
-        .cart-drawer-shop-btn:hover { background: #15803d !important; color: #fff !important; }
-        .cart-drawer-shop-btn:active { background: #166534 !important; color: #fff !important; }
+        .cart-drawer-shop-btn:hover { background: #0a4a4a !important; color: #fff !important; }
+        .cart-drawer-shop-btn:active { background: #0a4a4a !important; color: #fff !important; }
         .cart-drawer-item { display: flex; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9; }
         .cart-drawer-item-img { border-radius: 8px; object-fit: cover; flex-shrink: 0; width: 60px; height: 60px; }
         .cart-drawer-item-img-placeholder {
@@ -196,7 +196,7 @@ const CartDrawer = ({ open, onClose }) => {
         }
         .cart-drawer-item-info { flex: 1; min-width: 0; }
         .cart-drawer-item-name { margin: 0 0 0.25rem; font-size: 0.85rem; color: #1e293b; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .cart-drawer-item-price { margin: 0 0 0.5rem; font-size: 0.9rem; color: var(--color-primary, #16a34a); font-weight: 700; }
+        .cart-drawer-item-price { margin: 0 0 0.5rem; font-size: 0.9rem; color: var(--color-primary, #0E5C5C); font-weight: 700; }
         .cart-drawer-item-qty { display: flex; align-items: center; gap: 0.5rem; }
         .cart-drawer-qty-btn {
           width: 26px; height: 26px; border: 1px solid #d1d5db; border-radius: 4px; background: #fff;
@@ -206,10 +206,10 @@ const CartDrawer = ({ open, onClose }) => {
         .cart-drawer-qty-btn:hover:not(:disabled) { background: #f1f5f9; }
         .cart-drawer-item-qty span { font-size: 0.85rem; font-weight: 600; min-width: 20px; text-align: center; }
         .cart-drawer-remove-btn {
-          background: none; border: none; color: #16a34a !important; cursor: pointer; padding: 0.25rem; align-self: flex-start; flex-shrink: 0;
+          background: none; border: none; color: #0E5C5C !important; cursor: pointer; padding: 0.25rem; align-self: flex-start; flex-shrink: 0;
         }
-        .cart-drawer-remove-btn:hover { color: #15803d !important; background: #f0fdf4; border-radius: 4px; }
-        .cart-drawer-remove-btn:active { color: #166534 !important; background: #dcfce7; border-radius: 4px; }
+        .cart-drawer-remove-btn:hover { color: #0a4a4a !important; background: #edf8f7; border-radius: 4px; }
+        .cart-drawer-remove-btn:active { color: #0a4a4a !important; background: #d5f2f0; border-radius: 4px; }
         .cart-drawer-footer {
           border-top: 1px solid #e2e8f0; padding: 1rem 1.25rem; flex-shrink: 0;
         }
@@ -217,10 +217,10 @@ const CartDrawer = ({ open, onClose }) => {
           display: flex; justify-content: space-between; font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;
         }
         .cart-drawer-checkout-btn {
-          width: 100%; padding: 0.75rem; background: #16a34a !important; color: #fff !important; border: none !important;
+          width: 100%; padding: 0.75rem; background: #0E5C5C !important; color: #fff !important; border: none !important;
         }
-        .cart-drawer-checkout-btn:hover { background: #15803d !important; color: #fff !important; opacity: 0.95; }
-        .cart-drawer-checkout-btn:active { background: #166534 !important; color: #fff !important; opacity: 0.9; }
+        .cart-drawer-checkout-btn:hover { background: #0a4a4a !important; color: #fff !important; opacity: 0.95; }
+        .cart-drawer-checkout-btn:active { background: #0a4a4a !important; color: #fff !important; opacity: 0.9; }
         @media (max-width: 480px) {
           .cart-drawer { width: 100%; }
         }

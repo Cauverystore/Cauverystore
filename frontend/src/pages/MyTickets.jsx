@@ -11,13 +11,13 @@ const MyTickets = () => {
     e.preventDefault();
     try { await api.post("/api/support-tickets", form); setShowForm(false); setForm({ subject:"", description:"", category:"general", priority:"NORMAL" }); fetchTickets(); } catch { alert("Failed"); }
   };
-  const statusColors = { OPEN:"#f59e0b", IN_PROGRESS:"#3b82f6", RESOLVED:"#16a34a", CLOSED:"#6b7280" };
+  const statusColors = { OPEN:"#f59e0b", IN_PROGRESS:"#3b82f6", RESOLVED:"#0E5C5C", CLOSED:"#6b7280" };
   const inp = { padding:"0.5rem 0.6rem", border:"1px solid #d1d5db", borderRadius:6, fontSize:"0.85rem", width:"100%", boxSizing:"border-box" };
   return (
     <div style={{ padding:"1.5rem", maxWidth:"900px", margin:"0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.5rem" }}>
         <h1 style={{ fontSize:"1.5rem", fontWeight:700, margin:0 }}>My Support Tickets</h1>
-        <button onClick={() => setShowForm(!showForm)} style={{ padding:"0.5rem 1rem", background:"#16a34a", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.85rem" }}>{showForm ? "Cancel" : "New Ticket"}</button>
+        <button onClick={() => setShowForm(!showForm)} style={{ padding:"0.5rem 1rem", background:"#0E5C5C", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.85rem" }}>{showForm ? "Cancel" : "New Ticket"}</button>
       </div>
       {showForm && (
         <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"1.5rem", marginBottom:"1.5rem" }}>
@@ -46,7 +46,7 @@ const MyTickets = () => {
                 </div>
               </div>
             </div>
-            <button type="submit" style={{ padding:"0.5rem 1.5rem", background:"#16a34a", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.85rem" }}>Submit</button>
+            <button type="submit" style={{ padding:"0.5rem 1.5rem", background:"#0E5C5C", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.85rem" }}>Submit</button>
           </form>
         </div>
       )}
@@ -62,7 +62,7 @@ const MyTickets = () => {
                 <td style={{ padding:"10px 12px", fontWeight:500 }}>#{t.id}</td>
                 <td style={{ padding:"10px 12px", fontWeight:500 }}>{t.subject}</td>
                 <td style={{ padding:"10px 12px", color:"#6b7280" }}>{t.category}</td>
-                <td style={{ padding:"10px 12px" }}><span style={{ padding:"2px 8px", borderRadius:"4px", fontSize:"0.75rem", fontWeight:600, background:t.priority==="HIGH"?"#fef2f2":"#f0fdf4", color:t.priority==="HIGH"?"#dc2626":"#16a34a" }}>{t.priority}</span></td>
+                <td style={{ padding:"10px 12px" }}><span style={{ padding:"2px 8px", borderRadius:"4px", fontSize:"0.75rem", fontWeight:600, background:t.priority==="HIGH"?"#fef2f2":"#edf8f7", color:t.priority==="HIGH"?"#dc2626":"#0E5C5C" }}>{t.priority}</span></td>
                 <td style={{ padding:"10px 12px" }}><span style={{ padding:"2px 8px", borderRadius:"4px", fontSize:"0.75rem", fontWeight:600, background:"#fefce8", color:statusColors[t.status]||"#6b7280" }}>{t.status}</span></td>
                 <td style={{ padding:"10px 12px", color:"#6b7280", fontSize:"0.8rem" }}>{t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "-"}</td>
               </tr>

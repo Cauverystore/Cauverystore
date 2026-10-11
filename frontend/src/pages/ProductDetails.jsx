@@ -276,7 +276,7 @@ const ProductDetails = () => {
       </div>{/* .pd-main */}
 
       {cartMsg && (
-        <div style={{ position: "fixed", bottom: "2rem", right: "2rem", zIndex: 9999, background: "var(--color-primary, #16a34a)", color: "#fff", padding: "0.75rem 1.25rem", borderRadius: "10px", fontWeight: 600, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+        <div style={{ position: "fixed", bottom: "2rem", right: "2rem", zIndex: 9999, background: "var(--color-primary, #0E5C5C)", color: "#fff", padding: "0.75rem 1.25rem", borderRadius: "10px", fontWeight: 600, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
           {cartMsg}
         </div>
       )}
@@ -312,9 +312,9 @@ const ProductDetails = () => {
       <style>{`
         .pd-assurance { list-style: none; margin: 1.25rem 0 0; padding: 0.9rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; display: grid; gap: 0.6rem; }
         .pd-assurance li { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.88rem; color: #334155; line-height: 1.45; }
-        .pd-assurance svg { flex-shrink: 0; color: #16a34a; margin-top: 1px; }
+        .pd-assurance svg { flex-shrink: 0; color: #0E5C5C; margin-top: 1px; }
         .pd-assurance strong { color: #0f172a; }
-        .pd-assurance a { color: #16a34a; white-space: nowrap; }
+        .pd-assurance a { color: #0E5C5C; white-space: nowrap; }
         .related-products-section { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
         .related-products-title { font-size: 1.25rem; font-weight: 700; margin: 0 0 1rem; color: #1e293b; }
         .related-products-scroll { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }

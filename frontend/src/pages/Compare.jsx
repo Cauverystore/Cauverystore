@@ -50,7 +50,7 @@ const Compare = () => {
   return (
     <div className="cmp-page">
       <div className="cmp-header">
-        <h1 className="cmp-title"><GitCompareArrows size={22} color="#16a34a" /> Compare Products</h1>
+        <h1 className="cmp-title"><GitCompareArrows size={22} color="#0E5C5C" /> Compare Products</h1>
         {products.length > 0 && (
           <button className="cmp-clear" onClick={handleClear}>Clear All</button>
         )}
@@ -146,20 +146,20 @@ const Compare = () => {
             .cmp-img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; }
             .cmp-name { font-weight: 600; margin-top: 0.5rem; cursor: pointer; }
             .cmp-remove { position: absolute; top: 8px; right: 8px; background: #f1f5f9; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; color: #475569; display: flex; align-items: center; justify-content: center; }
-            .cmp-price-now { font-weight: 700; color: #16a34a; margin-right: 0.4rem; }
+            .cmp-price-now { font-weight: 700; color: #0E5C5C; margin-right: 0.4rem; }
             .cmp-price-orig { text-decoration: line-through; color: #94a3b8; font-size: 0.78rem; }
-            .cmp-instock { color: #16a34a; font-weight: 600; }
+            .cmp-instock { color: #0E5C5C; font-weight: 600; }
             .cmp-ostock { color: #dc2626; font-weight: 600; }
             .cmp-best { color: #b45309; font-weight: 600; }
             .cmp-empty { text-align: center; padding: 4rem 1rem; }
             .cmp-empty-icon { font-size: 3rem; opacity: 0.4; margin-bottom: 1rem; }
             .cmp-empty h3 { font-size: 1.25rem; color: #1e293b; margin-bottom: 0.5rem; }
             .cmp-empty p { color: #64748b; max-width: 420px; margin: 0 auto 1.5rem; }
-            .cmp-empty-cta { display: inline-block; padding: 0.6rem 1.4rem; background: #16a34a; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; }
+            .cmp-empty-cta { display: inline-block; padding: 0.6rem 1.4rem; background: #0E5C5C; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; }
             .cmp-actions-bar { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.25rem; }
             .cmp-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
             .cmp-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.9rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; border: 1px solid #d1d5db; background: #fff; color: #334155; }
-            .cmp-btn-cart { background: #16a34a; color: #fff; border-color: #16a34a; font-weight: 600; }
+            .cmp-btn-cart { background: #0E5C5C; color: #fff; border-color: #0E5C5C; font-weight: 600; }
             .cmp-btn-view { background: #2563eb; color: #fff; border-color: #2563eb; }
             .cmp-btn-remove:hover { border-color: #dc2626; color: #dc2626; }
           `}</style>

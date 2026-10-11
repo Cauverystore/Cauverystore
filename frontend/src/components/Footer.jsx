@@ -20,7 +20,7 @@ const Footer = () => {
   <>
     {/* Newsletter */}
     <section style={{
-      background: "var(--green-800, #166534)", padding: "2.5rem 1.5rem",
+      background: "var(--color-primary, #0E5C5C)", padding: "2.5rem 1.5rem",
       color: "#fff"
     }}>
       <div style={{
@@ -29,22 +29,22 @@ const Footer = () => {
         gap: "2rem", flexWrap: "wrap"
       }}>
         <div style={{ flex: 1, minWidth: "250px" }}>
-          <h3 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 0.35rem" }}>New from Tamil Nadu sellers, in your inbox</h3>
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, letterSpacing: "-0.015em", margin: "0 0 0.35rem" }}>New from Tamil Nadu sellers, in your inbox</h3>
           <p style={{ fontSize: "0.85rem", opacity: 0.85, margin: 0 }}>
             Hear when sellers add new products and offers. Unsubscribe any time.
           </p>
-          {msg && <p style={{ fontSize:"0.8rem", marginTop:"0.5rem", color:"#fbbf24" }}>{msg}</p>}
+          {msg && <p style={{ fontSize:"0.8rem", marginTop:"0.5rem", color:"#f1dfae" }}>{msg}</p>}
         </div>
         <form onSubmit={handleSubscribe} style={{
           display: "flex", gap: "0.5rem", flexShrink: 0, width: "100%", maxWidth: "420px"
         }}>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email address" aria-label="Email address for newsletter" required style={{
-            flex: 1, padding: "0.6rem 0.85rem", border: "none", borderRadius: "6px",
+            flex: 1, padding: "0.6rem 1rem", border: "none", borderRadius: "999px",
             fontSize: "0.85rem", outline: "none"
           }} />
           <button type="submit" style={{
-            padding: "0.6rem 1.25rem", background: "#fa8900", color: "#fff",
-            border: "none", borderRadius: "6px", fontWeight: 600, fontSize: "0.85rem",
+            padding: "0.6rem 1.25rem", background: "#C8A24B", color: "#fff",
+            border: "none", borderRadius: "999px", fontWeight: 600, fontSize: "0.85rem",
             cursor: "pointer", whiteSpace: "nowrap"
           }}>Subscribe</button>
         </form>
@@ -53,7 +53,7 @@ const Footer = () => {
 
     {/* Main Footer */}
     <footer style={{
-      background: "#0f172a", color: "#94a3b8", padding: "2.5rem 1.5rem 1.5rem"
+      background: "#0b2b2b", color: "#a9c2c0", padding: "2.5rem 1.5rem 1.5rem"
     }}>
       <div style={{
         maxWidth: "var(--container-max, 1200px)", margin: "0 auto",
@@ -70,10 +70,10 @@ const Footer = () => {
             Get to Know Us
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/about" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>About Cauvery Store</Link>
-            <Link to="/contact" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
-            <Link to="/help" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Help Center</Link>
-            <Link to="/offers" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Offers & Deals</Link>
+            <Link to="/about" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>About Cauvery Store</Link>
+            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
+            <Link to="/help" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Help Center</Link>
+            <Link to="/offers" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Offers & Deals</Link>
           </div>
         </div>
 
@@ -83,13 +83,13 @@ const Footer = () => {
             Customer Service
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/contact" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
-            <Link to="/orders" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Your Orders</Link>
+            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
+            <Link to="/orders" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Your Orders</Link>
             {/* One link per policy: payment partners and shoppers look for each by name. */}
-            <Link to="/refund-policy" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Cancellations & Refunds</Link>
-            <Link to="/shipping-policy" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Shipping Policy</Link>
-            <Link to="/terms-and-conditions" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Terms & Conditions</Link>
-            <Link to="/privacy-policy" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Privacy Policy</Link>
+            <Link to="/refund-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Cancellations & Refunds</Link>
+            <Link to="/shipping-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Shipping Policy</Link>
+            <Link to="/terms-and-conditions" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Terms & Conditions</Link>
+            <Link to="/privacy-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Privacy Policy</Link>
           </div>
         </div>
 
@@ -99,9 +99,9 @@ const Footer = () => {
             Seller Services
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/seller/register" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Sell on Cauvery Store</Link>
-            <Link to="/seller/dashboard" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Seller Dashboard</Link>
-            <Link to="/contact" style={{ color: "#94a3b8", textDecoration: "none", fontSize: "0.85rem" }}>Partner Support</Link>
+            <Link to="/seller/register" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Sell on Cauvery Store</Link>
+            <Link to="/seller/dashboard" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Seller Dashboard</Link>
+            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Partner Support</Link>
           </div>
         </div>
 
@@ -120,12 +120,12 @@ const Footer = () => {
               <a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name} style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 32, height: 32, borderRadius: "50%",
-                background: "rgba(255,255,255,0.08)", color: "#94a3b8",
+                background: "rgba(255,255,255,0.08)", color: "#a9c2c0",
                 textDecoration: "none",
                 transition: "background 0.2s, color 0.2s"
               }}
               onMouseEnter={(e) => { e.target.style.background = "var(--color-primary)"; e.target.style.color = "#fff"; }}
-              onMouseLeave={(e) => { e.target.style.background = "rgba(255,255,255,0.08)"; e.target.style.color = "#94a3b8"; }}
+              onMouseLeave={(e) => { e.target.style.background = "rgba(255,255,255,0.08)"; e.target.style.color = "#a9c2c0"; }}
               >
                 {icon}
               </a>
@@ -135,7 +135,7 @@ const Footer = () => {
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "0.35rem",
               padding: "0.3rem 0.6rem", border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: "6px", fontSize: "0.75rem", color: "#94a3b8", width: "fit-content"
+              borderRadius: "6px", fontSize: "0.75rem", color: "#a9c2c0", width: "fit-content"
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
               App Store
@@ -143,7 +143,7 @@ const Footer = () => {
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "0.35rem",
               padding: "0.3rem 0.6rem", border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: "6px", fontSize: "0.75rem", color: "#94a3b8", width: "fit-content"
+              borderRadius: "6px", fontSize: "0.75rem", color: "#a9c2c0", width: "fit-content"
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               Google Play
@@ -155,18 +155,18 @@ const Footer = () => {
       {/* Bottom Bar */}
       <div style={{
         maxWidth: "var(--container-max, 1200px)", margin: "1.5rem auto 0",
-        paddingTop: "1rem", borderTop: "1px solid #1e293b",
+        paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.1)",
         display: "flex", justifyContent: "space-between", alignItems: "center",
         flexWrap: "wrap", gap: "1rem", fontSize: "0.8rem"
       }}>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", color: "#64748b" }}>
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", color: "#86a3a1" }}>
           <span>Visa</span><span style={{ opacity: 0.3 }}>|</span>
           <span>MC</span><span style={{ opacity: 0.3 }}>|</span>
           <span>Amex</span><span style={{ opacity: 0.3 }}>|</span>
           <span>UPI</span><span style={{ opacity: 0.3 }}>|</span>
           <span>Net Banking</span>
         </div>
-        <p style={{ margin: 0, color: "#64748b" }}>
+        <p style={{ margin: 0, color: "#86a3a1" }}>
           &copy; {new Date().getFullYear()} Cauvery Store. All rights reserved.
         </p>
       </div>
@@ -175,7 +175,7 @@ const Footer = () => {
     {/* Back to Top */}
     <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title="Back to top" aria-label="Back to top" style={{
       position: "fixed", bottom: "calc(80px + var(--bottom-bar-offset, 0px))", right: "1.5rem", zIndex: 50,
-      width: 40, height: 40, borderRadius: "50%", background: "var(--color-primary, #16a34a)",
+      width: 40, height: 40, borderRadius: "50%", background: "var(--color-primary, #0E5C5C)",
       color: "#fff", border: "none", cursor: "pointer", display: "flex",
       alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     }}>

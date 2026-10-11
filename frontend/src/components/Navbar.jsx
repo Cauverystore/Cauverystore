@@ -104,7 +104,7 @@ const Navbar = () => {
     <>
       {/* Utility Bar */}
       <div className="sn-utility-bar" style={{
-        background: "var(--green-800, #166534)", color: "#fff", fontSize: "0.75rem",
+        background: "var(--color-primary, #0E5C5C)", color: "#fff", fontSize: "0.75rem",
         padding: "0.35rem 1.5rem", display: "flex", justifyContent: "space-between",
         alignItems: "center", position: "sticky", top: 0, zIndex: 101
       }}>
@@ -114,7 +114,7 @@ const Navbar = () => {
         <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
           <Link to="/contact" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Customer Support</Link>
           {["SELLER", "ADMIN", "SUPER_ADMIN"].some((r) => userRoles.includes(r)) ? (
-            <Link to="/seller/dashboard" style={{ color: "#86efac", textDecoration: "none", opacity: 0.85 }}>Seller Dashboard</Link>
+            <Link to="/seller/dashboard" style={{ color: "#d5f2f0", textDecoration: "none", opacity: 0.85 }}>Seller Dashboard</Link>
           ) : (
             <Link to="/seller/register" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Become a Seller</Link>
           )}
@@ -154,14 +154,14 @@ const Navbar = () => {
           {/* Logo */}
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "8px" }}>
             <img src="/images/logo.jpg" alt="Cauvery Store" style={{ height: "2rem", width: "auto" }} />
-            <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #16a34a)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
+            <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #0E5C5C)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
           </Link>
 
           {/* Search Bar */}
           <form onSubmit={handleSearch} style={{
             flex: 1, maxWidth: "520px", display: "flex",
             borderRadius: "8px", overflow: "hidden",
-            border: "2px solid var(--color-primary, #16a34a)"
+            border: "2px solid var(--color-primary, #0E5C5C)"
           }}>
             <input
               ref={searchRef}
@@ -176,7 +176,7 @@ const Navbar = () => {
               }}
             />
             <button type="submit" aria-label="Search" style={{
-              padding: "0.55rem 1rem", background: "var(--color-primary, #16a34a)",
+              padding: "0.55rem 1rem", background: "var(--color-primary, #0E5C5C)",
               color: "#fff", border: "none", cursor: "pointer", display: "flex",
               alignItems: "center", justifyContent: "center"
             }}>
@@ -220,7 +220,7 @@ const Navbar = () => {
               {cartCount > 0 && (
                 <span style={{
                   position: "absolute", top: 0, right: 0,
-                  background: "var(--color-primary, #16a34a)", color: "#fff",
+                  background: "var(--color-primary, #0E5C5C)", color: "#fff",
                   fontSize: "0.6rem", fontWeight: 700, minWidth: 16, height: 16,
                   borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
                   lineHeight: 1
@@ -340,12 +340,12 @@ const Navbar = () => {
           }
         }
         .sn-mobile-search-bar .sn-mobile-search-input {
-          flex: 1; padding: 0.55rem 0.75rem; border: 2px solid var(--color-primary, #16a34a);
+          flex: 1; padding: 0.55rem 0.75rem; border: 2px solid var(--color-primary, #0E5C5C);
           border-right: none; border-radius: 8px 0 0 8px;
           font-size: 0.85rem; outline: none;
         }
         .sn-mobile-search-bar .sn-mobile-search-submit {
-          padding: 0.55rem 1rem; background: var(--color-primary, #16a34a);
+          padding: 0.55rem 1rem; background: var(--color-primary, #0E5C5C);
           color: #fff; border: none; border-radius: 0 8px 8px 0;
           display: flex; align-items: center; justify-content: center; cursor: pointer;
         }

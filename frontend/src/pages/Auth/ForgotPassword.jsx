@@ -102,7 +102,7 @@ const ForgotPassword = () => {
         <div className="auth-card">
           <div className="auth-header">
             <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: '48px', width: 'auto' }} />
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #16a34a)' }}>Cauvery Store</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #0E5C5C)' }}>Cauvery Store</div>
             <h1 className="auth-title">{step === 1 ? 'Forgot Password' : 'Reset Password'}</h1>
             <p className="auth-subtitle">
               {step === 1
@@ -142,7 +142,7 @@ const ForgotPassword = () => {
               <button
                 type="button"
                 className="auth-submit-btn"
-                style={{ marginTop: '0.6rem', background: 'transparent', color: 'var(--color-primary, #16a34a)', border: '1px solid var(--color-primary, #16a34a)' }}
+                style={{ marginTop: '0.6rem', background: 'transparent', color: 'var(--color-primary, #0E5C5C)', border: '1px solid var(--color-primary, #0E5C5C)' }}
                 onClick={handleRequestLink}
                 disabled={loading || linkLoading}
               >

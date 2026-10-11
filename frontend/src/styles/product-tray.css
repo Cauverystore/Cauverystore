@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    PRODUCT TRAY — Enhanced Product Card Component Styles
-   Brand: Cauvery Store (#16a34a green + #f59e0b gold accent)
+   Brand: Cauvery Store (#0E5C5C green + #f59e0b gold accent)
    ═══════════════════════════════════════════════════════════════ */
 
 /* ─── Product Card ─── */
@@ -28,7 +28,7 @@
 }
 
 .pt-card:focus-visible {
-  outline: 2px solid var(--color-primary, #16a34a);
+  outline: 2px solid var(--color-primary, #0E5C5C);
   outline-offset: 2px;
 }
 
@@ -164,7 +164,7 @@
 }
 
 .pt-quick-view:hover {
-  background: var(--color-primary, #16a34a);
+  background: var(--color-primary, #0E5C5C);
   color: #fff;
   transform: scale(1.1);
 }
@@ -245,7 +245,7 @@
 
 .pt-gallery-nav:hover {
   opacity: 1;
-  background: var(--color-primary, #16a34a);
+  background: var(--color-primary, #0E5C5C);
   color: #fff;
 }
 
@@ -278,7 +278,7 @@
 }
 
 .pt-gallery-dot.active {
-  background: var(--color-primary, #16a34a);
+  background: var(--color-primary, #0E5C5C);
   transform: scale(1.3);
 }
 
@@ -338,7 +338,7 @@
 .pt-price {
   font-size: var(--font-size-xl, 18px);
   font-weight: var(--font-weight-bold, 700);
-  color: var(--color-primary, #16a34a);
+  color: var(--color-primary, #0E5C5C);
 }
 
 .pt-original-price {
@@ -382,7 +382,7 @@
 }
 
 .pt-delivery-instock {
-  color: var(--color-success, #16a34a);
+  color: var(--color-success, #0E5C5C);
   font-weight: var(--font-weight-semibold, 600);
 }
 
@@ -593,7 +593,7 @@
 
 /* ─── Toast Notification ─── */
 .pt-toast {
-  background: var(--color-primary, #16a34a);
+  background: var(--color-primary, #0E5C5C);
   color: #fff;
   padding: 0.6rem 1rem;
   border-radius: var(--radius-md, 6px);
@@ -688,7 +688,7 @@
 
 .pt-bottom-btn:hover,
 .pt-bottom-btn.active {
-  color: var(--color-primary, #16a34a);
+  color: var(--color-primary, #0E5C5C);
 }
 
 .pt-bottom-btn svg {
@@ -716,7 +716,7 @@
 }
 
 .pt-bottom-checkout {
-  background: var(--color-primary, #16a34a);
+  background: var(--color-primary, #0E5C5C);
   color: #fff;
   border: none;
   border-radius: var(--radius-full, 9999px);
@@ -731,5 +731,5 @@
 }
 
 .pt-bottom-checkout:hover {
-  background: var(--color-primary-hover, #15803d);
+  background: var(--color-primary-hover, #0a4a4a);
 }
