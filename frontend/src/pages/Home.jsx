@@ -1,17 +1,11 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Flame, Star, Package, Store, MapPin, Zap, Shirt, Truck, RotateCcw, ShieldCheck } from "lucide-react";
+import { Store, Truck, RotateCcw, ShieldCheck, ArrowRight } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import "../styles/shopnest-home.css";
-
-// Hero slides describe what the store really is. Add real offers here only once they exist.
-const BANNERS = [
-  { id: 1, title: "Shop direct from Tamil Nadu sellers", subtitle: "Every seller is a real shop or trader in Tamil Nadu. Free delivery on orders of ₹500 or more.", cta: "Browse products", to: "/products", bg: "#0B3D2E", accent: "#1B7A45", color: "#7FFFD4", Icon: MapPin },
-  { id: 2, title: "Own a shop in Tamil Nadu?", subtitle: "List your products and sell to customers across the state from your own seller page.", cta: "Start selling", to: "/seller/register", bg: "#146C43", accent: "#1B7A45", color: "#7FFFD4", Icon: Store },
-];
 
 // The promises a first-time shopper looks for, stated once under the hero. Each one mirrors
 // what the cart and order system really do - update them together.
@@ -49,7 +43,6 @@ const Home = () => {
   const [allProducts, setAllProducts] = useState(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [bannerIdx, setBannerIdx] = useState(0);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -60,11 +53,6 @@ const Home = () => {
       })
       .catch(() => { setAllProducts([]); setCategories([]); })
       .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => setBannerIdx(i => (i + 1) % BANNERS.length), 4000);
-    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -127,29 +115,20 @@ const Home = () => {
         </div>
       )}
 
+      {/* The hero states what the store really is. Add offer banners here only once real offers exist. */}
       <section className="sn-hero">
-        <div className="sn-container">
-          <div className="sn-hero-carousel">
-            <div className="sn-hero-carousel-inner">
-              {BANNERS.map((b, i) => (
-                <div key={b.id} className={`sn-hero-slide ${i === bannerIdx ? "active" : ""}`} style={{ backgroundColor: b.bg }}>
-                  <div className="sn-hero-content">
-                    <span className="sn-hero-icon"><b.Icon size={48} color={b.color} /></span>
-                    <h2 style={{ color: b.color }}>{b.title}</h2>
-                    <p style={{ color: b.color, opacity: 0.85 }}>{b.subtitle}</p>
-                    <Link to={b.to} className="sn-hero-cta" style={{ backgroundColor: b.accent, display: "inline-block", textDecoration: "none" }}>{b.cta}</Link>
-                  </div>
-                  <div className="sn-hero-visual">
-                    <div className="sn-hero-shape" />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button className="sn-hero-prev" onClick={() => setBannerIdx(i => (i - 1 + BANNERS.length) % BANNERS.length)} aria-label="Previous slide"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
-            <button className="sn-hero-next" onClick={() => setBannerIdx(i => (i + 1) % BANNERS.length)} aria-label="Next slide"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg></button>
-            <div className="sn-hero-dots">
-              {BANNERS.map((_, i) => <button key={i} className={`sn-hero-dot ${i === bannerIdx ? "active" : ""}`} onClick={() => setBannerIdx(i)} aria-label={`Slide ${i + 1}`} />)}
-            </div>
+        <svg className="sn-hero-river" viewBox="0 0 600 500" fill="none" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <path d="M620 20C470 60 520 170 380 210S250 330 120 360 20 470 -20 500" stroke="currentColor" strokeWidth="1.25" />
+          <path d="M620 60C490 95 540 200 400 240S270 360 140 390 40 490 0 520" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+          <path d="M620 100C510 130 560 230 420 270S290 390 160 420 60 510 20 540" stroke="currentColor" strokeWidth="0.75" opacity="0.35" />
+        </svg>
+        <div className="sn-container sn-hero-inner">
+          <p className="sn-eyebrow">Cauvery Store</p>
+          <h1 className="sn-hero-title">Shop direct from <em>Tamil Nadu</em> sellers</h1>
+          <p className="sn-hero-sub">Every seller is a real shop or trader in Tamil Nadu. Free delivery on orders of ₹500 or more.</p>
+          <div className="sn-hero-actions">
+            <Link to="/products" className="sn-btn">Browse products <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
+            <Link to="/seller/register" className="sn-text-link">Own a shop in Tamil Nadu? Start selling</Link>
           </div>
         </div>
       </section>
@@ -159,7 +138,7 @@ const Home = () => {
           <ul className="sn-promises-grid">
             {PROMISES.map(({ Icon, title, text }) => (
               <li key={title} className="sn-promise">
-                <Icon size={22} />
+                <Icon size={22} strokeWidth={1.6} aria-hidden="true" />
                 <span><strong>{title}</strong> {text}</span>
               </li>
             ))}
@@ -167,6 +146,7 @@ const Home = () => {
         </div>
       </section>
 
+      {categories.length > 0 && (
       <section className="sn-quick-cats">
         <div className="sn-container">
           <div className="sn-quick-cats-grid">
@@ -174,8 +154,7 @@ const Home = () => {
               const name = typeof cat === "string" ? cat : (cat.name || cat.title || "");
               if (!name) return null;
               return (
-                <Link key={name} className="sn-quick-cat" to={`/category/${encodeURIComponent(name)}`} style={{ textDecoration: "none" }}>
-                  <span className="sn-quick-cat-icon"><Package size={28} /></span>
+                <Link key={name} className="sn-quick-cat" to={`/category/${encodeURIComponent(name)}`}>
                   <span className="sn-quick-cat-label">{name}</span>
                 </Link>
               );
@@ -183,13 +162,14 @@ const Home = () => {
           </div>
         </div>
       </section>
+      )}
 
       {(loading || productsWithDiscount.length > 0) && (
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title"><Flame size={22} color="#fa8900" className="sn-section-icon" /> Discounted now</h2>
-            <Link className="sn-view-all" to="/offers" style={{ textDecoration: "none" }}>View all offers {"\u2192"}</Link>
+            <h2 className="sn-section-title">Discounted now</h2>
+            <Link className="sn-view-all" to="/offers">View all offers {"\u2192"}</Link>
           </div>
           <div className="sn-product-scroll">
             {productsWithDiscount.length > 0
@@ -203,8 +183,8 @@ const Home = () => {
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title"><Star size={22} color="#fa8900" className="sn-section-icon" /> New from Tamil Nadu sellers</h2>
-            <Link className="sn-view-all" to="/products" style={{ textDecoration: "none" }}>View all {"\u2192"}</Link>
+            <h2 className="sn-section-title">New from Tamil Nadu sellers</h2>
+            <Link className="sn-view-all" to="/products">View all {"\u2192"}</Link>
           </div>
           {loading ? (
             <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
@@ -214,9 +194,9 @@ const Home = () => {
             </div>
           ) : (
             <div className="sn-empty-section">
-              <p style={{ margin: "0 0 0.5rem", fontWeight: 600, color: "#0f172a" }}>Our sellers are adding their first products</p>
-              <p style={{ margin: "0 0 1rem" }}>Please check back soon. Own a shop in Tamil Nadu? You can be among the first to list here.</p>
-              <Link to="/seller/register" className="sn-hero-cta" style={{ backgroundColor: "#1B7A45", display: "inline-block", textDecoration: "none" }}>Start selling</Link>
+              <p className="sn-empty-title">Our sellers are adding their first products</p>
+              <p>Please check back soon. Own a shop in Tamil Nadu? You can be among the first to list here.</p>
+              <Link to="/seller/register" className="sn-btn">Start selling <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
             </div>
           )}
         </div>
@@ -228,8 +208,8 @@ const Home = () => {
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title"><Zap size={22} color="#fa8900" className="sn-section-icon" /> Electronics</h2>
-            <Link className="sn-view-all" to="/category/Electronics" style={{ textDecoration: "none" }}>View all {"\u2192"}</Link>
+            <h2 className="sn-section-title">Electronics</h2>
+            <Link className="sn-view-all" to="/category/Electronics">View all {"\u2192"}</Link>
           </div>
           {loading ? (
             <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
@@ -246,8 +226,8 @@ const Home = () => {
       <section className="sn-section sn-section-accent">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title"><Shirt size={22} color="#2E9B57" className="sn-section-icon" /> Fashion</h2>
-            <Link className="sn-view-all" to="/category/Fashion" style={{ textDecoration: "none" }}>View all {"\u2192"}</Link>
+            <h2 className="sn-section-title">Fashion</h2>
+            <Link className="sn-view-all" to="/category/Fashion">View all {"\u2192"}</Link>
           </div>
           {loading ? (
             <div className="sn-product-scroll">{[...Array(4)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
@@ -261,20 +241,6 @@ const Home = () => {
       )}
 
       <style>{`
-        .sn-promises { padding: 12px 0 0; }
-        .sn-promises-grid { list-style: none; margin: 0; padding: 12px 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; }
-        .sn-promise { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: #475569; line-height: 1.35; }
-        .sn-promise svg { flex-shrink: 0; color: #1B7A45; }
-        .sn-promise strong { display: block; color: #0f172a; }
-        @media (max-width: 768px) { .sn-promises-grid { grid-template-columns: repeat(2, 1fr); } }
-        .sn-toast {
-          position: fixed; top: 100px; right: 20px; z-index: 9999;
-          padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideInRight 0.3s ease-out;
-        }
-        .sn-toast-success { background: #16a34a; color: #fff; }
-        .sn-toast-error { background: #dc2626; color: #fff; }
-        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .sn-product-scroll .pt-card { width: 200px; flex-shrink: 0; }
         .sn-product-scroll .pt-skeleton { width: 200px; flex-shrink: 0; }
       `}</style>

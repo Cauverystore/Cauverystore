@@ -198,13 +198,13 @@ const ProductList = () => {
 
       <style>{`
         .pl-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
-        .pl-sidebar { width: 240px; flex-shrink: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; position: sticky; top: 110px; }
+        .pl-sidebar { width: 240px; flex-shrink: 0; background: #fff; border: 1px solid rgba(14, 92, 92, 0.14); border-radius: 16px; padding: 1.25rem; position: sticky; top: 110px; }
         .pl-sidebar-section { margin-bottom: 1.25rem; }
-        .pl-sidebar-title { font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .pl-sidebar-title { font-size: 0.75rem; font-weight: 600; color: #6d7c7b; margin: 0 0 0.6rem; text-transform: uppercase; letter-spacing: 0.14em; }
         .pl-sidebar-categories { display: flex; flex-direction: column; gap: 2px; max-height: 280px; overflow-y: auto; }
         .pl-sidebar-cat { width: 100%; padding: 0.4rem 0.6rem; font-size: 0.82rem; color: #475569; cursor: pointer; border-radius: 6px; transition: all 0.12s; background: none; border: none; text-align: left; font-family: inherit; }
         .pl-sidebar-cat:hover { background: #f1f5f9; }
-        .pl-sidebar-cat.active { background: #f0fdf4; font-weight: 600; }
+        .pl-sidebar-cat.active { background: rgba(14, 92, 92, 0.08); color: #0E5C5C; font-weight: 600; }
         .pl-sidebar-select { width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; }
         .pl-sidebar-input { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; }
         .pl-sidebar-clear { width: 100%; padding: 0.45rem; background: none; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
@@ -212,15 +212,16 @@ const ProductList = () => {
         .pl-toolbar { display: none; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
         .pl-mobile-filter-btn { display: none; padding: 0.45rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.82rem; cursor: pointer; }
         .pl-sort-select { padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.82rem; background: #fff; }
-        .products-error { padding: 40px; text-align: center; }
-        .products-error-icon { font-size: 48px; color: #dc2626; margin-bottom: 16px; }
-        .products-error-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
-        .products-error-text { font-size: 0.875rem; color: #64748b; margin-bottom: 16px; }
-        .products-error-retry { padding: 8px 20px; border: 1px solid #dc2626; border-radius: 8px; background: #fff; color: #dc2626; cursor: pointer; }
-        .products-empty { padding: 40px; text-align: center; }
+        .products-error { padding: clamp(2rem, 6vw, 4rem) 1.5rem; text-align: center; }
+        .products-error-icon { font-size: 40px; color: #b42318; margin-bottom: 12px; }
+        .products-error-title { font-family: var(--font-display); font-size: 1.75rem; font-weight: 500; letter-spacing: -0.02em; color: #14302f; margin-bottom: 8px; }
+        .products-error-text { font-size: 1rem; color: #48595a; margin-bottom: 20px; }
+        .products-error-retry { padding: 0.75rem 1.5rem; border: none; border-radius: 999px; background: #0E5C5C; color: #fff; font-weight: 600; cursor: pointer; transition: background 0.2s ease; }
+        .products-error-retry:hover { background: #0a4a4a; }
+        .products-empty { padding: clamp(2rem, 6vw, 4rem) 1.5rem; text-align: center; }
         .products-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-        .products-empty-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
-        .products-empty-text { font-size: 0.875rem; color: #64748b; }
+        .products-empty-title { font-family: var(--font-display); font-size: 1.75rem; font-weight: 500; letter-spacing: -0.02em; color: #14302f; margin-bottom: 8px; }
+        .products-empty-text { font-size: 1rem; color: #48595a; }
         /* .pl-content shares its row with a 240px sidebar down to the 768px breakpoint below,
            so its column counts switch later than the standalone .pt-grid breakpoints - matching
            those exactly here would squeeze 3 columns into a narrower-than-expected content area. */
@@ -246,7 +247,7 @@ const ProductList = () => {
         .pl-drawer-close { background: none; border: none; font-size: 1rem; color: #475569; cursor: pointer; padding: 0.25rem; }
         .pl-drawer-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
         .pl-drawer-footer { padding: 1rem 1.25rem; border-top: 1px solid #e2e8f0; }
-        .pl-drawer-apply { width: 100%; padding: 0.65rem; background: #16a34a; color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+        .pl-drawer-apply { width: 100%; padding: 0.75rem; background: #0E5C5C; color: #fff; border: none; border-radius: 999px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
       `}</style>
     </div>
   );

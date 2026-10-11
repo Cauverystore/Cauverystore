@@ -39,7 +39,7 @@ const CompleteProfile = () => {
         <div className="auth-card">
           <div className="auth-header">
             <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: '48px', width: 'auto' }} />
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #16a34a)' }}>Cauvery Store</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #0E5C5C)' }}>Cauvery Store</div>
             <h1 className="auth-title">One last step</h1>
             <p className="auth-subtitle">
               {user?.fullName ? `Welcome, ${user.fullName}! ` : ''}

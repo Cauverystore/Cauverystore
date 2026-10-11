@@ -711,7 +711,7 @@ const Profile = () => {
           {orders.map((order) => {
             const oid = order.id || order._id;
             const orderNum = order.orderId || oid?.toString().slice(-8);
-            const statusColor = order.status === "DELIVERED" ? "#16a34a" :
+            const statusColor = order.status === "DELIVERED" ? "#0E5C5C" :
               order.status === "CANCELLED" ? "#dc2626" : "#f59e0b";
             return (
               <div key={oid} className="profile-order-card">
@@ -728,7 +728,7 @@ const Profile = () => {
                   <span>&#8377;{(order.totalAmount || order.total || 0).toFixed(2)}</span>
                   <span style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>{order.paymentMethod || "COD"}</span>
                   {(order.paymentStatus === "PAID" || order.paymentStatus === "COMPLETED") && (
-                    <span style={{ color: "#16a34a", fontSize: "0.8rem" }}>Paid</span>
+                    <span style={{ color: "#0E5C5C", fontSize: "0.8rem" }}>Paid</span>
                   )}
                 </div>
                 <div className="profile-order-actions">
@@ -774,7 +774,7 @@ const Profile = () => {
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
                     {review.createdAt ? new Date(review.createdAt).toLocaleDateString("en-IN") : ""}
-                    {review.approved ? <span style={{ color: "#16a34a", marginLeft: "0.5rem" }}>Approved</span> :
+                    {review.approved ? <span style={{ color: "#0E5C5C", marginLeft: "0.5rem" }}>Approved</span> :
                       <span style={{ color: "#f59e0b", marginLeft: "0.5rem" }}>Pending</span>}
                   </div>
                 </div>
@@ -891,7 +891,7 @@ const Profile = () => {
                     {s.ipAddress ? `${s.ipAddress} · ` : ""}Signed in {s.createdAt ? new Date(s.createdAt).toLocaleString("en-IN") : ""}
                     {s.expiresAt ? ` · Expires ${new Date(s.expiresAt).toLocaleString("en-IN")}` : ""}
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#16a34a" }}>{s.status}</div>
+                  <div style={{ fontSize: "0.75rem", color: "#0E5C5C" }}>{s.status}</div>
                 </div>
                 <button className="pf-btn-sm pf-btn-danger" onClick={() => handleRevokeSession(s.id)} disabled={sessionBusy === s.id}>
                   {sessionBusy === s.id ? "..." : "Sign Out"}

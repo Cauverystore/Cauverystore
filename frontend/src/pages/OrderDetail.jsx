@@ -325,7 +325,7 @@ const OrderDetail = () => {
           <span style={{ color: "var(--color-text-secondary)" }}>Payment Status</span>
           <span style={{
             fontWeight: 600,
-            color: order?.paymentStatus === "PAID" || order?.paymentStatus === "COMPLETED" ? "#16a34a" : "#f59e0b"
+            color: order?.paymentStatus === "PAID" || order?.paymentStatus === "COMPLETED" ? "#0E5C5C" : "#f59e0b"
           }}>
             {order?.paymentStatus || "PENDING"}
           </span>
@@ -334,7 +334,7 @@ const OrderDetail = () => {
           <span style={{ color: "var(--color-text-secondary)" }}>Status</span>
           <span style={{
             fontWeight: 600,
-            color: isCancelled ? "#dc2626" : currentStep >= STATUS_STEPS.length - 1 ? "#16a34a" : "#f59e0b"
+            color: isCancelled ? "#dc2626" : currentStep >= STATUS_STEPS.length - 1 ? "#0E5C5C" : "#f59e0b"
           }}>
             {status}
           </span>

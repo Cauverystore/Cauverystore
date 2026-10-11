@@ -4,10 +4,10 @@ import { Link } from "react-router-dom";
 import { Package, CreditCard, Clock, Truck, HelpCircle, ArrowRight, ShieldCheck, ChevronDown, Mail, XCircle, AlertTriangle, Ban } from "lucide-react";
 import "../styles/staticLayout.css";
 
-const green = "#16a34a";
-const dark = "#0f172a";
-const muted = "#475569";
-const border = "1px solid #e2e8f0";
+const green = "#0E5C5C";
+const dark = "#14302f";
+const muted = "#48595a";
+const border = "1px solid rgba(14, 92, 92, 0.14)";
 
 const LAST_UPDATED = "10 October 2026";
 
@@ -27,10 +27,10 @@ const sidebarLinks = [
 // OrderService on the backend) - change them together, or this page promises something
 // the Return button will refuse.
 const summaryCards = [
-  { label: "Return window", value: "7 days", note: "from delivery, unless the product page says otherwise", color: "#2563eb" },
+  { label: "Return window", value: "7 days", note: "from delivery, unless the product page says otherwise", color: green },
   { label: "Faulty or wrong item", value: "Free pickup", note: "the return costs you nothing", color: green },
-  { label: "Refund goes to", value: "Original payment method", note: "the card, UPI or account you paid with", color: "#7c3aed" },
-  { label: "Refund time", value: "5-7 business days", note: "after we approve it; often faster", color: "#d97706" },
+  { label: "Refund goes to", value: "Original payment method", note: "the card, UPI or account you paid with", color: green },
+  { label: "Refund time", value: "5-7 business days", note: "after we approve it; often faster", color: green },
 ];
 
 const returnSteps = [
@@ -282,7 +282,7 @@ const ReturnsandRefundPolicy = () => {
       </div>
 
       <style>{`
-        .rrp-nav-link:hover { background: #f0fdf4 !important; color: ${green} !important; }
+        .rrp-nav-link:hover { background: rgba(14, 92, 92, 0.07) !important; color: ${green} !important; }
         @media (max-width: 768px) {
           .rrp-layout { flex-direction: column !important; }
           .rrp-nav { width: 100% !important; position: static !important; }

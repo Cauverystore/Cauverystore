@@ -123,6 +123,7 @@
   --radius-full: 9999px;
 
   /* --- Typography --- */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
   --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-family: var(--font-body);
@@ -651,4 +652,24 @@ svg.icon {
 }
 .arrow:hover {
   opacity: 1;
+}
+
+/* --- Storefront page titles: the display serif used on the home and About pages.
+   :where() keeps this as weak as a bare h1/h2 rule, so any page class still wins. --- */
+:where(#main-content) h1,
+:where(#main-content) h2 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.02em;
+  color: #14302f;
+}
+
+#main-content .cart-title,
+#main-content .orders-title,
+#main-content .profile-title,
+#main-content .account-page-title,
+#main-content h2.section-title {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: var(--font-weight-medium);
+  color: #14302f;
 }

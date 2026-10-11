@@ -51,14 +51,14 @@ const SellerLogin = () => {
     return (
       <div className="auth-page">
         <div className="auth-card">
-          <div className="auth-header"><img src="/images/logo.jpg" alt="" style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #16a34a)" }}>Cauvery Store</h1><p>Two-Factor Authentication</p></div>
+          <div className="auth-header"><img src="/images/logo.jpg" alt="" style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</h1><p>Two-Factor Authentication</p></div>
           <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "0.5rem" }}>Enter the 6-digit code from your authenticator app to continue as {mfaStep.email}.</p>
           {error && <div className="auth-error">{error}</div>}
           <form onSubmit={handleMfaSubmit} className="auth-form">
             <div className="auth-field"><label>Verification Code</label><input type="text" value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))} className="auth-input" placeholder="6-digit code" inputMode="numeric" autoFocus required /></div>
             <button type="submit" className="auth-btn" disabled={loading || mfaCode.length < 6}>{loading ? "Verifying..." : "Verify & Sign In"}</button>
           </form>
-          <button type="button" onClick={handleCancelMfa} style={{ display: "block", margin: "0.75rem auto 0", background: "none", border: "none", cursor: "pointer", color: "#16a34a", fontSize: "0.85rem" }}>Use a different account</button>
+          <button type="button" onClick={handleCancelMfa} style={{ display: "block", margin: "0.75rem auto 0", background: "none", border: "none", cursor: "pointer", color: "#0E5C5C", fontSize: "0.85rem" }}>Use a different account</button>
         </div>
       </div>
     );
@@ -67,7 +67,7 @@ const SellerLogin = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-header"><img src="/images/logo.jpg" alt="" style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #16a34a)" }}>Cauvery Store</h1><p>Seller Portal</p></div>
+        <div className="auth-header"><img src="/images/logo.jpg" alt="" style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</h1><p>Seller Portal</p></div>
         {error && <div className="auth-error">{error}</div>}
         <form onSubmit={handleLogin} className="auth-form">
           <div className="auth-field"><label>Email</label><input type="text" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="auth-input" required /></div>
