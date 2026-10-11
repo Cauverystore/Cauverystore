@@ -61,7 +61,12 @@ api.interceptors.response.use(
       window.location.reload();
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // On the sign-in endpoints a 401 means "wrong email or password", not "session expired".
+    // Trying to refresh there fails too, and its "Refresh token is required" message used to
+    // replace the server's real answer on the login form.
+    const isSignInCall = /\/api\/auth\/(login|admin|executive|seller|google|register|send-otp|verify-otp|request-password-reset|reset-password|complete-forced-reset)/.test(originalRequest?.url || '');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isSignInCall) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
