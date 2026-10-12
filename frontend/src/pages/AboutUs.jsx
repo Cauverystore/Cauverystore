@@ -14,8 +14,8 @@ const facts = [
 const features = [
   { icon: Store, title: "Real, independent sellers", text: "Every listing comes from a verified shop or trader, not an anonymous warehouse SKU." },
   { icon: BadgeCheck, title: "Clear prices", text: "The price, GST and delivery charge are shown before you pay. Delivery is free on orders of ₹500 or more." },
-  { icon: Shield, title: "Secure payments", text: "Pay by UPI, card or net banking through Razorpay. We never see or store your card details." },
-  { icon: Truck, title: "Delivery you can track", text: "Delivery times and coverage depend on the seller, shown clearly at checkout, with real-time tracking on every order." },
+  { icon: Shield, title: "Secure payments", text: "Pay by UPI, card, net banking or wallet through Razorpay. We never see or store your card details." },
+  { icon: Truck, title: "Delivery times shown upfront", text: "Delivery times and coverage depend on the seller and are shown at checkout. You can follow each order's status from your Orders page." },
   { icon: HeartHandshake, title: "7-day returns and support", text: "Return most items within 7 days of delivery, free if the item is faulty or wrong. Our support team is available Monday to Saturday, 9 AM to 6 PM." },
   { icon: IndianRupee, title: "Backing small businesses", text: "Buying here keeps more of what you spend with independent shops and traders, instead of a national chain." },
 ];
@@ -29,10 +29,10 @@ const values = [
 
 const faqs = [
   { q: "Where is Cauvery Store based?", a: "We are headquartered in Coimbatore, Tamil Nadu, and serve customers across all major cities and towns in India." },
-  { q: "How do you ensure product quality?", a: "Every seller and product goes through a verification process. We also have a robust buyer protection policy via Razorpay to safeguard your purchases." },
-  { q: "Do you offer bulk or corporate orders?", a: "Yes, we offer special pricing and dedicated support for bulk and corporate orders. Please contact us at support@cauverystore.in for more details." },
-  { q: "Can I sell on Cauvery Store?", a: "Absolutely! We welcome sellers of all sizes. Visit our Seller Dashboard section or contact us to start your journey with us." },
-  { q: "What payment methods do you accept?", a: "We accept all major credit/debit cards, UPI (GPay, PhonePe, Paytm), net banking, and EMI options on select orders." },
+  { q: "How do you ensure product quality?", a: "Every seller is checked before they can list, and each listing is approved before shoppers see it. If something is still not right, most items can be returned within 7 days of delivery." },
+  { q: "Do you offer bulk or corporate orders?", a: "Yes. Bulk and corporate orders are priced at a negotiated rate. Email support@cauverystore.in with what you need and the quantity, and we will send you a quote." },
+  { q: "Can I sell on Cauvery Store?", a: "Yes. Any real shop or trader in India can apply. Create an account, then complete seller registration from the Sell on Cauvery Store link. Your listings go live once we have approved them." },
+  { q: "What payment methods do you accept?", a: "UPI, credit and debit cards, net banking and wallets, all through Razorpay. EMI is available on eligible cards. We do not offer cash on delivery at present." },
 ];
 
 const AboutUs = () => {
@@ -87,8 +87,8 @@ const AboutUs = () => {
               energy, connecting buyers with real sellers they can actually see and know.
             </p>
             <p>
-              Whether you are looking for electronics, fashion, home and kitchen essentials, books, or sports gear, every
-              listing on Cauvery Store comes from a real seller — not a faceless fulfillment center.
+              We are starting with t-shirts, and more categories will follow as sellers join. Every listing on
+              Cauvery Store comes from a real seller — not a faceless fulfillment center.
             </p>
           </div>
         </div>

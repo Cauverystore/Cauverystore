@@ -289,7 +289,7 @@ const ProductDetails = () => {
           </li>
           <li>
             <ShieldCheck size={18} />
-            <span><strong>Secure payment</strong> by UPI, card or net banking through Razorpay</span>
+            <span><strong>Secure payment</strong> by UPI, card, net banking or wallet through Razorpay</span>
           </li>
           <li>
             <Store size={18} />

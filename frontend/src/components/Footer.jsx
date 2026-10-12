@@ -164,7 +164,8 @@ const Footer = () => {
           <span>MC</span><span style={{ opacity: 0.3 }}>|</span>
           <span>Amex</span><span style={{ opacity: 0.3 }}>|</span>
           <span>UPI</span><span style={{ opacity: 0.3 }}>|</span>
-          <span>Net Banking</span>
+          <span>Net Banking</span><span style={{ opacity: 0.3 }}>|</span>
+          <span>Wallets</span>
         </div>
         <p style={{ margin: 0, color: "#86a3a1" }}>
           &copy; {new Date().getFullYear()} Cauvery Store. All rights reserved.

@@ -42,7 +42,7 @@ const Checkout = () => {
     fullName: "", phone: "", line1: "", line2: "", street: "", city: "", state: "", pincode: "", country: "India"
   });
 
-  const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -221,7 +221,7 @@ const Checkout = () => {
           await loadRazorpay();
           rzp = window.Razorpay;
         } catch (e) {
-          setError("We couldn't open the payment window. Check your internet connection and try again, or choose Cash on Delivery.");
+          setError("We couldn't open the payment window. Check your internet connection and try again.");
           setPlacing(false);
           return;
         }
@@ -474,7 +474,6 @@ const Checkout = () => {
             <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>How would you like to pay?</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {[
-                { value: "COD", label: "Cash on Delivery", desc: "Pay in cash when your order arrives" },
                 { value: "CARD", label: "Credit / Debit Card", desc: "Visa, Mastercard and RuPay" },
                 { value: "UPI", label: "UPI", desc: "Google Pay, PhonePe, Paytm or any UPI app" },
                 { value: "NET_BANKING", label: "Net Banking", desc: "All major banks" },

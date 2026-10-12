@@ -13,7 +13,7 @@ import "../styles/shopnest-home.css";
 const PROMISES = [
   { Icon: Truck, title: "Free delivery", text: "on orders of ₹500 or more" },
   { Icon: RotateCcw, title: "7-day returns", text: "free if the item is faulty or wrong" },
-  { Icon: ShieldCheck, title: "Secure payment", text: "UPI, card or net banking" },
+  { Icon: ShieldCheck, title: "Secure payment", text: "UPI, card, net banking or wallet" },
   { Icon: Store, title: "Independent sellers", text: "real shops and traders" },
 ];
 

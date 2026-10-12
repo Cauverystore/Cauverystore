@@ -16,7 +16,7 @@ const fallbackFaqs = {
   orders: [
     { q: "How do I place an order?", a: "Simply browse our catalog, add items to your cart, and proceed to checkout. You can place an order as a guest or after logging in." },
     { q: "Can I cancel my order?", a: "Orders can be cancelled within 24 hours of placement, provided they have not been shipped yet. Visit your Orders page to cancel." },
-    { q: "How do I track my order?", a: "You can track your order in real-time from the My Orders section in your account. We update the status at every stage." },
+    { q: "How do I track my order?", a: "Open My Orders in your account to see the status of each order. Once an order ships, the courier name and tracking number are shown there when the seller has added them." },
     { q: "What if I receive a damaged or wrong item?", a: "Please contact our support team within 48 hours of delivery with photos of the item. We will arrange a replacement or refund." },
   ],
   shipping: [
@@ -38,10 +38,10 @@ const fallbackFaqs = {
     { q: "Can I delete my account?", a: "Yes, please contact our support team at support@cauverystore.in to request account deletion." },
   ],
   payments: [
-    { q: "What payment methods do you accept?", a: "We accept credit/debit cards, UPI (GPay, PhonePe, Paytm), net banking, and EMI on select orders." },
+    { q: "What payment methods do you accept?", a: "UPI, credit and debit cards, net banking and wallets, all through Razorpay. EMI is available on eligible cards." },
     { q: "Is my payment information secure?", a: "Absolutely. All payments are processed through Razorpay with bank-grade encryption. We do not store your payment details." },
     { q: "What should I do if my payment fails?", a: "First, check if the amount was deducted. If yes, it will be refunded automatically within 5-7 days. Contact support if it does not." },
-    { q: "Do you offer cash on delivery?", a: "Yes, COD is available on eligible orders. A small convenience fee may apply." },
+    { q: "Do you offer cash on delivery?", a: "Not at present. All orders are paid online through Razorpay when you place them." },
   ],
 };
 
