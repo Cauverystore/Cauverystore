@@ -34,7 +34,8 @@ const ProductDetails = () => {
         // Loaded separately and allowed to fail: the page works without it.
         api.get(`/api/products/${id}/seller`).then(r => setSeller(r.data?.name ? r.data : null)).catch(() => {});
         if (res.data.images?.length > 0) setSelectedImage(0);
-        if (res.data.variants?.length > 0) setSelectedVariant(res.data.variants[0]);
+        // Start on the first size that can actually be bought.
+        if (res.data.variants?.length > 0) setSelectedVariant(res.data.variants.find((v) => (v.stock ?? 1) > 0) || res.data.variants[0]);
         const cat = res.data.category;
         const catQ = typeof cat === "object" ? cat?.name || "" : cat || "";
         if (catQ) {
@@ -212,12 +213,19 @@ const ProductDetails = () => {
 
         {(product.variants || []).length > 0 && (
           <div className="variant-section">
-            <h3>{product.variantType || "Options"}</h3>
+            {/* The server names these variantType ("Size") and variantValue ("M"). */}
+            <h3>{product.variants[0]?.variantType || product.variantType || "Options"}</h3>
             <div className="variant-options">
-              {product.variants.map((v) => (
-                <button key={v.id || v._id} className={`variant-btn${selectedVariant?.id === v.id || selectedVariant?._id === v._id ? " active" : ""}`}
-                  onClick={() => setSelectedVariant(v)}>{v.name || v.value}</button>
-              ))}
+              {product.variants.map((v) => {
+                const vid = v.id ?? v._id;
+                const active = (selectedVariant?.id ?? selectedVariant?._id) === vid;
+                const soldOut = v.stock === 0;
+                return (
+                  <button key={vid} type="button" className={`variant-btn${active ? " active" : ""}`}
+                    onClick={() => setSelectedVariant(v)} disabled={soldOut} aria-pressed={active}
+                    title={soldOut ? "Out of stock" : undefined}>{v.variantValue || v.name || v.value}</button>
+                );
+              })}
             </div>
           </div>
         )}
