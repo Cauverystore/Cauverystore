@@ -99,11 +99,6 @@ const OffersPage = () => {
         .section-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; }
         .products-toolbar-count { font-size: 0.85rem; color: #64748b; }
         .pt-toast { position: fixed; top: 100px; right: 20px; z-index: 9999; padding: 12px 20px; border-radius: 8px; font-weight: 600; background: #0E5C5C; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .products-empty { text-align: center; padding: 3rem; }
-        .products-empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
-        .products-empty-title { font-size: 1.2rem; font-weight: 600; color: #0f172a; margin-bottom: 0.5rem; }
-        .products-empty-text { color: #64748b; margin-bottom: 1rem; }
-        .products-empty-action { display: inline-block; padding: 0.6rem 1.5rem; background: var(--color-primary); color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
       `}</style>
     </div>
   );
