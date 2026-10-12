@@ -8,6 +8,8 @@ import { addToCartOrLogin } from "../utils/cartActions";
 import { trackViewItem } from "../utils/analytics";
 import { imgUrl } from "../utils/images";
 import Breadcrumb from "../components/Breadcrumb";
+import ProductTray from "../components/ProductTray";
+import ProductRow from "../components/ProductRow";
 import "../styles/productDetails.css";
 
 const ProductDetails = () => {
@@ -60,6 +62,20 @@ const ProductDetails = () => {
 
   const handleBuyNow = async () => {
     const res = await addToCartOrLogin(navigate, product, quantity);
+    if (res.ok) navigate("/checkout");
+    else if (!res.needLogin) { setCartMsg("We couldn't start checkout. Please try again."); setTimeout(() => setCartMsg(""), 2000); }
+  };
+
+  // The same two actions, for a card in the "You may also like" row.
+  const handleRelatedCart = async (p) => {
+    const res = await addToCartOrLogin(navigate, p, 1);
+    if (res.needLogin) return;
+    setCartMsg(res.ok ? `${p.name} added to your cart` : "We couldn't add that to your cart. Please try again.");
+    setTimeout(() => setCartMsg(""), 2000);
+  };
+
+  const handleRelatedBuyNow = async (p) => {
+    const res = await addToCartOrLogin(navigate, p, 1);
     if (res.ok) navigate("/checkout");
     else if (!res.needLogin) { setCartMsg("We couldn't start checkout. Please try again."); setTimeout(() => setCartMsg(""), 2000); }
   };
@@ -285,27 +301,11 @@ const ProductDetails = () => {
       {relatedProducts.length > 0 && (
         <section className="related-products-section">
           <h2 className="related-products-title">You may also like</h2>
-          <div className="related-products-scroll">
-            {relatedProducts.map((p) => {
-              const pid = p.id || p._id;
-              const img = fullUrl(p.images?.[0]) || fullUrl(p.image);
-              const price = p.dealPrice || p.price || 0;
-              return (
-                <Link
-                  key={pid}
-                  to={`/product/${pid}`}
-                  className="related-product-card"
-                  style={{ display: "block", fontFamily: "inherit", color: "inherit", textAlign: "left", textDecoration: "none" }}
-                >
-                  <img src={img || "/images/placeholder.svg"} alt={p.name} width="200" height="200" loading="lazy" className="related-product-img" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
-                  <div className="related-product-info">
-                    <p className="related-product-name">{p.name}</p>
-                    <p className="related-product-price">{"\u20B9"}{price.toLocaleString()}</p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <ProductRow>
+            {relatedProducts.map((p) => (
+              <ProductTray key={p.id || p._id} product={p} onAddToCart={handleRelatedCart} onBuyNow={handleRelatedBuyNow} />
+            ))}
+          </ProductRow>
         </section>
       )}
 
@@ -317,19 +317,6 @@ const ProductDetails = () => {
         .pd-assurance a { color: #0E5C5C; white-space: nowrap; }
         .related-products-section { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
         .related-products-title { font-size: 1.25rem; font-weight: 700; margin: 0 0 1rem; color: #1e293b; }
-        .related-products-scroll { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
-        .related-products-scroll::-webkit-scrollbar { height: 6px; }
-        .related-products-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-        .related-product-card {
-          flex-shrink: 0; width: 180px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
-          overflow: hidden; cursor: pointer; transition: box-shadow 0.2s;
-        }
-        .related-product-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .related-product-img { width: 100%; height: 180px; object-fit: cover; }
-        .related-product-info { padding: 0.6rem; }
-        .related-product-name { margin: 0 0 0.25rem; font-size: 0.8rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .related-product-price { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--color-primary); }
-        @media (max-width: 768px) { .related-product-card { width: 150px; } .related-product-img { height: 150px; } }
       `}</style>
     </div>
   );
