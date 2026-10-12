@@ -24,46 +24,46 @@ import "../styles/product-tray.css";
 const CATEGORY_SEO_COPY = {
   "Electronics": {
     intro:
-      "Phones, laptops, TVs and everyday gadgets from sellers across Tamil Nadu - not a " +
+      "Phones, laptops, TVs and everyday gadgets from independent sellers - not a " +
       "faceless warehouse listing. Every electronics seller on Cauvery Store is a real shop " +
       "or trader you can see by name and location before you buy, so you know who to call if " +
       "something needs a warranty claim or a quick exchange.",
     metaDescription:
-      "Buy phones, laptops, TVs and gadgets direct from Tamil Nadu electronics sellers. See who's selling, pay by UPI or card, and get it delivered to your door.",
+      "Buy phones, laptops, TVs and gadgets direct from independent electronics sellers. See who's selling, pay by UPI or card, and get it delivered to your door.",
   },
   "Fashion": {
     intro:
-      "Clothing, footwear and accessories from Tamil Nadu's own boutiques and tailoring " +
-      "shops, alongside the big-brand basics you'd expect. Shopping local here means styles " +
+      "Clothing, footwear and accessories from independent boutiques and tailoring " +
+      "shops, alongside the big-brand basics you'd expect. Shopping here means styles " +
       "you won't find on every other marketplace, and a real seller behind each listing " +
       "rather than a generic storefront.",
     metaDescription:
-      "Shop clothing, footwear and accessories from Tamil Nadu fashion sellers and boutiques. Pay by UPI or card and get it delivered to your door.",
+      "Shop clothing, footwear and accessories from independent fashion sellers and boutiques. Pay by UPI or card and get it delivered to your door.",
   },
   "Home & Kitchen": {
     intro:
-      "Furniture, kitchen essentials and home decor from local makers and household-goods " +
-      "sellers across Tamil Nadu. From everyday cookware to furniture pieces made by small " +
+      "Furniture, kitchen essentials and home decor from makers and household-goods " +
+      "sellers across India. From everyday cookware to furniture pieces made by small " +
       "workshops, this is where to find home goods with a seller you can actually trace back " +
       "to a shop.",
     metaDescription:
-      "Buy furniture, kitchen essentials and home decor direct from Tamil Nadu sellers. See who sells it and where, pay by UPI or card, and get it delivered.",
+      "Buy furniture, kitchen essentials and home decor direct from independent sellers. See who sells it and where, pay by UPI or card, and get it delivered.",
   },
   "Books": {
     intro:
-      "Fiction, non-fiction and educational titles from booksellers across Tamil Nadu, " +
+      "Fiction, non-fiction and educational titles from independent booksellers, " +
       "including Tamil-language titles harder to find on the bigger marketplaces. Every " +
       "listing here comes from a seller you can see by name, not an anonymous warehouse SKU.",
     metaDescription:
-      "Buy fiction, non-fiction, educational and Tamil-language books from Tamil Nadu booksellers. Pay by UPI or card and get it delivered to your door.",
+      "Buy fiction, non-fiction, educational and Tamil-language books from independent booksellers. Pay by UPI or card and get it delivered to your door.",
   },
   "Sports": {
     intro:
-      "Fitness equipment and sportswear from Tamil Nadu retailers and sports shops, for " +
+      "Fitness equipment and sportswear from independent retailers and sports shops, for " +
       "everything from a first set of weights to matchday gear. Buying here keeps that " +
-      "purchase with a local seller instead of a national chain's warehouse.",
+      "purchase with a real shop instead of a national chain's warehouse.",
     metaDescription:
-      "Shop fitness equipment and sportswear direct from Tamil Nadu sports retailers. See who sells it, pay by UPI or card, and get it delivered to your door.",
+      "Shop fitness equipment and sportswear direct from independent sports retailers. See who sells it, pay by UPI or card, and get it delivered to your door.",
   },
 };
 
@@ -72,10 +72,10 @@ const CATEGORY_SEO_COPY = {
 // is left with zero body content for a crawler to read.
 const FALLBACK_SEO_COPY = (category) => ({
   intro:
-    `${category} products from sellers across Tamil Nadu, each listed by a real shop or ` +
+    `${category} products from independent sellers, each listed by a real shop or ` +
     `trader you can see before you buy. Pay by UPI or card and get it delivered to your door.`,
   metaDescription:
-    `Buy ${category} direct from Tamil Nadu sellers on Cauvery Store. See who sells it, pay by UPI or card, and get it delivered.`,
+    `Buy ${category} direct from independent sellers on Cauvery Store. See who sells it, pay by UPI or card, and get it delivered.`,
 });
 
 const CategoryProducts = () => {
@@ -127,7 +127,7 @@ const CategoryProducts = () => {
     <div className="products-page">
       <style>{`.cat-products-content { grid-column: 1 / -1; }`}</style>
       <Helmet>
-        <title>{`${category} | Shop Direct from Tamil Nadu Sellers - Cauvery Store`}</title>
+        <title>{`${category} | Shop Direct from Independent Sellers - Cauvery Store`}</title>
         <meta name="description" content={seoCopy.metaDescription} />
         <link rel="canonical" href={canonicalUrl} />
         <meta property="og:title" content={`${category} | Cauvery Store`} />

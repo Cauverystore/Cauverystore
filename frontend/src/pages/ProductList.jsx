@@ -78,7 +78,7 @@ const ProductList = () => {
   return (
     <div className="products-page">
       <Helmet>
-        <title>{category ? `${category} | Shop Direct from Tamil Nadu Sellers - Cauvery Store` : "All Products | Shop Direct from Tamil Nadu Sellers - Cauvery Store"}</title>
+        <title>{category ? `${category} | Shop Direct from Independent Sellers - Cauvery Store` : "All Products | Shop Direct from Independent Sellers - Cauvery Store"}</title>
         <link rel="canonical" href={listCanonical} />
       </Helmet>
       <div className="pl-layout">
@@ -147,7 +147,7 @@ const ProductList = () => {
               /* No filters and still nothing: the store itself has no products listed yet. */
               <div className="products-empty">
                 <h3 className="products-empty-title">Our sellers are adding their first products</h3>
-                <p className="products-empty-text">Please check back soon. Own a shop in Tamil Nadu? You can be among the first to list here.</p>
+                <p className="products-empty-text">Please check back soon. Own a shop? You can be among the first to list here.</p>
                 <div className="products-empty-actions">
                   <Link to="/seller/register" className="products-empty-action">Start selling</Link>
                   <Link to="/" className="products-empty-link">Back to the homepage</Link>

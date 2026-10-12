@@ -125,7 +125,7 @@ const ProductDetails = () => {
   };
   const metaDescription = product.description
     ? trimAt(product.description, 155)
-    : `Buy ${product.name} direct from Tamil Nadu sellers on Cauvery Store. Pay by UPI or card and get it delivered to your door.`;
+    : `Buy ${product.name} direct from independent sellers on Cauvery Store. Pay by UPI or card and get it delivered to your door.`;
 
   const selImage = product.images?.[selectedImage];
   const mainSrc = fullUrl(selImage) || fullUrl(product.image) || "/images/placeholder.svg";
@@ -276,7 +276,7 @@ const ProductDetails = () => {
             <Store size={18} />
             {seller
               ? <span>Sold by <strong>{seller.name}</strong>{seller.city ? `, ${seller.city}` : ""}{seller.state && seller.state !== seller.city ? `, ${seller.state}` : ""}</span>
-              : <span><strong>Sold by a Tamil Nadu seller</strong>, a real shop or trader</span>}
+              : <span><strong>Sold by an independent seller</strong>, a real shop or trader</span>}
           </li>
         </ul>
 

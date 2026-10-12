@@ -29,7 +29,7 @@ const Footer = () => {
         gap: "2rem", flexWrap: "wrap"
       }}>
         <div style={{ flex: 1, minWidth: "250px" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, letterSpacing: "-0.015em", margin: "0 0 0.35rem" }}>New from Tamil Nadu sellers, in your inbox</h3>
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, letterSpacing: "-0.015em", margin: "0 0 0.35rem" }}>New from our sellers, in your inbox</h3>
           <p style={{ fontSize: "0.85rem", opacity: 0.85, margin: 0 }}>
             Hear when sellers add new products and offers. Unsubscribe any time.
           </p>

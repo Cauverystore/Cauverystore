@@ -129,7 +129,7 @@ const ReturnsandRefundPolicy = () => {
                 ))}
               </div>
               <p style={{ marginTop: "14px" }}>
-                Cauvery Store is a marketplace: every product is sold by a shop or trader based in Tamil Nadu.
+                Cauvery Store is a marketplace: every product is sold by an independent shop or trader.
                 This policy applies to every order placed on cauverystore.in. Where a seller offers a longer
                 or shorter return period for a product, it is shown on that product's page and that period applies.
               </p>

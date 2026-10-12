@@ -21,7 +21,7 @@ const fallbackFaqs = {
   ],
   shipping: [
     { q: "What are the shipping charges?", a: "We offer free shipping on orders above a certain value. For smaller orders, a nominal shipping fee applies based on weight and location." },
-    { q: "How long does delivery take?", a: "Sellers normally dispatch within 1-2 business days. After that, delivery usually takes 2-4 business days within Tamil Nadu and 4-7 business days to the rest of India. Remote areas may take longer." },
+    { q: "How long does delivery take?", a: "Sellers normally dispatch within 1-2 business days. After that, delivery usually takes 2-4 business days within the seller's own state and 4-7 business days to the rest of India. Remote areas may take longer." },
     { q: "Do you ship internationally?", a: "No. We deliver to addresses in India only." },
     { q: "Can I change my delivery address after ordering?", a: "You can update the address before the order is shipped. Once shipped, changes are not possible." },
   ],

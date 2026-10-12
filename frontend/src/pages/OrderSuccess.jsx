@@ -20,7 +20,7 @@ const OrderSuccess = () => {
     <div style={{ maxWidth: "600px", margin: "3rem auto", textAlign: "center", padding: "2rem" }}>
       <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>&#10003;</div>
       <h1 style={{ color: "#0E5C5C", fontSize: "1.8rem", marginBottom: "0.5rem" }}>Thank you. Your order is placed.</h1>
-      <p style={{ color: "#475569", marginBottom: "0.5rem" }}>Your order has gone to a seller in Tamil Nadu.</p>
+      <p style={{ color: "#475569", marginBottom: "0.5rem" }}>Your order has gone to the seller.</p>
       {orderId && <p style={{ fontWeight: 600 }}>Order number: {orderId}</p>}
       <div style={{ margin: "1.5rem auto 0", maxWidth: 420, textAlign: "left", background: "#edf8f7", border: "1px solid #a8e3e0", borderRadius: 8, padding: "1rem 1.25rem", color: "#334155", fontSize: "0.9rem", lineHeight: 1.6 }}>
         <strong style={{ display: "block", marginBottom: "0.35rem", color: "#0f172a" }}>What happens next</strong>
