@@ -260,6 +260,13 @@ const policies = {
   }
 };
 
+// One description per policy: three pages sharing a sentence look like duplicates in search.
+const descriptions = {
+  privacy: "Cauvery Store's privacy policy: what personal data we collect when you shop, how we use and protect it, and the choices you have.",
+  terms: "Cauvery Store's terms and conditions for shoppers and sellers: accounts, orders, payments, and what each side is responsible for.",
+  shipping: "Cauvery Store's shipping policy: when sellers dispatch, how long delivery takes across India, and what delivery costs.",
+};
+
 const Policies = ({ tab }) => {
   const navigate = useNavigate();
   // Old links used /policies#terms; keep them opening the right policy.
@@ -275,7 +282,7 @@ const Policies = ({ tab }) => {
   return (
     <StaticLayout
       hero={{
-        title: "Policies",
+        title: policy.title,
         subtitle: "Understand how we handle your data, your rights, and our commitments to you.",
       }}
       tabs={tabsConfig}
@@ -285,7 +292,7 @@ const Policies = ({ tab }) => {
       <Helmet>
         {/* One string, not text plus an expression: Helmet drops a title with several children. */}
         <title>{`${policy.title} | Cauvery Store`}</title>
-        <meta name="description" content={`Read Cauvery Store's ${policy.title.toLowerCase()}. Learn about our commitments to your privacy, terms of use, and shipping arrangements.`} />
+        <meta name="description" content={descriptions[activeTab]} />
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 

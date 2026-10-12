@@ -304,7 +304,11 @@ const SellerRegistration = () => {
   if (!isAuthenticated) {
     return (
       <div className="seller-reg-page">
-        <Helmet><title>Seller Registration | Cauvery Store</title></Helmet>
+        <Helmet>
+        <title>Sell on Cauvery Store | Seller Registration</title>
+        <meta name="description" content="Register your shop on Cauvery Store and sell direct to customers across India. Create an account, add your business details and list your products." />
+        <link rel="canonical" href="https://cauverystore.in/seller/register" />
+      </Helmet>
         <div className="reg-success">
           <div className="reg-success-icon"><ShieldCheck size={28} color="#2563eb" /></div>
           <h2>Log in to start selling</h2>
@@ -362,7 +366,11 @@ const SellerRegistration = () => {
 
   return (
     <div className="seller-reg-page">
-      <Helmet><title>Seller Registration | Cauvery Store</title></Helmet>
+      <Helmet>
+        <title>Sell on Cauvery Store | Seller Registration</title>
+        <meta name="description" content="Register your shop on Cauvery Store and sell direct to customers across India. Create an account, add your business details and list your products." />
+        <link rel="canonical" href="https://cauverystore.in/seller/register" />
+      </Helmet>
 
       <div className="seller-reg-header">
         <h1>Become a Seller on Cauvery Store</h1>
