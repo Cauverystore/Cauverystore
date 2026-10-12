@@ -113,9 +113,8 @@ const Footer = () => {
           </h4>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
             {[
-              { name: "Facebook", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>, url: "https://facebook.com/cauverystore" },
-              { name: "Twitter", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>, url: "https://x.com/cauverystore" },
-              { name: "Instagram", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>, url: "https://instagram.com/cauverystore" },
+              { name: "Facebook", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>, url: "https://www.facebook.com/profile.php?id=61587653639339" },
+              { name: "Instagram", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>, url: "https://www.instagram.com/cauverystore/" },
               { name: "YouTube", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/><path d="M19.91 4.36c-1.07-.4-5.52-.86-7.91-.86s-6.84.46-7.91.86A2.56 2.56 0 0 0 2 6.76v10.48a2.56 2.56 0 0 0 2.09 2.4c1.07.4 5.52.86 7.91.86s6.84-.46 7.91-.86A2.56 2.56 0 0 0 22 17.24V6.76a2.56 2.56 0 0 0-2.09-2.4z"/></svg>, url: "https://youtube.com/@cauverystore" }
             ].map(({ name, icon, url }) => (
               <a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name} style={{
