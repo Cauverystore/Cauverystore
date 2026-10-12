@@ -2,6 +2,14 @@
 
 > Cauvery Store (cauverystore.in) is an online marketplace where customers buy directly from independent sellers: real shops and traders anywhere in India. Each product shows who sells it and where they are. Payment is by UPI or card, and orders are delivered to the customer's door.
 
+## Key facts
+- Based in Coimbatore, Tamil Nadu, India. Sellers can be anywhere in India, and orders are delivered across India.
+- Sellers are independent shops and traders. A seller's listings appear only after Cauvery Store has approved them.
+- Delivery is free on orders of ₹500 or more. Sellers normally dispatch within 1-2 business days; delivery then takes 2-7 business days for most of India.
+- Most items can be returned within 7 days of delivery. The return is free if the item is faulty, damaged or wrong.
+- Refunds go back to the original payment method, normally within 5-7 business days.
+- Support: support@cauverystore.in, Monday to Saturday, 9 AM to 6 PM IST.
+
 ## Key pages
 - [Home](https://cauverystore.in/): featured products from our sellers
 - [All products](https://cauverystore.in/products): browse and search the catalogue
@@ -12,6 +20,11 @@
 - [Privacy policy](https://cauverystore.in/privacy-policy)
 - [Terms and conditions](https://cauverystore.in/terms-and-conditions)
 - [Contact](https://cauverystore.in/contact)
+
+## Official profiles
+- Facebook: https://www.facebook.com/profile.php?id=61587653639339
+- Instagram: https://www.instagram.com/cauverystore/
+- YouTube: https://www.youtube.com/@CauveryStore
 
 ## Sitemap
 - https://cauverystore.in/sitemap.xml

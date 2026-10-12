@@ -65,6 +65,16 @@ const BOT_USER_AGENT_PATTERN = new RegExp(
     "PerplexityBot",
     "Perplexity-User",
     "DuckDuckBot",
+    "DuckAssistBot",
+    "MistralAI-User",
+    "meta-externalagent",
+    "meta-externalfetcher",
+    "Amazonbot",
+    "Google-CloudVertexBot",
+    // Common Crawl: the public web archive many AI models learn from
+    "CCBot",
+    // Search Console's "Test live URL": without this it shows the empty JS shell
+    "Google-InspectionTool",
   ].join("|"),
   "i"
 );
