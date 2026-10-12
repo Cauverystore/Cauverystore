@@ -229,6 +229,37 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         {tag && inStock && <span className="pt-badge">{tag}</span>}
         {!inStock && <span className="pt-out-label">Out of stock</span>}
 
+        {linkCopied && <span className="pt-copied" role="status">Link copied</span>}
+
+      </div>
+
+      {/* One strip right under the photo: photo controls on the left (when there is more than one
+          photo), then wishlist, save for later, share and compare. Nothing sits on the photo. */}
+      <div className="pt-gallery-bar">
+        <div className="pt-gallery-controls">
+        {images.length > 1 && (
+          <>
+            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown - 1)} aria-label="Previous photo">
+              <ChevronLeft size={16} />
+            </button>
+            <div className="pt-gallery-dots">
+              {images.map((_, i) => (
+                <button
+                  type="button"
+                  key={i}
+                  className={`pt-gallery-dot ${i === shown ? "active" : ""}`}
+                  onClick={() => showImage(i)}
+                  aria-label={`Photo ${i + 1} of ${images.length}`}
+                  aria-current={i === shown}
+                />
+              ))}
+            </div>
+            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown + 1)} aria-label="Next photo">
+              <ChevronRight size={16} />
+            </button>
+          </>
+        )}
+        </div>
         {quickActions && (
           <div className="pt-quick-actions">
             <button
@@ -239,7 +270,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
               data-tip={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
-              <Heart size={18} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
+              <Heart size={16} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
             </button>
             {inStock && (
               <button
@@ -271,38 +302,9 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               aria-label={compared ? `Remove ${name} from compare` : `Add ${name} to compare`}
               data-tip={compared ? "Remove from compare" : "Compare"}
             >
-              <GitCompareArrows size={17} strokeWidth={1.8} />
+              <GitCompareArrows size={16} strokeWidth={1.8} />
             </button>
           </div>
-        )}
-        {linkCopied && <span className="pt-copied" role="status">Link copied</span>}
-
-      </div>
-
-      {/* Photo controls sit right under the photo, on every card that has more than one photo.
-          The bar is kept (empty) on single-photo cards so a row of cards stays aligned. */}
-      <div className="pt-gallery-bar">
-        {images.length > 1 && (
-          <>
-            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown - 1)} aria-label="Previous photo">
-              <ChevronLeft size={16} />
-            </button>
-            <div className="pt-gallery-dots">
-              {images.map((_, i) => (
-                <button
-                  type="button"
-                  key={i}
-                  className={`pt-gallery-dot ${i === shown ? "active" : ""}`}
-                  onClick={() => showImage(i)}
-                  aria-label={`Photo ${i + 1} of ${images.length}`}
-                  aria-current={i === shown}
-                />
-              ))}
-            </div>
-            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown + 1)} aria-label="Next photo">
-              <ChevronRight size={16} />
-            </button>
-          </>
         )}
       </div>
 
