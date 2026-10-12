@@ -136,6 +136,8 @@ const ProductDetails = () => {
     ? [mainThumb && `${mainThumb} 150w`, mainSrc && `${mainSrc} 600w`, mainZoom && `${mainZoom} 1200w`].filter(Boolean).join(", ")
     : undefined;
 
+  const schemaImages = [...(product.images || []), product.image].map(fullUrl).filter((u, i, all) => u && all.indexOf(u) === i);
+
   return (
     <div className="product-detail-page">
       <Helmet>
@@ -156,7 +158,7 @@ const ProductDetails = () => {
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": product.name,
-        "image": fullUrl(product.images?.[0]) || fullUrl(product.image) || siteDefaultImage,
+        "image": schemaImages.length ? schemaImages : [siteDefaultImage],
         "description": product.description,
         "sku": product.sku || product.id?.toString(),
         "brand": product.brand ? { "@type": "Brand", "name": product.brand } : undefined,
@@ -166,7 +168,24 @@ const ProductDetails = () => {
           "priceCurrency": "INR",
           "price": product.dealPrice || product.price,
           "itemCondition": "https://schema.org/NewCondition",
-          "availability": (product.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+          "availability": (product.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          // Marketplace: name the shop that sells it, the same one shown as "Sold by".
+          "seller": seller ? { "@type": "Organization", "name": seller.name } : undefined,
+          // Mirrors the returns line shown on the page.
+          "hasMerchantReturnPolicy": returnDays > 0 ? {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "IN",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": returnDays,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/ReturnFeesCustomerResponsibility",
+            "itemDefectReturnFees": "https://schema.org/FreeReturn",
+            "merchantReturnLink": "https://cauverystore.in/refund-policy"
+          } : {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "IN",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
+          }
         },
         // Google rejects a rating with zero reviews, so only emit it when there are some.
         "aggregateRating": (product.rating && product.reviewCount > 0) ? {
@@ -179,8 +198,8 @@ const ProductDetails = () => {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home", "item": window.location.origin + "/" },
-          ...(categoryName ? [{ "@type": "ListItem", "position": 2, "name": categoryName, "item": window.location.origin + "/category/" + encodeURIComponent(categoryName) }] : []),
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cauverystore.in/" },
+          ...(categoryName ? [{ "@type": "ListItem", "position": 2, "name": categoryName, "item": "https://cauverystore.in/category/" + encodeURIComponent(categoryName) }] : []),
           { "@type": "ListItem", "position": categoryName ? 3 : 2, "name": product.name, "item": canonicalUrl }
         ]
       })}} />

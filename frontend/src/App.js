@@ -154,7 +154,18 @@ function App() {
               "url": "https://cauverystore.in/",
               "logo": "https://cauverystore.in/logo512.png",
               "description": "Online marketplace to shop direct from real, independent shops and traders. Pay by UPI or card.",
-              "address": { "@type": "PostalAddress", "addressCountry": "IN" },
+              "address": { "@type": "PostalAddress", "addressLocality": "Coimbatore", "addressRegion": "Tamil Nadu", "addressCountry": "IN" },
+              // The marketplace default; a product page states its own when the seller's differs.
+              "hasMerchantReturnPolicy": {
+                "@type": "MerchantReturnPolicy",
+                "applicableCountry": "IN",
+                "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+                "merchantReturnDays": 7,
+                "returnMethod": "https://schema.org/ReturnByMail",
+                "returnFees": "https://schema.org/ReturnFeesCustomerResponsibility",
+                "itemDefectReturnFees": "https://schema.org/FreeReturn",
+                "merchantReturnLink": "https://cauverystore.in/refund-policy"
+              },
               "contactPoint": {
                 "@type": "ContactPoint",
                 "contactType": "customer support",
