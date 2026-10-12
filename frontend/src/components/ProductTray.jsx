@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Heart, ShoppingCart, ArrowRightCircle, GitCompareArrows } from "lucide-react";
+import { Heart, Share2, ShoppingCart, Zap, ArrowRightCircle, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
 import { useWishlist } from "../context/WishlistContext";
 import { imgUrl } from "../utils/images";
 import { trackSelectItem, trackAddToCart } from "../utils/analytics";
@@ -9,7 +9,7 @@ import "../styles/product-tray.css";
 
 /*
  * The Cauvery Store product card. One standard for every list on the site:
- *   image (second photo on hover) > brand > title > rating > price > one delivery/stock line > one button.
+ *   photo gallery > brand > title > rating > price > delivery / returns / stock line > Add to cart + Buy now.
  * Everything shown comes from the product record - no guessed badges, ratings or urgency.
  */
 
@@ -51,21 +51,25 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const ProductTray = ({ product, onAddToCart, onMoveToCart, onRemove, quickActions = true }) => {
+const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, quickActions = true }) => {
   const navigate = useNavigate();
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [hovered, setHovered] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
   const imgErrorFixed = React.useRef(false);
+  const imageWrapRef = React.useRef(null);
+  const touchStart = React.useRef(null);
+  const swiped = React.useRef(false);
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const [adding, setAdding] = useState(false);
   const [moving, setMoving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [compared, setCompared] = useState(() => isCompared(product));
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const pid = product?.id || product?._id;
   const name = product?.name || "Product";
 
-  useEffect(() => { imgErrorFixed.current = false; }, [pid]);
+  useEffect(() => { setActiveImg(0); imgErrorFixed.current = false; }, [pid]);
 
   const brand = (typeof product?.brand === "object" ? product?.brand?.name : product?.brand) || "";
   const price = product?.price || product?.dealPrice || product?.sellingPrice || 0;
@@ -76,12 +80,13 @@ const ProductTray = ({ product, onAddToCart, onMoveToCart, onRemove, quickAction
   const inStock = stock > 0;
   const isLowStock = inStock && stock <= 5;
   const optionCount = Array.isArray(product?.variants) ? product.variants.length : 0;
+  // The seller's own return period for this product; 7 days is the marketplace default.
+  const returnDays = product?.returnWindow ?? 7;
 
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
   const toThumb = (img) => typeof img === "object" && img?.thumbUrl ? img.thumbUrl : "";
   const images = product?.images || (product?.image ? [toUrl(product.image)] : []);
-  // With a mouse, hovering shows the second photo, the way a shopper would turn the item over.
-  const shown = hovered && images.length > 1 ? 1 : 0;
+  const shown = images.length > 0 ? Math.min(activeImg, images.length - 1) : 0;
   const rawImage = images.length > 0 ? toUrl(images[shown]) : null;
   const image = rawImage ? imgUrl(rawImage) : PLACEHOLDER;
   const thumbImage = toThumb(images[shown]) ? imgUrl(toThumb(images[shown])) : "";
@@ -93,6 +98,57 @@ const ProductTray = ({ product, onAddToCart, onMoveToCart, onRemove, quickAction
     || (Array.isArray(product?.badges) && typeof product.badges[0] === "string" ? product.badges[0] : "")
     || (product?.bestSeller ? "Best seller" : product?.newArrival ? "New" : product?.trending ? "Trending" : "");
   const wishlisted = wishlistIds.has(pid);
+
+  const showImage = (i) => {
+    if (images.length === 0) return;
+    imgErrorFixed.current = false;
+    setActiveImg((i + images.length) % images.length);
+  };
+
+  // Phones have no hover, so the photos are swiped. The title link is stretched over the whole
+  // card, so touches are read on the card and counted only when they start on the photo.
+  const handleTouchStart = (e) => {
+    swiped.current = false;
+    const box = imageWrapRef.current?.getBoundingClientRect();
+    const t = e.touches[0];
+    touchStart.current = box && images.length > 1 && t.clientY >= box.top && t.clientY <= box.bottom
+      ? { x: t.clientX, y: t.clientY }
+      : null;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStart.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    touchStart.current = null;
+    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      swiped.current = true;
+      showImage(shown + (dx < 0 ? 1 : -1));
+    }
+  };
+
+  const handleOpen = (e) => {
+    // A swipe across the photos must not also open the product.
+    if (swiped.current) { swiped.current = false; e.preventDefault(); return; }
+    trackSelectItem(product, "product_list");
+  };
+
+  const handleBuyNow = () => {
+    if (onBuyNow) onBuyNow(product);
+  };
+
+  const handleShare = async () => {
+    const url = window.location.origin + `/product/${pid}`;
+    try {
+      if (navigator.share) await navigator.share({ title: name, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 1800);
+      }
+    } catch { /* the shopper closed the share sheet */ }
+  };
 
   const handleAddToCart = async () => {
     if (adding || !inStock) return;
@@ -136,10 +192,10 @@ const ProductTray = ({ product, onAddToCart, onMoveToCart, onRemove, quickAction
   return (
     <article
       className={`pt-card ${!inStock ? "pt-out-of-stock" : ""}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
-      <div className="pt-image-wrap">
+      <div className="pt-image-wrap" ref={imageWrapRef}>
         {!imgLoaded && <div className="pt-img-placeholder" />}
         <img
           src={imgSrc}
@@ -168,7 +224,16 @@ const ProductTray = ({ product, onAddToCart, onMoveToCart, onRemove, quickAction
             </button>
             <button
               type="button"
-              className={`pt-action-btn pt-action-compare ${compared ? "compared" : ""}`}
+              className="pt-action-btn pt-action-extra"
+              onClick={handleShare}
+              aria-label={`Share ${name}`}
+              title={linkCopied ? "Link copied" : "Share"}
+            >
+              <Share2 size={16} strokeWidth={1.8} />
+            </button>
+            <button
+              type="button"
+              className={`pt-action-btn pt-action-extra ${compared ? "compared" : ""}`}
               onClick={handleCompare}
               aria-pressed={compared}
               aria-label={compared ? `Remove ${name} from compare` : `Add ${name} to compare`}
@@ -178,6 +243,30 @@ const ProductTray = ({ product, onAddToCart, onMoveToCart, onRemove, quickAction
             </button>
           </div>
         )}
+        {linkCopied && <span className="pt-copied" role="status">Link copied</span>}
+
+        {images.length > 1 && (
+          <>
+            <button type="button" className="pt-gallery-nav pt-gallery-nav-prev" onClick={() => showImage(shown - 1)} aria-label="Previous photo">
+              <ChevronLeft size={18} />
+            </button>
+            <button type="button" className="pt-gallery-nav pt-gallery-nav-next" onClick={() => showImage(shown + 1)} aria-label="Next photo">
+              <ChevronRight size={18} />
+            </button>
+            <div className="pt-gallery-dots">
+              {images.map((_, i) => (
+                <button
+                  type="button"
+                  key={i}
+                  className={`pt-gallery-dot ${i === shown ? "active" : ""}`}
+                  onClick={() => showImage(i)}
+                  aria-label={`Photo ${i + 1} of ${images.length}`}
+                  aria-current={i === shown}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="pt-body">
@@ -185,7 +274,7 @@ const ProductTray = ({ product, onAddToCart, onMoveToCart, onRemove, quickAction
         {/* A real <a href> that crawlers can follow. Its ::after covers the whole card, so the
             card is one big link while the buttons stay separate, properly nested controls. */}
         <h3 className="pt-name">
-          <Link to={`/product/${pid}`} className="pt-link" onClick={() => trackSelectItem(product, "product_list")}>
+          <Link to={`/product/${pid}`} className="pt-link" onClick={handleOpen}>
             {name}
           </Link>
         </h3>
@@ -198,28 +287,39 @@ const ProductTray = ({ product, onAddToCart, onMoveToCart, onRemove, quickAction
 
         <div className="pt-meta">
           {/* Matches the cart rule: delivery is free on orders of 500 or more. */}
-          {inStock && price >= 500 && <span className="pt-meta-delivery">Free delivery</span>}
+          {inStock && price >= 500 && <span className="pt-meta-item">Free delivery</span>}
+          {inStock && returnDays > 0 && <span className="pt-meta-item">{returnDays}-day returns</span>}
           {isLowStock && <span className="pt-meta-low">Only {stock} left</span>}
         </div>
 
-        <div className="pt-actions">
-          {onMoveToCart ? (
-            <button type="button" className="pt-btn pt-btn-cart" onClick={handleMoveToCart} disabled={!inStock || moving}>
+        {onMoveToCart ? (
+          <div className="pt-actions pt-actions-stacked">
+            <button type="button" className="pt-btn pt-btn-buy" onClick={handleMoveToCart} disabled={!inStock || moving}>
               <ArrowRightCircle size={16} aria-hidden="true" />
               <span>{!inStock ? "Out of stock" : moving ? "Moving..." : "Move to cart"}</span>
             </button>
-          ) : (
-            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={!inStock || adding}>
+            {onRemove && (
+              <button type="button" className="pt-btn pt-btn-remove" onClick={handleRemove} disabled={removing}>
+                {removing ? "Removing..." : "Remove"}
+              </button>
+            )}
+          </div>
+        ) : !inStock ? (
+          <div className="pt-actions">
+            <button type="button" className="pt-btn pt-btn-buy" disabled>Out of stock</button>
+          </div>
+        ) : (
+          <div className="pt-actions">
+            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={adding} aria-label={`Add ${name} to cart`}>
               <ShoppingCart size={16} aria-hidden="true" />
-              <span>{!inStock ? "Out of stock" : adding ? "Adding..." : "Add to cart"}</span>
+              <span className="pt-btn-label">{adding ? "Adding..." : "Add to cart"}</span>
             </button>
-          )}
-          {onRemove && (
-            <button type="button" className="pt-btn pt-btn-remove" onClick={handleRemove} disabled={removing}>
-              {removing ? "Removing..." : "Remove"}
+            <button type="button" className="pt-btn pt-btn-buy" onClick={handleBuyNow} aria-label={`Buy ${name} now`}>
+              <Zap size={15} aria-hidden="true" />
+              <span>Buy now</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </article>
   );
