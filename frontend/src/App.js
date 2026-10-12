@@ -134,10 +134,10 @@ function App() {
         <WishlistProvider>
         <PageViewTracker />
         <Helmet>
-          <title>Cauvery Store | Shop Direct from Tamil Nadu Sellers</title>
-          <meta name="description" content="Shop direct from real shops and traders in Tamil Nadu. Free delivery on orders of ₹500 or more and 7-day returns." />
+          <title>Cauvery Store | Shop Direct from Independent Sellers</title>
+          <meta name="description" content="Shop direct from real, independent shops and traders. Free delivery on orders of ₹500 or more and 7-day returns." />
           <meta property="og:title" content="Cauvery Store" />
-          <meta property="og:description" content="Shop direct from real shops and traders in Tamil Nadu." />
+          <meta property="og:description" content="Shop direct from real, independent shops and traders." />
           <meta property="og:type" content="website" />
           <meta property="og:image" content="https://cauverystore.in/logo512.png" />
           <meta property="og:url" content="https://cauverystore.in" />
@@ -153,7 +153,7 @@ function App() {
               "name": "Cauvery Store",
               "url": "https://cauverystore.in/",
               "logo": "https://cauverystore.in/logo512.png",
-              "description": "Online marketplace to shop direct from real shops and traders based in Tamil Nadu. Pay by UPI or card.",
+              "description": "Online marketplace to shop direct from real, independent shops and traders. Pay by UPI or card.",
               "address": { "@type": "PostalAddress", "addressCountry": "IN" },
               "contactPoint": {
                 "@type": "ContactPoint",

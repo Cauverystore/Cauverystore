@@ -14,7 +14,7 @@ const PROMISES = [
   { Icon: Truck, title: "Free delivery", text: "on orders of ₹500 or more" },
   { Icon: RotateCcw, title: "7-day returns", text: "free if the item is faulty or wrong" },
   { Icon: ShieldCheck, title: "Secure payment", text: "UPI, card or net banking" },
-  { Icon: Store, title: "Tamil Nadu sellers", text: "real shops and traders" },
+  { Icon: Store, title: "Independent sellers", text: "real shops and traders" },
 ];
 
 function normalizeProduct(p) {
@@ -98,16 +98,16 @@ const Home = () => {
   return (
     <div className="sn-page">
       <Helmet>
-        <title>Cauvery Store | Shop Direct from Tamil Nadu Sellers</title>
+        <title>Cauvery Store | Shop Direct from Independent Sellers</title>
         <meta
           name="description"
-          content="Buy straight from Tamil Nadu makers and local shops. See who sells it and where they are, pay by UPI or card, and get it delivered to your door."
+          content="Buy straight from makers and independent shops. See who sells it and where they are, pay by UPI or card, and get it delivered to your door."
         />
         <link rel="canonical" href="https://cauverystore.in/" />
-        <meta property="og:title" content="Cauvery Store | Shop Direct from Tamil Nadu Sellers" />
+        <meta property="og:title" content="Cauvery Store | Shop Direct from Independent Sellers" />
         <meta
           property="og:description"
-          content="Buy straight from Tamil Nadu makers and local shops. See who sells it and where they are, pay by UPI or card, and get it delivered to your door."
+          content="Buy straight from makers and independent shops. See who sells it and where they are, pay by UPI or card, and get it delivered to your door."
         />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
         <meta property="og:type" content="website" />
@@ -128,11 +128,11 @@ const Home = () => {
         </svg>
         <div className="sn-container sn-hero-inner">
           <p className="sn-eyebrow">Cauvery Store</p>
-          <h1 className="sn-hero-title">Shop direct from <em>Tamil Nadu</em> sellers</h1>
-          <p className="sn-hero-sub">Every seller is a real shop or trader in Tamil Nadu. Free delivery on orders of ₹500 or more.</p>
+          <h1 className="sn-hero-title">Shop direct from <em>independent</em> sellers</h1>
+          <p className="sn-hero-sub">Every seller is a real shop or trader. Free delivery on orders of ₹500 or more.</p>
           <div className="sn-hero-actions">
             <Link to="/products" className="sn-btn">Browse products <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
-            <Link to="/seller/register" className="sn-text-link">Own a shop in Tamil Nadu? Start selling</Link>
+            <Link to="/seller/register" className="sn-text-link">Own a shop? Start selling</Link>
           </div>
         </div>
       </section>
@@ -187,7 +187,7 @@ const Home = () => {
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title">New from Tamil Nadu sellers</h2>
+            <h2 className="sn-section-title">New from our sellers</h2>
             <Link className="sn-view-all" to="/products">View all {"\u2192"}</Link>
           </div>
           {loading ? (
@@ -199,7 +199,7 @@ const Home = () => {
           ) : (
             <div className="sn-empty-section">
               <p className="sn-empty-title">Our sellers are adding their first products</p>
-              <p>Please check back soon. Own a shop in Tamil Nadu? You can be among the first to list here.</p>
+              <p>Please check back soon. Own a shop? You can be among the first to list here.</p>
               <Link to="/seller/register" className="sn-btn">Start selling <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
             </div>
           )}

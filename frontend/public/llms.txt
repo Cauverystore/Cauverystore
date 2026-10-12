@@ -1,9 +1,9 @@
 # Cauvery Store
 
-> Cauvery Store (cauverystore.in) is an online marketplace where customers buy directly from Tamil Nadu sellers. Each product shows who sells it and where they are. Payment is by UPI or card, and orders are delivered to the customer's door.
+> Cauvery Store (cauverystore.in) is an online marketplace where customers buy directly from independent sellers: real shops and traders anywhere in India. Each product shows who sells it and where they are. Payment is by UPI or card, and orders are delivered to the customer's door.
 
 ## Key pages
-- [Home](https://cauverystore.in/): featured products from Tamil Nadu sellers
+- [Home](https://cauverystore.in/): featured products from our sellers
 - [All products](https://cauverystore.in/products): browse and search the catalogue
 - [About Cauvery Store](https://cauverystore.in/about): who we are and how the marketplace works
 - [FAQ](https://cauverystore.in/faq): ordering, delivery and payments

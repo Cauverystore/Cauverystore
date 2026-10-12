@@ -91,7 +91,7 @@ const policies = {
       },
       {
         heading: "A Marketplace of Independent Sellers",
-        content: "Cauvery Store is an online marketplace. Products are listed and sold by independent shops and traders based in Tamil Nadu, and the contract of sale for a product is between you and that seller. Cauvery Store runs the website, takes payment on the seller's behalf, and supports you with delivery, returns and refunds as set out in these terms and our policies."
+        content: "Cauvery Store is an online marketplace. Products are listed and sold by independent shops and traders across India, and the contract of sale for a product is between you and that seller. Cauvery Store runs the website, takes payment on the seller's behalf, and supports you with delivery, returns and refunds as set out in these terms and our policies."
       },
       {
         heading: "Prices and Orders",
@@ -170,7 +170,7 @@ const policies = {
       {
         heading: "Where We Deliver",
         items: [
-          "Cauvery Store is a marketplace. Each order is packed by the seller, a shop or trader based in Tamil Nadu, and sent through one of several courier and postal partners",
+          "Cauvery Store is a marketplace. Each order is packed by the seller, an independent shop or trader, and sent through one of several courier and postal partners",
           "The courier for your order is chosen according to your pincode and the size of the parcel. You cannot choose the courier, and different parcels in one order may come by different couriers",
           "We deliver to addresses in India only. We do not deliver outside India",
           "Whether a product can be delivered to your pincode depends on the seller and on which of our couriers serve your area. If an order cannot be delivered to your address, we tell you and refund anything you have paid"
@@ -189,8 +189,8 @@ const policies = {
         content: "Delivery time has two parts: the time the seller takes to pack and hand over your order, and the time the courier takes to bring it to you.",
         items: [
           "Dispatch: sellers normally hand your order to the courier within 1-2 business days of the order being confirmed",
-          "Within Tamil Nadu and Puducherry: usually 2-4 business days after dispatch",
-          "Kerala, Karnataka, Andhra Pradesh and Telangana: usually 3-5 business days after dispatch",
+          "Within the seller's own state: usually 2-4 business days after dispatch",
+          "Neighbouring states: usually 3-5 business days after dispatch",
           "Rest of India: usually 4-7 business days after dispatch",
           "Remote areas, the North-East, Jammu & Kashmir, Ladakh and the islands: usually 7-10 business days after dispatch"
         ]
