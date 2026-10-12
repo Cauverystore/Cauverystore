@@ -4,6 +4,7 @@ import com.cauverystore.config.JwtUtil;
 import com.cauverystore.entities.Cart;
 import com.cauverystore.entities.CartItem;
 import com.cauverystore.entities.Product;
+import com.cauverystore.entities.ProductVariant;
 import com.cauverystore.entities.User;
 import com.cauverystore.repository.CartItemRepository;
 import com.cauverystore.repository.CartRepository;
@@ -75,21 +76,45 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public Cart addItem(User user, Product product, int quantity) {
+        return addItem(user, product, null, quantity);
+    }
+
+    // What can actually be bought: the chosen size's own stock, or the product's when it has no sizes.
+    private static int availableStock(Product product, ProductVariant variant) {
+        Integer stock = variant != null ? variant.getStock() : product.getStock();
+        return stock == null ? 0 : stock;
+    }
+
+    private static boolean sameVariant(CartItem item, ProductVariant variant) {
+        Long a = item.getVariant() != null ? item.getVariant().getId() : null;
+        Long b = variant != null ? variant.getId() : null;
+        return java.util.Objects.equals(a, b);
+    }
+
+    @Override
+    public Cart addItem(User user, Product product, ProductVariant variant, int quantity) {
         if (product == null) throw new RuntimeException("Product not found");
         if (quantity <= 0) throw new RuntimeException("Quantity must be positive");
-        if ((product.getStock() == null ? 0 : product.getStock()) < quantity) throw new RuntimeException("Not enough stock available");
+        boolean hasVariants = product.getVariants() != null && !product.getVariants().isEmpty();
+        if (hasVariants && variant == null)
+            throw new RuntimeException("Please choose an option (such as a size) for " + product.getName());
+        if (variant != null && (variant.getProduct() == null || !variant.getProduct().getId().equals(product.getId())))
+            throw new RuntimeException("That option does not belong to this product");
+        if (availableStock(product, variant) < quantity) throw new RuntimeException("Not enough stock available");
 
         Cart cart = getCart(user);
         if (!cart.getUser().getId().equals(user.getId()))
             throw new RuntimeException("Unauthorized cart access");
 
+        // The same shirt in M and in L are two different lines.
         CartItem existingItem = cart.getItems().stream()
-                .filter(i -> i.getProduct().getId().equals(product.getId()) && !i.isSavedForLater())
+                .filter(i -> i.getProduct().getId().equals(product.getId()) && !i.isSavedForLater()
+                        && sameVariant(i, variant))
                 .findFirst().orElse(null);
 
         if (existingItem != null) {
             int newQty = existingItem.getQuantity() + quantity;
-            if ((product.getStock() == null ? 0 : product.getStock()) < newQty)
+            if (availableStock(product, variant) < newQty)
                 throw new RuntimeException("Not enough stock for updated quantity");
             existingItem.setQuantity(newQty);
             cartItemRepo.save(existingItem);
@@ -97,6 +122,7 @@ public class CartServiceImpl implements CartService {
             CartItem item = new CartItem();
             item.setCart(cart);
             item.setProduct(product);
+            item.setVariant(variant);
             item.setQuantity(quantity);
             item.setSavedForLater(false);
             cart.getItems().add(item);
@@ -163,8 +189,7 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new RuntimeException("Cart item not found"));
         if (!item.getCart().getId().equals(cart.getId()))
             throw new RuntimeException("Item does not belong to this user's cart");
-        Integer availableStock = item.getProduct().getStock();
-        if ((availableStock == null ? 0 : availableStock) < quantity)
+        if (availableStock(item.getProduct(), item.getVariant()) < quantity)
             throw new RuntimeException("Not enough stock available");
         item.setQuantity(quantity);
         cartItemRepo.save(item);
@@ -262,7 +287,7 @@ public class CartServiceImpl implements CartService {
         product.put("image", (p.getImages() != null && !p.getImages().isEmpty())
                 ? p.getImages().get(0).getUrl() : null);
 
-        int stock = p.getStock() == null ? 0 : p.getStock();
+        int stock = availableStock(p, item.getVariant());
         String stockStatus;
         if (stock <= 0) stockStatus = "Out of Stock";
         else if (stock <= 5) stockStatus = "Only " + stock + " left";
@@ -281,6 +306,7 @@ public class CartServiceImpl implements CartService {
             variant.put("type", item.getVariant().getVariantType());
             variant.put("value", item.getVariant().getVariantValue());
             variant.put("price", item.getVariant().getPrice());
+            variant.put("stock", item.getVariant().getStock());
             detail.put("variant", variant);
         }
 
@@ -296,7 +322,8 @@ public class CartServiceImpl implements CartService {
         Set<Long> existingIds = cart.getItems().stream()
                 .map(i -> i.getProduct().getId()).collect(Collectors.toSet());
 
-        List<Product> active = productRepo.findByActiveTrue();
+        List<Product> active = productRepo.findByActiveTrue().stream()
+                .filter(ProductService::isApprovedForShoppers).toList();
         return active.stream()
             .filter(p -> !existingIds.contains(p.getId()) && p.getStock() != null && p.getStock() > 0)
             .limit(4)
@@ -317,13 +344,26 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartItem addItem(String authHeader, Long productId, int quantity) {
+        return addItem(authHeader, productId, null, quantity);
+    }
+
+    @Override
+    public CartItem addItem(String authHeader, Long productId, Long variantId, int quantity) {
         User user = extractUserFromHeader(authHeader);
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-        addItem(user, product, quantity);
+        ProductVariant variant = null;
+        if (variantId != null) {
+            variant = (product.getVariants() == null ? java.util.List.<ProductVariant>of() : product.getVariants()).stream()
+                    .filter(v -> variantId.equals(v.getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("That option does not belong to this product"));
+        }
+        addItem(user, product, variant, quantity);
+        final ProductVariant chosen = variant;
         Cart cart = getCart(user);
         return cart.getItems().stream()
-                .filter(i -> i.getProduct().getId().equals(productId))
+                .filter(i -> i.getProduct().getId().equals(productId) && !i.isSavedForLater() && sameVariant(i, chosen))
                 .findFirst().orElse(null);
     }
 

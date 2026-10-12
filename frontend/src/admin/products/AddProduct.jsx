@@ -155,8 +155,11 @@ const AddProduct = () => {
           }
         }
       }
-      setMsg({ type: "success", text: `Product created${images.length > 0 ? " with images" : ""}!` });
-      setTimeout(() => navigate(redirectPath), 1000);
+      // A seller's listing is reviewed by an admin before shoppers can see it.
+      setMsg({ type: "success", text: isSeller
+        ? `Product submitted${images.length > 0 ? " with images" : ""}. It will appear in the store once an admin approves it.`
+        : `Product created${images.length > 0 ? " with images" : ""}.` });
+      setTimeout(() => navigate(redirectPath), isSeller ? 2500 : 1000);
     } catch (err) {
       setMsg({ type: "error", text: err.response?.data?.error || "Failed to create product." });
     }

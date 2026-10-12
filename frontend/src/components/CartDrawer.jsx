@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { variantLabel } from "../utils/variant";
 import { useNavigate } from "react-router-dom";
 import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import { getCart, updateQuantity as updateCartItemQuantity, removeItem as removeCartItem } from "../services/cartService";
@@ -124,6 +125,7 @@ const CartDrawer = ({ open, onClose }) => {
                   <CartItemImage src={image} name={name} width={60} height={60} className="cart-drawer-item-img" />
                   <div className="cart-drawer-item-info">
                     <p className="cart-drawer-item-name">{name}</p>
+                    {variantLabel(item) && <p className="cd-attr" style={{ fontWeight: 600 }}>{variantLabel(item)}</p>}
                     <p className="cart-drawer-item-price">{"\u20B9"}{(price * qty).toLocaleString()}</p>
                     <div className="cd-attrs">
                       {product.color && <span className="cd-attr">Color: {product.color}</span>}

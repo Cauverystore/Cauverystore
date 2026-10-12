@@ -6,6 +6,7 @@ import { useWishlist } from "../context/WishlistContext";
 import { imgUrl } from "../utils/images";
 import { trackSelectItem, trackAddToCart } from "../utils/analytics";
 import { toggleCompare, isCompared } from "../utils/compare";
+import { variantNoun } from "../utils/variant";
 import "../styles/product-tray.css";
 
 /*
@@ -272,7 +273,8 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
             >
               <Heart size={16} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
             </button>
-            {inStock && (
+            {/* Saving for later puts the item in the cart, which needs a size - so not from a card. */}
+            {inStock && optionCount === 0 && (
               <button
                 type="button"
                 className={`pt-action-btn pt-action-extra ${saved ? "saved" : ""}`}
@@ -332,7 +334,19 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
           {inStock && returnDays > 0 && <span className="pt-meta-item">{returnDays}-day returns</span>}
         </div>
 
-        {onMoveToCart ? (
+        {inStock && optionCount > 0 ? (
+          /* Sold in sizes: the size is chosen on the product page, so the card leads there. */
+          <div className="pt-actions pt-actions-stacked">
+            <Link to={`/product/${pid}`} className="pt-btn pt-btn-buy" onClick={handleOpen}>
+              Choose {variantNoun(product)}
+            </Link>
+            {onRemove && (
+              <button type="button" className="pt-btn pt-btn-remove" onClick={handleRemove} disabled={removing}>
+                {removing ? "Removing..." : "Remove"}
+              </button>
+            )}
+          </div>
+        ) : onMoveToCart ? (
           <div className="pt-actions pt-actions-stacked">
             <button type="button" className="pt-btn pt-btn-buy" onClick={handleMoveToCart} disabled={!inStock || moving}>
               <ArrowRightCircle size={16} aria-hidden="true" />

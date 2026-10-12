@@ -237,6 +237,18 @@ public class OrderService {
             Product product = cartItem.getProduct();
             int qty = cartItem.getQuantity();
 
+            // A product sold in sizes cannot be ordered without one, and the chosen size must
+            // itself have enough stock - the product total alone would let the last M be sold twice.
+            com.cauverystore.entities.ProductVariant chosen = cartItem.getVariant();
+            boolean hasVariants = product.getVariants() != null && !product.getVariants().isEmpty();
+            if (hasVariants && chosen == null) {
+                throw new RuntimeException("Please choose an option (such as a size) for " + product.getName());
+            }
+            if (chosen != null && (chosen.getStock() == null || chosen.getStock() < qty)) {
+                throw new RuntimeException("Insufficient stock for " + product.getName()
+                        + " (" + chosen.getVariantValue() + ")");
+            }
+
             Inventory inventory = inventoryRepo.findByProduct_Id(product.getId());
             if (inventory != null) {
                 if (inventory.getStock() < qty) {
@@ -279,7 +291,7 @@ public class OrderService {
             orderItems.add(orderItem);
             subTotal += price * qty;
 
-            inventoryService.deductStock(product, qty);
+            inventoryService.deductStock(product, cartItem.getVariant(), qty);
         }
 
         // Never trust a client-computed discount for what actually gets charged - re-validate
@@ -558,7 +570,7 @@ public class OrderService {
                 for (OrderItem item : order.getItems()) {
                     Product product = item.getProduct();
                     if (product != null) {
-                        inventoryService.restoreStock(product, item.getQuantity());
+                        inventoryService.restoreStock(product, item.getVariant(), item.getQuantity());
                     }
                 }
                 Refund cancelRefund = null;
@@ -594,7 +606,7 @@ public class OrderService {
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             if (product != null) {
-                inventoryService.restoreStock(product, item.getQuantity());
+                inventoryService.restoreStock(product, item.getVariant(), item.getQuantity());
             }
         }
 
@@ -837,6 +849,10 @@ public class OrderService {
                 im.put("id", item.getId());
                 im.put("quantity", item.getQuantity());
                 im.put("price", item.getPrice());
+                if (item.getVariant() != null && item.getVariant().getVariantValue() != null) {
+                    im.put("variantLabel", (item.getVariant().getVariantType() != null
+                            ? item.getVariant().getVariantType() + ": " : "") + item.getVariant().getVariantValue());
+                }
                 Product product = item.getProduct();
                 if (product != null) {
                     im.put("productId", product.getId());
@@ -1046,7 +1062,7 @@ public class OrderService {
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             if (product != null) {
-                inventoryService.restoreStock(product, item.getQuantity());
+                inventoryService.restoreStock(product, item.getVariant(), item.getQuantity());
             }
         }
 

@@ -6,7 +6,7 @@ const ManageVariants = () => {
   const { id } = useParams();
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", price: "", stock: "" });
+  const [form, setForm] = useState({ type: "Size", name: "", price: "", stock: "" });
 
   useEffect(() => {
     const fetch = async () => {
@@ -21,8 +21,12 @@ const ManageVariants = () => {
 
   const handleAdd = async () => {
     try {
-      await api.post(`/api/admin/products/${id}/variants`, { options: [{ name: form.name, price: parseFloat(form.price), stock: parseInt(form.stock) }] });
-      setForm({ name: "", price: "", stock: "" });
+      // The server expects one variant: a type ("Size") and a value ("M").
+      await api.post(`/api/admin/products/${id}/variants`, {
+        variantType: form.type.trim() || "Size", variantValue: form.name.trim(),
+        price: parseFloat(form.price), stock: parseInt(form.stock),
+      });
+      setForm({ type: form.type, name: "", price: "", stock: "" });
       const res = await api.get(`/api/products/${id}`);
       setVariants(res.data.variants || []);
     } catch (err) { alert("Failed to add variant"); }
@@ -34,7 +38,8 @@ const ManageVariants = () => {
     <div style={{ maxWidth: "700px", width: "100%", margin: "0 auto", padding: "0 1rem", boxSizing: "border-box" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem" }}>Manage Variants</h1>
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-        <input placeholder="Variant Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+        <input placeholder="Type (e.g. Size)" aria-label="Variant type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} style={inputStyle} />
+        <input placeholder="Value (e.g. M)" aria-label="Variant value" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
         <input placeholder="Price" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} style={inputStyle} />
         <input placeholder="Stock" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} style={inputStyle} />
         <button onClick={handleAdd} style={{ padding: "0.5rem 1.25rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>Add</button>
@@ -43,7 +48,7 @@ const ManageVariants = () => {
         <thead><tr style={{ background: "#f8fafc" }}><th style={thStyle}>Name</th><th style={thStyle}>Price</th><th style={thStyle}>Stock</th></tr></thead>
         <tbody>
           {variants.map((v, i) => (
-            <tr key={v.id || v._id || i}><td style={tdStyle}>{v.name || v.value}</td><td style={tdStyle}>&#8377;{v.price}</td><td style={tdStyle}>{v.stock}</td></tr>
+            <tr key={v.id || v._id || i}><td style={tdStyle}>{v.variantType ? `${v.variantType}: ${v.variantValue}` : (v.name || v.value)}</td><td style={tdStyle}>&#8377;{v.price}</td><td style={tdStyle}>{v.stock}</td></tr>
           ))}
         </tbody>
       </table>

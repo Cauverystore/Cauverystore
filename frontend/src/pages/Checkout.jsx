@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { variantLabel } from "../utils/variant";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
@@ -547,7 +548,7 @@ const Checkout = () => {
                     <CartItemImage src={image} name={product.name} width={48} height={48} className="checkout-item-img" />
                     <div style={{ flex: 1, fontSize: "0.85rem" }}>
                       <div style={{ fontWeight: 500 }}>{product.name}</div>
-                      <div style={{ color: "var(--color-text-secondary)" }}>Qty: {item.quantity || 1}</div>
+                      <div style={{ color: "var(--color-text-secondary)" }}>{variantLabel(item) ? `${variantLabel(item)} · ` : ""}Qty: {item.quantity || 1}</div>
                     </div>
                     <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>&#8377;{(price * (item.quantity || 1)).toFixed(2)}</div>
                   </div>

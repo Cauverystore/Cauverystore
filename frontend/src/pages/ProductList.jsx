@@ -1,10 +1,11 @@
 ﻿import React, { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import api from "../api/axios";
 import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Pagination from "../components/Pagination";
+import "../styles/products.css";
 
 const ProductList = () => {
   const navigate = useNavigate();
@@ -136,11 +137,23 @@ const ProductList = () => {
               <button className="products-error-retry" onClick={() => window.location.reload()}>Try Again</button>
             </div>
           ) : products.length === 0 ? (
-            <div className="products-empty">
-              <div className="products-empty-icon">📦</div>
-              <h3 className="products-empty-title">Nothing matches these filters</h3>
-              <p className="products-empty-text">Clear the filters or pick a different category to see more products.</p>
-            </div>
+            category || search ? (
+              <div className="products-empty">
+                <h3 className="products-empty-title">Nothing matches these filters</h3>
+                <p className="products-empty-text">Clear the filters or pick a different category to see more products.</p>
+                <button className="products-empty-action" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>Clear all filters</button>
+              </div>
+            ) : (
+              /* No filters and still nothing: the store itself has no products listed yet. */
+              <div className="products-empty">
+                <h3 className="products-empty-title">Our sellers are adding their first products</h3>
+                <p className="products-empty-text">Please check back soon. Own a shop in Tamil Nadu? You can be among the first to list here.</p>
+                <div className="products-empty-actions">
+                  <Link to="/seller/register" className="products-empty-action">Start selling</Link>
+                  <Link to="/" className="products-empty-link">Back to the homepage</Link>
+                </div>
+              </div>
+            )
           ) : (
             <>
               <div className="pt-grid">
@@ -212,16 +225,6 @@ const ProductList = () => {
         .pl-toolbar { display: none; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
         .pl-mobile-filter-btn { display: none; padding: 0.45rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.82rem; cursor: pointer; }
         .pl-sort-select { padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.82rem; background: #fff; }
-        .products-error { padding: clamp(2rem, 6vw, 4rem) 1.5rem; text-align: center; }
-        .products-error-icon { font-size: 40px; color: #b42318; margin-bottom: 12px; }
-        .products-error-title { font-family: var(--font-display); font-size: 1.75rem; font-weight: 500; letter-spacing: -0.02em; color: #14302f; margin-bottom: 8px; }
-        .products-error-text { font-size: 1rem; color: #48595a; margin-bottom: 20px; }
-        .products-error-retry { padding: 0.75rem 1.5rem; border: none; border-radius: 999px; background: #0E5C5C; color: #fff; font-weight: 600; cursor: pointer; transition: background 0.2s ease; }
-        .products-error-retry:hover { background: #0a4a4a; }
-        .products-empty { padding: clamp(2rem, 6vw, 4rem) 1.5rem; text-align: center; }
-        .products-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-        .products-empty-title { font-family: var(--font-display); font-size: 1.75rem; font-weight: 500; letter-spacing: -0.02em; color: #14302f; margin-bottom: 8px; }
-        .products-empty-text { font-size: 1rem; color: #48595a; }
         /* .pl-content shares its row with a 240px sidebar down to the 768px breakpoint below,
            so its column counts switch later than the standalone .pt-grid breakpoints - matching
            those exactly here would squeeze 3 columns into a narrower-than-expected content area. */

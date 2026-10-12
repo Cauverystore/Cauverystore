@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from "react";
+import { variantLabel } from "../utils/variant";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
@@ -133,9 +134,10 @@ const OrderDetail = () => {
   const orderItemsList = useMemo(() => items.map((item, idx) => {
     const product = safeProduct(item);
     const imageSrc = product.image || product.images?.[0] || item.image || null;
-    const name = item.product
+    const baseName = item.product
       ? (product.name || item.productName || item.name || "Product")
       : "Product is no longer available";
+    const name = variantLabel(item) ? `${baseName} (${variantLabel(item)})` : baseName;
     const price = item.price || product.price || 0;
     const qty = item.quantity || 1;
     const key = safeId(item, idx);

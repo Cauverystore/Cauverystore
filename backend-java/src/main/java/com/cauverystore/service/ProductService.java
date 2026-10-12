@@ -79,7 +79,22 @@ public class ProductService {
     // management endpoints below, not the public catalog.
     @Cacheable(value = "products", key = "'active'")
     public List<Product> getActiveProducts() {
-        return productRepo.findByActiveTrue();
+        return productRepo.findByActiveTrue().stream().filter(ProductService::isApprovedForShoppers).toList();
+    }
+
+    // Rows written before approval existed have no status; they were live then and stay live.
+    public static boolean isApprovedForShoppers(Product p) {
+        return p.getApprovalStatus() == null || "approved".equalsIgnoreCase(p.getApprovalStatus());
+    }
+
+    // The public product page: a listing still waiting for review (or rejected) does not exist
+    // as far as shoppers and search engines are concerned.
+    public Product getProductForShoppers(Long id) {
+        Product p = getProductById(id);
+        if (!isApprovedForShoppers(p)) {
+            throw new ProductNotFoundException("Product not found with id: " + id);
+        }
+        return p;
     }
 
     @Cacheable(value = "products", key = "#id")

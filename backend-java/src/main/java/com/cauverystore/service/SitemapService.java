@@ -73,7 +73,8 @@ public class SitemapService {
 
         // Every live, publicly-visible product - same definition of "live" the storefront
         // search/listing endpoints already use (Product.active = true).
-        List<Product> liveProducts = productRepository.findByActiveTrue();
+        List<Product> liveProducts = productRepository.findByActiveTrue().stream()
+                .filter(ProductService::isApprovedForShoppers).toList();
         for (Product product : liveProducts) {
             LocalDateTime lastmod = product.getUpdatedAt() != null ? product.getUpdatedAt() : product.getCreatedAt();
             addUrl(xml, base + "/product/" + product.getId(), lastmod, "weekly", "0.8");

@@ -70,14 +70,22 @@ docker-compose up --build
 # Backend:  http://localhost:9091
 ```
 
-## Seed Accounts
+## Demo Accounts (local development only)
 
-| Role | Email | Password |
+With `APP_SEED_DEMO_ACCOUNTS=true` the backend creates five demo accounts at startup. Their
+passwords are in `SeedDataRunner.java` (`DEMO_ACCOUNTS`). They are public, so never switch
+this on in production.
+
+| Role | Email | Username |
 |------|-------|----------|
-| Customer | customer@noyyalstore.com | admin123 |
-| Seller | seller@noyyalstore.com | seller123 |
-| Admin | admin@noyyalstore.com | admin123 |
-| Super Admin | super@noyyalstore.com | super123 |
+| Customer | customer@cauverystore.in | customer |
+| Seller | seller@cauverystore.in | seller |
+| Admin | admin@cauverystore.in | admin |
+| Executive | executive@cauverystore.in | executive |
+| Super Admin | superadmin@cauverystore.in | superadmin |
+
+In production, set `SUPER_ADMIN_RESET_PASSWORD` (12+ characters) once to create the super admin
+or reset its password, sign in, then remove the variable.
 
 ## API Endpoints
 

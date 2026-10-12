@@ -34,7 +34,8 @@ const ProductDetails = () => {
         // Loaded separately and allowed to fail: the page works without it.
         api.get(`/api/products/${id}/seller`).then(r => setSeller(r.data?.name ? r.data : null)).catch(() => {});
         if (res.data.images?.length > 0) setSelectedImage(0);
-        if (res.data.variants?.length > 0) setSelectedVariant(res.data.variants[0]);
+        // Start on the first size that can actually be bought.
+        if (res.data.variants?.length > 0) setSelectedVariant(res.data.variants.find((v) => (v.stock ?? 1) > 0) || res.data.variants[0]);
         const cat = res.data.category;
         const catQ = typeof cat === "object" ? cat?.name || "" : cat || "";
         if (catQ) {
@@ -53,17 +54,25 @@ const ProductDetails = () => {
     if (product) trackViewItem(product);
   }, [product]);
 
+  // A product sold in sizes goes into the cart as the chosen size, never as "a t-shirt".
+  const hasVariants = (product?.variants || []).length > 0;
+  const chosenVariantId = hasVariants ? (selectedVariant?.id ?? selectedVariant?._id ?? null) : null;
+  const variantWord = (product?.variants?.[0]?.variantType || "option").toLowerCase();
+
+  const flash = (text) => { setCartMsg(text); setTimeout(() => setCartMsg(""), 2500); };
+
   const handleAddToCart = async () => {
-    const res = await addToCartOrLogin(navigate, product, quantity);
+    if (hasVariants && chosenVariantId == null) { flash(`Please choose a ${variantWord} first.`); return; }
+    const res = await addToCartOrLogin(navigate, product, quantity, chosenVariantId);
     if (res.needLogin) return;
-    setCartMsg(res.ok ? "Added to your cart" : "We couldn't add that to your cart. Please try again.");
-    setTimeout(() => setCartMsg(""), 2000);
+    flash(res.ok ? "Added to your cart" : (res.message || "We couldn't add that to your cart. Please try again."));
   };
 
   const handleBuyNow = async () => {
-    const res = await addToCartOrLogin(navigate, product, quantity);
+    if (hasVariants && chosenVariantId == null) { flash(`Please choose a ${variantWord} first.`); return; }
+    const res = await addToCartOrLogin(navigate, product, quantity, chosenVariantId);
     if (res.ok) navigate("/checkout");
-    else if (!res.needLogin) { setCartMsg("We couldn't start checkout. Please try again."); setTimeout(() => setCartMsg(""), 2000); }
+    else if (!res.needLogin) flash(res.message || "We couldn't start checkout. Please try again.");
   };
 
   // The same two actions, for a card in the "You may also like" row.
@@ -212,12 +221,19 @@ const ProductDetails = () => {
 
         {(product.variants || []).length > 0 && (
           <div className="variant-section">
-            <h3>{product.variantType || "Options"}</h3>
+            {/* The server names these variantType ("Size") and variantValue ("M"). */}
+            <h3>{product.variants[0]?.variantType || product.variantType || "Options"}</h3>
             <div className="variant-options">
-              {product.variants.map((v) => (
-                <button key={v.id || v._id} className={`variant-btn${selectedVariant?.id === v.id || selectedVariant?._id === v._id ? " active" : ""}`}
-                  onClick={() => setSelectedVariant(v)}>{v.name || v.value}</button>
-              ))}
+              {product.variants.map((v) => {
+                const vid = v.id ?? v._id;
+                const active = (selectedVariant?.id ?? selectedVariant?._id) === vid;
+                const soldOut = v.stock === 0;
+                return (
+                  <button key={vid} type="button" className={`variant-btn${active ? " active" : ""}`}
+                    onClick={() => setSelectedVariant(v)} disabled={soldOut} aria-pressed={active}
+                    title={soldOut ? "Out of stock" : undefined}>{v.variantValue || v.name || v.value}</button>
+                );
+              })}
             </div>
           </div>
         )}

@@ -2,6 +2,8 @@ package com.cauverystore.config;
 
 import com.cauverystore.entities.*;
 import com.cauverystore.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,8 +23,24 @@ public class SeedDataRunner implements CommandLineRunner {
     private final SellerRegistrationRepository sellerRegRepo;
     private final PasswordEncoder passwordEncoder;
 
+    private static final Logger log = LoggerFactory.getLogger(SeedDataRunner.class);
+
+    private static final String SUPER_ADMIN_EMAIL = "superadmin@cauverystore.in";
+
     @Value("${app.seed.demo-products:true}")
     private boolean seedDemoProducts;
+
+    // The demo accounts below have passwords that anyone can read in this (public) repository.
+    // They are for local development and the automated tests only, so they are created only
+    // when this is switched on. Production leaves it off.
+    @Value("${app.seed.demo-accounts:false}")
+    private boolean seedDemoAccounts;
+
+    // Operator recovery / first-time setup. When set, the super admin's password is set to this
+    // value at startup, and the account is created if it does not exist. Remove the variable
+    // once you have signed in: while it stays set, every restart puts this password back.
+    @Value("${app.super-admin.reset-password:}")
+    private String superAdminResetPassword;
 
     public SeedDataRunner(UserRepository ur, CategoryRepository cr, ProductRepository pr,
                           ProductImageRepository pir, DiscountRepository dr,
@@ -36,16 +54,28 @@ public class SeedDataRunner implements CommandLineRunner {
         this.passwordEncoder = pe;
     }
 
+    // name, username, email, development-only password, role
+    private static final Object[][] DEMO_ACCOUNTS = {
+        {"Super Admin", "superadmin", "superadmin@cauverystore.in", "super123", Role.SUPER_ADMIN},
+        {"Test Customer", "customer", "customer@cauverystore.in", "admin123", Role.CUSTOMER},
+        {"Admin", "admin", "admin@cauverystore.in", "admin123", Role.ADMIN},
+        {"Seller", "seller", "seller@cauverystore.in", "seller123", Role.SELLER},
+        {"Executive", "executive", "executive@cauverystore.in", "exec123", Role.EXECUTIVE},
+    };
+
     @Override
     public void run(String... args) {
         User oldSuper = userRepo.findByEmail("super@cauverystore.in");
         if (oldSuper != null) userRepo.delete(oldSuper);
 
-        createOrUpdateUser("Super Admin", "superadmin", "superadmin@cauverystore.in", "super123", Role.SUPER_ADMIN);
-        createOrUpdateUser("Test Customer", "customer", "customer@cauverystore.in", "admin123", Role.CUSTOMER);
-        createOrUpdateUser("Admin", "admin", "admin@cauverystore.in", "admin123", Role.ADMIN);
-        createOrUpdateUser("Seller", "seller", "seller@cauverystore.in", "seller123", Role.SELLER);
-        createOrUpdateUser("Executive", "executive", "executive@cauverystore.in", "exec123", Role.EXECUTIVE);
+        if (seedDemoAccounts) {
+            for (Object[] a : DEMO_ACCOUNTS) {
+                createOrUpdateUser((String) a[0], (String) a[1], (String) a[2], (String) a[3], (Role) a[4]);
+            }
+        } else {
+            warnAboutPublicPasswords();
+        }
+        applySuperAdminReset();
 
         if (categoryRepo.count() == 0) {
             String[][] cats = {{"Electronics","Smartphones, laptops, and gadgets"},{"Fashion","Clothing, shoes, and accessories"},{"Home & Kitchen","Furniture, appliances, and decor"},{"Books","Fiction, non-fiction, and educational"},{"Sports","Fitness equipment and sportswear"}};
@@ -188,6 +218,43 @@ public class SeedDataRunner implements CommandLineRunner {
             }
         }
         System.out.println("=== Seed data loaded successfully ===");
+    }
+
+    // Production never creates the demo accounts, but an older deployment may already have. If
+    // one of them can still be opened with its published password, say so loudly on every start.
+    private void warnAboutPublicPasswords() {
+        for (Object[] a : DEMO_ACCOUNTS) {
+            User user = userRepo.findByEmail((String) a[2]);
+            if (user != null && user.getPassword() != null
+                    && passwordEncoder.matches((String) a[3], user.getPassword())) {
+                log.error("SECURITY: the built-in account '{}' ({}) still uses its starting password, "
+                        + "which is published in the source code. Change it now.", a[1], a[4]);
+            }
+        }
+    }
+
+    private void applySuperAdminReset() {
+        if (superAdminResetPassword == null || superAdminResetPassword.isBlank()) return;
+        if (superAdminResetPassword.length() < 12) {
+            log.error("SUPER_ADMIN_RESET_PASSWORD ignored: it must be at least 12 characters.");
+            return;
+        }
+        User user = userRepo.findByEmail(SUPER_ADMIN_EMAIL);
+        if (user == null) {
+            user = new User();
+            user.setEmail(SUPER_ADMIN_EMAIL);
+            user.setUsername("superadmin");
+            user.setFullName("Super Admin");
+            user.setRole(Role.SUPER_ADMIN);
+        }
+        user.setPassword(passwordEncoder.encode(superAdminResetPassword));
+        user.setStatus("ACTIVE");
+        user.setActive(true);
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
+        userRepo.save(user);
+        log.warn("Super admin password was set from SUPER_ADMIN_RESET_PASSWORD. Remove that variable "
+                + "now that it has been applied.");
     }
 
     private void createOrUpdateUser(String fullName, String username, String email, String rawPassword, Role role) {

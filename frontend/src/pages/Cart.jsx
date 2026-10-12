@@ -7,6 +7,7 @@ import ProductTray from "../components/ProductTray";
 import ProductRow from "../components/ProductRow";
 import { useWishlist } from "../context/WishlistContext";
 import { trackEvent } from "../utils/analytics";
+import { variantLabel } from "../utils/variant";
 import "../styles/cart.css";
 
 const Cart = () => {
@@ -325,11 +326,11 @@ const Cart = () => {
                       <div className="cart-item-attrs">
                         <div className="cart-item-attr"><span className="cart-item-attr-label">Brand</span><span className="cart-item-attr-value">{product.brand || "Not specified"}</span></div>
                         <div className="cart-item-attr"><span className="cart-item-attr-label">Color</span><span className="cart-item-attr-value">{product.color || "Not specified"}</span></div>
-                        <div className="cart-item-attr"><span className="cart-item-attr-label">Size</span><span className="cart-item-attr-value">{product.size || "Not specified"}</span></div>
+                        <div className="cart-item-attr"><span className="cart-item-attr-label">Size</span><span className="cart-item-attr-value">{(/size/i.test(item.variant?.type || "") ? item.variant.value : product.size) || "Not specified"}</span></div>
                         <div className="cart-item-attr"><span className="cart-item-attr-label">Material</span><span className="cart-item-attr-value">{product.material || "Not specified"}</span></div>
                         <div className="cart-item-attr"><span className="cart-item-attr-label">Weight</span><span className="cart-item-attr-value">{product.weight ? `${product.weight} g` : "Not specified"}</span></div>
                       </div>
-                      {item.variantName && <div className="cart-item-variant">{item.variantName}</div>}
+                      {variantLabel(item) && <div className="cart-item-variant">{variantLabel(item)}</div>}
                       <div>
                         <span className="cart-item-price">&#8377;{price.toFixed(2)}</span>
                         {originalPrice > price && <span className="cart-item-original-price">&#8377;{originalPrice.toFixed(2)}</span>}

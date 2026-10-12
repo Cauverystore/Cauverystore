@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { variantLabel } from "../utils/variant";
 import api from "../api/axios";
 
 const statusColors = {
@@ -203,7 +204,7 @@ const SellerOrders = () => {
                             <tbody>
                               {o.items?.map((item, idx) => (
                                 <tr key={idx} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                                  <td style={{ padding: "0.5rem", fontSize: "0.875rem" }}>{item.product?.name || "N/A"}</td>
+                                  <td style={{ padding: "0.5rem", fontSize: "0.875rem" }}>{item.product?.name || "N/A"}{variantLabel(item) ? ` (${variantLabel(item)})` : ""}</td>
                                   <td style={{ padding: "0.5rem", textAlign: "right", fontSize: "0.875rem" }}>{item.quantity}</td>
                                   <td style={{ padding: "0.5rem", textAlign: "right", fontSize: "0.875rem" }}>₹{item.price?.toLocaleString("en-IN") || "0"}</td>
                                 </tr>

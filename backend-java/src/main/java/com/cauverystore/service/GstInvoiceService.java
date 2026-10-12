@@ -351,7 +351,13 @@ public class GstInvoiceService {
 
             GstInvoiceItem item = new GstInvoiceItem();
             item.setInvoice(inv);
-            item.setProductName(p != null ? p.getName() : "Product");
+            String lineName = p != null ? p.getName() : "Product";
+            if (oi.getVariant() != null && oi.getVariant().getVariantValue() != null) {
+                // "Men's T-Shirt (Size: M)" - the buyer and the seller both need to see which one.
+                lineName += " (" + (oi.getVariant().getVariantType() != null ? oi.getVariant().getVariantType() + ": " : "")
+                        + oi.getVariant().getVariantValue() + ")";
+            }
+            item.setProductName(lineName);
             // The description printed on the invoice comes from the product's bill description
             // (Rule 46(b) calls for a description of the goods; a seller may want that text to
             // differ from the marketing name). Falls back to the product name when not set.

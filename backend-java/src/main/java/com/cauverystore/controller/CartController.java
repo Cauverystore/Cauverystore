@@ -28,9 +28,10 @@ public class CartController {
     @PostMapping("/add")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'SUPER_ADMIN')")
     public ResponseEntity<CartItem> addItem(@RequestParam Long productId,
+                                             @RequestParam(required = false) Long variantId,
                                              @RequestParam(defaultValue = "1") int quantity,
                                              @RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.ok(cartService.addItem(authHeader, productId, quantity));
+        return ResponseEntity.ok(cartService.addItem(authHeader, productId, variantId, quantity));
     }
 
     @DeleteMapping("/remove/{itemId}")
