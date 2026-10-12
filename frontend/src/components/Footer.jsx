@@ -72,7 +72,7 @@ const Footer = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
             <Link to="/about" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>About Cauvery Store</Link>
             <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
-            <Link to="/help" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Help Center</Link>
+            <Link to="/faq" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Help Center</Link>
             <Link to="/offers" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Offers & Deals</Link>
           </div>
         </div>
@@ -84,6 +84,7 @@ const Footer = () => {
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
             <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
+            <Link to="/faq" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>FAQ</Link>
             <Link to="/orders" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Your Orders</Link>
             {/* One link per policy: payment partners and shoppers look for each by name. */}
             <Link to="/refund-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Cancellations & Refunds</Link>
