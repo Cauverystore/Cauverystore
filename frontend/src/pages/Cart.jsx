@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { Heart, Trash2, Bookmark } from "lucide-react";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
+import ProductTray from "../components/ProductTray";
+import ProductRow from "../components/ProductRow";
 import { useWishlist } from "../context/WishlistContext";
 import { trackEvent } from "../utils/analytics";
 import "../styles/cart.css";
@@ -425,33 +427,16 @@ const Cart = () => {
             {!freqLoading && freqItemsToShow.length > 0 && (
               <div className="save-later-section">
                 <h3 className="save-later-title">Frequently Bought Together</h3>
-                <div className="save-later-grid">
-                  {freqItemsToShow.map((prod) => {
-                    const pid = prod.id || prod._id;
-                    const image = prod.image || prod.images?.[0] || "";
-                    return (
-                      <div key={pid} className="save-later-item">
-                        <div className="save-later-item-image">
-                          <CartItemImage src={image} name={prod.name} width={100} height={100} className="cart-item-img" />
-                        </div>
-                        <div className="save-later-item-body">
-                          <div className="save-later-item-title">{prod.name}</div>
-                          <div className="save-later-item-price">&#8377;{(prod.price || prod.dealPrice || 0).toFixed(2)}</div>
-                          <div style={{ display: "flex", gap: "4px", marginTop: "0.5rem" }}>
-                            <button className="save-later-item-move" onClick={() => addFreqToCart(pid)}
-                              disabled={isLoading(`freq-${pid}`)} style={{ flex: 1, fontSize: "0.72rem" }}>
-                              {isLoading(`freq-${pid}`) ? "Adding..." : "Add to Cart"}
-                            </button>
-                            <button className="save-later-item-move" onClick={() => buyNowFreq(pid)}
-                              disabled={isLoading(`freq-${pid}`)} style={{ flex: 1, fontSize: "0.72rem" }}>
-                              Buy Now
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <ProductRow>
+                  {freqItemsToShow.map((prod) => (
+                    <ProductTray
+                      key={prod.id || prod._id}
+                      product={prod}
+                      onAddToCart={(p) => addFreqToCart(p.id || p._id)}
+                      onBuyNow={(p) => buyNowFreq(p.id || p._id)}
+                    />
+                  ))}
+                </ProductRow>
               </div>
             )}
           </div>

@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Store, Truck, RotateCcw, ShieldCheck, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Store, Truck, RotateCcw, ShieldCheck, ArrowRight } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
+import ProductRow from "../components/ProductRow";
 import "../styles/shopnest-home.css";
 
 // The promises a first-time shopper looks for, stated once under the hero. Each one mirrors
@@ -37,55 +38,6 @@ function getCategoryName(p) {
   if (!p.category) return "";
   return typeof p.category === "object" ? (p.category.name || "") : p.category;
 }
-
-// A row of whole cards - none is ever cut off at the edge. The arrows page through the rest of
-// the row, so a shopper can see every product in it without opening "View all".
-const ProductRow = ({ children }) => {
-  const scroller = useRef(null);
-  const [can, setCan] = useState({ prev: false, next: false });
-  const count = React.Children.count(children);
-
-  const update = useCallback(() => {
-    const el = scroller.current;
-    if (!el) return;
-    setCan({ prev: el.scrollLeft > 4, next: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
-  }, []);
-
-  useEffect(() => {
-    update();
-    const el = scroller.current;
-    if (!el) return undefined;
-    el.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      el.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, [update, count]);
-
-  const page = (dir) => {
-    const el = scroller.current;
-    if (!el) return;
-    const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
-    el.scrollBy({ left: dir * (el.clientWidth + gap), behavior: "smooth" });
-  };
-
-  return (
-    <div className="sn-row">
-      {can.prev && (
-        <button type="button" className="sn-row-arrow sn-row-arrow-prev" onClick={() => page(-1)} aria-label="Show previous products">
-          <ChevronLeft size={22} />
-        </button>
-      )}
-      <div className="sn-product-scroll" ref={scroller}>{children}</div>
-      {can.next && (
-        <button type="button" className="sn-row-arrow sn-row-arrow-next" onClick={() => page(1)} aria-label="Show more products">
-          <ChevronRight size={22} />
-        </button>
-      )}
-    </div>
-  );
-};
 
 // How many products a row holds before "View all" takes over.
 const ROW_LIMIT = 15;
