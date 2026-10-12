@@ -124,7 +124,8 @@
 .pt-action-btn:hover { color: var(--pt-ink); transform: scale(1.08); }
 .pt-action-btn:active { transform: scale(0.94); }
 .pt-action-btn.wishlisted { color: #c2334d; }
-.pt-action-btn.compared { color: var(--color-primary, #0E5C5C); box-shadow: 0 0 0 1.5px var(--color-primary, #0E5C5C); }
+.pt-action-btn.compared,
+.pt-action-btn.saved { color: var(--color-primary, #0E5C5C); box-shadow: 0 0 0 1.5px var(--color-primary, #0E5C5C); }
 
 .pt-action-extra { width: 32px; height: 32px; margin-left: auto; }
 
@@ -133,7 +134,8 @@
   .pt-action-extra { opacity: 0; }
   .pt-card:hover .pt-action-extra,
   .pt-card:focus-within .pt-action-extra,
-  .pt-action-extra.compared { opacity: 1; }
+  .pt-action-extra.compared,
+  .pt-action-extra.saved { opacity: 1; }
 }
 
 .pt-copied {

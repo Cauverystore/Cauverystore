@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Heart, Share2, ShoppingCart, Zap, ArrowRightCircle, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Bookmark, Share2, ShoppingCart, Zap, ArrowRightCircle, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
+import api from "../api/axios";
 import { useWishlist } from "../context/WishlistContext";
 import { imgUrl } from "../utils/images";
 import { trackSelectItem, trackAddToCart } from "../utils/analytics";
@@ -65,6 +66,8 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const [removing, setRemoving] = useState(false);
   const [compared, setCompared] = useState(() => isCompared(product));
   const [linkCopied, setLinkCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const pid = product?.id || product?._id;
   const name = product?.name || "Product";
@@ -175,6 +178,21 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
     toggleWishlist(pid);
   };
 
+  // "Save for later" is the cart's own holding list, separate from the wishlist: the item is
+  // put in the cart and moved straight to its saved section.
+  const handleSaveForLater = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) { navigate("/login"); return; }
+    if (saving || saved) return;
+    setSaving(true);
+    try {
+      const { data: cartItem } = await api.post(`/api/cart/add?productId=${pid}&quantity=1`);
+      await api.post(`/api/cart/save-for-later/${cartItem.id}`);
+      setSaved(true);
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
   const handleCompare = () => {
     const next = toggleCompare(product);
     setCompared(next.some((p) => String(p.id ?? p._id) === String(pid)));
@@ -222,6 +240,19 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
             >
               <Heart size={18} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
             </button>
+            {inStock && (
+              <button
+                type="button"
+                className={`pt-action-btn pt-action-extra ${saved ? "saved" : ""}`}
+                onClick={handleSaveForLater}
+                disabled={saving}
+                aria-pressed={saved}
+                aria-label={saved ? `${name} saved for later` : `Save ${name} for later`}
+                title={saved ? "Saved for later" : "Save for later"}
+              >
+                <Bookmark size={16} strokeWidth={1.8} fill={saved ? "currentColor" : "none"} />
+              </button>
+            )}
             <button
               type="button"
               className="pt-action-btn pt-action-extra"
