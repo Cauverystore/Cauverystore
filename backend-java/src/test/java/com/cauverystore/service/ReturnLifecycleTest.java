@@ -282,8 +282,8 @@ class ReturnLifecycleTest {
 
         service.updateStatus(1L, ReturnRequestService.COMPLETED);
 
-        verify(inventoryService).restoreStock(a, 1);
-        verify(inventoryService).restoreStock(b, 4);
+        verify(inventoryService).restoreStock(a, null, 1);
+        verify(inventoryService).restoreStock(b, null, 4);
     }
 
     @Test

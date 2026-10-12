@@ -16,11 +16,36 @@ public class InventoryService {
     private final InventoryRepository inventoryRepo;
     private final ProductRepository productRepo;
     private final ProductService productService;
+    private final com.cauverystore.repository.ProductVariantRepository variantRepo;
 
-    public InventoryService(InventoryRepository inventoryRepo, ProductRepository productRepo, ProductService productService) {
+    public InventoryService(InventoryRepository inventoryRepo, ProductRepository productRepo, ProductService productService,
+                            com.cauverystore.repository.ProductVariantRepository variantRepo) {
         this.inventoryRepo = inventoryRepo;
         this.productRepo = productRepo;
         this.productService = productService;
+        this.variantRepo = variantRepo;
+    }
+
+    // An order line for a chosen size takes stock from that size AND from the product's total,
+    // which is what the storefront shows as "in stock" / "only N left".
+    @Transactional
+    public void deductStock(Product product, com.cauverystore.entities.ProductVariant variant, int qty) {
+        if (variant != null) {
+            int updated = variantRepo.decrementStockIfAvailable(variant.getId(), qty);
+            if (updated == 0) {
+                throw new RuntimeException("Insufficient stock for " + product.getName()
+                        + " (" + variant.getVariantValue() + ")");
+            }
+        }
+        deductStock(product, qty);
+    }
+
+    @Transactional
+    public void restoreStock(Product product, com.cauverystore.entities.ProductVariant variant, int qty) {
+        if (variant != null) {
+            variantRepo.incrementStock(variant.getId(), qty);
+        }
+        restoreStock(product, qty);
     }
 
     public Inventory addStock(Inventory inventory) {

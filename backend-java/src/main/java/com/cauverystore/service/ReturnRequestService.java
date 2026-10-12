@@ -335,7 +335,7 @@ public class ReturnRequestService {
             if (rr.getOrder() != null && rr.getOrder().getItems() != null) {
                 for (OrderItem item : rr.getOrder().getItems()) {
                     if (item.getProduct() != null) {
-                        inventoryService.restoreStock(item.getProduct(), item.getQuantity());
+                        inventoryService.restoreStock(item.getProduct(), item.getVariant(), item.getQuantity());
                     }
                 }
             }

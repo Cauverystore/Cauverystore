@@ -88,6 +88,8 @@ public class SellerController {
         }
         product.setSellerId(sellerId);
         product.setActive(true);
+        // A seller's listing is reviewed before shoppers see it; only an admin can approve.
+        product.setApprovalStatus("pending");
         if (product.getProductStatus() == null) product.setProductStatus("published");
         return ResponseEntity.ok(productService.addProduct(product));
     }
@@ -101,6 +103,8 @@ public class SellerController {
         } catch (Exception e) {
             return ResponseEntity.status(403).body(Map.of("error", "Not your product"));
         }
+        // A seller cannot approve their own listing by sending the field in an edit.
+        product.setApprovalStatus(null);
         return ResponseEntity.ok(productService.updateProduct(id, product));
     }
 

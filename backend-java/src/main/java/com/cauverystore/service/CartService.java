@@ -3,6 +3,7 @@ package com.cauverystore.service;
 import com.cauverystore.entities.Cart;
 import com.cauverystore.entities.CartItem;
 import com.cauverystore.entities.Product;
+import com.cauverystore.entities.ProductVariant;
 import com.cauverystore.entities.User;
 
 import java.util.List;
@@ -13,6 +14,8 @@ public interface CartService {
     Cart getCart(User user);
 
     Cart addItem(User user, Product product, int quantity);
+
+    Cart addItem(User user, Product product, ProductVariant variant, int quantity);
 
     Cart removeItem(User user, Long cartItemId);
 
@@ -29,6 +32,8 @@ public interface CartService {
     Map<String, Object> getCartWithDetails(String authHeader);
 
     CartItem addItem(String authHeader, Long productId, int quantity);
+
+    CartItem addItem(String authHeader, Long productId, Long variantId, int quantity);
 
     void removeItem(String authHeader, Long itemId);
 

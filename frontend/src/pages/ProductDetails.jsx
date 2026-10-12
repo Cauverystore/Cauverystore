@@ -54,17 +54,25 @@ const ProductDetails = () => {
     if (product) trackViewItem(product);
   }, [product]);
 
+  // A product sold in sizes goes into the cart as the chosen size, never as "a t-shirt".
+  const hasVariants = (product?.variants || []).length > 0;
+  const chosenVariantId = hasVariants ? (selectedVariant?.id ?? selectedVariant?._id ?? null) : null;
+  const variantWord = (product?.variants?.[0]?.variantType || "option").toLowerCase();
+
+  const flash = (text) => { setCartMsg(text); setTimeout(() => setCartMsg(""), 2500); };
+
   const handleAddToCart = async () => {
-    const res = await addToCartOrLogin(navigate, product, quantity);
+    if (hasVariants && chosenVariantId == null) { flash(`Please choose a ${variantWord} first.`); return; }
+    const res = await addToCartOrLogin(navigate, product, quantity, chosenVariantId);
     if (res.needLogin) return;
-    setCartMsg(res.ok ? "Added to your cart" : "We couldn't add that to your cart. Please try again.");
-    setTimeout(() => setCartMsg(""), 2000);
+    flash(res.ok ? "Added to your cart" : (res.message || "We couldn't add that to your cart. Please try again."));
   };
 
   const handleBuyNow = async () => {
-    const res = await addToCartOrLogin(navigate, product, quantity);
+    if (hasVariants && chosenVariantId == null) { flash(`Please choose a ${variantWord} first.`); return; }
+    const res = await addToCartOrLogin(navigate, product, quantity, chosenVariantId);
     if (res.ok) navigate("/checkout");
-    else if (!res.needLogin) { setCartMsg("We couldn't start checkout. Please try again."); setTimeout(() => setCartMsg(""), 2000); }
+    else if (!res.needLogin) flash(res.message || "We couldn't start checkout. Please try again.");
   };
 
   // The same two actions, for a card in the "You may also like" row.

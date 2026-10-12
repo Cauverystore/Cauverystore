@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { variantLabel } from "../utils/variant";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
@@ -188,7 +189,7 @@ const Orders = () => {
                           <div className="order-card-item-info">
                             <div className="order-card-item-name">{item.productName || "Product"}</div>
                             <div className="order-card-item-meta">
-                              Qty: {item.quantity || 1} x &#8377;{(item.price || 0).toFixed(2)}
+                              {variantLabel(item) ? `${variantLabel(item)} · ` : ""}Qty: {item.quantity || 1} x &#8377;{(item.price || 0).toFixed(2)}
                             </div>
                           </div>
                           <div className="order-card-item-total">

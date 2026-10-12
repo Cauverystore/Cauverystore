@@ -34,26 +34,26 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByCategoryAndActiveTrue(Category category);
 
-    @Query("SELECT p FROM Product p WHERE p.active=true AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%',:name,'%'))) AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
+    @Query("SELECT p FROM Product p WHERE p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved') AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%',:name,'%'))) AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
     Page<Product> searchProducts(@Param("name") String name,
                                  @Param("minPrice") Double minPrice,
                                  @Param("maxPrice") Double maxPrice,
                                  Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE p.active=true AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%',:name,'%'))) AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice) AND (:category IS NULL OR p.category = :category)")
+    @Query("SELECT p FROM Product p WHERE p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved') AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%',:name,'%'))) AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice) AND (:category IS NULL OR p.category = :category)")
     Page<Product> searchProductsByCategory(@Param("name") String name,
                                            @Param("minPrice") Double minPrice,
                                            @Param("maxPrice") Double maxPrice,
                                            @Param("category") Category category,
                                            Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE p.active=true AND (:category IS NULL OR p.category = :category) AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
+    @Query("SELECT p FROM Product p WHERE p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved') AND (:category IS NULL OR p.category = :category) AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
     Page<Product> searchAllByCategory(@Param("category") Category category,
                                       @Param("minPrice") Double minPrice,
                                       @Param("maxPrice") Double maxPrice,
                                       Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE p.active=true AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
+    @Query("SELECT p FROM Product p WHERE p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved') AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
     Page<Product> searchAllProducts(@Param("minPrice") Double minPrice,
                                     @Param("maxPrice") Double maxPrice,
                                     Pageable pageable);

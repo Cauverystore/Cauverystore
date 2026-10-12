@@ -9,19 +9,20 @@ const loginRedirectPath = () => {
 
 export const requireLogin = (navigate) => navigate(loginRedirectPath());
 
-export const addToCartOrLogin = async (navigate, product, quantity = 1) => {
+export const addToCartOrLogin = async (navigate, product, quantity = 1, variantId = null) => {
   if (!isLoggedIn()) {
     requireLogin(navigate);
     return { needLogin: true };
   }
   try {
-    await addToCart(product.id || product._id, quantity);
+    await addToCart(product.id || product._id, quantity, variantId);
     return { ok: true };
   } catch (err) {
     if (err?.response?.status === 401 || err?.response?.status === 403) {
       requireLogin(navigate);
       return { needLogin: true };
     }
-    return { ok: false };
+    // The server explains refusals in plain words ("Not enough stock available").
+    return { ok: false, message: err?.response?.data?.error || err?.response?.data?.message || "" };
   }
 };
