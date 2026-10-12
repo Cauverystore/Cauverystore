@@ -127,26 +127,8 @@
 .pt-action-btn.compared,
 .pt-action-btn.saved { color: var(--color-primary, #0E5C5C); box-shadow: 0 0 0 1.5px var(--color-primary, #0E5C5C); }
 
-.pt-action-extra,
-.pt-action-more { width: 32px; height: 32px; margin-left: auto; }
-
-/* Save, share and compare are secondary. With a mouse they appear on hover. On a touch screen
-   they stay folded behind the "more" button so the photo is not covered. */
-.pt-action-more { display: none; }
-
-@media (hover: none) {
-  .pt-action-more { display: flex; }
-  .pt-action-extra { display: none; }
-  .pt-quick-actions.open .pt-action-extra { display: flex; }
-}
-
-@media (hover: hover) {
-  .pt-action-extra { opacity: 0; }
-  .pt-card:hover .pt-action-extra,
-  .pt-card:focus-within .pt-action-extra,
-  .pt-action-extra.compared,
-  .pt-action-extra.saved { opacity: 1; }
-}
+/* All four are shown on every card, all the time - nothing appears only on hover. */
+.pt-action-extra { width: 32px; height: 32px; margin-left: auto; }
 
 /* ─── Button name on hover ─── */
 .pt-action-btn,
@@ -184,7 +166,7 @@
 .pt-copied {
   position: absolute;
   left: 50%;
-  bottom: 28px;
+  bottom: 8px;
   z-index: 3;
   transform: translateX(-50%);
   padding: 5px 10px;
@@ -197,51 +179,41 @@
   animation: ptFadeIn 0.2s ease both;
 }
 
-/* ─── Photo gallery ─── */
+/* ─── Photo controls: a bar right under the photo ─── */
+.pt-gallery-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
 .pt-gallery-nav {
-  position: absolute;
-  top: 50%;
-  z-index: 3;
-  width: 30px;
-  height: 30px;
-  margin-top: -15px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 1px 3px rgba(14, 60, 60, 0.18);
-  color: var(--pt-ink);
-  display: none;
+  background: none;
+  color: var(--pt-text);
+  display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s ease, background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.pt-gallery-nav-prev { left: 8px; }
-.pt-gallery-nav-next { right: 8px; }
 .pt-gallery-nav:hover { background: var(--color-primary, #0E5C5C); color: #fff; }
 
-/* Arrows are for a mouse; phones swipe the photo instead. */
-@media (hover: hover) {
-  .pt-gallery-nav { display: flex; }
-  .pt-card:hover .pt-gallery-nav,
-  .pt-gallery-nav:focus-visible { opacity: 1; }
-}
+.pt-gallery-dots { display: flex; }
 
-.pt-gallery-dots {
-  position: absolute;
-  left: 50%;
-  bottom: 4px;
-  z-index: 3;
-  transform: translateX(-50%);
-  display: flex;
-}
-
-/* The visible dot is 6px; the button around it is 18px so it can be tapped. */
+/* The visible dot is 6px; the button around it is larger so it can be tapped. */
 .pt-gallery-dot {
   width: 14px;
-  height: 18px;
+  height: 24px;
   padding: 0;
   border: none;
   background: none;
@@ -264,12 +236,11 @@
 
 /* ─── Body ─── */
 .pt-body {
-  padding: 10px 12px 12px;
+  padding: 2px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   flex: 1;
-  border-top: 1px solid var(--pt-rule);
 }
 
 .pt-brand {
@@ -436,7 +407,7 @@
 /* ─── Phones ─── */
 @media (max-width: 480px) {
   .pt-card { border-radius: 12px; }
-  .pt-body { padding: 8px 9px 10px; gap: 3px; }
+  .pt-body { padding: 0 9px 10px; gap: 3px; }
   .pt-image { padding: 6px; }
   .pt-brand { font-size: 10px; }
   .pt-name { font-size: 13px; }
@@ -445,8 +416,10 @@
   .pt-meta { font-size: 11px; min-height: 17px; }
   .pt-badge, .pt-out-label { top: 6px; left: 6px; padding: 3px 7px; font-size: 10px; }
   .pt-quick-actions { top: 6px; right: 6px; gap: 5px; }
-  .pt-action-btn { width: 32px; height: 32px; }
-  .pt-action-extra, .pt-action-more { width: 30px; height: 30px; }
+  .pt-quick-actions { gap: 4px; }
+  .pt-action-btn { width: 30px; height: 30px; }
+  .pt-action-extra { width: 28px; height: 28px; }
+  .pt-action-btn svg { width: 15px; height: 15px; }
   /* Thumb-sized buttons: a little taller than on desktop. */
   .pt-btn { min-height: 38px; font-size: 12.5px; }
   .pt-btn-cart { flex-basis: 38px; }
