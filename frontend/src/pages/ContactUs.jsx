@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Mail, Phone, MapPin, Send, Loader } from "lucide-react";
 import homeService from "../services/homeService";
 import "../styles/contactUs.css";
@@ -47,6 +48,16 @@ const ContactUs = () => {
 
   return (
     <div className="contact-page">
+      <Helmet>
+        <title>Contact Us | Cauvery Store</title>
+        <meta name="description" content="Contact Cauvery Store for help with an order, delivery, returns or selling on the marketplace. Email support@cauverystore.in, Monday to Saturday, 9 AM to 6 PM." />
+        <link rel="canonical" href="https://cauverystore.in/contact" />
+        <meta property="og:title" content="Contact Cauvery Store" />
+        <meta property="og:description" content="Questions about an order, delivery, returns or selling? Reach the Cauvery Store team." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://cauverystore.in/contact" />
+        <meta property="og:image" content="https://cauverystore.in/logo512.png" />
+      </Helmet>
       <div className="contact-header">
         <h1>Contact Us</h1>
         <p>Have a question or feedback? We would love to hear from you.</p>
