@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Heart, Bookmark, Share2, MoreHorizontal, X, ShoppingCart, Zap, ArrowRightCircle, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Bookmark, Share2, ShoppingCart, Zap, ArrowRightCircle, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../api/axios";
 import { useWishlist } from "../context/WishlistContext";
 import { imgUrl } from "../utils/images";
@@ -10,7 +10,7 @@ import "../styles/product-tray.css";
 
 /*
  * The Cauvery Store product card. One standard for every list on the site:
- *   photo gallery > brand > title > rating > price > delivery / returns / stock line > Add to cart + Buy now.
+ *   photo > photo controls > brand > title > rating > price > delivery / returns / stock line > Add to cart + Buy now.
  * Everything shown comes from the product record - no guessed badges, ratings or urgency.
  */
 
@@ -68,8 +68,6 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const [linkCopied, setLinkCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  // Phones show the heart plus a "more" button; save, share and compare open from it.
-  const [moreOpen, setMoreOpen] = useState(false);
 
   const pid = product?.id || product?._id;
   const name = product?.name || "Product";
@@ -231,8 +229,39 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         {tag && inStock && <span className="pt-badge">{tag}</span>}
         {!inStock && <span className="pt-out-label">Out of stock</span>}
 
+        {linkCopied && <span className="pt-copied" role="status">Link copied</span>}
+
+      </div>
+
+      {/* One strip right under the photo: photo controls on the left (when there is more than one
+          photo), then wishlist, save for later, share and compare. Nothing sits on the photo. */}
+      <div className="pt-gallery-bar">
+        <div className="pt-gallery-controls">
+        {images.length > 1 && (
+          <>
+            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown - 1)} aria-label="Previous photo">
+              <ChevronLeft size={16} />
+            </button>
+            <div className="pt-gallery-dots">
+              {images.map((_, i) => (
+                <button
+                  type="button"
+                  key={i}
+                  className={`pt-gallery-dot ${i === shown ? "active" : ""}`}
+                  onClick={() => showImage(i)}
+                  aria-label={`Photo ${i + 1} of ${images.length}`}
+                  aria-current={i === shown}
+                />
+              ))}
+            </div>
+            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown + 1)} aria-label="Next photo">
+              <ChevronRight size={16} />
+            </button>
+          </>
+        )}
+        </div>
         {quickActions && (
-          <div className={`pt-quick-actions ${moreOpen ? "open" : ""}`}>
+          <div className="pt-quick-actions">
             <button
               type="button"
               className={`pt-action-btn ${wishlisted ? "wishlisted" : ""}`}
@@ -241,16 +270,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
               data-tip={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
-              <Heart size={18} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
-            </button>
-            <button
-              type="button"
-              className="pt-action-btn pt-action-more"
-              onClick={() => setMoreOpen((o) => !o)}
-              aria-expanded={moreOpen}
-              aria-label={moreOpen ? "Hide more actions" : `More actions for ${name}`}
-            >
-              {moreOpen ? <X size={16} strokeWidth={1.8} /> : <MoreHorizontal size={16} strokeWidth={1.8} />}
+              <Heart size={16} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
             </button>
             {inStock && (
               <button
@@ -282,33 +302,9 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               aria-label={compared ? `Remove ${name} from compare` : `Add ${name} to compare`}
               data-tip={compared ? "Remove from compare" : "Compare"}
             >
-              <GitCompareArrows size={17} strokeWidth={1.8} />
+              <GitCompareArrows size={16} strokeWidth={1.8} />
             </button>
           </div>
-        )}
-        {linkCopied && <span className="pt-copied" role="status">Link copied</span>}
-
-        {images.length > 1 && (
-          <>
-            <button type="button" className="pt-gallery-nav pt-gallery-nav-prev" onClick={() => showImage(shown - 1)} aria-label="Previous photo">
-              <ChevronLeft size={18} />
-            </button>
-            <button type="button" className="pt-gallery-nav pt-gallery-nav-next" onClick={() => showImage(shown + 1)} aria-label="Next photo">
-              <ChevronRight size={18} />
-            </button>
-            <div className="pt-gallery-dots">
-              {images.map((_, i) => (
-                <button
-                  type="button"
-                  key={i}
-                  className={`pt-gallery-dot ${i === shown ? "active" : ""}`}
-                  onClick={() => showImage(i)}
-                  aria-label={`Photo ${i + 1} of ${images.length}`}
-                  aria-current={i === shown}
-                />
-              ))}
-            </div>
-          </>
         )}
       </div>
 

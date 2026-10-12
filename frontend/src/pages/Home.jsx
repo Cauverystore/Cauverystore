@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Store, Truck, RotateCcw, ShieldCheck, ArrowRight } from "lucide-react";
+import { Store, Truck, RotateCcw, ShieldCheck, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
@@ -38,6 +38,58 @@ function getCategoryName(p) {
   return typeof p.category === "object" ? (p.category.name || "") : p.category;
 }
 
+// A row of whole cards - none is ever cut off at the edge. The arrows page through the rest of
+// the row, so a shopper can see every product in it without opening "View all".
+const ProductRow = ({ children }) => {
+  const scroller = useRef(null);
+  const [can, setCan] = useState({ prev: false, next: false });
+  const count = React.Children.count(children);
+
+  const update = useCallback(() => {
+    const el = scroller.current;
+    if (!el) return;
+    setCan({ prev: el.scrollLeft > 4, next: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+  }, []);
+
+  useEffect(() => {
+    update();
+    const el = scroller.current;
+    if (!el) return undefined;
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [update, count]);
+
+  const page = (dir) => {
+    const el = scroller.current;
+    if (!el) return;
+    const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+    el.scrollBy({ left: dir * (el.clientWidth + gap), behavior: "smooth" });
+  };
+
+  return (
+    <div className="sn-row">
+      {can.prev && (
+        <button type="button" className="sn-row-arrow sn-row-arrow-prev" onClick={() => page(-1)} aria-label="Show previous products">
+          <ChevronLeft size={22} />
+        </button>
+      )}
+      <div className="sn-product-scroll" ref={scroller}>{children}</div>
+      {can.next && (
+        <button type="button" className="sn-row-arrow sn-row-arrow-next" onClick={() => page(1)} aria-label="Show more products">
+          <ChevronRight size={22} />
+        </button>
+      )}
+    </div>
+  );
+};
+
+// How many products a row holds before "View all" takes over.
+const ROW_LIMIT = 15;
+
 const Home = () => {
   const navigate = useNavigate();
   const [allProducts, setAllProducts] = useState(null);
@@ -65,9 +117,9 @@ const Home = () => {
   const products = allProducts || [];
   const normalized = useMemo(() => products.map(normalizeProduct).filter(Boolean), [products]);
 
-  const productsWithDiscount = useMemo(() => normalized.filter(p => p.discount > 0).slice(0, 6), [normalized]);
-  const electronics = useMemo(() => normalized.filter(p => getCategoryName(p) === "Electronics").slice(0, 6), [normalized]);
-  const fashion = useMemo(() => normalized.filter(p => getCategoryName(p) === "Fashion").slice(0, 4), [normalized]);
+  const productsWithDiscount = useMemo(() => normalized.filter(p => p.discount > 0).slice(0, ROW_LIMIT), [normalized]);
+  const electronics = useMemo(() => normalized.filter(p => getCategoryName(p) === "Electronics").slice(0, ROW_LIMIT), [normalized]);
+  const fashion = useMemo(() => normalized.filter(p => getCategoryName(p) === "Fashion").slice(0, ROW_LIMIT), [normalized]);
 
   const handleCart = useCallback(async (p) => {
     const isLoggedIn = !!localStorage.getItem("accessToken");
@@ -171,11 +223,11 @@ const Home = () => {
             <h2 className="sn-section-title">Discounted now</h2>
             <Link className="sn-view-all" to="/offers">View all offers {"\u2192"}</Link>
           </div>
-          <div className="sn-product-scroll">
+          <ProductRow>
             {productsWithDiscount.length > 0
               ? productsWithDiscount.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)
               : [...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}
-          </div>
+          </ProductRow>
         </div>
       </section>
       )}
@@ -187,11 +239,11 @@ const Home = () => {
             <Link className="sn-view-all" to="/products">View all {"\u2192"}</Link>
           </div>
           {loading ? (
-            <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
+            <ProductRow>{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</ProductRow>
           ) : normalized.length > 0 ? (
-            <div className="sn-product-scroll">
-              {normalized.slice(0, 6).map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
-            </div>
+            <ProductRow>
+              {normalized.slice(0, ROW_LIMIT).map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
+            </ProductRow>
           ) : (
             <div className="sn-empty-section">
               <p className="sn-empty-title">Our sellers are adding their first products</p>
@@ -212,11 +264,11 @@ const Home = () => {
             <Link className="sn-view-all" to="/category/Electronics">View all {"\u2192"}</Link>
           </div>
           {loading ? (
-            <div className="sn-product-scroll">{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
+            <ProductRow>{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</ProductRow>
           ) : electronics.length > 0 ? (
-            <div className="sn-product-scroll">
+            <ProductRow>
               {electronics.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
-            </div>
+            </ProductRow>
           ) : null}
         </div>
       </section>
@@ -230,20 +282,16 @@ const Home = () => {
             <Link className="sn-view-all" to="/category/Fashion">View all {"\u2192"}</Link>
           </div>
           {loading ? (
-            <div className="sn-product-scroll">{[...Array(4)].map((_, i) => <LoadingSkeleton key={i} />)}</div>
+            <ProductRow>{[...Array(4)].map((_, i) => <LoadingSkeleton key={i} />)}</ProductRow>
           ) : fashion.length > 0 ? (
-            <div className="sn-product-scroll">
+            <ProductRow>
               {fashion.map(p => <ProductTray key={p.id} product={p} onAddToCart={handleCart} onBuyNow={handleBuyNow} />)}
-            </div>
+            </ProductRow>
           ) : null}
         </div>
       </section>
       )}
 
-      <style>{`
-        .sn-product-scroll .pt-card { width: 200px; flex-shrink: 0; }
-        .sn-product-scroll .pt-skeleton { width: 200px; flex-shrink: 0; }
-      `}</style>
     </div>
   );
 };
