@@ -36,7 +36,7 @@
 /* ─── Image ─── */
 .pt-image-wrap {
   position: relative;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 5 / 4;
   background: #fff;
   overflow: hidden;
   flex-shrink: 0;
@@ -46,7 +46,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 12px;
+  padding: 10px;
   opacity: 0;
   transition: opacity 0.2s ease, transform 0.35s ease;
 }
@@ -127,9 +127,19 @@
 .pt-action-btn.compared,
 .pt-action-btn.saved { color: var(--color-primary, #0E5C5C); box-shadow: 0 0 0 1.5px var(--color-primary, #0E5C5C); }
 
-.pt-action-extra { width: 32px; height: 32px; margin-left: auto; }
+.pt-action-extra,
+.pt-action-more { width: 32px; height: 32px; margin-left: auto; }
 
-/* Share and compare are secondary: with a mouse they appear on hover; on touch screens they stay visible. */
+/* Save, share and compare are secondary. With a mouse they appear on hover. On a touch screen
+   they stay folded behind the "more" button so the photo is not covered. */
+.pt-action-more { display: none; }
+
+@media (hover: none) {
+  .pt-action-more { display: flex; }
+  .pt-action-extra { display: none; }
+  .pt-quick-actions.open .pt-action-extra { display: flex; }
+}
+
 @media (hover: hover) {
   .pt-action-extra { opacity: 0; }
   .pt-card:hover .pt-action-extra,
@@ -169,8 +179,7 @@
 }
 .pt-action-btn[data-tip]:focus-visible::after { opacity: 1; }
 
-/* The cart button only needs a name while it is icon-only (see the @container rule below). */
-.pt-btn-cart[data-tip]::after { display: none; left: 0; bottom: calc(100% + 8px); }
+.pt-btn-cart[data-tip]::after { left: 0; bottom: calc(100% + 8px); }
 
 .pt-copied {
   position: absolute;
@@ -255,14 +264,12 @@
 
 /* ─── Body ─── */
 .pt-body {
-  padding: 12px 14px 14px;
+  padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
   border-top: 1px solid var(--pt-rule);
-  /* Lets the buttons adapt to the card's own width, wherever the card is placed. */
-  container-type: inline-size;
 }
 
 .pt-brand {
@@ -279,7 +286,7 @@
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.35;
   letter-spacing: 0;
   color: var(--pt-ink);
   display: -webkit-box;
@@ -287,7 +294,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   /* Two lines reserved, so prices and buttons line up across a row of cards. */
-  min-height: calc(2 * 1.4em);
+  min-height: calc(2 * 1.35em);
 }
 
 .pt-link { color: inherit; text-decoration: none; outline: none; }
@@ -324,23 +331,24 @@
   font-variant-numeric: tabular-nums;
 }
 
-.pt-price { font-size: 18px; font-weight: 700; color: var(--pt-ink); letter-spacing: -0.01em; }
+.pt-price { font-size: 17px; font-weight: 700; color: var(--pt-ink); letter-spacing: -0.01em; }
 
 .pt-original-price { font-size: 13px; color: var(--pt-muted); text-decoration: line-through; }
 
 /* ─── Delivery / stock line ─── */
+/* Always one line, so every card in a row is the same height. */
 .pt-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 6px;
   min-height: 18px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--pt-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.pt-meta-item + .pt-meta-item::before { content: "\00b7"; margin-right: 6px; color: var(--pt-muted); }
-.pt-meta-low { flex-basis: 100%; color: #9a5b00; font-weight: 600; }
+.pt-meta > * + *::before { content: "\00b7"; margin: 0 5px; color: var(--pt-muted); font-weight: 400; }
+.pt-meta-low { color: #9a5b00; font-weight: 600; }
 
 /* ─── Buttons ─── */
 .pt-actions {
@@ -349,7 +357,7 @@
   display: flex;
   gap: 8px;
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 .pt-actions-stacked { flex-direction: column; gap: 6px; }
@@ -361,7 +369,7 @@
   gap: 6px;
   flex: 1 1 0;
   min-width: 0;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 10px;
   white-space: nowrap;
   border: none;
@@ -386,15 +394,12 @@
 .pt-btn-cart:hover:not(:disabled) { background: rgba(14, 92, 92, 0.08); }
 .pt-btn-cart:disabled { opacity: 0.6; }
 
-/* On a narrow card the cart button shrinks to its icon so "Buy now" keeps its full label. */
-@container (max-width: 240px) {
-  .pt-btn-cart { flex: 0 0 40px; padding: 0; }
-  .pt-btn-cart .pt-btn-label { display: none; }
-  .pt-btn-cart[data-tip]::after { display: block; }
-  .pt-btn-cart[data-tip]:focus-visible::after { opacity: 1; }
-  @media (hover: hover) {
-    .pt-btn-cart[data-tip]:hover::after { opacity: 1; }
-  }
+/* The cart button is a square icon on every card size, so "Buy now" always keeps its full label. */
+.pt-btn-cart { flex: 0 0 36px; padding: 0; }
+.pt-btn-cart .pt-btn-label { display: none; }
+.pt-btn-cart[data-tip]:focus-visible::after { opacity: 1; }
+@media (hover: hover) {
+  .pt-btn-cart[data-tip]:hover::after { opacity: 1; }
 }
 
 .pt-btn-remove { background: transparent; color: var(--pt-text); min-height: 32px; font-weight: 500; }
@@ -416,7 +421,7 @@
   animation: ptShimmer 1.5s infinite;
 }
 
-.pt-skel-img { aspect-ratio: 1 / 1; }
+.pt-skel-img { aspect-ratio: 5 / 4; }
 
 .pt-skel-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 
@@ -426,13 +431,26 @@
 .pt-skel-line.w50 { width: 50%; }
 .pt-skel-line.w40 { width: 40%; }
 
-.pt-skel-btn { height: 40px; border-radius: 999px; margin-top: 4px; }
+.pt-skel-btn { height: 36px; border-radius: 999px; margin-top: 4px; }
 
+/* ─── Phones ─── */
 @media (max-width: 480px) {
-  .pt-body { padding: 10px 10px 12px; }
-  .pt-image { padding: 8px; }
-  .pt-price { font-size: 16px; }
+  .pt-card { border-radius: 12px; }
+  .pt-body { padding: 8px 9px 10px; gap: 3px; }
+  .pt-image { padding: 6px; }
+  .pt-brand { font-size: 10px; }
   .pt-name { font-size: 13px; }
+  .pt-price { font-size: 16px; }
+  .pt-original-price { font-size: 12px; }
+  .pt-meta { font-size: 11px; min-height: 17px; }
+  .pt-badge, .pt-out-label { top: 6px; left: 6px; padding: 3px 7px; font-size: 10px; }
+  .pt-quick-actions { top: 6px; right: 6px; gap: 5px; }
+  .pt-action-btn { width: 32px; height: 32px; }
+  .pt-action-extra, .pt-action-more { width: 30px; height: 30px; }
+  /* Thumb-sized buttons: a little taller than on desktop. */
+  .pt-btn { min-height: 38px; font-size: 12.5px; }
+  .pt-btn-cart { flex-basis: 38px; }
+  .pt-skel-btn { height: 38px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -443,6 +461,10 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-4, 16px);
+}
+
+@media (max-width: 480px) {
+  .pt-grid { gap: 10px; }
 }
 
 @media (min-width: 640px) {
