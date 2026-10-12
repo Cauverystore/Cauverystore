@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Heart, Bookmark, Share2, ShoppingCart, Zap, ArrowRightCircle, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Bookmark, Share2, MoreHorizontal, X, ShoppingCart, Zap, ArrowRightCircle, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../api/axios";
 import { useWishlist } from "../context/WishlistContext";
 import { imgUrl } from "../utils/images";
@@ -68,6 +68,8 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const [linkCopied, setLinkCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Phones show the heart plus a "more" button; save, share and compare open from it.
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const pid = product?.id || product?._id;
   const name = product?.name || "Product";
@@ -230,15 +232,25 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         {!inStock && <span className="pt-out-label">Out of stock</span>}
 
         {quickActions && (
-          <div className="pt-quick-actions">
+          <div className={`pt-quick-actions ${moreOpen ? "open" : ""}`}>
             <button
               type="button"
               className={`pt-action-btn ${wishlisted ? "wishlisted" : ""}`}
               onClick={handleWishlist}
               aria-pressed={wishlisted}
               aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
+              data-tip={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <Heart size={18} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
+            </button>
+            <button
+              type="button"
+              className="pt-action-btn pt-action-more"
+              onClick={() => setMoreOpen((o) => !o)}
+              aria-expanded={moreOpen}
+              aria-label={moreOpen ? "Hide more actions" : `More actions for ${name}`}
+            >
+              {moreOpen ? <X size={16} strokeWidth={1.8} /> : <MoreHorizontal size={16} strokeWidth={1.8} />}
             </button>
             {inStock && (
               <button
@@ -248,7 +260,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
                 disabled={saving}
                 aria-pressed={saved}
                 aria-label={saved ? `${name} saved for later` : `Save ${name} for later`}
-                title={saved ? "Saved for later" : "Save for later"}
+                data-tip={saved ? "Saved for later" : "Save for later"}
               >
                 <Bookmark size={16} strokeWidth={1.8} fill={saved ? "currentColor" : "none"} />
               </button>
@@ -258,7 +270,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               className="pt-action-btn pt-action-extra"
               onClick={handleShare}
               aria-label={`Share ${name}`}
-              title={linkCopied ? "Link copied" : "Share"}
+              data-tip={linkCopied ? "Link copied" : "Share"}
             >
               <Share2 size={16} strokeWidth={1.8} />
             </button>
@@ -268,7 +280,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               onClick={handleCompare}
               aria-pressed={compared}
               aria-label={compared ? `Remove ${name} from compare` : `Add ${name} to compare`}
-              title="Compare"
+              data-tip={compared ? "Remove from compare" : "Compare"}
             >
               <GitCompareArrows size={17} strokeWidth={1.8} />
             </button>
@@ -318,9 +330,10 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
 
         <div className="pt-meta">
           {/* Matches the cart rule: delivery is free on orders of 500 or more. */}
+          {/* Low stock leads: the line is cut with "..." on a narrow card, and this must not be lost. */}
+          {isLowStock && <span className="pt-meta-low">Only {stock} left</span>}
           {inStock && price >= 500 && <span className="pt-meta-item">Free delivery</span>}
           {inStock && returnDays > 0 && <span className="pt-meta-item">{returnDays}-day returns</span>}
-          {isLowStock && <span className="pt-meta-low">Only {stock} left</span>}
         </div>
 
         {onMoveToCart ? (
@@ -341,7 +354,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
           </div>
         ) : (
           <div className="pt-actions">
-            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={adding} aria-label={`Add ${name} to cart`}>
+            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={adding} aria-label={`Add ${name} to cart`} data-tip="Add to cart">
               <ShoppingCart size={16} aria-hidden="true" />
               <span className="pt-btn-label">{adding ? "Adding..." : "Add to cart"}</span>
             </button>
