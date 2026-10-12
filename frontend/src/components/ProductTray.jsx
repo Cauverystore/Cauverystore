@@ -1,129 +1,156 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Heart, Share2, Eye, ShoppingCart, Zap, Bookmark, ArrowRightCircle, Trash2, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
-import api from "../api/axios";
+import { Heart, Share2, ShoppingCart, Zap, ArrowRightCircle, GitCompareArrows, ChevronLeft, ChevronRight } from "lucide-react";
 import { useWishlist } from "../context/WishlistContext";
 import { imgUrl } from "../utils/images";
 import { trackSelectItem, trackAddToCart } from "../utils/analytics";
 import { toggleCompare, isCompared } from "../utils/compare";
 import "../styles/product-tray.css";
 
+/*
+ * The Cauvery Store product card. One standard for every list on the site:
+ *   photo gallery > brand > title > rating > price > delivery / returns / stock line > Add to cart + Buy now.
+ * Everything shown comes from the product record - no guessed badges, ratings or urgency.
+ */
+
 const PLACEHOLDER = "/images/placeholder.svg";
 
-const StarRating = ({ rating, reviewCount }) => {
-  const full = Math.floor(rating);
-  const half = rating - full >= 0.5;
-  return (
-    <div className="pt-stars" aria-label={`${rating} out of 5 stars`}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <svg key={i} className={`pt-star ${i <= full ? "full" : i === full + 1 && half ? "half" : "empty"}`} viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-      {reviewCount != null && <span className="pt-review-count">({reviewCount.toLocaleString()})</span>}
-    </div>
-  );
-};
+const rupees = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 
-const PriceBlock = ({ price, originalPrice, discount }) => {
-  const hasDiscount = originalPrice > price && discount > 0;
-  return (
-    <div className="pt-pricing">
-      <span className="pt-price">&#8377;{Math.round(price).toLocaleString()}</span>
-      {hasDiscount && (
-        <span className="pt-original-price">&#8377;{Math.round(originalPrice).toLocaleString()}</span>
-      )}
-    </div>
-  );
-};
+// 918 -> "918", 2540 -> "2.5K", 59871 -> "60K"
+const compactCount = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, "")}K` : String(n));
+
+const StarRating = ({ rating, reviewCount }) => (
+  <div className="pt-rating" aria-label={`Rated ${Number(rating).toFixed(1)} out of 5${reviewCount ? ` by ${reviewCount} buyers` : ""}`}>
+    <span className="pt-rating-pill">
+      {Number(rating).toFixed(1)}
+      <svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11" aria-hidden="true">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+      </svg>
+    </span>
+    {reviewCount > 0 && <span className="pt-review-count">({compactCount(reviewCount)})</span>}
+  </div>
+);
+
+const PriceBlock = ({ price, originalPrice }) => (
+  <div className="pt-pricing">
+    <span className="pt-price">{rupees(price)}</span>
+    {originalPrice > price && <span className="pt-original-price">{rupees(originalPrice)}</span>}
+  </div>
+);
 
 const LoadingSkeleton = () => (
   <div className="pt-skeleton">
     <div className="pt-skel-img" />
     <div className="pt-skel-body">
-      <div className="pt-skel-line w60" />
-      <div className="pt-skel-line w80" />
       <div className="pt-skel-line w40" />
+      <div className="pt-skel-line w80" />
       <div className="pt-skel-line w50" />
       <div className="pt-skel-btn" />
     </div>
   </div>
 );
 
-const TrustBadge = ({ text, type }) => (
-  <div className={`pt-trust-badge pt-trust-${type}`}>
-    {type === "secure" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>}
-    {type === "return" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>}
-    <span>{text}</span>
-  </div>
-);
-
 const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, quickActions = true }) => {
   const navigate = useNavigate();
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
   const imgErrorFixed = React.useRef(false);
+  const imageWrapRef = React.useRef(null);
+  const touchStart = React.useRef(null);
+  const swiped = React.useRef(false);
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const [adding, setAdding] = useState(false);
   const [moving, setMoving] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [compared, setCompared] = useState(() => isCompared(product));
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const pid = product?.id || product?._id;
   const name = product?.name || "Product";
 
-  useEffect(() => { setActiveImg(0); setImgError(false); imgErrorFixed.current = false; }, [pid]);  const brand = (typeof product?.brand === "object" ? product?.brand?.name : product?.brand) || "";
+  useEffect(() => { setActiveImg(0); imgErrorFixed.current = false; }, [pid]);
+
+  const brand = (typeof product?.brand === "object" ? product?.brand?.name : product?.brand) || "";
   const price = product?.price || product?.dealPrice || product?.sellingPrice || 0;
   const originalPrice = product?.originalPrice || product?.mrp || price;
-  const discount = product?.discount || product?.discountPercent || (originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0);
   const rating = product?.rating || 0;
   const reviewCount = product?.reviews?.length || product?.reviewCount || 0;
   const stock = product?.stock ?? product?.stockQuantity ?? (product?.inStock ? 1 : 0);
   const inStock = stock > 0;
+  const isLowStock = inStock && stock <= 5;
+  const optionCount = Array.isArray(product?.variants) ? product.variants.length : 0;
   // The seller's own return period for this product; 7 days is the marketplace default.
   const returnDays = product?.returnWindow ?? 7;
+
   const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
   const toThumb = (img) => typeof img === "object" && img?.thumbUrl ? img.thumbUrl : "";
   const images = product?.images || (product?.image ? [toUrl(product.image)] : []);
-  const safeIdx = images.length > 0 ? Math.min(activeImg, images.length - 1) : 0;
-  const rawImage = images.length > 0 ? toUrl(images[safeIdx]) : null;
+  const shown = images.length > 0 ? Math.min(activeImg, images.length - 1) : 0;
+  const rawImage = images.length > 0 ? toUrl(images[shown]) : null;
   const image = rawImage ? imgUrl(rawImage) : PLACEHOLDER;
-  const thumbImage = toThumb(images[safeIdx]) ? imgUrl(toThumb(images[safeIdx])) : "";
+  const thumbImage = toThumb(images[shown]) ? imgUrl(toThumb(images[shown])) : "";
   const imgSrc = thumbImage && thumbImage !== image ? thumbImage : image;
   const srcSet = thumbImage && thumbImage !== image && image.startsWith("http") ? `${thumbImage} 400w, ${image} 1200w` : undefined;
-  // Only a badge the product really carries. Cards no longer show discount percentages, and
-  // "Best Seller" / "Popular" used to be guessed from the size of the discount.
-  const badge = product?.badge || "";
+
+  // One tag at most, and only one the product record really carries.
+  const tag = product?.badge
+    || (Array.isArray(product?.badges) && typeof product.badges[0] === "string" ? product.badges[0] : "")
+    || (product?.bestSeller ? "Best seller" : product?.newArrival ? "New" : product?.trending ? "Trending" : "");
   const wishlisted = wishlistIds.has(pid);
 
-  const handleClick = () => {
-    trackSelectItem(product, "product_list");
-    navigate(`/product/${pid}`);
-  };
-
   const showImage = (i) => {
+    if (images.length === 0) return;
     imgErrorFixed.current = false;
-    setActiveImg(i);
-    setImgError(false);
+    setActiveImg((i + images.length) % images.length);
   };
 
-  const nextImage = (e) => {
-    e.stopPropagation();
-    if (images.length === 0) return;
-    showImage((safeIdx + 1) % images.length);
+  // Phones have no hover, so the photos are swiped. The title link is stretched over the whole
+  // card, so touches are read on the card and counted only when they start on the photo.
+  const handleTouchStart = (e) => {
+    swiped.current = false;
+    const box = imageWrapRef.current?.getBoundingClientRect();
+    const t = e.touches[0];
+    touchStart.current = box && images.length > 1 && t.clientY >= box.top && t.clientY <= box.bottom
+      ? { x: t.clientX, y: t.clientY }
+      : null;
   };
 
-  const prevImage = (e) => {
-    e.stopPropagation();
-    if (images.length === 0) return;
-    showImage((safeIdx - 1 + images.length) % images.length);
+  const handleTouchEnd = (e) => {
+    if (!touchStart.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    touchStart.current = null;
+    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      swiped.current = true;
+      showImage(shown + (dx < 0 ? 1 : -1));
+    }
   };
 
-  const handleAddToCart = async (e) => {
-    e.stopPropagation();
+  const handleOpen = (e) => {
+    // A swipe across the photos must not also open the product.
+    if (swiped.current) { swiped.current = false; e.preventDefault(); return; }
+    trackSelectItem(product, "product_list");
+  };
+
+  const handleBuyNow = () => {
+    if (onBuyNow) onBuyNow(product);
+  };
+
+  const handleShare = async () => {
+    const url = window.location.origin + `/product/${pid}`;
+    try {
+      if (navigator.share) await navigator.share({ title: name, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 1800);
+      }
+    } catch { /* the shopper closed the share sheet */ }
+  };
+
+  const handleAddToCart = async () => {
     if (adding || !inStock) return;
     setAdding(true);
     try {
@@ -133,13 +160,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
     setAdding(false);
   };
 
-  const handleBuyNow = (e) => {
-    e.stopPropagation();
-    if (onBuyNow) onBuyNow(product);
-  };
-
-  const handleMoveToCart = async (e) => {
-    e.stopPropagation();
+  const handleMoveToCart = async () => {
     if (moving || !inStock) return;
     setMoving(true);
     try {
@@ -148,41 +169,18 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
     setMoving(false);
   };
 
-  const handleWishlist = (e) => {
-    e.stopPropagation();
+  const handleWishlist = () => {
     const token = localStorage.getItem("accessToken");
     if (!token) { navigate("/login"); return; }
     toggleWishlist(pid);
   };
 
-  const handleSaveForLater = async (e) => {
-    e.stopPropagation();
-    const token = localStorage.getItem("accessToken");
-    if (!token || saving || saved) return;
-    setSaving(true);
-    try {
-      const { data: cartItem } = await api.post(`/api/cart/add?productId=${pid}&quantity=1`);
-      await api.post(`/api/cart/save-for-later/${cartItem.id}`);
-      setSaved(true);
-    } catch { /* ignore */ }
-    setSaving(false);
-  };
-
-  const handleShare = async (e) => {
-    e.stopPropagation();
-    try {
-      await navigator.share({ title: name, url: window.location.origin + `/product/${pid}` });
-    } catch { /* ignore */ }
-  };
-
-  const handleCompare = (e) => {
-    e.stopPropagation();
+  const handleCompare = () => {
     const next = toggleCompare(product);
     setCompared(next.some((p) => String(p.id ?? p._id) === String(pid)));
   };
 
-  const handleRemove = async (e) => {
-    e.stopPropagation();
+  const handleRemove = async () => {
     if (removing) return;
     setRemoving(true);
     try {
@@ -191,177 +189,141 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
     setRemoving(false);
   };
 
-  const isLowStock = inStock && stock <= 5;
-
   return (
-    <div
+    <article
       className={`pt-card ${!inStock ? "pt-out-of-stock" : ""}`}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      aria-label={`View ${name}`}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(); } }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
-      <div className="pt-image-wrap">
-        {!imgLoaded && !imgError && <div className="pt-img-placeholder" />}
+      <div className="pt-image-wrap" ref={imageWrapRef}>
+        {!imgLoaded && <div className="pt-img-placeholder" />}
         <img
           src={imgSrc}
           srcSet={srcSet}
-          sizes="(min-width: 960px) 200px, 160px"
-          alt={name}
-          width="200" height="200"
+          sizes="(min-width: 960px) 240px, 45vw"
+          alt=""
+          width="240" height="240"
           className={`pt-image ${imgLoaded ? "loaded" : ""}`}
           loading="lazy"
           onLoad={() => setImgLoaded(true)}
-          onError={(e) => { if (imgErrorFixed.current) return; imgErrorFixed.current = true; setImgError(true); e.target.src = PLACEHOLDER; }}
+          onError={(e) => { if (imgErrorFixed.current) return; imgErrorFixed.current = true; setImgLoaded(true); e.target.src = PLACEHOLDER; }}
         />
-        {badge && <span className="pt-badge">{badge}</span>}
-        {!inStock && <div className="pt-out-label">Out of stock</div>}
-        {isLowStock && <div className="pt-low-stock">Only {stock} left</div>}
-
-        <div className="pt-image-overlay">
-          <button className="pt-quick-view" onClick={(e) => { e.stopPropagation(); navigate(`/product/${pid}`); }} aria-label="Quick view">
-            <Eye size={16} />
-          </button>
-        </div>
+        {tag && inStock && <span className="pt-badge">{tag}</span>}
+        {!inStock && <span className="pt-out-label">Out of stock</span>}
 
         {quickActions && (
           <div className="pt-quick-actions">
             <button
+              type="button"
               className={`pt-action-btn ${wishlisted ? "wishlisted" : ""}`}
               onClick={handleWishlist}
-              aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              aria-pressed={wishlisted}
+              aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
             >
-              <Heart size={16} fill={wishlisted ? "currentColor" : "none"} />
+              <Heart size={18} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
             </button>
             <button
-              className={`pt-action-btn ${saved ? "wishlisted" : ""}`}
-              onClick={handleSaveForLater}
-              disabled={saving}
-              aria-label={saved ? "Saved for later" : "Save for later"}
+              type="button"
+              className="pt-action-btn pt-action-extra"
+              onClick={handleShare}
+              aria-label={`Share ${name}`}
+              title={linkCopied ? "Link copied" : "Share"}
             >
-              <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
-            </button>
-            <button className="pt-action-btn" onClick={handleShare} aria-label="Share product">
-              <Share2 size={16} />
+              <Share2 size={16} strokeWidth={1.8} />
             </button>
             <button
-              className={`pt-action-btn ${compared ? "compared" : ""}`}
+              type="button"
+              className={`pt-action-btn pt-action-extra ${compared ? "compared" : ""}`}
               onClick={handleCompare}
-              aria-label={compared ? "Remove from compare" : "Add to compare"}
+              aria-pressed={compared}
+              aria-label={compared ? `Remove ${name} from compare` : `Add ${name} to compare`}
               title="Compare"
             >
-              <GitCompareArrows size={16} />
+              <GitCompareArrows size={17} strokeWidth={1.8} />
             </button>
           </div>
         )}
+        {linkCopied && <span className="pt-copied" role="status">Link copied</span>}
 
         {images.length > 1 && (
           <>
-            <button className="pt-gallery-nav pt-gallery-nav-prev" onClick={prevImage} aria-label="Previous image">
+            <button type="button" className="pt-gallery-nav pt-gallery-nav-prev" onClick={() => showImage(shown - 1)} aria-label="Previous photo">
               <ChevronLeft size={18} />
             </button>
-            <button className="pt-gallery-nav pt-gallery-nav-next" onClick={nextImage} aria-label="Next image">
+            <button type="button" className="pt-gallery-nav pt-gallery-nav-next" onClick={() => showImage(shown + 1)} aria-label="Next photo">
               <ChevronRight size={18} />
             </button>
             <div className="pt-gallery-dots">
               {images.map((_, i) => (
                 <button
+                  type="button"
                   key={i}
-                  className={`pt-gallery-dot ${i === safeIdx ? "active" : ""}`}
-                  onClick={(e) => { e.stopPropagation(); showImage(i); }}
-                  aria-label={`View image ${i + 1} of ${images.length}`}
+                  className={`pt-gallery-dot ${i === shown ? "active" : ""}`}
+                  onClick={() => showImage(i)}
+                  aria-label={`Photo ${i + 1} of ${images.length}`}
+                  aria-current={i === shown}
                 />
               ))}
             </div>
-            <span className="pt-gallery-count">{safeIdx + 1} / {images.length}</span>
           </>
         )}
       </div>
 
       <div className="pt-body">
         {brand && <div className="pt-brand">{brand}</div>}
-        {/* Real <a href> so crawlers can follow the link; the card itself is a div with an
-            onClick, which search engines do not treat as a link. stopPropagation avoids a
-            double navigation with the card's own click handler. */}
+        {/* A real <a href> that crawlers can follow. Its ::after covers the whole card, so the
+            card is one big link while the buttons stay separate, properly nested controls. */}
         <h3 className="pt-name">
-          <Link
-            to={`/product/${pid}`}
-            style={{ color: "inherit", textDecoration: "none" }}
-            onClick={(e) => { e.stopPropagation(); trackSelectItem(product, "product_list"); }}
-          >
+          <Link to={`/product/${pid}`} className="pt-link" onClick={handleOpen}>
             {name}
           </Link>
         </h3>
-
-        <PriceBlock price={price} originalPrice={originalPrice} discount={discount} />
+        {optionCount > 1 && <div className="pt-options">{optionCount} options</div>}
 
         {/* No stars until a product has a real rating - a made-up default misleads shoppers. */}
         {rating > 0 && <StarRating rating={rating} reviewCount={reviewCount} />}
 
-        <div className="pt-delivery">
-          {inStock ? (
-            <span className="pt-delivery-instock">In stock</span>
-          ) : (
-            <span className="pt-delivery-ostock">Out of stock</span>
-          )}
+        <PriceBlock price={price} originalPrice={originalPrice} />
+
+        <div className="pt-meta">
           {/* Matches the cart rule: delivery is free on orders of 500 or more. */}
-          {inStock && price >= 500 && <span className="pt-delivery-est">Free delivery</span>}
+          {inStock && price >= 500 && <span className="pt-meta-item">Free delivery</span>}
+          {inStock && returnDays > 0 && <span className="pt-meta-item">{returnDays}-day returns</span>}
+          {isLowStock && <span className="pt-meta-low">Only {stock} left</span>}
         </div>
 
-        <div className="pt-trust-row">
-          <TrustBadge text="Secure payment" type="secure" />
-          {returnDays > 0 && <TrustBadge text={`${returnDays}-day returns`} type="return" />}
-        </div>
-
-        <div className="pt-actions">
-          <button
-            className="pt-btn pt-btn-cart"
-            onClick={handleAddToCart}
-            disabled={!inStock || adding}
-            aria-label="Add to cart"
-          >
-            <ShoppingCart size={16} />
-            <span>{adding ? "Adding..." : "Add to Cart"}</span>
-          </button>
-          {onMoveToCart ? (
-            <button
-              className="pt-btn pt-btn-buy"
-              onClick={handleMoveToCart}
-              disabled={!inStock || moving}
-              aria-label="Move to cart"
-            >
-              <ArrowRightCircle size={16} />
-              <span>{moving ? "Moving..." : "Move to Cart"}</span>
+        {onMoveToCart ? (
+          <div className="pt-actions pt-actions-stacked">
+            <button type="button" className="pt-btn pt-btn-buy" onClick={handleMoveToCart} disabled={!inStock || moving}>
+              <ArrowRightCircle size={16} aria-hidden="true" />
+              <span>{!inStock ? "Out of stock" : moving ? "Moving..." : "Move to cart"}</span>
             </button>
-          ) : (
-            <button
-              className="pt-btn pt-btn-buy"
-              onClick={handleBuyNow}
-              disabled={!inStock}
-              aria-label="Buy now"
-            >
-              <Zap size={16} />
-              <span>Buy Now</span>
+            {onRemove && (
+              <button type="button" className="pt-btn pt-btn-remove" onClick={handleRemove} disabled={removing}>
+                {removing ? "Removing..." : "Remove"}
+              </button>
+            )}
+          </div>
+        ) : !inStock ? (
+          <div className="pt-actions">
+            <button type="button" className="pt-btn pt-btn-buy" disabled>Out of stock</button>
+          </div>
+        ) : (
+          <div className="pt-actions">
+            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={adding} aria-label={`Add ${name} to cart`}>
+              <ShoppingCart size={16} aria-hidden="true" />
+              <span className="pt-btn-label">{adding ? "Adding..." : "Add to cart"}</span>
             </button>
-          )}
-        </div>
-
-        {onRemove && (
-          <button
-            className="pt-btn pt-btn-remove"
-            onClick={handleRemove}
-            disabled={removing}
-            aria-label="Remove from wishlist"
-          >
-            <Trash2 size={16} />
-            <span>{removing ? "Removing..." : "Remove from Wishlist"}</span>
-          </button>
+            <button type="button" className="pt-btn pt-btn-buy" onClick={handleBuyNow} aria-label={`Buy ${name} now`}>
+              <Zap size={15} aria-hidden="true" />
+              <span>Buy now</span>
+            </button>
+          </div>
         )}
       </div>
-    </div>
+    </article>
   );
 };
 
 export default ProductTray;
-export { StarRating, PriceBlock, LoadingSkeleton, TrustBadge };
+export { StarRating, PriceBlock, LoadingSkeleton };
