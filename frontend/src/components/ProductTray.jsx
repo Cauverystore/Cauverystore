@@ -31,10 +31,7 @@ const PriceBlock = ({ price, originalPrice, discount }) => {
     <div className="pt-pricing">
       <span className="pt-price">&#8377;{Math.round(price).toLocaleString()}</span>
       {hasDiscount && (
-        <>
-          <span className="pt-original-price">&#8377;{Math.round(originalPrice).toLocaleString()}</span>
-          <span className="pt-discount-badge">{discount}% OFF</span>
-        </>
+        <span className="pt-original-price">&#8377;{Math.round(originalPrice).toLocaleString()}</span>
       )}
     </div>
   );
@@ -97,7 +94,9 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   const thumbImage = toThumb(images[safeIdx]) ? imgUrl(toThumb(images[safeIdx])) : "";
   const imgSrc = thumbImage && thumbImage !== image ? thumbImage : image;
   const srcSet = thumbImage && thumbImage !== image && image.startsWith("http") ? `${thumbImage} 400w, ${image} 1200w` : undefined;
-  const badge = product?.badge || (discount > 50 ? "Best Seller" : discount > 30 ? "Popular" : "");
+  // Only a badge the product really carries. Cards no longer show discount percentages, and
+  // "Best Seller" / "Popular" used to be guessed from the size of the discount.
+  const badge = product?.badge || "";
   const wishlisted = wishlistIds.has(pid);
 
   const handleClick = () => {
@@ -217,7 +216,6 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
           onError={(e) => { if (imgErrorFixed.current) return; imgErrorFixed.current = true; setImgError(true); e.target.src = PLACEHOLDER; }}
         />
         {badge && <span className="pt-badge">{badge}</span>}
-        {discount > 0 && !badge && <span className="pt-badge pt-badge-discount">{discount}% OFF</span>}
         {!inStock && <div className="pt-out-label">Out of stock</div>}
         {isLowStock && <div className="pt-low-stock">Only {stock} left</div>}
 
