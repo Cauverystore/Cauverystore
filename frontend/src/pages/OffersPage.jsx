@@ -69,12 +69,12 @@ const OffersPage = () => {
     <div className="products-page">
       <Helmet>
         <title>Offers and Deals | Cauvery Store</title>
-        <meta name="description" content="Current offers and discounted products from independent sellers on Cauvery Store." />
+        <meta name="description" content="Current offers and discounted products on Cauvery Store." />
         <link rel="canonical" href="https://cauverystore.in/offers" />
         {/* An empty shelf is a thin page: keep it out of search results until offers exist. */}
         {!loading && products.length === 0 && <meta name="robots" content="noindex, follow" />}
         <meta property="og:title" content="Offers and Deals | Cauvery Store" />
-        <meta property="og:description" content="Current offers and discounted products from independent sellers." />
+        <meta property="og:description" content="Current offers and discounted products at Cauvery Store." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://cauverystore.in/offers" />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />

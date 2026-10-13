@@ -1,10 +1,10 @@
 # Cauvery Store
 
-> Cauvery Store (cauverystore.in) is an online marketplace where customers buy directly from independent sellers: real shops and traders anywhere in India. Each product shows who sells it and where they are. Payment is online through Razorpay (UPI, card, net banking or wallet), and orders are delivered to the customer's door.
+> Cauvery Store (cauverystore.in) is an online store and marketplace based in Coimbatore, India. Products are listed by approved sellers, and each product page names its seller. Payment is online through Razorpay (UPI, card, net banking or wallet), and orders are delivered to the customer's door.
 
 ## Key facts
 - Based in Coimbatore, Tamil Nadu, India. Sellers can be anywhere in India, and orders are delivered across India.
-- Sellers are independent shops and traders. A seller's listings appear only after Cauvery Store has approved them.
+- Cauvery Store is a marketplace. A seller's listings appear only after Cauvery Store has approved them.
 - At launch the catalogue is t-shirts. More categories will be added as sellers join.
 - Payment is online only, through Razorpay: UPI, credit and debit cards, net banking and wallets, with EMI on eligible cards. Cash on delivery is not offered at present.
 - Bulk and corporate orders are priced at a negotiated rate; email support@cauverystore.in for a quote.

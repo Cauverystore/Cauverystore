@@ -12,26 +12,26 @@ const facts = [
 ];
 
 const features = [
-  { icon: Store, title: "Real, independent sellers", text: "Every listing comes from a verified shop or trader, not an anonymous warehouse SKU." },
+  { icon: Store, title: "Approved listings", text: "Every seller is checked before they can list, and each product is approved before it appears on the store." },
   { icon: BadgeCheck, title: "Clear prices", text: "The price, GST and delivery charge are shown before you pay. Delivery is free on orders of ₹500 or more." },
   { icon: Shield, title: "Secure payments", text: "Pay by UPI, card, net banking or wallet through Razorpay. We never see or store your card details." },
-  { icon: Truck, title: "Delivery times shown upfront", text: "Delivery times and coverage depend on the seller and are shown at checkout. You can follow each order's status from your Orders page." },
+  { icon: Truck, title: "Delivery times shown upfront", text: "Delivery times are shown at checkout before you pay. You can follow each order's status from your Orders page." },
   { icon: HeartHandshake, title: "7-day returns and support", text: "Return most items within 7 days of delivery, free if the item is faulty or wrong. Our support team is available Monday to Saturday, 9 AM to 6 PM." },
-  { icon: IndianRupee, title: "Backing small businesses", text: "Buying here keeps more of what you spend with independent shops and traders, instead of a national chain." },
+  { icon: IndianRupee, title: "Bulk and corporate orders", text: "Buying in quantity? Email support@cauverystore.in for a negotiated rate." },
 ];
 
 const values = [
-  { title: "Integrity", text: "We do the right thing, even when no one is watching." },
-  { title: "Customer first", text: "Every decision starts with our customers' needs." },
-  { title: "Sustainability", text: "We promote eco-friendly practices and responsible consumption." },
-  { title: "Quality", text: "We never compromise on the quality of products or service." },
+  { title: "Honesty", text: "Prices, delivery charges and return terms are shown before you pay." },
+  { title: "Customers first", text: "Our support team answers Monday to Saturday, 9 AM to 6 PM." },
+  { title: "Reliability", text: "Delivery estimates are realistic, so you know when to expect your order." },
+  { title: "Quality", text: "Listings are reviewed before they go live, and you can return what does not match its description." },
 ];
 
 const faqs = [
-  { q: "Where is Cauvery Store based?", a: "We are headquartered in Coimbatore, Tamil Nadu, and serve customers across all major cities and towns in India." },
+  { q: "Where is Cauvery Store based?", a: "We are based in Coimbatore, Tamil Nadu, and deliver across India." },
   { q: "How do you ensure product quality?", a: "Every seller is checked before they can list, and each listing is approved before shoppers see it. If something is still not right, most items can be returned within 7 days of delivery." },
   { q: "Do you offer bulk or corporate orders?", a: "Yes. Bulk and corporate orders are priced at a negotiated rate. Email support@cauverystore.in with what you need and the quantity, and we will send you a quote." },
-  { q: "Can I sell on Cauvery Store?", a: "Yes. Any real shop or trader in India can apply. Create an account, then complete seller registration from the Sell on Cauvery Store link. Your listings go live once we have approved them." },
+  { q: "Can I sell on Cauvery Store?", a: "Yes. Sellers based in India can apply. Create an account, then complete seller registration from the Sell on Cauvery Store link. Your listings go live once we have approved them." },
   { q: "What payment methods do you accept?", a: "UPI, credit and debit cards, net banking and wallets, all through Razorpay. EMI is available on eligible cards. We do not offer cash on delivery at present." },
 ];
 
@@ -39,11 +39,11 @@ const AboutUs = () => {
   return (
     <div className="about-page">
       <Helmet>
-        <title>About Us | Cauvery Store - Shop Direct from Independent Sellers</title>
-        <meta name="description" content="Cauvery Store connects you directly with real, independent shops and traders. Learn who we are and why we built a marketplace this way." />
+        <title>About Us | Cauvery Store</title>
+        <meta name="description" content="Cauvery Store is an online store based in Coimbatore, India. Learn who we are, how ordering, delivery and returns work, and how to reach us." />
         <link rel="canonical" href="https://cauverystore.in/about" />
         <meta property="og:title" content="About Cauvery Store" />
-        <meta property="og:description" content="Cauvery Store connects you directly with real, independent shops and traders." />
+        <meta property="og:description" content="An online store based in Coimbatore, delivering across India." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://cauverystore.in/about" />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
@@ -58,7 +58,7 @@ const AboutUs = () => {
         <div className="about-wrap">
           <h1>About Cauvery Store</h1>
           <p className="about-display">
-            An online marketplace where every seller is a <em>real shop or trader</em>.
+            An online store based in Coimbatore, delivering <em>across India</em>.
           </p>
           <dl className="about-facts">
             {facts.map((f) => (
@@ -79,16 +79,14 @@ const AboutUs = () => {
           </div>
           <div className="about-prose">
             <p className="about-lead">
-              Cauvery Store was founded with a simple vision: to make it easy to buy directly from independent shops and
-              traders, instead of routing every purchase through an anonymous national warehouse.
+              Cauvery Store is an online store based in Coimbatore. We built it to keep online shopping simple, with
+              clear prices, secure payment and delivery to your door.
             </p>
             <p>
-              Named after the vibrant Cauvery river — a lifeline of South India — our marketplace flows with the same
-              energy, connecting buyers with real sellers they can actually see and know.
+              We take our name from the Cauvery, the river that runs through South India.
             </p>
             <p>
-              We are starting with t-shirts, and more categories will follow as sellers join. Every listing on
-              Cauvery Store comes from a real seller — not a faceless fulfillment center.
+              We are starting with t-shirts, and more categories will follow.
             </p>
           </div>
         </div>
@@ -97,18 +95,17 @@ const AboutUs = () => {
       <section className="about-wrap">
         <div className="about-panel">
           <span className="about-label">How it works</span>
-          <h2>Real sellers, <em>not a warehouse</em></h2>
+          <h2>From order <em>to your door</em></h2>
           <div className="about-panel-cols">
             <p>
-              Every shop on Cauvery Store is run by a real trader or small business — the kind of shop you could walk
-              into in Coimbatore or any town across India, now also reachable online. Each seller account goes
-              through our verification process before they can list, and you can see a seller's store details before
-              you buy, not just a generic "Sold by Marketplace" line.
+              Choose what you like and pay online through Razorpay. Orders are normally dispatched within 1 to 2
+              business days, and delivery takes 2 to 7 business days for most of India. Delivery is free on orders
+              of ₹500 or more.
             </p>
             <p>
-              Buying this way keeps more of what you spend with small businesses, and gives you someone real to reach
-              if a product needs an exchange, a question, or a warranty claim — rather than a support queue with no
-              name attached.
+              Cauvery Store is a marketplace, so products are listed by sellers we have approved, and each product
+              page names its seller. If something is not right, most items can be returned within 7 days of
+              delivery.
             </p>
           </div>
         </div>
@@ -120,18 +117,16 @@ const AboutUs = () => {
             <span className="about-num">01</span>
             <h2>Our mission</h2>
             <p>
-              To democratize e-commerce in India by providing a fair, reliable, and user-friendly platform where every
-              customer finds value and every seller finds opportunity. We are committed to making online shopping simple,
-              secure, and accessible to all.
+              To make online shopping straightforward for everyone in India, with prices shown upfront, secure
+              payment, and delivery and returns you can rely on.
             </p>
           </article>
           <article>
             <span className="about-num">02</span>
             <h2>Our vision</h2>
             <p>
-              To become the most trusted online marketplace in India — known not just for our products, but for our
-              integrity, customer-centric approach, and unwavering commitment to quality. We envision a future where
-              every Indian, regardless of location, has access to the best products at the best prices.
+              To be the online store people come back to, because orders arrive as described and any problem is
+              sorted out quickly.
             </p>
           </article>
         </div>
@@ -199,7 +194,7 @@ const AboutUs = () => {
       <section className="about-closing">
         <div className="about-wrap">
           <p className="about-closing-line">
-            Thank you for choosing Cauvery Store. Together, we are building a better way to shop.
+            Thank you for shopping with Cauvery Store.
           </p>
           <div className="about-actions">
             <Link className="about-cta" to="/products">
