@@ -3,6 +3,8 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Store } from "lucide-react";
 import { searchProducts } from "../services/productService";
+import api from "../api/axios";
+import NotFound from "./NotFound";
 import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Breadcrumb from "../components/Breadcrumb";
@@ -86,6 +88,21 @@ const CategoryProducts = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
+  // The product search ignores a category it does not know and returns everything, so a
+  // made-up /category/anything would otherwise show the whole catalogue as a real page.
+  // null = not checked yet; a failed check leaves the page showing as before.
+  const [known, setKnown] = useState(null);
+
+  useEffect(() => {
+    setKnown(null);
+    api.get("/api/categories")
+      .then((r) => {
+        // Exact match: the search itself is case-sensitive about category names.
+        const names = (Array.isArray(r.data) ? r.data : []).map((c) => c.name);
+        setKnown(names.includes(category));
+      })
+      .catch(() => {});
+  }, [category]);
 
   useEffect(() => {
     const fetch = async () => {
@@ -123,6 +140,8 @@ const CategoryProducts = () => {
     ],
   };
 
+  if (known === false) return <NotFound />;
+
   return (
     <div className="products-page">
       <style>{`.cat-products-content { grid-column: 1 / -1; }`}</style>
@@ -130,6 +149,8 @@ const CategoryProducts = () => {
         <title>{`${category} | Shop Direct from Independent Sellers - Cauvery Store`}</title>
         <meta name="description" content={seoCopy.metaDescription} />
         <link rel="canonical" href={canonicalUrl} />
+        {/* An empty or made-up category is a thin page: keep it out of search results. */}
+        {!loading && !error && products.length === 0 && <meta name="robots" content="noindex, follow" />}
         <meta property="og:title" content={`${category} | Cauvery Store`} />
         <meta property="og:description" content={seoCopy.metaDescription} />
         <meta property="og:type" content="website" />

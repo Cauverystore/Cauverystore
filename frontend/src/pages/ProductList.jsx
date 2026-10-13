@@ -80,6 +80,8 @@ const ProductList = () => {
       <Helmet>
         <title>{category ? `${category} | Shop Direct from Independent Sellers - Cauvery Store` : "All Products | Shop Direct from Independent Sellers - Cauvery Store"}</title>
         <link rel="canonical" href={listCanonical} />
+        {/* An empty shelf is a thin page: keep it out of search results until it lists something. */}
+        {!loading && !error && products.length === 0 && <meta name="robots" content="noindex, follow" />}
       </Helmet>
       <div className="pl-layout">
         <aside className="pl-sidebar">
