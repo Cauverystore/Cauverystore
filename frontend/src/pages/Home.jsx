@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Store, Truck, RotateCcw, ShieldCheck, ArrowRight } from "lucide-react";
+import { Headset, Truck, RotateCcw, ShieldCheck, ArrowRight } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
@@ -14,7 +14,7 @@ const PROMISES = [
   { Icon: Truck, title: "Free delivery", text: "on orders of ₹500 or more" },
   { Icon: RotateCcw, title: "7-day returns", text: "free if the item is faulty or wrong" },
   { Icon: ShieldCheck, title: "Secure payment", text: "UPI, card, net banking or wallet" },
-  { Icon: Store, title: "Independent sellers", text: "real shops and traders" },
+  { Icon: Headset, title: "Support", text: "Monday to Saturday, 9 AM to 6 PM" },
 ];
 
 function normalizeProduct(p) {
@@ -98,16 +98,16 @@ const Home = () => {
   return (
     <div className="sn-page">
       <Helmet>
-        <title>Cauvery Store | Shop Direct from Independent Sellers</title>
+        <title>Cauvery Store | Online Shopping in India</title>
         <meta
           name="description"
-          content="Buy straight from makers and independent shops. See who sells it and where they are, pay by UPI or card, and get it delivered to your door."
+          content="Shop online at Cauvery Store. Pay by UPI, card, net banking or wallet, with free delivery on orders of ₹500 or more and 7-day returns."
         />
         <link rel="canonical" href="https://cauverystore.in/" />
-        <meta property="og:title" content="Cauvery Store | Shop Direct from Independent Sellers" />
+        <meta property="og:title" content="Cauvery Store | Online Shopping in India" />
         <meta
           property="og:description"
-          content="Buy straight from makers and independent shops. See who sells it and where they are, pay by UPI or card, and get it delivered to your door."
+          content="Shop online at Cauvery Store. Pay by UPI, card, net banking or wallet, with free delivery on orders of ₹500 or more and 7-day returns."
         />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
         <meta property="og:type" content="website" />
@@ -128,8 +128,8 @@ const Home = () => {
         </svg>
         <div className="sn-container sn-hero-inner">
           <p className="sn-eyebrow">Cauvery Store</p>
-          <h1 className="sn-hero-title">Shop direct from <em>independent</em> sellers</h1>
-          <p className="sn-hero-sub">Every seller is a real shop or trader. Free delivery on orders of ₹500 or more.</p>
+          <h1 className="sn-hero-title">Online shopping, <em>delivered</em> to your door</h1>
+          <p className="sn-hero-sub">Free delivery on orders of ₹500 or more, and 7-day returns.</p>
           <div className="sn-hero-actions">
             <Link to="/products" className="sn-btn">Browse products <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
             <Link to="/seller/register" className="sn-text-link">Own a shop? Start selling</Link>

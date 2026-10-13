@@ -374,7 +374,7 @@ const SellerRegistration = () => {
 
       <div className="seller-reg-header">
         <h1>Become a Seller on Cauvery Store</h1>
-        <p>Complete your registration in {STEPS.length} simple steps. Start selling to millions of customers across India.</p>
+        <p>Complete your registration in {STEPS.length} simple steps. Sell to customers across India.</p>
       </div>
 
       <div className="seller-reg-steps">

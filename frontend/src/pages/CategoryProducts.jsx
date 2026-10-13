@@ -12,72 +12,63 @@ import Pagination from "../components/Pagination";
 import "../styles/products.css";
 import "../styles/product-tray.css";
 
-// Real, unique on-page copy per category - this is what was missing for SEO: the generic
-// "Shop {category} at Cauvery Store" line it replaces was identical in shape on every
-// category page, which reads to Google as thin/duplicate content and gives it nothing to
-// rank the page on. Each entry below is written around the site's actual differentiator
-// (direct-from-Tamil-Nadu-sellers) rather than generic marketplace filler, and doubles as
-// the meta description crawlers/link-previews see.
+// Unique on-page copy per category, so category pages do not all read the same to a
+// search engine. Each entry doubles as the meta description crawlers and link previews see.
+// Keep it plain and factual: what the category holds, plus terms that are true store-wide.
 //
 // Keyed by the exact category name the backend returns (CategoryController's
-// /api/categories, Category.name) - keep new keys in sync with however sellers name
-// categories there. A category with no entry here still works fine (see FALLBACK below),
-// it just won't have hand-written copy until one is added.
+// /api/categories, Category.name). A category with no entry here still works (see
+// FALLBACK below); it just has no hand-written copy until one is added.
 const CATEGORY_SEO_COPY = {
+  "T-Shirts": {
+    intro:
+      "T-shirts in a range of colours and sizes. Choose your size on the product page, pay " +
+      "online, and get free delivery on orders of ₹500 or more.",
+    metaDescription:
+      "Shop t-shirts online at Cauvery Store. Choose your size, pay securely, and get free delivery on orders of ₹500 or more.",
+  },
   "Electronics": {
     intro:
-      "Phones, laptops, TVs and everyday gadgets from independent sellers - not a " +
-      "faceless warehouse listing. Every electronics seller on Cauvery Store is a real shop " +
-      "or trader you can see by name and location before you buy, so you know who to call if " +
-      "something needs a warranty claim or a quick exchange.",
+      "Phones, laptops, TVs and everyday gadgets. Each product page shows the price, " +
+      "delivery time and return period before you buy.",
     metaDescription:
-      "Buy phones, laptops, TVs and gadgets direct from independent electronics sellers. See who's selling, pay by UPI or card, and get it delivered to your door.",
+      "Shop phones, laptops, TVs and gadgets online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
   },
   "Fashion": {
     intro:
-      "Clothing, footwear and accessories from independent boutiques and tailoring " +
-      "shops, alongside the big-brand basics you'd expect. Shopping here means styles " +
-      "you won't find on every other marketplace, and a real seller behind each listing " +
-      "rather than a generic storefront.",
+      "Clothing, footwear and accessories for everyday wear. Sizes are listed on each " +
+      "product page, and most items can be returned within 7 days of delivery.",
     metaDescription:
-      "Shop clothing, footwear and accessories from independent fashion sellers and boutiques. Pay by UPI or card and get it delivered to your door.",
+      "Shop clothing, footwear and accessories online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
   },
   "Home & Kitchen": {
     intro:
-      "Furniture, kitchen essentials and home decor from makers and household-goods " +
-      "sellers across India. From everyday cookware to furniture pieces made by small " +
-      "workshops, this is where to find home goods with a seller you can actually trace back " +
-      "to a shop.",
+      "Furniture, kitchen essentials and home decor, delivered to your door. Delivery is " +
+      "free on orders of ₹500 or more.",
     metaDescription:
-      "Buy furniture, kitchen essentials and home decor direct from independent sellers. See who sells it and where, pay by UPI or card, and get it delivered.",
+      "Shop furniture, kitchen essentials and home decor online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
   },
   "Books": {
     intro:
-      "Fiction, non-fiction and educational titles from independent booksellers, " +
-      "including Tamil-language titles harder to find on the bigger marketplaces. Every " +
-      "listing here comes from a seller you can see by name, not an anonymous warehouse SKU.",
+      "Fiction, non-fiction and educational titles, delivered across India.",
     metaDescription:
-      "Buy fiction, non-fiction, educational and Tamil-language books from independent booksellers. Pay by UPI or card and get it delivered to your door.",
+      "Shop fiction, non-fiction and educational books online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
   },
   "Sports": {
     intro:
-      "Fitness equipment and sportswear from independent retailers and sports shops, for " +
-      "everything from a first set of weights to matchday gear. Buying here keeps that " +
-      "purchase with a real shop instead of a national chain's warehouse.",
+      "Fitness equipment and sportswear, from a first set of weights to matchday gear.",
     metaDescription:
-      "Shop fitness equipment and sportswear direct from independent sports retailers. See who sells it, pay by UPI or card, and get it delivered to your door.",
+      "Shop fitness equipment and sportswear online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
   },
 };
 
-// Any category not in the map above (a seller-added category we haven't written copy for
-// yet) still gets a real sentence instead of the old generic line, so no page on the site
-// is left with zero body content for a crawler to read.
+// Any category not in the map above still gets a real sentence, so no category page is
+// left with no body copy for a crawler to read.
 const FALLBACK_SEO_COPY = (category) => ({
   intro:
-    `${category} products from independent sellers, each listed by a real shop or ` +
-    `trader you can see before you buy. Pay by UPI or card and get it delivered to your door.`,
+    `Shop ${category} at Cauvery Store, with secure payment and free delivery on orders of ₹500 or more.`,
   metaDescription:
-    `Buy ${category} direct from independent sellers on Cauvery Store. See who sells it, pay by UPI or card, and get it delivered.`,
+    `Shop ${category} online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.`,
 });
 
 const CategoryProducts = () => {
@@ -146,7 +137,7 @@ const CategoryProducts = () => {
     <div className="products-page">
       <style>{`.cat-products-content { grid-column: 1 / -1; }`}</style>
       <Helmet>
-        <title>{`${category} | Shop Direct from Independent Sellers - Cauvery Store`}</title>
+        <title>{`${category} | Cauvery Store`}</title>
         <meta name="description" content={seoCopy.metaDescription} />
         <link rel="canonical" href={canonicalUrl} />
         {/* An empty or made-up category is a thin page: keep it out of search results. */}

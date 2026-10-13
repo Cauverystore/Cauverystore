@@ -134,10 +134,10 @@ function App() {
         <WishlistProvider>
         <PageViewTracker />
         <Helmet>
-          <title>Cauvery Store | Shop Direct from Independent Sellers</title>
-          <meta name="description" content="Shop direct from real, independent shops and traders. Free delivery on orders of ₹500 or more and 7-day returns." />
+          <title>Cauvery Store | Online Shopping in India</title>
+          <meta name="description" content="Shop online at Cauvery Store. Free delivery on orders of ₹500 or more and 7-day returns." />
           <meta property="og:title" content="Cauvery Store" />
-          <meta property="og:description" content="Shop direct from real, independent shops and traders." />
+          <meta property="og:description" content="Online shopping in India, delivered to your door." />
           <meta property="og:type" content="website" />
           <meta property="og:image" content="https://cauverystore.in/logo512.png" />
           <meta property="og:url" content="https://cauverystore.in" />
@@ -154,7 +154,7 @@ function App() {
               "url": "https://cauverystore.in/",
               "logo": "https://cauverystore.in/logo512.png",
               "sameAs": ["https://www.facebook.com/profile.php?id=61587653639339", "https://www.instagram.com/cauverystore/", "https://www.youtube.com/@CauveryStore"],
-              "description": "Online marketplace to shop direct from real, independent shops and traders. Pay by UPI, card, net banking or wallet.",
+              "description": "Online marketplace based in Coimbatore, India. Pay by UPI, card, net banking or wallet.",
               "address": { "@type": "PostalAddress", "addressLocality": "Coimbatore", "addressRegion": "Tamil Nadu", "addressCountry": "IN" },
               // The marketplace default; a product page states its own when the seller's differs.
               "hasMerchantReturnPolicy": {
