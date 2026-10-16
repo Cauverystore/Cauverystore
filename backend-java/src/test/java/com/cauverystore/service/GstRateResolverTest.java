@@ -488,6 +488,23 @@ class GstRateResolverTest {
     }
 
     @Test
+    void resolve_shouldChargeFivePercent_onANonElectronicToyPricedInclusive() {
+        // Notif. 09/2025 S. No. 497: toys of 9503 other than electronic ones are 5%. A ₹525
+        // doll is ₹500 of goods and ₹25 of tax, not 18%.
+        product.setHsnCode("95030010");
+        product.setGstRateSelectionId(42L);
+        when(rateRepo.findById(42L)).thenReturn(Optional.of(unverifiedLine(42L, "9503", 5.0)));
+
+        GstRateResolver.Resolved r = resolver.resolve(product, false, LocalDate.of(2026, 10, 16));
+        GstRateResolver.Split split = r.splitInclusive(525.0);
+
+        assertEquals(5.0, r.getTotalRate());
+        assertEquals(500.0, split.taxable());
+        assertEquals(12.5, split.cgst());
+        assertEquals(12.5, split.sgst());
+    }
+
+    @Test
     void resolve_shouldAcceptASelectionMadeAgainstAParentHeading() {
         // Rates are published against "61" while a product carries 61091000; a choice made on
         // the heading still describes the same goods.

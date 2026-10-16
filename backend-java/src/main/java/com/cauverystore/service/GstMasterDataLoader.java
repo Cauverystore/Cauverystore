@@ -248,10 +248,13 @@ public class GstMasterDataLoader {
         // Every (hsn, rate, effectiveFrom, condition) the current seed is willing to stand behind.
         java.util.Set<String> seedVerified = new java.util.HashSet<>();
         java.util.Set<String> seedHeadings = new java.util.HashSet<>();
+        Map<String, Integer> seedKeyCount = new HashMap<>();
         for (JsonNode n : rows) {
             String h = text(n, "hsnCode");
             if (h == null || n.get("gstRate") == null || text(n, "effectiveFrom") == null) continue;
             seedHeadings.add(h);
+            seedKeyCount.merge(rateKey(h, n.get("gstRate").asDouble(),
+                    text(n, "effectiveFrom"), text(n, "conditionType")), 1, Integer::sum);
             if (GstRateMaster.STATUS_VERIFIED.equals(text(n, "status"))) {
                 seedVerified.add(rateKey(h, n.get("gstRate").asDouble(),
                         text(n, "effectiveFrom"), text(n, "conditionType")));
@@ -275,12 +278,26 @@ public class GstMasterDataLoader {
             if (isAmbiguous) ambiguous++;
 
             String seedCondition = text(n, "conditionType");
-            boolean present = existing.getOrDefault(hsn, List.of()).stream()
-                    .anyMatch(r -> Double.compare(r.getGstRate(), rate) == 0
+            List<GstRateMaster> sameKey = existing.getOrDefault(hsn, List.of()).stream()
+                    .filter(r -> Double.compare(r.getGstRate(), rate) == 0
                             && from.equals(r.getEffectiveFrom())
                             && java.util.Objects.equals(
                                     r.getConditionType() == null ? GstRateMaster.CONDITION_NONE : r.getConditionType(),
-                                    seedCondition == null ? GstRateMaster.CONDITION_NONE : seedCondition));
+                                    seedCondition == null ? GstRateMaster.CONDITION_NONE : seedCondition))
+                    .toList();
+            // A heading can publish two different goods at the same rate from the same day - 9503
+            // has toy balloons and non-electronic toys both at 5% - and the key alone cannot tell
+            // them apart, so a line added to the seed later would look already present and never
+            // reach a populated database. Where the seed repeats a key, the wording decides; once
+            // the database holds as many rows for the key as the seed does, nothing more is added,
+            // so a row whose wording someone has since edited is not inserted a second time.
+            String key = rateKey(hsn, rate, fromStr, seedCondition);
+            int seedCount = seedKeyCount.getOrDefault(key, 1);
+            boolean present = seedCount <= 1
+                    ? !sameKey.isEmpty()
+                    : sameKey.size() >= seedCount
+                            || sameKey.stream().anyMatch(r -> java.util.Objects.equals(
+                                    r.getConditionText(), text(n, "conditionText")));
             if (present) continue;
 
             GstRateMaster r = new GstRateMaster();
