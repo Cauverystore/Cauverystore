@@ -34,13 +34,29 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByCategoryAndActiveTrue(Category category);
 
-    @Query("SELECT p FROM Product p WHERE p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved') AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%',:name,'%'))) AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
+    // What a shopper types is matched against everything a seller fills in to describe the
+    // product - brand, category, description and the search keywords - not just its name, so
+    // a search for "cotton" finds a tee whose name never says so.
+    @Query("SELECT p FROM Product p LEFT JOIN p.category c WHERE p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved')"
+            + " AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%',:name,'%'))"
+            + " OR LOWER(p.brand) LIKE LOWER(CONCAT('%',:name,'%'))"
+            + " OR LOWER(c.name) LIKE LOWER(CONCAT('%',:name,'%'))"
+            + " OR LOWER(p.description) LIKE LOWER(CONCAT('%',:name,'%'))"
+            + " OR LOWER(p.metaKeywords) LIKE LOWER(CONCAT('%',:name,'%')))"
+            + " AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice)")
     Page<Product> searchProducts(@Param("name") String name,
                                  @Param("minPrice") Double minPrice,
                                  @Param("maxPrice") Double maxPrice,
                                  Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved') AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%',:name,'%'))) AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice) AND (:category IS NULL OR p.category = :category)")
+    // Same matching as searchProducts, within one category.
+    @Query("SELECT p FROM Product p LEFT JOIN p.category c WHERE p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved')"
+            + " AND (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%',:name,'%'))"
+            + " OR LOWER(p.brand) LIKE LOWER(CONCAT('%',:name,'%'))"
+            + " OR LOWER(c.name) LIKE LOWER(CONCAT('%',:name,'%'))"
+            + " OR LOWER(p.description) LIKE LOWER(CONCAT('%',:name,'%'))"
+            + " OR LOWER(p.metaKeywords) LIKE LOWER(CONCAT('%',:name,'%')))"
+            + " AND (:minPrice IS NULL OR p.price >= :minPrice) AND (:maxPrice IS NULL OR p.price <= :maxPrice) AND (:category IS NULL OR p.category = :category)")
     Page<Product> searchProductsByCategory(@Param("name") String name,
                                            @Param("minPrice") Double minPrice,
                                            @Param("maxPrice") Double maxPrice,

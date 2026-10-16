@@ -127,6 +127,9 @@ const ProductDetails = () => {
     ? trimAt(product.description, 155)
     : `Buy ${product.name} online at Cauvery Store. Pay securely and get it delivered to your door.`;
 
+  // The seller's own search title wins when they wrote one; otherwise the product name.
+  const pageTitle = product.metaTitle?.trim() || `${product.name} - Cauvery Store`;
+
   const selImage = product.images?.[selectedImage];
   const mainSrc = fullUrl(selImage) || fullUrl(product.image) || "/images/placeholder.svg";
   const mainThumb = typeof selImage === "object" && selImage?.thumbUrl ? imgUrl(selImage.thumbUrl) : "";
@@ -141,16 +144,16 @@ const ProductDetails = () => {
   return (
     <div className="product-detail-page">
       <Helmet>
-        <title>{product.name} - Cauvery Store</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={metaDescription} />
         <link rel="canonical" href={canonicalUrl} />
-        <meta property="og:title" content={`${product.name} - Cauvery Store`} />
+        <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={metaDescription} />
         <meta property="og:image" content={fullUrl(product.images?.[0]) || fullUrl(product.image) || siteDefaultImage} />
         <meta property="og:type" content="product" />
         <meta property="og:url" content={canonicalUrl} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${product.name} - Cauvery Store`} />
+        <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={metaDescription} />
         <meta name="twitter:image" content={fullUrl(product.images?.[0]) || fullUrl(product.image) || siteDefaultImage} />
       </Helmet>

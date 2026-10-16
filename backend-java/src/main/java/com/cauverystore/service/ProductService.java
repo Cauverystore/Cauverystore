@@ -541,6 +541,14 @@ public class ProductService {
           if (product.getUom() != null) {
               existing.setUom(product.getUom());
           }
+          // Search details: the seller's own page title for Google and the extra words shoppers
+          // search by. Neither was copied before, so an edit silently kept the old values.
+          if (product.getMetaTitle() != null) {
+              existing.setMetaTitle(product.getMetaTitle());
+          }
+          if (product.getMetaKeywords() != null) {
+              existing.setMetaKeywords(product.getMetaKeywords());
+          }
           hsnClassificationService.validate(existing);
           withdrawFromSaleIfUntaxable(existing);
           Product saved = productRepo.save(existing);
