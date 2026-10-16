@@ -101,7 +101,7 @@ public class SitemapService {
 
         for (Product product : liveProducts) {
             LocalDateTime lastmod = product.getUpdatedAt() != null ? product.getUpdatedAt() : product.getCreatedAt();
-            addUrl(xml, base + "/product/" + product.getId(), lastmod);
+            addUrl(xml, base + productPath(product.getId(), product.getName()), lastmod);
         }
 
         xml.append("</urlset>\n");
@@ -115,6 +115,31 @@ public class SitemapService {
             xml.append("    <lastmod>").append(lastmod.format(LASTMOD_FORMAT)).append("</lastmod>\n");
         }
         xml.append("  </url>\n");
+    }
+
+    private static final int MAX_SLUG_LENGTH = 60;
+
+    /**
+     * The readable product address, /product/123-blue-cotton-tee. Must build the same words as
+     * the storefront's productSlug (frontend/src/utils/productUrl.js), or the sitemap would list
+     * an address the product page then swaps for another.
+     */
+    static String productPath(Long id, String name) {
+        String slug = productSlug(name);
+        return slug.isEmpty() ? "/product/" + id : "/product/" + id + "-" + slug;
+    }
+
+    static String productSlug(String name) {
+        String slug = java.text.Normalizer.normalize(name == null ? "" : name.toLowerCase(java.util.Locale.ROOT),
+                        java.text.Normalizer.Form.NFKD)
+                .replaceAll("\\p{M}", "")
+                .replace("&", " and ")
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-+|-+$", "");
+        if (slug.length() <= MAX_SLUG_LENGTH) return slug;
+        String cut = slug.substring(0, MAX_SLUG_LENGTH);
+        int lastDash = cut.lastIndexOf('-');
+        return (lastDash > 20 ? cut.substring(0, lastDash) : cut).replaceAll("-+$", "");
     }
 
     private String encode(String value) {

@@ -8,6 +8,7 @@ import { trackSelectItem, trackAddToCart } from "../utils/analytics";
 import { toggleCompare, isCompared } from "../utils/compare";
 import { variantNoun } from "../utils/variant";
 import "../styles/product-tray.css";
+import { productPath } from "../utils/productUrl";
 
 /*
  * The Cauvery Store product card. One standard for every list on the site:
@@ -143,7 +144,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   };
 
   const handleShare = async () => {
-    const url = window.location.origin + `/product/${pid}`;
+    const url = window.location.origin + productPath(pid, product?.name);
     try {
       if (navigator.share) await navigator.share({ title: name, url });
       else {
@@ -315,7 +316,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         {/* A real <a href> that crawlers can follow. Its ::after covers the whole card, so the
             card is one big link while the buttons stay separate, properly nested controls. */}
         <h3 className="pt-name">
-          <Link to={`/product/${pid}`} className="pt-link" onClick={handleOpen}>
+          <Link to={productPath(pid, product?.name)} className="pt-link" onClick={handleOpen}>
             {name}
           </Link>
         </h3>
@@ -337,7 +338,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         {inStock && optionCount > 0 ? (
           /* Sold in sizes: the size is chosen on the product page, so the card leads there. */
           <div className="pt-actions pt-actions-stacked">
-            <Link to={`/product/${pid}`} className="pt-btn pt-btn-buy" onClick={handleOpen}>
+            <Link to={productPath(pid, product?.name)} className="pt-btn pt-btn-buy" onClick={handleOpen}>
               Choose {variantNoun(product)}
             </Link>
             {onRemove && (

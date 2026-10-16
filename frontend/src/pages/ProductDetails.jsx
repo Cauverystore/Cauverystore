@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Truck, RotateCcw, ShieldCheck, Store } from "lucide-react";
 import api from "../api/axios";
@@ -7,14 +7,18 @@ import { getProductById } from "../services/productService";
 import { addToCartOrLogin } from "../utils/cartActions";
 import { trackViewItem } from "../utils/analytics";
 import { imgUrl } from "../utils/images";
+import { productIdFromParam, productPath } from "../utils/productUrl";
 import Breadcrumb from "../components/Breadcrumb";
 import ProductTray from "../components/ProductTray";
 import ProductRow from "../components/ProductRow";
 import "../styles/productDetails.css";
 
 const ProductDetails = () => {
-  const { id } = useParams();
+  // The address is /product/123-blue-cotton-tee; only the number identifies the product.
+  const { id: idParam } = useParams();
+  const id = productIdFromParam(idParam);
   const navigate = useNavigate();
+  const location = useLocation();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -28,6 +32,7 @@ const ProductDetails = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       setSeller(null);
+      if (!id) { setProduct(null); setLoading(false); return; }
       try {
         const res = await getProductById(id);
         setProduct(res.data);
@@ -53,6 +58,14 @@ const ProductDetails = () => {
   useEffect(() => {
     if (product) trackViewItem(product);
   }, [product]);
+
+  // An old /product/123 link, or one whose words no longer match the name, is swapped for the
+  // current address without a reload, so there is one address per product for search engines.
+  useEffect(() => {
+    if (!product || !id) return;
+    const wanted = productPath(id, product.name);
+    if (location.pathname !== wanted) navigate(wanted + location.search + location.hash, { replace: true });
+  }, [product, id, location.pathname, location.search, location.hash, navigate]);
 
   // A product sold in sizes goes into the cart as the chosen size, never as "a t-shirt".
   const hasVariants = (product?.variants || []).length > 0;
@@ -111,7 +124,7 @@ const ProductDetails = () => {
     </div>
   );
 
-  const canonicalUrl = `https://cauverystore.in/product/${id}`;
+  const canonicalUrl = `https://cauverystore.in${productPath(id, product.name)}`;
   // The seller's own return period; 7 days is the marketplace default. "No Returns" on the
   // product overrides it, the same way the order system decides.
   const returnDays = /no return/i.test(product.returnPolicy || "") ? 0 : (product.returnWindow ?? 7);

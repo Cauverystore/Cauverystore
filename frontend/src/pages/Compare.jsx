@@ -4,6 +4,7 @@ import { GitCompareArrows, Trash2, X, ShoppingCart, Eye } from "lucide-react";
 import { getCompareProducts, removeCompare, clearCompare } from "../utils/compare";
 import { addToCartOrLogin } from "../utils/cartActions";
 import { imgUrl } from "../utils/images";
+import { productPath } from "../utils/productUrl";
 
 const PLACEHOLDER = "/images/placeholder.svg";
 
@@ -71,8 +72,8 @@ const Compare = () => {
               {products.map((p) => (
                 <div className="cmp-cell cmp-product" key={pidOf(p)}>
                   <button className="cmp-remove" onClick={(e) => handleRemove(e, p)} aria-label={`Remove ${nameOf(p)} from compare`}><X size={16} /></button>
-                  <img src={imageOf(p)} alt={nameOf(p)} width="120" height="120" loading="lazy" className="cmp-img" onClick={() => navigate(`/product/${pidOf(p)}`)} />
-                  <div className="cmp-name" onClick={() => navigate(`/product/${pidOf(p)}`)}>{nameOf(p)}</div>
+                  <img src={imageOf(p)} alt={nameOf(p)} width="120" height="120" loading="lazy" className="cmp-img" onClick={() => navigate(productPath(pidOf(p), p?.name))} />
+                  <div className="cmp-name" onClick={() => navigate(productPath(pidOf(p), p?.name))}>{nameOf(p)}</div>
                 </div>
               ))}
 
@@ -126,7 +127,7 @@ const Compare = () => {
             {products.map((p) => (
               <div className="cmp-actions" key={pidOf(p)}>
                 <button className="cmp-btn cmp-btn-cart" onClick={() => handleAddToCart(p)}><ShoppingCart size={15} /> Add to Cart</button>
-                <button className="cmp-btn cmp-btn-view" onClick={() => navigate(`/product/${pidOf(p)}`)}><Eye size={15} /> View</button>
+                <button className="cmp-btn cmp-btn-view" onClick={() => navigate(productPath(pidOf(p), p?.name))}><Eye size={15} /> View</button>
                 <button className="cmp-btn cmp-btn-remove" onClick={() => { removeCompare(pidOf(p)); reload(); }}><Trash2 size={15} /> Remove</button>
               </div>
             ))}

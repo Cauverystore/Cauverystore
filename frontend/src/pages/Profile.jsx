@@ -7,6 +7,7 @@ import { getCart, moveToCart } from "../services/cartService";
 import { removeFromWishlist } from "../services/wishlistService";
 import { useWishlist } from "../context/WishlistContext";
 import "../styles/profile.css";
+import { productPath } from "../utils/productUrl";
 
 const PLACEHOLDER = "/images/placeholder.svg";
 
@@ -628,7 +629,7 @@ const Profile = () => {
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "0.6rem 0.9rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)"
               }}>
-                <Link to={`/product/${pid}`} style={{ fontSize: "0.9rem", color: "var(--color-text-primary)", textDecoration: "none" }}>
+                <Link to={productPath(pid, p.name || item.productName)} style={{ fontSize: "0.9rem", color: "var(--color-text-primary)", textDecoration: "none" }}>
                   {p.name || item.productName || `Product #${pid}`}
                 </Link>
                 <button className="pf-btn-sm pf-btn-danger" onClick={() => handleRemoveWishlistItem(pid)}>Remove</button>
@@ -654,7 +655,7 @@ const Profile = () => {
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "0.6rem 0.9rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)"
               }}>
-                <Link to={`/product/${pid}`} style={{ fontSize: "0.9rem", color: "var(--color-text-primary)", textDecoration: "none" }}>
+                <Link to={productPath(pid, p.name || item.productName)} style={{ fontSize: "0.9rem", color: "var(--color-text-primary)", textDecoration: "none" }}>
                   {p.name || item.productName || `Product #${pid}`}
                 </Link>
                 <button className="pf-btn-sm pf-btn-primary" onClick={() => handleMoveSavedToCart(itemId)}>Move to Cart</button>
