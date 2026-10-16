@@ -52,6 +52,19 @@ public class Order extends BaseEntity {
      */
     private Boolean billToShipTo = false;
 
+    /**
+     * True for orders placed since prices became GST-inclusive: the amounts on the items are
+     * what the customer paid, tax inside. Null on older orders, whose prices were before tax
+     * with GST added on top - their invoices are still worked out that way.
+     */
+    private Boolean pricesIncludeTax;
+
+    /**
+     * What the customer paid for gift wrapping, GST inside (null or 0 when not asked for).
+     * Wrapping the seller's own goods is part of the same supply, so it is taxed with them.
+     */
+    private Double giftWrapCharge;
+
     /** Who receives the goods, when that is not the buyer. Rule 46(o). */
     @Column(columnDefinition = "TEXT")
     private String consigneeName;
@@ -150,6 +163,13 @@ public class Order extends BaseEntity {
     }
 
     @java.lang.SuppressWarnings("all")
+    public Boolean getPricesIncludeTax() { return this.pricesIncludeTax; }
+    public void setPricesIncludeTax(Boolean pricesIncludeTax) { this.pricesIncludeTax = pricesIncludeTax; }
+    public boolean isTaxInclusive() { return Boolean.TRUE.equals(this.pricesIncludeTax); }
+
+    public Double getGiftWrapCharge() { return this.giftWrapCharge; }
+    public void setGiftWrapCharge(Double giftWrapCharge) { this.giftWrapCharge = giftWrapCharge; }
+
     public Boolean getBillToShipTo() { return this.billToShipTo; }
     public void setBillToShipTo(Boolean billToShipTo) { this.billToShipTo = billToShipTo; }
     public String getConsigneeName() { return this.consigneeName; }

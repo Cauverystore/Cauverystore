@@ -315,14 +315,16 @@ public class GstMasterDataLoader {
         int retracted = retractFabricatedCodes(existing);
         int flagged = backfillWholeChapterFlag(rows, existing);
         int cessSynced = syncSeedCess(rows, existing);
+        int reworded = syncSeedWording(rows, existing);
 
-        if (inserted > 0 || demoted > 0 || closed > 0 || retracted > 0 || flagged > 0 || cessSynced > 0) {
+        if (inserted > 0 || demoted > 0 || closed > 0 || retracted > 0 || flagged > 0 || cessSynced > 0
+                || reworded > 0) {
             MasterUpdateLog entry = new MasterUpdateLog();
             entry.setFileName("gst_rate_seed.json");
             entry.setVersion(RATE_SOURCE_VERSION);
             entry.setRowsLoaded(rows.size());
             entry.setRowsInserted(inserted);
-            entry.setRowsUpdated(demoted + cessSynced);
+            entry.setRowsUpdated(demoted + cessSynced + reworded);
             entry.setStatus("SUCCESS");
             entry.setChangesDetected(inserted + " rate rows inserted; " + ambiguous
                     + " left UNVERIFIED because the heading carries more than one rate; "
@@ -555,6 +557,47 @@ public class GstMasterDataLoader {
         if (!toSync.isEmpty()) {
             rateRepo.saveAll(toSync);
             log.info("Aligned compensation cess on {} existing rate row(s) with the seed.", toSync.size());
+        }
+        return toSync.size();
+    }
+
+    /**
+     * Brings the wording of rows nobody has reviewed into line with the seed.
+     *
+     * The wording is what a seller reads when choosing the line that describes their goods, so
+     * a mangled description is as harmful as a wrong rate: 7323 once offered only "milk cans"
+     * at 5%, leaving a seller of steel utensils no correct line to pick. Rows are matched on the
+     * same key the inserts use, and only rows still untouched by a person - unverified, or
+     * verified by the loader itself - are changed. A key the seed uses twice is skipped, as it
+     * cannot say which row is meant.
+     */
+    private int syncSeedWording(List<JsonNode> rows, Map<String, List<GstRateMaster>> existing) {
+        Map<String, String> seedText = new HashMap<>();
+        java.util.Set<String> repeated = new java.util.HashSet<>();
+        for (JsonNode n : rows) {
+            String hsn = text(n, "hsnCode");
+            String wording = text(n, "conditionText");
+            if (hsn == null || wording == null || n.get("gstRate") == null || text(n, "effectiveFrom") == null) continue;
+            String key = rateKey(hsn, n.get("gstRate").asDouble(), text(n, "effectiveFrom"), text(n, "conditionType"));
+            if (seedText.put(key, wording) != null) repeated.add(key);
+        }
+        repeated.forEach(seedText::remove);
+
+        List<GstRateMaster> toSync = new ArrayList<>();
+        for (List<GstRateMaster> perHsn : existing.values()) {
+            for (GstRateMaster r : perHsn) {
+                if (r.getVerifiedBy() != null && !AUTO_VERIFIER.equals(r.getVerifiedBy())) continue;
+                String wanted = seedText.get(rateKey(r.getHsnCode(), r.getGstRate(),
+                        r.getEffectiveFrom() == null ? null : r.getEffectiveFrom().toString(),
+                        r.getConditionType()));
+                if (wanted == null || wanted.equals(r.getConditionText())) continue;
+                r.setConditionText(wanted);
+                toSync.add(r);
+            }
+        }
+        if (!toSync.isEmpty()) {
+            rateRepo.saveAll(toSync);
+            log.info("Updated the wording of {} unreviewed rate row(s) to match the seed.", toSync.size());
         }
         return toSync.size();
     }

@@ -211,7 +211,7 @@ const ProductManagement = () => {
           {fld("Description","description","textarea")}
         </div>
         <div style={S.section}><h3 style={S.sTitle}>Pricing & Inventory</h3>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.75rem"}}>{fld("Price (₹) *","price","number")}{fld("Stock *","stock","number")}{fld("SKU","sku")}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.75rem"}}>{fld("Price incl. GST (₹) *","price","number")}{fld("Stock *","stock","number")}{fld("SKU","sku")}</div>
         </div>
         <div style={S.section}><h3 style={S.sTitle}>Details</h3>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>{fld("Manufacturer","manufacturer")}{fld("Model Number","modelNumber")}{fld("Barcode","barcode",null,null,"12-13 digits")}{fld("Country","countryOfOrigin",null,COUNTRIES)}{fld("Warranty","warranty",null,WARRANTY)}{fld("Return Policy","returnPolicy",null,RETURN_POLICY)}{fld("Badges","badges",null,BADGES)}</div>
@@ -373,7 +373,7 @@ const ProductManagement = () => {
           <h3 style={S.sTitle}>Edit: {editing.name} ({editing.productCode})</h3>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
             {fldEdit("Name","name")}{fldEdit("Brand","brand")}
-            {fldEdit("Price (₹)","price","number")}{fldEdit("Stock","stock","number")}
+            {fldEdit("Price incl. GST (₹)","price","number")}{fldEdit("Stock","stock","number")}
           </div>
           {fldEdit("Description","description","textarea")}
 

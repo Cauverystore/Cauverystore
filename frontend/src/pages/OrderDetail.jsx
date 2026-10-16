@@ -128,7 +128,15 @@ const OrderDetail = () => {
     return price * qty;
   };
 
-  const orderTotal = items.reduce((sum, item) => sum + lineTotal(item), 0) || order?.totalAmount || order?.total || 0;
+  const itemsTotal = items.reduce((sum, item) => sum + lineTotal(item), 0) || order?.subTotal || 0;
+  const deliveryCharge = order?.deliveryCharge || 0;
+  const giftWrapCharge = order?.giftWrapCharge || 0;
+  // Older orders had GST added on top of the prices; current ones have it inside.
+  const taxOnTop = order && !order.pricesIncludeTax ? (order.tax || 0) : 0;
+  // What was actually charged comes from the server. Adding up the item prices alone left out
+  // delivery, gift wrap and any coupon, so this page could disagree with the payment.
+  const orderTotal = order?.totalAmount ?? order?.total ?? itemsTotal;
+  const discount = Math.max(itemsTotal + taxOnTop + deliveryCharge + giftWrapCharge - orderTotal, 0);
   const orderId = order?.orderId || id?.slice(-8) || id;
 
   const orderItemsList = useMemo(() => items.map((item, idx) => {
@@ -316,9 +324,40 @@ const OrderDetail = () => {
       }}>
         <h3 style={{ fontWeight: 600, marginBottom: "0.75rem", fontSize: "1.05rem" }}>Order Summary</h3>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
+          <span style={{ color: "var(--color-text-secondary)" }}>Items</span>
+          <span>&#8377;{itemsTotal.toFixed(2)}</span>
+        </div>
+        {discount >= 0.01 && (
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
+            <span style={{ color: "var(--color-text-secondary)" }}>Discount</span>
+            <span style={{ color: "#16a34a" }}>-&#8377;{discount.toFixed(2)}</span>
+          </div>
+        )}
+        {taxOnTop > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
+            <span style={{ color: "var(--color-text-secondary)" }}>GST</span>
+            <span>&#8377;{taxOnTop.toFixed(2)}</span>
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
+          <span style={{ color: "var(--color-text-secondary)" }}>Delivery</span>
+          <span>{deliveryCharge > 0 ? <>&#8377;{deliveryCharge.toFixed(2)}</> : "FREE"}</span>
+        </div>
+        {giftWrapCharge > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
+            <span style={{ color: "var(--color-text-secondary)" }}>Gift Wrap</span>
+            <span>&#8377;{giftWrapCharge.toFixed(2)}</span>
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
           <span style={{ color: "var(--color-text-secondary)" }}>Total Amount</span>
           <strong>&#8377;{orderTotal.toFixed(2)}</strong>
         </div>
+        {order?.pricesIncludeTax && (
+          <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", margin: "0 0 0.4rem" }}>
+            Prices include GST{order.tax ? <> (&#8377;{order.tax.toFixed(2)})</> : null}
+          </p>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
           <span style={{ color: "var(--color-text-secondary)" }}>Payment Method</span>
           <span>{order?.paymentMethod || "COD"}</span>

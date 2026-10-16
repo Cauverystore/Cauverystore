@@ -62,7 +62,7 @@ public class TaxPreviewService {
 
         List<Map<String, Object>> priced = new ArrayList<>();
         List<Map<String, Object>> unresolved = new ArrayList<>();
-        double taxableTotal = 0, cgstTotal = 0, sgstTotal = 0, igstTotal = 0;
+        double taxableTotal = 0, cgstTotal = 0, sgstTotal = 0, igstTotal = 0, cessTotal = 0;
 
         for (Line line : lines == null ? List.<Line>of() : lines) {
             if (line == null || line.productId() == null) continue;
@@ -89,10 +89,13 @@ public class TaxPreviewService {
                 continue;
             }
 
-            double taxable = round(unitPrice * qty);
-            double cgst = round(taxable * resolved.getCgstRate() / 100.0);
-            double sgst = round(taxable * resolved.getSgstRate() / 100.0);
-            double igst = round(taxable * resolved.getIgstRate() / 100.0);
+            // Prices include GST, so the tax is taken out of the line rather than added.
+            double lineValue = round(unitPrice * qty);
+            GstRateResolver.Split split = resolved.splitInclusive(lineValue);
+            double taxable = split.taxable();
+            double cgst = split.cgst();
+            double sgst = split.sgst();
+            double igst = split.igst();
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("productId", product.getId());
@@ -108,10 +111,11 @@ public class TaxPreviewService {
             row.put("cgstAmount", cgst);
             row.put("sgstAmount", sgst);
             row.put("igstAmount", igst);
-            row.put("lineTotal", round(taxable + cgst + sgst + igst));
+            row.put("lineTotal", round(taxable + cgst + sgst + igst + split.cess()));
             priced.add(row);
 
             taxableTotal += taxable;
+            cessTotal += split.cess();
             cgstTotal += cgst;
             sgstTotal += sgst;
             igstTotal += igst;
@@ -129,7 +133,8 @@ public class TaxPreviewService {
         out.put("sgstAmount", round(sgstTotal));
         out.put("igstAmount", round(igstTotal));
         out.put("totalTax", round(cgstTotal + sgstTotal + igstTotal));
-        out.put("grandTotal", round(taxableTotal + cgstTotal + sgstTotal + igstTotal));
+        out.put("totalCess", round(cessTotal));
+        out.put("grandTotal", round(taxableTotal + cgstTotal + sgstTotal + igstTotal + cessTotal));
         out.put("unresolved", unresolved);
         // A caller that ignores this and charges the total anyway would be invoicing goods at a
         // rate nobody published, so it is stated plainly rather than left to be inferred.

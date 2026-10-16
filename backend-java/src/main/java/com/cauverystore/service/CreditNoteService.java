@@ -43,6 +43,7 @@ public class CreditNoteService {
     private final GstConfigurationRepository configRepo;
     private final UserRepository userRepo;
     private final AuditService auditService;
+    private final GstRateResolver gstRateResolver;
 
     private static final Map<String, String> STATE_CODES = new LinkedHashMap<>();
     static {
@@ -73,8 +74,9 @@ public class CreditNoteService {
                              OrderRepository orderRepo, ReturnRequestRepository returnRepo,
                              SellerRegistrationRepository sellerRegRepo, GstConfigurationRepository configRepo,
                              UserRepository userRepo, AuditService auditService,
-                             TcsRecordRepository tcsRepo) {
+                             TcsRecordRepository tcsRepo, GstRateResolver gstRateResolver) {
         this.creditNoteRepo = creditNoteRepo;
+        this.gstRateResolver = gstRateResolver;
         this.tcsRepo = tcsRepo;
         this.creditNoteItemRepo = creditNoteItemRepo;
         this.invoiceRepo = invoiceRepo;
@@ -761,68 +763,138 @@ public class CreditNoteService {
 
     private List<CreditNoteItem> buildItemsFromOrder(CreditNote cn, Order order) {
         List<CreditNoteItem> list = new ArrayList<>();
-        boolean isInter = Boolean.TRUE.equals(cn.getIsInterState());
+        double retainedFactor = retainedFactor(order);
+        GstRateResolver.Resolved principal = null;
+        String principalHsn = null;
         for (OrderItem oi : order.getItems()) {
-            Product p = oi.getProduct();
-            double gstPct = (p != null && p.getGstPercentage() != null) ? p.getGstPercentage() : 12.0;
-            double taxable = oi.getPrice() * oi.getQuantity();
-            CreditNoteItem it = new CreditNoteItem();
-            it.setCreditNote(cn);
-            it.setProductName(p != null ? p.getName() : "Product");
-            it.setHsnCode(p != null && p.getHsnCode() != null ? p.getHsnCode() : "999999");
-            it.setUnitOfMeasure("NOS");
-            it.setQuantity(oi.getQuantity());
-            it.setUnitPrice(oi.getPrice());
-            it.setTaxableValue(round(taxable));
-            if (isInter) {
-                it.setIgstRate(gstPct);
-                it.setIgstAmount(round(taxable * gstPct / 100));
-                it.setCgstRate(0.0); it.setCgstAmount(0.0);
-                it.setSgstRate(0.0); it.setSgstAmount(0.0);
-            } else {
-                it.setCgstRate(gstPct / 2);
-                it.setCgstAmount(round(taxable * gstPct / 200));
-                it.setSgstRate(gstPct / 2);
-                it.setSgstAmount(round(taxable * gstPct / 200));
-                it.setIgstRate(0.0); it.setIgstAmount(0.0);
+            OrderLine line = buildOrderLine(cn, oi, oi.getQuantity(), order, retainedFactor);
+            list.add(line.item());
+            if (principal == null || line.resolved().getTotalRate() > principal.getTotalRate()) {
+                principal = line.resolved();
+                principalHsn = line.item().getHsnCode();
             }
-            it.setTotalAmount(round(nz(it.getTaxableValue()) + nz(it.getCgstAmount())
-                    + nz(it.getSgstAmount()) + nz(it.getIgstAmount())));
-            list.add(it);
+        }
+        // A full refund gives back delivery and gift wrap too, and on a GST-inclusive order
+        // each had tax inside it at the goods' rate (they are part of the supply of goods, as on
+        // the invoice). Leaving them off the note would leave that tax declared but refunded.
+        if (order.isTaxInclusive() && principal != null) {
+            if (nz(order.getDeliveryCharge()) > 0) {
+                list.add(chargeLine(cn, principal, principalHsn, order.getDeliveryCharge(),
+                        "Delivery charges (part of the supply of goods)"));
+            }
+            if (nz(order.getGiftWrapCharge()) > 0) {
+                list.add(chargeLine(cn, principal, principalHsn, order.getGiftWrapCharge(),
+                        "Gift wrapping (part of the supply of goods)"));
+            }
         }
         return list;
     }
 
+    private record OrderLine(CreditNoteItem item, GstRateResolver.Resolved resolved) {}
+
+    /** A delivery or gift wrap line on a GST-inclusive order: the tax is taken out of the amount. */
+    private CreditNoteItem chargeLine(CreditNote cn, GstRateResolver.Resolved principal, String hsn,
+                                      double amount, String name) {
+        boolean isInter = Boolean.TRUE.equals(cn.getIsInterState());
+        GstRateResolver.Split split = principal.splitInclusive(round(amount));
+        double rate = principal.getTotalRate();
+        CreditNoteItem it = new CreditNoteItem();
+        it.setCreditNote(cn);
+        it.setProductName(name);
+        it.setHsnCode(hsn);
+        it.setUnitOfMeasure("NOS");
+        it.setQuantity(1);
+        it.setUnitPrice(amount);
+        it.setTaxableValue(split.taxable());
+        if (isInter) {
+            it.setIgstRate(rate);
+            it.setIgstAmount(split.igst());
+            it.setCgstRate(0.0); it.setCgstAmount(0.0);
+            it.setSgstRate(0.0); it.setSgstAmount(0.0);
+        } else {
+            it.setCgstRate(rate / 2);
+            it.setCgstAmount(split.cgst());
+            it.setSgstRate(rate / 2);
+            it.setSgstAmount(split.sgst());
+            it.setIgstRate(0.0); it.setIgstAmount(0.0);
+        }
+        it.setTotalAmount(round(nz(it.getTaxableValue()) + nz(it.getCgstAmount())
+                + nz(it.getSgstAmount()) + nz(it.getIgstAmount())));
+        return it;
+    }
+
     private List<CreditNoteItem> buildItemsFromOrderItem(CreditNote cn, OrderItem oi, int returnedQty, Order order) {
         List<CreditNoteItem> list = new ArrayList<>();
+        list.add(buildOrderLine(cn, oi, returnedQty, order, retainedFactor(order)).item());
+        return list;
+    }
+
+    /**
+     * One credit-note line for an order that never got a GST invoice, worked out exactly the
+     * way GstInvoiceService would have invoiced it: the rate comes from the CBIC rate master as
+     * of the order date (it used to read the product's free-text percentage, which defaults to
+     * 12% - a rate clothing is never taxed at), the coupon share is taken off the line, and on a
+     * GST-inclusive order the tax is taken out of what was paid rather than added on top.
+     */
+    private OrderLine buildOrderLine(CreditNote cn, OrderItem oi, int qty, Order order,
+                                          double retainedFactor) {
         Product p = oi.getProduct();
-        double gstPct = (p != null && p.getGstPercentage() != null) ? p.getGstPercentage() : 12.0;
-        double taxable = oi.getPrice() * returnedQty;
         boolean isInter = Boolean.TRUE.equals(cn.getIsInterState());
+        boolean inclusive = order != null && order.isTaxInclusive();
+        LocalDate supplyDate = order != null && order.getCreatedAt() != null
+                ? order.getCreatedAt().toLocalDate() : LocalDate.now();
+        // The rate band (2,500 rupees for clothing) turns on the per-piece price actually paid,
+        // after any coupon - the same figure the invoice and checkout used.
+        double paidPerPiece = inclusive ? oi.getPrice() * retainedFactor : oi.getPrice();
+        GstRateResolver.Resolved resolved = gstRateResolver.resolve(p, isInter, supplyDate, paidPerPiece);
+        double gstPct = resolved.getTotalRate();
+        double linePaid = round(oi.getPrice() * qty * retainedFactor);
+        GstRateResolver.Split split = inclusive ? resolved.splitInclusive(linePaid) : null;
+        double taxable = inclusive ? split.taxable() : linePaid;
+
         CreditNoteItem it = new CreditNoteItem();
         it.setCreditNote(cn);
         it.setProductName(p != null ? p.getName() : "Product");
         it.setHsnCode(p != null && p.getHsnCode() != null ? p.getHsnCode() : "999999");
         it.setUnitOfMeasure("NOS");
-        it.setQuantity(returnedQty);
+        it.setQuantity(qty);
         it.setUnitPrice(oi.getPrice());
         it.setTaxableValue(round(taxable));
         if (isInter) {
             it.setIgstRate(gstPct);
-            it.setIgstAmount(round(taxable * gstPct / 100));
+            it.setIgstAmount(inclusive ? split.igst() : round(taxable * gstPct / 100));
             it.setCgstRate(0.0); it.setCgstAmount(0.0);
             it.setSgstRate(0.0); it.setSgstAmount(0.0);
         } else {
             it.setCgstRate(gstPct / 2);
-            it.setCgstAmount(round(taxable * gstPct / 200));
+            it.setCgstAmount(inclusive ? split.cgst() : round(taxable * gstPct / 200));
             it.setSgstRate(gstPct / 2);
-            it.setSgstAmount(round(taxable * gstPct / 200));
+            it.setSgstAmount(inclusive ? split.sgst() : round(taxable * gstPct / 200));
             it.setIgstRate(0.0); it.setIgstAmount(0.0);
         }
         it.setTotalAmount(round(nz(it.getTaxableValue()) + nz(it.getCgstAmount())
                 + nz(it.getSgstAmount()) + nz(it.getIgstAmount())));
-        list.add(it);
-        return list;
+        return new OrderLine(it, resolved);
+    }
+
+    /**
+     * The share of the goods' list value the customer actually paid once a coupon came off
+     * (1.0 with no coupon). Orders do not store the coupon, so it is recovered from the total
+     * the same way GstInvoiceService does it.
+     */
+    private double retainedFactor(Order order) {
+        if (order == null || order.getItems() == null) return 1.0;
+        double rawSubtotal = 0;
+        for (OrderItem oi : order.getItems()) rawSubtotal += oi.getPrice() * oi.getQuantity();
+        if (rawSubtotal <= 0) return 0.0;
+        double total = order.getTotalAmount();
+        if (total <= 0) return 1.0;
+        double charges = nz(order.getDeliveryCharge()) + nz(order.getGiftWrapCharge());
+        double coupon = order.isTaxInclusive()
+                ? rawSubtotal + charges - total
+                : rawSubtotal - total + nz(order.getTax()) + charges;
+        coupon = Math.max(0, Math.min(coupon, rawSubtotal));
+        return (rawSubtotal - coupon) / rawSubtotal;
     }
 
     private String generateCreditNoteNumber(String prefix) {

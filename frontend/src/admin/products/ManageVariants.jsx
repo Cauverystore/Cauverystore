@@ -40,7 +40,7 @@ const ManageVariants = () => {
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <input placeholder="Type (e.g. Size)" aria-label="Variant type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} style={inputStyle} />
         <input placeholder="Value (e.g. M)" aria-label="Variant value" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
-        <input placeholder="Price" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} style={inputStyle} />
+        <input placeholder="Price incl. GST" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} style={inputStyle} />
         <input placeholder="Stock" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} style={inputStyle} />
         <button onClick={handleAdd} style={{ padding: "0.5rem 1.25rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>Add</button>
       </div>

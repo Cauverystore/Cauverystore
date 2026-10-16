@@ -130,7 +130,7 @@ class CartTaxResilienceTest {
 
         Map<String, Object> details = service.getCartWithDetails(user);
 
-        assertEquals(45.0, details.get("tax"), "2 x 450 at 5%");
+        assertEquals(42.86, details.get("tax"), "5% inside 2 x 450");
         assertEquals(1, untaxable(details).size());
     }
 
@@ -144,7 +144,7 @@ class CartTaxResilienceTest {
 
         assertEquals(Boolean.TRUE, details.get("taxComplete"));
         assertTrue(untaxable(details).isEmpty());
-        assertEquals(22.5, details.get("tax"));
+        assertEquals(21.42, details.get("tax"), "5% inside 450");
     }
 
     @Test

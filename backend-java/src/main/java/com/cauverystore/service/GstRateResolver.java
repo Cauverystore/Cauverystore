@@ -106,9 +106,33 @@ public class GstRateResolver {
             return round(cgstOn(taxableValue) + sgstOn(taxableValue) + igstOn(taxableValue));
         }
 
+        /**
+         * Splits a GST-inclusive amount - what the customer pays - into the value of supply and
+         * the tax inside it. The tax heads are worked out on the value with all tax taken out,
+         * and the value is whatever is left, so the parts always add back to the amount paid
+         * to the paisa.
+         */
+        public Split splitInclusive(double grossAmount) {
+            double base = grossAmount / (1 + (totalRate + cessRate) / 100.0);
+            double cgst = round(base * cgstRate / 100.0);
+            double sgst = round(base * sgstRate / 100.0);
+            double igst = round(base * igstRate / 100.0);
+            double cess = round(base * cessRate / 100.0);
+            double taxable = round(grossAmount - cgst - sgst - igst - cess);
+            return new Split(taxable, cgst, sgst, igst, cess);
+        }
+
         private static double round(double v) {
             return Math.round(v * 100.0) / 100.0;
         }
+    }
+
+    /** A GST-inclusive amount broken into its value of supply and the tax inside it. */
+    public record Split(double taxable, double cgst, double sgst, double igst, double cess) {
+        /** GST alone (CGST + SGST + IGST), without cess. */
+        public double gst() { return Math.round((cgst + sgst + igst) * 100.0) / 100.0; }
+        /** All tax inside the amount, cess included. */
+        public double allTax() { return Math.round((cgst + sgst + igst + cess) * 100.0) / 100.0; }
     }
 
     /**
@@ -124,8 +148,9 @@ public class GstRateResolver {
     }
 
     /**
-     * @param unitPrice  per-piece selling price, needed only for headings whose rate depends on
-     *                   value (apparel, footwear). Null is fine for everything else.
+     * @param unitPrice  per-piece selling price INCLUDING GST (what the customer pays, after
+     *                   any discount), needed only for headings whose rate depends on value
+     *                   (apparel, footwear). Null is fine for everything else.
      * @param prePackaged whether the goods are pre-packaged and labelled, needed only for the
      *                    staples whose rate turns on packaging (rice, meat, dairy, cereals).
      */
@@ -170,12 +195,25 @@ public class GstRateResolver {
 
             // A row whose value condition matches the item's price wins outright - that is the
             // whole point of the condition. Only if none match do we consider unconditional rows.
+            // Prices are GST-inclusive, so each band is tested on the price with that band's own
+            // tax taken out (see GstRateMaster.appliesToInclusive).
             List<GstRateMaster> conditionMatches = hits.stream()
                     .filter(GstRateMaster::isConditional)
-                    .filter(r -> r.appliesTo(unitPrice, prePackaged))
+                    .filter(r -> r.appliesToInclusive(unitPrice, prePackaged))
                     .toList();
             if (conditionMatches.size() == 1) {
                 return Optional.of(conditionMatches.get(0));
+            }
+
+            // An inclusive price can fall between the bands: ₹2,800 is over ₹2,500 with 5% taken
+            // out but under it with 18% taken out, so neither band is consistent. Both bands are
+            // published, so the goods are taxable - the higher band is charged, which can never
+            // under-declare the tax. Sellers are told to price outside the gap (see gapFor).
+            Optional<GstRateMaster> gap = higherBandInGap(hits, unitPrice);
+            if (gap.isPresent()) {
+                log.info("Inclusive price {} under HSN {} falls between the value bands - charging "
+                        + "the higher band ({}%).", unitPrice, candidate, gap.get().getGstRate());
+                return gap;
             }
 
             List<GstRateMaster> unconditional = hits.stream()
@@ -198,6 +236,26 @@ public class GstRateResolver {
                 log.warn("HSN {} has conditional rates but none apply to unit price {} / "
                         + "pre-packaged {} - leaving unresolved.", candidate, unitPrice, prePackaged);
                 return Optional.empty();
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * The upper band's row when an inclusive price sits between a heading's "up to" and
+     * "above" bands of the same threshold, so that neither applies.
+     */
+    private static Optional<GstRateMaster> higherBandInGap(List<GstRateMaster> hits, Double unitPrice) {
+        if (unitPrice == null) return Optional.empty();
+        for (GstRateMaster above : hits) {
+            if (!GstRateMaster.CONDITION_VALUE_ABOVE.equals(above.getConditionType())) continue;
+            boolean hasLowerBand = hits.stream().anyMatch(r ->
+                    GstRateMaster.CONDITION_VALUE_UPTO.equals(r.getConditionType())
+                            && r.getThresholdAmount() != null
+                            && r.getThresholdAmount().equals(above.getThresholdAmount()));
+            if (hasLowerBand && above.getThresholdAmount() != null
+                    && unitPrice > above.getThresholdAmount()) {
+                return Optional.of(above);
             }
         }
         return Optional.empty();

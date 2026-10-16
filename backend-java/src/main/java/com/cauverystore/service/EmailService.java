@@ -276,14 +276,25 @@ public class EmailService {
                 .append("<table role='presentation' width='100%' style='font-size:13px;color:#4b5563;'>")
                 .append(summaryRow("Subtotal", "₹" + String.format("%.2f", subTotal != null ? subTotal : 0)))
                 .append(summaryRow("Shipping Charges", deliveryCharge != null && deliveryCharge > 0 ? "₹" + String.format("%.2f", deliveryCharge) : "FREE"))
-                .append(summaryRow("Taxes/GST", "₹" + String.format("%.2f", tax != null ? tax : 0)));
+;
+        if (order.getGiftWrapCharge() != null && order.getGiftWrapCharge() > 0) {
+            body.append(summaryRow("Gift Wrap", "₹" + String.format("%.2f", order.getGiftWrapCharge())));
+        }
+        // Prices include GST on current orders, so the tax is noted under the total rather
+        // than listed as something added to it.
+        if (!order.isTaxInclusive()) {
+            body.append(summaryRow("Taxes/GST", "₹" + String.format("%.2f", tax != null ? tax : 0)));
+        }
         if (discount > 0) {
             body.append(summaryRow("Discount", "-₹" + String.format("%.2f", discount)));
         }
         body.append("<tr style='border-top:2px solid ").append(TEAL).append(";font-weight:bold;color:").append(TEAL).append(";'>")
                 .append("<td style='padding:8px 4px;'>Grand Total</td><td style='padding:8px 4px;text-align:right;'>₹")
-                .append(String.format("%.2f", order.getTotalAmount())).append("</td></tr>")
-                .append("</table>");
+                .append(String.format("%.2f", order.getTotalAmount())).append("</td></tr>");
+        if (order.isTaxInclusive()) {
+            body.append(summaryRow("Includes GST of", "₹" + String.format("%.2f", tax != null ? tax : 0)));
+        }
+        body.append("</table>");
 
         // Next steps
         body.append("<p style='color:#4b5563;font-size:13px;margin-top:20px;'>We'll notify you once your order has been shipped. "

@@ -29,6 +29,9 @@ public class OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
+    /** Gift wrap price, GST inside. Checkout shows the same figure. */
+    public static final double GIFT_WRAP_CHARGE = 49.0;
+
     private final OrderRepository orderRepo;
     private final OrderItemRepository orderItemRepo;
     private final CartRepository cartRepo;
@@ -108,19 +111,41 @@ public class OrderService {
     }
 
     /**
-     * GST actually payable on the basket, resolved per line item from its HSN code via the
-     * CBIC rate master - replacing the flat 12% this used to charge on everything regardless
-     * of what was being sold (12% is not even a valid slab since GST 2.0 on 22-09-2025).
+     * GST inside the basket, resolved per line item from its HSN code via the CBIC rate master.
      *
-     * Any order-level discount is apportioned across items in proportion to their value, so
-     * each line is taxed on the amount actually charged for it rather than its list price.
+     * Prices are GST-inclusive - the price a customer sees is what they pay - so the tax is
+     * taken out of each line rather than added to it. Any order-level discount is apportioned
+     * across items in proportion to their value, and each line is taxed on what is actually
+     * paid for it. That includes the rate itself: the ₹2,500 clothing band is tested on the
+     * per-piece price after the coupon, so a ₹2,600 shirt sold for ₹2,400 is taxed as a
+     * ₹2,400 shirt.
+     *
+     * Delivery charged by the seller is part of the same supply as the goods (a composite
+     * supply, section 8(a)), so the tax inside it is at the goods' rate - the highest rate in
+     * the basket where items differ, which can never under-declare.
      *
      * Returns the total only. The CGST/SGST vs IGST split is applied on the invoice, which
-     * knows the place of supply; both sum to the same rate, so the amount charged here is
-     * correct either way.
+     * knows the place of supply; both sum to the same rate, so the amount is correct either way.
      */
-    private double computeGstOnItems(List<OrderItem> items, double subTotal, double discount) {
-        return computeGstOnItems(items, subTotal, discount, LocalDate.now());
+    /**
+     * GST on an old order that predates both stored tax and GST-inclusive prices: its prices
+     * were before tax, so the tax was added on top, and a reprint must say what was charged.
+     */
+    private double legacyGstOnItems(List<OrderItem> items, LocalDate supplyDate) {
+        double tax = 0.0;
+        for (OrderItem item : items == null ? List.<OrderItem>of() : items) {
+            double lineValue = item.getPrice() * item.getQuantity();
+            GstRateResolver.Resolved resolved = gstRateResolver.resolve(
+                    item.getProduct(), false, supplyDate, item.getPrice());
+            tax += Math.round(lineValue * resolved.getTotalRate() / 100.0 * 100.0) / 100.0;
+            tax += resolved.cessOn(lineValue);
+        }
+        return Math.round(tax * 100.0) / 100.0;
+    }
+
+    private double computeGstOnItems(List<OrderItem> items, double subTotal, double discount,
+                                     double deliveryCharge, double giftWrapCharge) {
+        return computeGstOnItems(items, subTotal, discount, deliveryCharge, giftWrapCharge, LocalDate.now());
     }
 
     /**
@@ -129,21 +154,32 @@ public class OrderService {
      *                   restate history at rates that came in afterwards.
      */
     private double computeGstOnItems(List<OrderItem> items, double subTotal, double discount,
-                                     LocalDate supplyDate) {
+                                     double deliveryCharge, double giftWrapCharge, LocalDate supplyDate) {
         if (items == null || items.isEmpty()) return 0.0;
         double retainedFactor = subTotal > 0 ? Math.max(subTotal - discount, 0) / subTotal : 0.0;
 
         double tax = 0.0;
+        GstRateResolver.Resolved principal = null;
         for (OrderItem item : items) {
-            double lineValue = item.getPrice() * item.getQuantity();
-            double taxable = Math.round(lineValue * retainedFactor * 100.0) / 100.0;
-            // Unit price, not line value: apparel/footwear bands are "per piece"/"per pair".
+            double paidPerPiece = item.getPrice() * retainedFactor;
+            double linePaid = Math.round(item.getPrice() * item.getQuantity() * retainedFactor * 100.0) / 100.0;
+            // Per-piece price after discount: apparel/footwear bands are "per piece"/"per pair"
+            // and turn on what is actually paid.
             GstRateResolver.Resolved resolved = gstRateResolver.resolve(
-                    item.getProduct(), false, supplyDate, item.getPrice());
-            tax += Math.round(taxable * resolved.getTotalRate() / 100.0 * 100.0) / 100.0;
-            // Compensation cess is a charge on the goods like GST and the customer pays it, so
-            // it must be inside the amount collected and reported against the order.
-            tax += resolved.cessOn(taxable);
+                    item.getProduct(), false, supplyDate, paidPerPiece);
+            // Cess is a charge on the goods like GST and sits inside the price the same way.
+            tax += resolved.splitInclusive(linePaid).allTax();
+            if (principal == null || resolved.getTotalRate() > principal.getTotalRate()) {
+                principal = resolved;
+            }
+        }
+        if (deliveryCharge > 0 && principal != null) {
+            tax += principal.splitInclusive(deliveryCharge).allTax();
+        }
+        // Gift wrapping the seller's own goods is part of the same supply too, taxed the same
+        // way. Split on its own, as the invoice shows it as its own line.
+        if (giftWrapCharge > 0 && principal != null) {
+            tax += principal.splitInclusive(giftWrapCharge).allTax();
         }
         return Math.round(tax * 100.0) / 100.0;
     }
@@ -215,6 +251,11 @@ public class OrderService {
     }
 
     public Order placeOrder(String username, Address address, String paymentMethod, String promoCode) {
+        return placeOrder(username, address, paymentMethod, promoCode, false);
+    }
+
+    public Order placeOrder(String username, Address address, String paymentMethod, String promoCode,
+                            boolean giftWrap) {
         User user = userRepo.findByUsername(username);
         if (user == null) {
             throw new UserNotFoundException("User not found: " + username);
@@ -304,15 +345,22 @@ public class OrderService {
         }
 
         double deliveryCharge = (appliedCoupon != null && appliedCoupon.isFreeShipping()) || subTotal >= 500 ? 0 : 40;
-        double taxableAmount = Math.max(subTotal - discount, 0);
-        double tax = computeGstOnItems(orderItems, subTotal, discount);
-        double totalAmount = taxableAmount + tax + deliveryCharge;
+        double goodsAmount = Math.max(subTotal - discount, 0);
+        // Prices include GST, so the customer pays the goods and delivery as shown; the tax is
+        // the part of that which is GST, recorded for the invoice and returns.
+        // Gift wrap is charged here, by the server, at the price checkout shows. It used to be
+        // added to the total on screen only, so the order and the payment disagreed by it.
+        double giftWrapCharge = giftWrap ? GIFT_WRAP_CHARGE : 0;
+        double tax = computeGstOnItems(orderItems, subTotal, discount, deliveryCharge, giftWrapCharge);
+        double totalAmount = goodsAmount + deliveryCharge + giftWrapCharge;
 
         order.setItems(orderItems);
         order.setSubTotal(subTotal);
         order.setTax(tax);
         order.setDeliveryCharge(deliveryCharge);
+        order.setGiftWrapCharge(giftWrapCharge > 0 ? giftWrapCharge : null);
         order.setTotalAmount(totalAmount);
+        order.setPricesIncludeTax(true);
 
         if (appliedCoupon != null) {
             couponService.recordUsage(appliedCoupon);
@@ -391,6 +439,8 @@ public class OrderService {
         m.put("subTotal", order.getSubTotal());
         m.put("tax", order.getTax());
         m.put("deliveryCharge", order.getDeliveryCharge());
+        m.put("giftWrapCharge", order.getGiftWrapCharge());
+        m.put("pricesIncludeTax", order.isTaxInclusive());
         m.put("trackingNumber", order.getTrackingNumber());
         m.put("courier", order.getCourier());
         m.put("createdAt", order.getCreatedAt() != null ? order.getCreatedAt().toString() : null);
@@ -447,14 +497,16 @@ public class OrderService {
                 ? order.getCreatedAt().toLocalDate() : LocalDate.now();
         double tax = order.getTax() != null
                 ? order.getTax()
-                : computeGstOnItems(order.getItems(), subtotal, 0.0, supplyDate);
+                : legacyGstOnItems(order.getItems(), supplyDate);
         double deliveryCharge = order.getDeliveryCharge() != null
                 ? order.getDeliveryCharge()
                 : (subtotal >= 500 ? 0 : 40);
 
         invoice.setSubtotal(subtotal);
         invoice.setTax(tax);
+        invoice.setTaxIncluded(order.isTaxInclusive());
         invoice.setDeliveryCharge(deliveryCharge);
+        invoice.setGiftWrapCharge(order.getGiftWrapCharge() != null ? order.getGiftWrapCharge() : 0);
         invoice.setTotalAmount(order.getTotalAmount());
         invoice.setPaymentMethod(order.getPaymentMethod());
 
@@ -719,7 +771,9 @@ public class OrderService {
 
         String paymentMethod = (String) body.getOrDefault("paymentMethod", "COD");
         String promoCode = (String) body.get("promoCode");
-        Order order = placeOrder(user.getUsername(), address, paymentMethod, promoCode);
+        boolean giftWrap = Boolean.TRUE.equals(body.get("giftWrap"))
+                || "true".equalsIgnoreCase(String.valueOf(body.get("giftWrap")));
+        Order order = placeOrder(user.getUsername(), address, paymentMethod, promoCode, giftWrap);
         // Bill-to / ship-to under section 10(1)(b): the buyer is having the goods sent to
         // somebody else. It moves the place of supply to the buyer's own state, so it has to be
         // declared rather than guessed from the addresses - and it only exists for a registered

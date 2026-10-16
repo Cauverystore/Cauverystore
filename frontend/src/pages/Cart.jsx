@@ -210,15 +210,14 @@ const Cart = () => {
 
   const delivery = subtotal >= 500 ? 0 : 40;
   const taxableAmount = subtotal - discount;
-  // GST comes from the server, which resolves each item's rate from its HSN - the old flat
-  // 12% here was both wrong per-product and no longer a valid GST slab. The server figure
-  // covers the undiscounted basket, so scale it by the share of value actually being paid.
+  // Prices include GST, so the tax is part of the subtotal, not added to it. The figure comes
+  // from the server, which works out each item's rate from its HSN; it covers the undiscounted
+  // basket, so it is scaled by the share of value actually being paid. There is no flat-rate
+  // fallback: if the server has no figure, none is shown rather than a guess.
   const serverTax = typeof cart?.tax === "number" ? cart.tax : null;
   const retained = subtotal > 0 ? Math.max(taxableAmount, 0) / subtotal : 0;
-  const tax = serverTax !== null
-    ? Math.round(serverTax * retained * 100) / 100
-    : Math.round(Math.max(taxableAmount, 0) * 0.12 * 100) / 100;
-  const finalTotal = Math.max(subtotal - discount + delivery + tax, 0);
+  const tax = serverTax !== null ? Math.round(serverTax * retained * 100) / 100 : null;
+  const finalTotal = Math.max(subtotal - discount + delivery, 0);
   const shippingProgress = Math.min((subtotal / 500) * 100, 100);
 
   const safeId = (item) => item.id || item._id;
@@ -463,16 +462,20 @@ const Cart = () => {
               <span className="cart-summary-row-value">{delivery === 0 ? <span className="cart-summary-discount">FREE</span> : `\u20B9${delivery.toFixed(2)}`}</span>
             </div>
 
-            <div className="cart-summary-row">
-              <span className="cart-summary-row-label">GST</span>
-              <span className="cart-summary-row-value">&#8377;{tax.toFixed(2)}</span>
-            </div>
-
             <div className="cart-summary-divider" />
 
             <div className="cart-summary-total-row">
               <span>Total Amount</span>
               <span className="cart-summary-total-value">&#8377;{finalTotal.toFixed(2)}</span>
+            </div>
+
+            <div className="cart-summary-row">
+              <span className="cart-summary-row-label">
+                {tax !== null ? "Includes GST of" : "Inclusive of all taxes"}
+              </span>
+              {tax !== null && (
+                <span className="cart-summary-row-value">&#8377;{tax.toFixed(2)}</span>
+              )}
             </div>
 
             {discount > 0 && (

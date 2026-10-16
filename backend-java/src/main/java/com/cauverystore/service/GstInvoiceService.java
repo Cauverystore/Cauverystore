@@ -146,6 +146,45 @@ public class GstInvoiceService {
      * Goods are treated more strictly - an unclassifiable product is refused outright - because
      * a product can be fixed before it is sold, and a delivery charge cannot.
      */
+    /**
+     * An invoice line for a charge that is part of the supply of goods (delivery, gift wrap) on
+     * a GST-inclusive order: under the principal goods' HSN and rate, with the tax taken out of
+     * what the customer paid for it.
+     */
+    private GstInvoiceItem inclusiveChargeLine(GstInvoice inv, GstRateResolver.Resolved principal,
+                                               String principalHsn, double amount, String name) {
+        GstRateResolver.Split ds = principal.splitInclusive(Math.round(amount * 100.0) / 100.0);
+        GstInvoiceItem line = new GstInvoiceItem();
+        line.setInvoice(inv);
+        line.setProductName(name);
+        line.setBillDescription(name);
+        line.setHsnCode(principalHsn);
+        line.setQuantity(1);
+        line.setUnitPrice(amount);
+        line.setTaxableValue(ds.taxable());
+        line.setUnitOfMeasure("NOS");
+        line.setRateFromMaster(true);
+        double rate = principal.getTotalRate();
+        if (Boolean.TRUE.equals(inv.getIsInterState())) {
+            line.setIgstRate(rate);
+            line.setIgstAmount(ds.igst());
+            line.setCgstRate(0.0); line.setCgstAmount(0.0);
+            line.setSgstRate(0.0); line.setSgstAmount(0.0);
+        } else {
+            line.setCgstRate(rate / 2.0);
+            line.setCgstAmount(ds.cgst());
+            line.setSgstRate(rate / 2.0);
+            line.setSgstAmount(ds.sgst());
+            line.setIgstRate(0.0); line.setIgstAmount(0.0);
+        }
+        if (ds.cess() > 0) {
+            line.setCessRate(principal.getCessRate());
+            line.setCessAmount(ds.cess());
+        }
+        line.setTotalAmount(Math.round((ds.taxable() + ds.allTax()) * 100.0) / 100.0);
+        return line;
+    }
+
     private double resolveSacRate(String sacCode, java.time.LocalDate onDate) {
         try {
             java.util.List<com.cauverystore.entities.SacMaster> rows =
@@ -312,10 +351,17 @@ public class GstInvoiceService {
             rawSubtotal += oi.getPrice() * oi.getQuantity();
         }
         double deliveryCharge = order.getDeliveryCharge() != null ? order.getDeliveryCharge() : 0;
+        double giftWrapCharge = order.getGiftWrapCharge() != null ? order.getGiftWrapCharge() : 0;
         double orderTax = order.getTax() != null ? order.getTax() : 0;
+        // Orders placed since prices became GST-inclusive carry the tax inside the item prices
+        // and the delivery charge; older ones had it added on top. Each invoice is worked out
+        // the way its order was charged, so it always foots to what the customer paid.
+        boolean inclusive = order.isTaxInclusive();
         double couponDiscount = 0;
         if (rawSubtotal > 0 && order.getTotalAmount() > 0) {
-            couponDiscount = rawSubtotal - order.getTotalAmount() + orderTax + deliveryCharge;
+            couponDiscount = inclusive
+                    ? rawSubtotal + deliveryCharge + giftWrapCharge - order.getTotalAmount()
+                    : rawSubtotal - order.getTotalAmount() + orderTax + deliveryCharge + giftWrapCharge;
             if (couponDiscount < 0) couponDiscount = 0;
             if (couponDiscount > rawSubtotal) couponDiscount = rawSubtotal;
         }
@@ -325,6 +371,10 @@ public class GstInvoiceService {
 
         double goodsCgstRate = 0.0, goodsSgstRate = 0.0, goodsIgstRate = 0.0;
         boolean goodsTaxSet = false;
+        // The highest-rate goods line: delivery is part of the supply of goods and is taxed
+        // with them, at the highest rate where the basket's rates differ.
+        GstRateResolver.Resolved principal = null;
+        String principalHsn = null;
 
         for (OrderItem oi : order.getItems()) {
             Product p = oi.getProduct();
@@ -335,8 +385,11 @@ public class GstInvoiceService {
             // never collected.
             LocalDate supplyDate = order.getCreatedAt() != null
                     ? order.getCreatedAt().toLocalDate() : LocalDate.now();
+            // The rate band (2,500 rupees for clothing) turns on the per-piece price actually
+            // paid, after any coupon - not the list price.
+            double paidPerPiece = inclusive ? oi.getPrice() * retainedFactor : oi.getPrice();
             GstRateResolver.Resolved resolved = gstRateResolver
-                    .resolve(p, Boolean.TRUE.equals(inv.getIsInterState()), supplyDate, oi.getPrice());
+                    .resolve(p, Boolean.TRUE.equals(inv.getIsInterState()), supplyDate, paidPerPiece);
             double gstPct = resolved.getTotalRate();
             // One unresolvable line taints the whole invoice, so the flag is set per line AND
             // raised to the header - the correction has to name the line, but anyone hunting
@@ -345,8 +398,11 @@ public class GstInvoiceService {
                 inv.setTaxComplianceStatus(GstInvoice.COMPLIANCE_FALLBACK);
             }
             double itemValue = oi.getPrice() * oi.getQuantity();
-            double taxable = itemValue * retainedFactor;
-            taxable = Math.round(taxable * 100.0) / 100.0;
+            double linePaid = Math.round(itemValue * retainedFactor * 100.0) / 100.0;
+            // Inclusive: what was paid for the line is value + tax, so the value is what is left
+            // once the tax inside it is taken out. Legacy: what was paid is the value.
+            GstRateResolver.Split split = inclusive ? resolved.splitInclusive(linePaid) : null;
+            double taxable = inclusive ? split.taxable() : linePaid;
             taxableAmount += taxable;
 
             GstInvoiceItem item = new GstInvoiceItem();
@@ -385,15 +441,18 @@ public class GstInvoiceService {
 
             if (Boolean.TRUE.equals(inv.getIsInterState())) {
                 item.setIgstRate(gstPct);
-                item.setIgstAmount(Math.round(taxable * gstPct / 100 * 100.0) / 100.0);
+                item.setIgstAmount(inclusive ? split.igst()
+                        : Math.round(taxable * gstPct / 100 * 100.0) / 100.0);
                 totalIgst += item.getIgstAmount();
                 item.setCgstRate(0.0); item.setCgstAmount(0.0);
                 item.setSgstRate(0.0); item.setSgstAmount(0.0);
             } else {
                 item.setCgstRate(gstPct / 2);
-                item.setCgstAmount(Math.round(taxable * gstPct / 200 * 100.0) / 100.0);
+                item.setCgstAmount(inclusive ? split.cgst()
+                        : Math.round(taxable * gstPct / 200 * 100.0) / 100.0);
                 item.setSgstRate(gstPct / 2);
-                item.setSgstAmount(Math.round(taxable * gstPct / 200 * 100.0) / 100.0);
+                item.setSgstAmount(inclusive ? split.sgst()
+                        : Math.round(taxable * gstPct / 200 * 100.0) / 100.0);
                 totalCgst += item.getCgstAmount();
                 totalSgst += item.getSgstAmount();
                 item.setIgstRate(0.0); item.setIgstAmount(0.0);
@@ -405,8 +464,14 @@ public class GstInvoiceService {
             // legal figure here, exactly as it is for GST itself.
             if (resolved.getCessRate() > 0) {
                 item.setCessRate(resolved.getCessRate());
-                item.setCessAmount(Math.round(taxable * resolved.getCessRate() / 100 * 100.0) / 100.0);
+                item.setCessAmount(inclusive ? split.cess()
+                        : Math.round(taxable * resolved.getCessRate() / 100 * 100.0) / 100.0);
                 totalCess += item.getCessAmount();
+            }
+
+            if (principal == null || gstPct > principal.getTotalRate()) {
+                principal = resolved;
+                principalHsn = hsn.trim();
             }
 
             if (!goodsTaxSet) {
@@ -431,7 +496,20 @@ public class GstInvoiceService {
         // changes on this invoice - but a hardcoded rate is exactly the defect that was removed
         // from goods, where a notification moved and the number in the code did not. A service
         // rate can move the same way, and when it does the master is what gets updated.
-        if (deliveryCharge > 0) {
+        if (deliveryCharge > 0 && inclusive && principal != null) {
+            // Delivery the seller charges for its own goods is part of the same supply - a
+            // composite supply whose principal supply is the goods (section 8(a)) - so it is
+            // taxed at the goods' rate under their HSN, not as a separate courier service at
+            // 18%. The charge the customer paid includes that tax, so it is taken out, not added.
+            GstInvoiceItem delivery = inclusiveChargeLine(inv, principal, principalHsn, deliveryCharge,
+                    "Delivery charges (part of the supply of goods)");
+            taxableAmount += delivery.getTaxableValue();
+            totalCgst += delivery.getCgstAmount();
+            totalSgst += delivery.getSgstAmount();
+            totalIgst += delivery.getIgstAmount();
+            totalCess += delivery.getCessAmount() != null ? delivery.getCessAmount() : 0;
+            items.add(delivery);
+        } else if (deliveryCharge > 0) {
             double deliveryTaxable = Math.round(deliveryCharge * 100.0) / 100.0;
             taxableAmount += deliveryTaxable;
             GstInvoiceItem service = new GstInvoiceItem();
@@ -463,6 +541,21 @@ public class GstInvoiceService {
             items.add(service);
         }
 
+        // Gift wrapping the seller's own goods is part of the same supply as well, so it is
+        // taxed like inclusive delivery: at the goods' rate, with the tax taken out of the
+        // amount paid. Only current orders can carry it - checkout added it after prices
+        // became GST-inclusive.
+        if (giftWrapCharge > 0 && principal != null) {
+            GstInvoiceItem wrap = inclusiveChargeLine(inv, principal, principalHsn, giftWrapCharge,
+                    "Gift wrapping (part of the supply of goods)");
+            taxableAmount += wrap.getTaxableValue();
+            totalCgst += wrap.getCgstAmount();
+            totalSgst += wrap.getSgstAmount();
+            totalIgst += wrap.getIgstAmount();
+            totalCess += wrap.getCessAmount() != null ? wrap.getCessAmount() : 0;
+            items.add(wrap);
+        }
+
         inv.setItems(items);
         inv.setTaxableAmount(Math.round(taxableAmount * 100.0) / 100.0);
         inv.setB2cLarge(GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount()));
@@ -478,7 +571,8 @@ public class GstInvoiceService {
         Double annualTurnover = config != null ? config.getAnnualTurnover() : null;
         inv.setHsnDigits(GstComplianceUtil.determineHsnDigits(annualTurnover));
         inv.setReverseCharge(false);
-        inv.setSupplyType(deliveryCharge > 0 ? "GOODS AND SERVICES" : "GOODS");
+        // Inclusive orders tax delivery as part of the goods, so the whole invoice is goods.
+        inv.setSupplyType(deliveryCharge > 0 && !inclusive ? "GOODS AND SERVICES" : "GOODS");
         inv.setInvoiceCopyType("ORIGINAL");
 
         boolean einvoicingApplicable = GstComplianceUtil.requiresEInvoice(annualTurnover);

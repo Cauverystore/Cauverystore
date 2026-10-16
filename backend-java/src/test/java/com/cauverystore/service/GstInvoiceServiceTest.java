@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -133,6 +134,66 @@ class GstInvoiceServiceTest {
         when(invoiceRepo.findMaxInvoiceNumberByPrefix(anyString())).thenReturn(null);
         when(invoiceRepo.save(any(GstInvoice.class))).thenAnswer(inv -> inv.getArgument(0));
         when(tcsRepo.save(any(TcsRecord.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    @Test
+    void generate_taxInclusiveOrder_shouldFootToWhatWasPaid_withDeliveryAtTheGoodsRate() {
+        // A GST-inclusive order: 2 x 500 with a 100 coupon and 40 delivery - 940 paid in all.
+        stubCommonRepos();
+        order.setPricesIncludeTax(true);
+        order.setDeliveryCharge(40.0);
+        order.setTotalAmount(940.0);
+
+        Map<String, Object> result = gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN);
+        GstInvoice inv = (GstInvoice) result.get("invoice");
+
+        assertEquals(940.0, inv.getTotalAmount(), 0.01, "the invoice must equal what was paid");
+        assertEquals(100.0, inv.getDiscountAmount(), 0.01);
+        assertEquals(inv.getTaxableAmount() + inv.getTotalTax(), inv.getTotalAmount(), 0.01);
+
+        GstInvoiceItem goods = inv.getItems().get(0);
+        assertEquals(803.58, goods.getTaxableValue(), 0.001, "900 paid, 12% tax taken out");
+        assertEquals(48.21, goods.getCgstAmount(), 0.001);
+        assertEquals(48.21, goods.getSgstAmount(), 0.001);
+
+        // Delivery is part of the supply of goods: same HSN, same 12%, tax inside the 40.
+        GstInvoiceItem delivery = inv.getItems().get(1);
+        assertEquals("610910", delivery.getHsnCode());
+        assertNull(delivery.getSacCode());
+        assertEquals(6.0, delivery.getCgstRate(), 0.001);
+        assertEquals(35.72, delivery.getTaxableValue(), 0.001);
+        assertEquals(2.14, delivery.getCgstAmount(), 0.001);
+        assertEquals("GOODS", inv.getSupplyType());
+
+        // The rate band is tested on the per-piece price after the coupon: 500 less 10% = 450.
+        verify(gstRateResolver).resolve(any(), anyBoolean(), any(), eq(450.0));
+    }
+
+    @Test
+    void generate_giftWrappedOrder_shouldInvoiceTheWrapAndNotMistakeItForLessCoupon() {
+        // The same order with 49 gift wrap: 2 x 500, 100 coupon, 40 delivery, 49 wrap = 989.
+        stubCommonRepos();
+        order.setPricesIncludeTax(true);
+        order.setDeliveryCharge(40.0);
+        order.setGiftWrapCharge(49.0);
+        order.setTotalAmount(989.0);
+
+        Map<String, Object> result = gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN);
+        GstInvoice inv = (GstInvoice) result.get("invoice");
+
+        assertEquals(989.0, inv.getTotalAmount(), 0.01, "the invoice must equal what was paid");
+        // Leaving the wrap out of the sum would read the coupon as 51, not 100.
+        assertEquals(100.0, inv.getDiscountAmount(), 0.01);
+        assertEquals(inv.getTaxableAmount() + inv.getTotalTax(), inv.getTotalAmount(), 0.01);
+        assertEquals(803.58, inv.getItems().get(0).getTaxableValue(), 0.001);
+
+        GstInvoiceItem wrap = inv.getItems().get(2);
+        assertTrue(wrap.getProductName().startsWith("Gift wrapping"));
+        assertEquals("610910", wrap.getHsnCode(), "taxed with the goods, under their HSN");
+        assertEquals(6.0, wrap.getCgstRate(), 0.001);
+        assertEquals(49.0, wrap.getTaxableValue() + wrap.getCgstAmount() + wrap.getSgstAmount(), 0.001,
+                "the tax is inside the 49, not added to it");
+        assertEquals(49.0, wrap.getTotalAmount(), 0.001);
     }
 
     @Test

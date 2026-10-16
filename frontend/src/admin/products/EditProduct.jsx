@@ -88,7 +88,7 @@ const EditProduct = () => {
       )}
       {activeTab === 1 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div className="form-group"><label>Price</label><input name="price" type="number" value={form.price || ""} onChange={handleChange} style={inputStyle} /></div>
+          <div className="form-group"><label>Price incl. GST</label><input name="price" type="number" value={form.price || ""} onChange={handleChange} style={inputStyle} /></div>
           <div className="form-group"><label>MRP</label><input name="mrp" type="number" value={form.mrp || ""} onChange={handleChange} style={inputStyle} /></div>
         </div>
       )}

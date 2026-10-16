@@ -214,8 +214,56 @@ class GstRateResolverTest {
                         conditional("61", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0),
                         conditional("61", 18.0, GstRateMaster.CONDITION_VALUE_ABOVE, 2500.0)));
 
-        assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 2500.01).getTotalRate());
+        // Prices include GST, so "above Rs 2,500" starts above Rs 2,950 (2,500 + 18%).
+        assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 2951.0).getTotalRate());
         assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 3999.0).getTotalRate());
+    }
+
+    @Test
+    void resolve_shouldTestApparelBand_onPriceWithTaxTakenOut() {
+        // Prices include GST. A ₹2,600 shirt is ₹2,476.19 before 5% tax - inside the ₹2,500
+        // band - so it is 5%, as on every other Indian store. ₹2,625 is exactly ₹2,500 + 5%.
+        product.setHsnCode("61");
+        when(rateRepo.findApplicable(eq("61"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        conditional("61", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0),
+                        conditional("61", 18.0, GstRateMaster.CONDITION_VALUE_ABOVE, 2500.0)));
+
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 2600.0).getTotalRate());
+        assertEquals(5.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 2625.0).getTotalRate());
+        assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 2951.0).getTotalRate());
+    }
+
+    @Test
+    void resolve_shouldChargeHigherBand_whenInclusivePriceFallsBetweenBands() {
+        // ₹2,800 is over ₹2,500 with 5% taken out and under it with 18% taken out, so neither
+        // band is consistent. Both are published, so the higher one is charged.
+        product.setHsnCode("61");
+        when(rateRepo.findApplicable(eq("61"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(
+                        conditional("61", 5.0, GstRateMaster.CONDITION_VALUE_UPTO, 2500.0),
+                        conditional("61", 18.0, GstRateMaster.CONDITION_VALUE_ABOVE, 2500.0)));
+
+        assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 6), 2800.0).getTotalRate());
+    }
+
+    @Test
+    void splitInclusive_shouldTakeTaxOutOfPrice_andFootToThePaisa() {
+        when(rateRepo.findApplicable(eq("10063010"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(rate("10063010", 5.0, LocalDate.of(2025, 9, 22), null)));
+
+        GstRateResolver.Split intra = resolver.resolve(product, false, LocalDate.of(2026, 8, 6))
+                .splitInclusive(499.0);
+        assertEquals(11.88, intra.cgst());
+        assertEquals(11.88, intra.sgst());
+        assertEquals(0.0, intra.igst());
+        assertEquals(475.24, intra.taxable());
+        assertEquals(499.0, intra.taxable() + intra.allTax(), 0.001);
+
+        GstRateResolver.Split inter = resolver.resolve(product, true, LocalDate.of(2026, 8, 6))
+                .splitInclusive(499.0);
+        assertEquals(23.76, inter.igst());
+        assertEquals(475.24, inter.taxable());
     }
 
     @Test

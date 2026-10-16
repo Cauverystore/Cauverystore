@@ -123,7 +123,8 @@ const Checkout = () => {
     ? Math.round(billTax * retained * 100) / 100
     : (serverTax !== null ? Math.round(serverTax * retained * 100) / 100 : null);
   const taxKnown = tax !== null;
-  const total = Math.max(subtotal - discount + delivery + giftCharge + (tax || 0), 0);
+  // Prices include GST, so the tax is inside the subtotal and is shown, not added.
+  const total = Math.max(subtotal - discount + delivery + giftCharge, 0);
 
   const validateStep = () => {
     if (step === 0) {
@@ -654,7 +655,7 @@ const Checkout = () => {
                 background: "var(--color-bg, #f9fafb)", border: "1px solid var(--color-border)",
               }}>
                 <div style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.4rem" }}>
-                  GST on this order
+                  GST included in these prices
                 </div>
                 {bill.lines.map((l) => (
                   <div key={l.productId} style={{ fontSize: "0.75rem", marginBottom: "0.45rem" }}>
@@ -677,7 +678,7 @@ const Checkout = () => {
                   display: "flex", justifyContent: "space-between", fontSize: "0.78rem",
                   fontWeight: 600, borderTop: "1px solid var(--color-border)", paddingTop: "0.4rem",
                 }}>
-                  <span>Total GST</span>
+                  <span>Total GST (included)</span>
                   <span>&#8377;{tax !== null ? tax.toFixed(2) : bill.totalTax.toFixed(2)}</span>
                 </div>
               </div>
@@ -685,7 +686,7 @@ const Checkout = () => {
 
             {!bill?.lines?.length && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-                <span style={{ color: "var(--color-text-secondary)" }}>GST</span>
+                <span style={{ color: "var(--color-text-secondary)" }}>GST (included)</span>
                 <span>
                   {billLoading ? "calculating…"
                     : taxKnown ? `₹${tax.toFixed(2)}`

@@ -39,6 +39,10 @@ const GstPreview = ({ hsnCode, unitPrice, prePackaged }) => {
   const total = preview.gstRate;
   const half = total / 2;
   const cess = preview.cessRate || 0;
+  // Prices are entered inclusive of GST - what the customer pays - so show how much of the
+  // price is the seller's and how much is tax.
+  const price = unitPrice ? Number(unitPrice) : null;
+  const beforeTax = price ? Math.round((price / (1 + (total + cess) / 100)) * 100) / 100 : null;
 
   return (
     <div style={{
@@ -65,6 +69,14 @@ const GstPreview = ({ hsnCode, unitPrice, prePackaged }) => {
             <td style={{ color: "#6b7280", padding: "2px 0" }}>Across states</td>
             <td style={{ textAlign: "right" }}>IGST {total}%</td>
           </tr>
+          {price && (
+            <tr>
+              <td style={{ color: "#6b7280", padding: "2px 0" }}>Of your price &#8377;{price.toFixed(2)}</td>
+              <td style={{ textAlign: "right" }}>
+                &#8377;{beforeTax.toFixed(2)} before tax + &#8377;{(price - beforeTax).toFixed(2)} tax
+              </td>
+            </tr>
+          )}
           {cess > 0 && (
             <tr>
               <td style={{ color: "#6b7280", padding: "2px 0" }}>

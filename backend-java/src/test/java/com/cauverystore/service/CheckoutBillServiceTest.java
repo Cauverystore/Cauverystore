@@ -101,13 +101,14 @@ class CheckoutBillServiceTest {
         List<Map<String, Object>> rows = lines(bill);
         assertEquals(2, rows.size());
         assertEquals("52095110", rows.get(0).get("hsnCode"));
-        assertEquals(900.0, rows.get(0).get("taxableValue"));
-        assertEquals(45.0, rows.get(0).get("taxAmount"));
-        assertEquals(945.0, rows.get(0).get("lineTotal"), "the customer needs the post-tax figure");
-        assertEquals(108.0, rows.get(1).get("taxAmount"));
-        assertEquals(1500.0, bill.get("taxableValue"));
-        assertEquals(153.0, bill.get("totalTax"));
-        assertEquals(1653.0, bill.get("payable"));
+        // Prices include GST: 2 x 450 = 900 paid, of which 42.86 is 5% tax.
+        assertEquals(857.14, rows.get(0).get("taxableValue"));
+        assertEquals(42.86, rows.get(0).get("taxAmount"));
+        assertEquals(900.0, rows.get(0).get("lineTotal"), "the line costs what the price says");
+        assertEquals(91.52, rows.get(1).get("taxAmount"), "18% inside 600");
+        assertEquals(1365.62, bill.get("taxableValue"));
+        assertEquals(134.38, bill.get("totalTax"));
+        assertEquals(1500.0, bill.get("payable"), "the customer pays the shown prices, no more");
         assertEquals(Boolean.TRUE, bill.get("canProceed"));
     }
 
@@ -121,8 +122,8 @@ class CheckoutBillServiceTest {
         Map<String, Object> bill = service.billFor(user, new Address());
 
         assertEquals("CGST+SGST", bill.get("taxType"));
-        assertEquals(11.25, bill.get("cgstAmount"));
-        assertEquals(11.25, bill.get("sgstAmount"));
+        assertEquals(10.71, bill.get("cgstAmount"));
+        assertEquals(10.71, bill.get("sgstAmount"));
         assertEquals(0.0, bill.get("igstAmount"));
     }
 
@@ -138,7 +139,7 @@ class CheckoutBillServiceTest {
         Map<String, Object> bill = service.billFor(user, new Address());
 
         assertEquals("IGST", bill.get("taxType"));
-        assertEquals(540.0, bill.get("igstAmount"));
+        assertEquals(457.63, bill.get("igstAmount"), "18% inside a 3000 price");
         assertEquals(0.0, bill.get("cgstAmount"));
     }
 
@@ -218,8 +219,8 @@ class CheckoutBillServiceTest {
 
         assertEquals(Boolean.TRUE, bill.get("canProceed"));
         assertEquals("CGST+SGST", bill.get("taxType"));
-        assertEquals(12.48, bill.get("cgstAmount"));
-        assertEquals(12.48, bill.get("sgstAmount"));
+        assertEquals(11.88, bill.get("cgstAmount"));
+        assertEquals(11.88, bill.get("sgstAmount"));
     }
 
     @Test
@@ -264,7 +265,8 @@ class CheckoutBillServiceTest {
 
         Map<String, Object> bill = service.billFor(user, new Address());
 
-        assertEquals(1350.0, lines(bill).get(0).get("taxableValue"),
+        assertEquals(1350.0, lines(bill).get(0).get("lineTotal"),
                 "3 x 450 from the stored cart, whatever the request said");
+        assertEquals(1285.72, lines(bill).get(0).get("taxableValue"));
     }
 }

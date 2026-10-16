@@ -230,10 +230,9 @@ public class CartServiceImpl implements CartService {
             try {
                 GstRateResolver.Resolved resolved = gstRateResolver
                         .resolve(item.getProduct(), false, LocalDate.now(), unitPrice);
-                cartTax += Math.round(lineValue * resolved.getTotalRate() / 100.0 * 100.0) / 100.0;
-                // Cess is charged to the customer like GST, so it belongs in the figure this
-                // page shows as tax, or the cart and the checkout bill would disagree.
-                cartTax += resolved.cessOn(lineValue);
+                // Prices include GST: this is the tax already inside the line, cess included,
+                // so the cart and the checkout bill show the same figure.
+                cartTax += resolved.splitInclusive(lineValue).allTax();
             } catch (GstRateResolver.GstRateUnresolvedException e) {
                 // A cart is a display, not a tax point. Letting this escape made one
                 // unclassified product break the whole cart endpoint, so the basket would not
@@ -259,7 +258,9 @@ public class CartServiceImpl implements CartService {
         // stopped at checkout, so the page has to be able to say why.
         result.put("untaxableItems", untaxable);
         result.put("taxComplete", untaxable.isEmpty());
-        result.put("finalAmount", Math.round(((double) result.get("totalPrice") + (double) result.get("deliveryCharge") + (double) result.get("tax")) * 100.0) / 100.0);
+        // The tax is inside the prices already, so it is not added again.
+        result.put("pricesIncludeTax", true);
+        result.put("finalAmount", Math.round(((double) result.get("totalPrice") + (double) result.get("deliveryCharge")) * 100.0) / 100.0);
         result.put("freeDeliveryEligible", (double) result.get("totalPrice") >= 500);
         result.put("deliveryDate", LocalDate.now().plusDays(4).toString());
         result.put("itemCount", activeItems.size());

@@ -73,8 +73,16 @@
 
 .price-block {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
+}
+
+.tax-note {
+  flex-basis: 100%;
+  margin-top: -0.5rem;
+  font-size: 0.8rem;
+  color: #64748b;
 }
 
 .deal-price {

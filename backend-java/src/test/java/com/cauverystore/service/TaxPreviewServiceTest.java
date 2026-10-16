@@ -68,11 +68,12 @@ class TaxPreviewServiceTest {
 
         assertEquals("CGST+SGST", out.get("taxType"));
         assertEquals(false, out.get("interState"));
-        assertEquals(900.0, out.get("taxableValue"));
-        assertEquals(22.5, out.get("cgstAmount"));
-        assertEquals(22.5, out.get("sgstAmount"));
+        // Prices include GST: 900 paid, 42.86 of it 5% tax.
+        assertEquals(857.14, out.get("taxableValue"));
+        assertEquals(21.43, out.get("cgstAmount"));
+        assertEquals(21.43, out.get("sgstAmount"));
         assertEquals(0.0, out.get("igstAmount"));
-        assertEquals(945.0, out.get("grandTotal"));
+        assertEquals(900.0, out.get("grandTotal"));
     }
 
     @Test
@@ -85,7 +86,7 @@ class TaxPreviewServiceTest {
                 List.of(new TaxPreviewService.Line(1L, 1, 450.0)), "33", "29", null);
 
         assertEquals("IGST", out.get("taxType"));
-        assertEquals(22.5, out.get("igstAmount"));
+        assertEquals(21.43, out.get("igstAmount"));
         assertEquals(0.0, out.get("cgstAmount"));
     }
 

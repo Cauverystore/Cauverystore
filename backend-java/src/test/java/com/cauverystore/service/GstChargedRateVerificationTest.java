@@ -114,7 +114,8 @@ class GstChargedRateVerificationTest {
     @Test
     void footwearAboveTwoThousandFiveHundred_shouldBeEighteenPercent() {
         assertCharged("A Rs 4,999 pair of leather boots", "64031990", 4999.0, null, 18.0);
-        assertCharged("A pair a rupee over the threshold", "64029990", 2500.01, null, 18.0);
+        // Prices include GST: Rs 2,951 is Rs 2,500.85 before 18% tax, just over the threshold.
+        assertCharged("A pair a rupee over the threshold", "64029990", 2951.0, null, 18.0);
     }
 
     @Test

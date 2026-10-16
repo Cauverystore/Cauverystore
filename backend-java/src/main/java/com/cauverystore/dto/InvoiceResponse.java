@@ -14,7 +14,10 @@ public class InvoiceResponse {
     private String status;
     private double subtotal;
     private double tax;
+    /** True when the prices already include the GST shown, so it is not added to the total. */
+    private boolean taxIncluded;
     private double deliveryCharge;
+    private double giftWrapCharge;
     private double totalAmount;
     private String paymentMethod;
     private List<Map<String, Object>> items;
@@ -59,12 +62,18 @@ public class InvoiceResponse {
         return this.subtotal;
     }
 
+    public boolean isTaxIncluded() { return this.taxIncluded; }
+    public void setTaxIncluded(boolean taxIncluded) { this.taxIncluded = taxIncluded; }
+
     @java.lang.SuppressWarnings("all")
     public double getTax() {
         return this.tax;
     }
 
     @java.lang.SuppressWarnings("all")
+    public double getGiftWrapCharge() { return this.giftWrapCharge; }
+    public void setGiftWrapCharge(final double giftWrapCharge) { this.giftWrapCharge = giftWrapCharge; }
+
     public double getDeliveryCharge() {
         return this.deliveryCharge;
     }

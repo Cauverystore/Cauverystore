@@ -205,6 +205,21 @@ public class GstRateMaster {
         return false;
     }
 
+    /**
+     * Same test as {@link #appliesTo(Double, Boolean)}, for a price that already includes GST.
+     *
+     * Store prices are what the customer pays, tax included, but the value bands are on the
+     * value of supply, which excludes the tax (section 15). So the band is tested on the price
+     * with this row's own tax taken back out: a ₹2,600 shirt is ₹2,476.19 at 5%, inside the
+     * ₹2,500 band, and is taxed at 5% - as it is on every other Indian store.
+     */
+    @Transient
+    public boolean appliesToInclusive(Double inclusivePrice, Boolean prePackaged) {
+        if (!isValueBanded() || inclusivePrice == null) return appliesTo(inclusivePrice, prePackaged);
+        double rate = (gstRate != null ? gstRate : 0.0) + (cessRate != null ? cessRate : 0.0);
+        return appliesTo(inclusivePrice / (1 + rate / 100.0), prePackaged);
+    }
+
     public String getConditionType() { return conditionType; }
     public void setConditionType(String conditionType) { this.conditionType = conditionType; }
 

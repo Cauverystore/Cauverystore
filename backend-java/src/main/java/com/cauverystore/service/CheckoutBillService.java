@@ -123,10 +123,13 @@ public class CheckoutBillService {
                 continue;
             }
 
-            double lineCgst = round(lineValue * resolved.getCgstRate() / 100.0);
-            double lineSgst = round(lineValue * resolved.getSgstRate() / 100.0);
-            double lineIgst = round(lineValue * resolved.getIgstRate() / 100.0);
-            double lineCess = round(lineValue * resolved.getCessRate() / 100.0);
+            // Prices include GST, so the tax is taken out of the line, not added on top.
+            GstRateResolver.Split split = resolved.splitInclusive(lineValue);
+            double lineTaxable = split.taxable();
+            double lineCgst = split.cgst();
+            double lineSgst = split.sgst();
+            double lineIgst = split.igst();
+            double lineCess = split.cess();
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("productId", product.getId());
@@ -134,7 +137,7 @@ public class CheckoutBillService {
             row.put("hsnCode", resolved.getHsnCode());
             row.put("quantity", qty);
             row.put("unitPrice", unitPrice);
-            row.put("taxableValue", lineValue);
+            row.put("taxableValue", lineTaxable);
             row.put("gstRate", resolved.getTotalRate());
             row.put("cgstRate", resolved.getCgstRate());
             row.put("sgstRate", resolved.getSgstRate());
@@ -146,10 +149,10 @@ public class CheckoutBillService {
             row.put("cessAmount", lineCess);
             row.put("taxAmount", round(lineCgst + lineSgst + lineIgst));
             // What this line actually costs, which is the number a customer is looking for.
-            row.put("lineTotal", round(lineValue + lineCgst + lineSgst + lineIgst + lineCess));
+            row.put("lineTotal", lineValue);
             lines.add(row);
 
-            taxable += lineValue;
+            taxable += lineTaxable;
             cgst += lineCgst;
             sgst += lineSgst;
             igst += lineIgst;
@@ -166,6 +169,7 @@ public class CheckoutBillService {
         bill.put("igstAmount", round(igst));
         bill.put("totalCess", totalCess);
         bill.put("totalTax", totalTax);
+        // Equal to the sum of the line prices: the tax is inside them, not on top.
         bill.put("payable", round(taxable + totalTax + totalCess));
         bill.put("placeOfSupply", deliveryStateCode);
         bill.put("taxType", deliveryStateCode == null ? null : (anyInterState ? "IGST" : "CGST+SGST"));
@@ -181,8 +185,9 @@ public class CheckoutBillService {
             log.warn("Checkout blocked for user {}: {} untaxable line(s)", user.getId(), blocked.size());
         }
         // Delivery and any discount are applied by the caller; this is the goods and their tax.
-        bill.put("note", "Tax is worked out for each item from its HSN code and the CBIC rate in "
-                + "force today. Delivery and discounts are shown separately.");
+        bill.put("pricesIncludeTax", true);
+        bill.put("note", "Prices include GST. The tax inside each item is worked out from its HSN "
+                + "code and the CBIC rate in force today. Delivery and discounts are shown separately.");
         return bill;
     }
 

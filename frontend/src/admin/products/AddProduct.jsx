@@ -259,7 +259,7 @@ const AddProduct = () => {
       <div style={S.section}>
         <h3 style={S.sectionTitle}>Pricing & Inventory</h3>
         <div style={S.grid3}>
-          {fld("Price (\u20B9) *", "price", "number")}
+          {fld("Price incl. GST (\u20B9) *", "price", "number")}
           {fld("Stock *", "stock", "number")}
           {fld("SKU", "sku")}
         </div>

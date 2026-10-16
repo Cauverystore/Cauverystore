@@ -88,10 +88,18 @@ public class InvoicePdfService {
             // on electronics - so naming a single rate here stated something untrue on a tax
             // document. The per-rate breakdown belongs on the GST invoice, which has the HSN
             // and place of supply to justify it.
-            totalsTable.addCell(new Phrase("GST:", normalFont));
-            totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getTax()), normalFont));
+            // On orders with GST-inclusive prices the tax is already inside the subtotal and
+            // delivery, so it is shown under the total as "included" rather than as an addition.
+            if (!invoice.isTaxIncluded()) {
+                totalsTable.addCell(new Phrase("GST:", normalFont));
+                totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getTax()), normalFont));
+            }
             totalsTable.addCell(new Phrase("Delivery:", normalFont));
             totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getDeliveryCharge()), normalFont));
+            if (invoice.getGiftWrapCharge() > 0) {
+                totalsTable.addCell(new Phrase("Gift wrap:", normalFont));
+                totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getGiftWrapCharge()), normalFont));
+            }
 
             Font totalFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, PdfBrandingUtil.TEAL);
             PdfPCell totalLabel = new PdfPCell(new Phrase("Total:", totalFont));
@@ -100,6 +108,10 @@ public class InvoicePdfService {
             PdfPCell totalValue = new PdfPCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getTotalAmount()), totalFont));
             totalValue.setBackgroundColor(PdfBrandingUtil.BEIGE);
             totalsTable.addCell(totalValue);
+            if (invoice.isTaxIncluded()) {
+                totalsTable.addCell(new Phrase("Includes GST of:", normalFont));
+                totalsTable.addCell(new Phrase("₹ " + String.format("%.2f", invoice.getTax()), normalFont));
+            }
 
             document.add(totalsTable);
 

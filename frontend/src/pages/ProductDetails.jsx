@@ -238,6 +238,7 @@ const ProductDetails = () => {
         <div className="price-block">
           <span className="deal-price">&#8377;{product.dealPrice || product.price}</span>
           {product.mrp > (product.dealPrice || product.price) && <><span className="mrp-price">&#8377;{product.mrp}</span><span className="discount-tag">{Math.round((1 - (product.dealPrice || product.price) / product.mrp) * 100)}% OFF</span></>}
+          <span className="tax-note">Inclusive of all taxes</span>
         </div>
         <p className="description">{product.description}</p>
 
