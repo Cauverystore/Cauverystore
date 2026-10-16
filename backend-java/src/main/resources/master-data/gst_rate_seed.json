@@ -18130,6 +18130,19 @@
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
   },
   {
+    "hsnCode": "9503",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Toys like tricycles, scooters, pedal cars etc. (including parts and accessories thereof) [other than electronic toys]; covers all toys of heading 9503, such as dolls and puzzles",
+    "source": "Notif. 09/2025-CT(Rate) Schedule I S. No. 497; scope clarified by the 57th GST Council meeting, 08-10-2026, and CBIC FAQs of 09-10-2026",
+    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+  },
+  {
     "hsnCode": "9504",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",

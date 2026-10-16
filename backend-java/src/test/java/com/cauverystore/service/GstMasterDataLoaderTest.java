@@ -195,6 +195,28 @@ class GstMasterDataLoaderTest {
     }
 
     @Test
+    void shouldAddTheNonElectronicToysLineToADatabaseThatHasOnlyTheBalloonsLine() {
+        // Toy balloons and non-electronic toys are both 9503 at 5% from 22-09-2025, so the
+        // insert key alone would call the new toys line already present and skip it.
+        GstRateMaster balloons = autoVerified("9503", 5.0);
+        balloons.setStatus(GstRateMaster.STATUS_UNVERIFIED);
+        balloons.setVerifiedBy(null);
+        balloons.setConditionType(GstRateMaster.CONDITION_NONE);
+        balloons.setConditionText("Toy balloons made of natural rubber latex");
+        when(rateRepo.findAll()).thenReturn(List.of(balloons));
+
+        List<GstRateMaster> toys = runAndCaptureSaves().stream()
+                .filter(r -> "9503".equals(r.getHsnCode()) && r != balloons)
+                .toList();
+
+        assertTrue(toys.stream().anyMatch(r -> r.getGstRate() == 5.0
+                && r.getConditionText().contains("other than electronic toys")));
+        assertTrue(toys.stream().noneMatch(r -> r.getConditionText().startsWith("Toy balloons")),
+                "the balloons line is already there and must not be duplicated");
+        assertEquals("Toy balloons made of natural rubber latex", balloons.getConditionText());
+    }
+
+    @Test
     void shouldCloseOffARateThatALaterNotificationEnded() {
         // 2202 99 20 was replaced by 2202 99 21 / 29 from 01-05-2026. Left open-ended it would
         // go on resolving alongside its own replacements.
