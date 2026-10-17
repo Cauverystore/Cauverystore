@@ -19,6 +19,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByUser(User user);
 
+    /** Courier updates arrive keyed by AWB, so that is how they find their order. */
+    java.util.Optional<Order> findFirstByTrackingNumber(String trackingNumber);
+
     Page<Order> findByStatus(String status, Pageable pageable);
 
     List<Order> findByUserOrderByCreatedAtDesc(User user);

@@ -4,6 +4,8 @@ import com.cauverystore.entities.Order;
 import com.cauverystore.dto.AdminDashboardResponse;
 import com.cauverystore.service.OrderService;
 import com.cauverystore.service.ShippingLabelService;
+import com.cauverystore.service.ShiprocketClient;
+import com.cauverystore.service.ShiprocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,7 @@ public class AdminOrderController {
 
     private final OrderService orderService;
     private final ShippingLabelService shippingLabelService;
+    private final ShiprocketService shiprocketService;
 
     @GetMapping
     public ResponseEntity<Page<Order>> getAllOrders(Pageable pageable, @RequestParam(required = false) String status) {
@@ -61,6 +64,20 @@ public class AdminOrderController {
         String courier = body.get("courier");
         String trackingNumber = body.get("trackingNumber");
         return ResponseEntity.ok(orderService.assignCourier(id, courier, trackingNumber));
+    }
+
+    @GetMapping("/shiprocket/status")
+    public ResponseEntity<Map<String, Object>> shiprocketStatus() {
+        return ResponseEntity.ok(shiprocketService.status());
+    }
+
+    @PostMapping("/{id}/shiprocket")
+    public ResponseEntity<?> shipWithShiprocket(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(shiprocketService.bookShipment(id));
+        } catch (IllegalStateException | ShiprocketClient.ShiprocketException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}/refund")

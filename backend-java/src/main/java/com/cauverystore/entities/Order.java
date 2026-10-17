@@ -72,6 +72,21 @@ public class Order extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String consigneeAddress;
 
+    /** Shiprocket's own ids for this order once it has been booked there (null until then). */
+    private Long shiprocketOrderId;
+    private Long shiprocketShipmentId;
+
+    /** The courier label Shiprocket generated - a PDF link to print and stick on the parcel. */
+    @Column(columnDefinition = "TEXT")
+    private String shippingLabelUrl;
+
+    public Long getShiprocketOrderId() { return this.shiprocketOrderId; }
+    public void setShiprocketOrderId(Long shiprocketOrderId) { this.shiprocketOrderId = shiprocketOrderId; }
+    public Long getShiprocketShipmentId() { return this.shiprocketShipmentId; }
+    public void setShiprocketShipmentId(Long shiprocketShipmentId) { this.shiprocketShipmentId = shiprocketShipmentId; }
+    public String getShippingLabelUrl() { return this.shippingLabelUrl; }
+    public void setShippingLabelUrl(String shippingLabelUrl) { this.shippingLabelUrl = shippingLabelUrl; }
+
     @java.lang.SuppressWarnings("all")
     public User getUser() {
         return this.user;

@@ -394,6 +394,13 @@ const OrderDetail = () => {
                 <span style={{ fontWeight: 500 }}>{order.trackingNumber}</span>
               </div>
             )}
+            {order?.trackingUrl && (
+              <div style={{ textAlign: "right", fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)", fontWeight: 500 }}>
+                  Track parcel
+                </a>
+              </div>
+            )}
           </div>
         )}
         {order?.shippingAddress && (
