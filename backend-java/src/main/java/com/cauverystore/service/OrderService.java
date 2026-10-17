@@ -443,6 +443,8 @@ public class OrderService {
         m.put("pricesIncludeTax", order.isTaxInclusive());
         m.put("trackingNumber", order.getTrackingNumber());
         m.put("courier", order.getCourier());
+        m.put("trackingUrl", order.getShiprocketShipmentId() != null
+                ? ShiprocketService.publicTrackingUrl(order.getTrackingNumber()) : null);
         m.put("createdAt", order.getCreatedAt() != null ? order.getCreatedAt().toString() : null);
 
         if (order.getAddress() != null) {

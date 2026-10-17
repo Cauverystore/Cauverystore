@@ -14,6 +14,14 @@ const AdminOrders = () => {
   const [assignModal, setAssignModal] = useState(null);
   const [courier, setCourier] = useState("");
   const [tracking, setTracking] = useState("");
+  const [shiprocketReady, setShiprocketReady] = useState(false);
+  const [booking, setBooking] = useState(null);
+
+  useEffect(() => {
+    api.get("/api/admin/orders/shiprocket/status")
+      .then((res) => setShiprocketReady(!!res.data?.configured))
+      .catch(() => setShiprocketReady(false));
+  }, []);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -56,6 +64,18 @@ const AdminOrders = () => {
       setAssignModal(null); setCourier(""); setTracking("");
       fetch();
     } catch (err) { alert("Failed to assign courier"); }
+  };
+
+  // Books the parcel with Shiprocket: courier + AWB assigned, pickup requested, label made.
+  const shipWithShiprocket = async (orderId) => {
+    setBooking(orderId);
+    try {
+      await api.post(`/api/admin/orders/${orderId}/shiprocket`);
+      fetch();
+    } catch (err) {
+      alert(err.response?.data?.error || "Could not book this order with Shiprocket");
+    }
+    setBooking(null);
   };
 
   const getNextStatus = (current) => {
@@ -139,6 +159,22 @@ const AdminOrders = () => {
                         }}>
                           {next}
                         </button>
+                      )}
+                      {shiprocketReady && ["PLACED", "CONFIRMED", "PACKED"].includes(o.status) && !o.trackingNumber && (
+                        <button onClick={() => shipWithShiprocket(oid)} disabled={booking === oid} style={{
+                          padding: "0.25rem 0.5rem", border: "none", borderRadius: 4, cursor: booking === oid ? "wait" : "pointer",
+                          background: "#0E5C5C", color: "#fff", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                        }}>
+                          {booking === oid ? "Booking..." : "Ship with Shiprocket"}
+                        </button>
+                      )}
+                      {o.shippingLabelUrl && (
+                        <a href={o.shippingLabelUrl} target="_blank" rel="noopener noreferrer" style={{
+                          padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4,
+                          color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap", textDecoration: "none"
+                        }}>
+                          Courier label
+                        </a>
                       )}
                       {(o.status === "PACKED" || o.status === "SHIPPED") && (!o.courier || !o.trackingNumber) && (
                         <button onClick={() => setAssignModal(oid)} style={{
