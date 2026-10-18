@@ -114,8 +114,8 @@ const Footer = () => {
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
             {[
               { name: "Facebook", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>, url: "https://www.facebook.com/profile.php?id=61587653639339" },
-              { name: "Instagram", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>, url: "https://www.instagram.com/cauverystore.in/" },
-              { name: "YouTube", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/><path d="M19.91 4.36c-1.07-.4-5.52-.86-7.91-.86s-6.84.46-7.91.86A2.56 2.56 0 0 0 2 6.76v10.48a2.56 2.56 0 0 0 2.09 2.4c1.07.4 5.52.86 7.91.86s6.84-.46 7.91-.86A2.56 2.56 0 0 0 22 17.24V6.76a2.56 2.56 0 0 0-2.09-2.4z"/></svg>, url: "https://youtube.com/@cauverystore" }
+              { name: "Instagram", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>, url: "https://www.instagram.com/cauverystore.in/" },
+              { name: "YouTube", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg>, url: "https://youtube.com/@cauverystore" }
             ].map(({ name, icon, url }) => (
               <a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name} style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -124,8 +124,8 @@ const Footer = () => {
                 textDecoration: "none",
                 transition: "background 0.2s, color 0.2s"
               }}
-              onMouseEnter={(e) => { e.target.style.background = "var(--color-primary)"; e.target.style.color = "#fff"; }}
-              onMouseLeave={(e) => { e.target.style.background = "rgba(255,255,255,0.08)"; e.target.style.color = "#a9c2c0"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary)"; e.currentTarget.style.color = "#fff"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#a9c2c0"; }}
               >
                 {icon}
               </a>
