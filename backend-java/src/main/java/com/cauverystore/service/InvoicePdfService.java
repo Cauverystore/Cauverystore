@@ -40,8 +40,8 @@ public class InvoicePdfService {
                     : normalFont;
 
             document.add(new Paragraph("Order ID: " + invoice.getOrderId(), normalFont));
-            document.add(new Paragraph("Date: " + invoice.getOrderDate(), normalFont));
-            document.add(new Paragraph("Status: " + invoice.getStatus(), statusFont));
+            document.add(new Paragraph("Date: " + readableDate(invoice.getOrderDate()), normalFont));
+            document.add(new Paragraph("Status: " + readableStatus(invoice.getStatus()), statusFont));
             document.add(new Paragraph(" "));
 
             document.add(new Paragraph("Customer Details", headerFont));
@@ -71,8 +71,8 @@ public class InvoicePdfService {
                 for (Map<String, Object> item : items) {
                     table.addCell(new Phrase(String.valueOf(item.get("name")), normalFont));
                     table.addCell(new Phrase(String.valueOf(item.get("quantity")), normalFont));
-                    table.addCell(new Phrase("\u20b9 " + item.get("price"), normalFont));
-                    table.addCell(new Phrase("\u20b9 " + item.get("subtotal"), normalFont));
+                    table.addCell(new Phrase(money(item.get("price")), normalFont));
+                    table.addCell(new Phrase(money(item.get("subtotal")), normalFont));
                 }
             }
 
@@ -83,7 +83,7 @@ public class InvoicePdfService {
             totalsTable.setWidthPercentage(40);
             totalsTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
             totalsTable.addCell(new Phrase("Subtotal:", normalFont));
-            totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getSubtotal()), normalFont));
+            totalsTable.addCell(new Phrase(money(invoice.getSubtotal()), normalFont));
             // Not "Tax (12%)": an order's lines can carry different rates - 5% on staples, 18%
             // on electronics - so naming a single rate here stated something untrue on a tax
             // document. The per-rate breakdown belongs on the GST invoice, which has the HSN
@@ -92,25 +92,25 @@ public class InvoicePdfService {
             // delivery, so it is shown under the total as "included" rather than as an addition.
             if (!invoice.isTaxIncluded()) {
                 totalsTable.addCell(new Phrase("GST:", normalFont));
-                totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getTax()), normalFont));
+                totalsTable.addCell(new Phrase(money(invoice.getTax()), normalFont));
             }
             totalsTable.addCell(new Phrase("Delivery:", normalFont));
-            totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getDeliveryCharge()), normalFont));
+            totalsTable.addCell(new Phrase(money(invoice.getDeliveryCharge()), normalFont));
             if (invoice.getGiftWrapCharge() > 0) {
                 totalsTable.addCell(new Phrase("Gift wrap:", normalFont));
-                totalsTable.addCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getGiftWrapCharge()), normalFont));
+                totalsTable.addCell(new Phrase(money(invoice.getGiftWrapCharge()), normalFont));
             }
 
             Font totalFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, PdfBrandingUtil.TEAL);
             PdfPCell totalLabel = new PdfPCell(new Phrase("Total:", totalFont));
             totalLabel.setBackgroundColor(PdfBrandingUtil.BEIGE);
             totalsTable.addCell(totalLabel);
-            PdfPCell totalValue = new PdfPCell(new Phrase("\u20b9 " + String.format("%.2f", invoice.getTotalAmount()), totalFont));
+            PdfPCell totalValue = new PdfPCell(new Phrase(money(invoice.getTotalAmount()), totalFont));
             totalValue.setBackgroundColor(PdfBrandingUtil.BEIGE);
             totalsTable.addCell(totalValue);
             if (invoice.isTaxIncluded()) {
                 totalsTable.addCell(new Phrase("Includes GST of:", normalFont));
-                totalsTable.addCell(new Phrase("₹ " + String.format("%.2f", invoice.getTax()), normalFont));
+                totalsTable.addCell(new Phrase(money(invoice.getTax()), normalFont));
             }
 
             document.add(totalsTable);
@@ -120,5 +120,32 @@ public class InvoicePdfService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate PDF invoice", e);
         }
+    }
+
+    // The standard PDF fonts have no rupee glyph, so the rupee sign printed as nothing and amounts
+    // appeared bare. "Rs." always prints.
+    private static String money(Object amount) {
+        double v = amount instanceof Number n ? n.doubleValue()
+                : amount != null ? Double.parseDouble(amount.toString()) : 0;
+        return String.format("Rs. %.2f", v);
+    }
+
+    // Order dates arrive as ISO timestamps ("2026-10-18T15:15:46.377063"); a customer reads
+    // "18 Oct 2026, 3:15 PM".
+    private static String readableDate(String iso) {
+        if (iso == null || iso.isBlank()) return "";
+        try {
+            return java.time.LocalDateTime.parse(iso)
+                    .format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a", java.util.Locale.ENGLISH));
+        } catch (java.time.format.DateTimeParseException e) {
+            return iso;
+        }
+    }
+
+    // PLACED / OUT_FOR_DELIVERY are internal codes; print them as words.
+    private static String readableStatus(String status) {
+        if (status == null || status.isBlank()) return "";
+        String words = status.replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+        return Character.toUpperCase(words.charAt(0)) + words.substring(1);
     }
 }

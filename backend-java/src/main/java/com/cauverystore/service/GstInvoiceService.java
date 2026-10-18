@@ -1509,7 +1509,11 @@ public class GstInvoiceService {
         rightCell.addElement(new Paragraph(safeStr(inv.getInvoiceNumber()), bold12));
         rightCell.addElement(new Paragraph("Invoice Date", small8));
         rightCell.addElement(new Paragraph(inv.getInvoiceDate() != null ? inv.getInvoiceDate().toString() : "", normal9));
-        rightCell.addElement(new Paragraph("Status: " + inv.getStatus(), small8));
+        // Workflow states like PENDING_DISPATCH are internal and mean nothing to the buyer. Only
+        // a cancellation changes what the document is, so that is the one state printed.
+        if ("CANCELLED".equalsIgnoreCase(inv.getStatus())) {
+            rightCell.addElement(new Paragraph("CANCELLED", bold10));
+        }
         headerTable.addCell(leftCell);
         headerTable.addCell(rightCell);
         doc.add(headerTable);
@@ -1527,6 +1531,11 @@ public class GstInvoiceService {
         sellCell.addElement(new Paragraph(safeStr(inv.getSellerLegalName()), normal9));
         sellCell.addElement(new Paragraph("GSTIN: " + safeStr(inv.getSellerGstin()), normal9));
         sellCell.addElement(new Paragraph("Address: " + safeStr(inv.getSellerAddress()), small8));
+        // The first two digits of a GSTIN are the state code; the buyer's is printed, so the
+        // seller's goes beside it for anyone checking why the tax is CGST+SGST or IGST.
+        if (inv.getSellerGstin() != null && inv.getSellerGstin().length() >= 2) {
+            sellCell.addElement(new Paragraph("State Code: " + inv.getSellerGstin().substring(0, 2), small8));
+        }
         parties.addCell(sellCell);
 
         PdfPCell buyCell = new PdfPCell();
@@ -1614,15 +1623,15 @@ public class GstInvoiceService {
                     ? item.getBillDescription() : item.getProductName()), normal9));
             table.addCell(new Phrase(String.valueOf(item.getQuantity())
                     + (item.getUnitOfMeasure() != null ? " " + item.getUnitOfMeasure() : ""), normal9));
-            table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getUnitPrice() != null ? item.getUnitPrice() : 0), normal9));
-            table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getTaxableValue() != null ? item.getTaxableValue() : 0), normal9));
+            table.addCell(new Phrase("Rs. " + String.format("%.2f", item.getUnitPrice() != null ? item.getUnitPrice() : 0), normal9));
+            table.addCell(new Phrase("Rs. " + String.format("%.2f", item.getTaxableValue() != null ? item.getTaxableValue() : 0), normal9));
             if (Boolean.TRUE.equals(inv.getIsInterState())) {
-                table.addCell(new Phrase((item.getIgstRate() != null ? item.getIgstRate() : 0) + "% / \u20B9" + String.format("%.2f", item.getIgstAmount() != null ? item.getIgstAmount() : 0), small8));
+                table.addCell(new Phrase((item.getIgstRate() != null ? item.getIgstRate() : 0) + "% / Rs. " + String.format("%.2f", item.getIgstAmount() != null ? item.getIgstAmount() : 0), small8));
             } else {
-                table.addCell(new Phrase((item.getCgstRate() != null ? item.getCgstRate() : 0) + "% / \u20B9" + String.format("%.2f", item.getCgstAmount() != null ? item.getCgstAmount() : 0), small8));
-                table.addCell(new Phrase((item.getSgstRate() != null ? item.getSgstRate() : 0) + "% / \u20B9" + String.format("%.2f", item.getSgstAmount() != null ? item.getSgstAmount() : 0), small8));
+                table.addCell(new Phrase((item.getCgstRate() != null ? item.getCgstRate() : 0) + "% / Rs. " + String.format("%.2f", item.getCgstAmount() != null ? item.getCgstAmount() : 0), small8));
+                table.addCell(new Phrase((item.getSgstRate() != null ? item.getSgstRate() : 0) + "% / Rs. " + String.format("%.2f", item.getSgstAmount() != null ? item.getSgstAmount() : 0), small8));
             }
-            table.addCell(new Phrase("\u20B9" + String.format("%.2f", item.getTotalAmount() != null ? item.getTotalAmount() : 0), bold9));
+            table.addCell(new Phrase("Rs. " + String.format("%.2f", item.getTotalAmount() != null ? item.getTotalAmount() : 0), bold9));
         }
         doc.add(table);
         doc.add(new Paragraph(" "));
@@ -1655,25 +1664,22 @@ public class GstInvoiceService {
         bh.setHorizontalAlignment(Element.ALIGN_CENTER);
         breakupTable.addCell(bh);
 
-        addBreakupCell(breakupTable, "Taxable Amount", "\u20B9" + String.format("%.2f", tx), normal9);
-        if (inv.getDiscountAmount() != null && inv.getDiscountAmount() > 0) {
-            addBreakupCell(breakupTable, "Discount", "-\u20B9" + String.format("%.2f", inv.getDiscountAmount()), normal9);
-        }
-        if (inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0) {
-            addBreakupCell(breakupTable, "Delivery Charge", "\u20B9" + String.format("%.2f", inv.getDeliveryCharge()), normal9);
-        }
+        // The taxable amount already has the coupon discount taken off and the delivery line
+        // added in (delivery is an item above). Listing either again beside it made the rows
+        // add up to more than the Total Amount, so they are stated once, in the note below.
+        addBreakupCell(breakupTable, "Taxable Amount", "Rs. " + String.format("%.2f", tx), normal9);
         if (interState) {
-            addBreakupCell(breakupTable, "IGST @ " + igstRate + "%", "\u20B9" + String.format("%.2f", igst), normal9);
+            addBreakupCell(breakupTable, "IGST @ " + igstRate + "%", "Rs. " + String.format("%.2f", igst), normal9);
         } else {
-            addBreakupCell(breakupTable, "CGST @ " + cgstRate + "%", "\u20B9" + String.format("%.2f", cgst), normal9);
-            addBreakupCell(breakupTable, stateLabel + " @ " + sgstRate + "%", "\u20B9" + String.format("%.2f", sgst), normal9);
+            addBreakupCell(breakupTable, "CGST @ " + cgstRate + "%", "Rs. " + String.format("%.2f", cgst), normal9);
+            addBreakupCell(breakupTable, stateLabel + " @ " + sgstRate + "%", "Rs. " + String.format("%.2f", sgst), normal9);
         }
         // Cess is a charge on the goods like GST but collected separately; a buyer checking the
         // total against the payment needs to see it, and it is not part of the "Total Tax".
         if (cess > 0) {
-            addBreakupCell(breakupTable, "Cess", "\u20B9" + String.format("%.2f", cess), normal9);
+            addBreakupCell(breakupTable, "Cess", "Rs. " + String.format("%.2f", cess), normal9);
         }
-        addBreakupCell(breakupTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
+        addBreakupCell(breakupTable, "Total Tax", "Rs. " + String.format("%.2f", ttax), normal9);
         // TCS is deliberately not in this breakup. It is not a tax on this supply and the
         // customer does not pay it - printing it beside CGST and SGST read as though they did.
         doc.add(breakupTable);
@@ -1685,30 +1691,26 @@ public class GstInvoiceService {
         sumTable.setWidthPercentage(40);
         sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
 
-        addSumRow(sumTable, "Taxable Amount", "\u20B9" + String.format("%.2f", tx), normal9);
-        if (inv.getDiscountAmount() != null && inv.getDiscountAmount() > 0) {
-            addSumRow(sumTable, "Discount", "-\u20B9" + String.format("%.2f", inv.getDiscountAmount()), normal9);
-        }
-        if (inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0) {
-            addSumRow(sumTable, "Delivery Charge", "\u20B9" + String.format("%.2f", inv.getDeliveryCharge()), normal9);
-        }
+        // Every row here sums to the Total Amount; see the breakup above for why delivery and
+        // discount are not rows of their own.
+        addSumRow(sumTable, "Taxable Amount", "Rs. " + String.format("%.2f", tx), normal9);
         if (interState) {
-            addSumRow(sumTable, "IGST", "\u20B9" + String.format("%.2f", igst), normal9);
+            addSumRow(sumTable, "IGST", "Rs. " + String.format("%.2f", igst), normal9);
         } else {
-            addSumRow(sumTable, "CGST", "\u20B9" + String.format("%.2f", cgst), normal9);
-            addSumRow(sumTable, stateLabel, "\u20B9" + String.format("%.2f", sgst), normal9);
+            addSumRow(sumTable, "CGST", "Rs. " + String.format("%.2f", cgst), normal9);
+            addSumRow(sumTable, stateLabel, "Rs. " + String.format("%.2f", sgst), normal9);
         }
         if (cess > 0) {
-            addSumRow(sumTable, "Cess", "\u20B9" + String.format("%.2f", cess), normal9);
+            addSumRow(sumTable, "Cess", "Rs. " + String.format("%.2f", cess), normal9);
         }
-        addSumRow(sumTable, "Total Tax", "\u20B9" + String.format("%.2f", ttax), normal9);
+        addSumRow(sumTable, "Total Tax", "Rs. " + String.format("%.2f", ttax), normal9);
         // TCS sat here, between Total Tax and Total Amount, which is exactly where a customer
         // reads a charge as theirs - and it was being added into the total. It belongs below
         // the total as a note about the marketplace's own obligation, not in the sum.
         PdfPCell totalCell = new PdfPCell(new Phrase("Total Amount", bold12));
         totalCell.setBorder(Rectangle.TOP);
         sumTable.addCell(totalCell);
-        PdfPCell totalVal = new PdfPCell(new Phrase("\u20B9" + String.format("%.2f", total), bold12));
+        PdfPCell totalVal = new PdfPCell(new Phrase("Rs. " + String.format("%.2f", total), bold12));
         totalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         totalVal.setBorder(Rectangle.TOP);
         sumTable.addCell(totalVal);
@@ -1716,12 +1718,22 @@ public class GstInvoiceService {
 
         doc.add(new Paragraph(" "));
         doc.add(new Paragraph("Amount in Words: " + numberToWordsPdf(total), bold9));
+        boolean hasDelivery = inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0;
+        boolean hasDiscount = inv.getDiscountAmount() != null && inv.getDiscountAmount() > 0;
+        if (hasDelivery) {
+            doc.add(new Paragraph("Delivery of Rs. " + String.format("%.2f", inv.getDeliveryCharge())
+                    + " (GST included) is charged as part of the goods and is a line in the table above.", small8));
+        }
+        if (hasDiscount) {
+            doc.add(new Paragraph("A coupon discount of Rs. " + String.format("%.2f", inv.getDiscountAmount())
+                    + " has already been taken off the taxable amount.", small8));
+        }
 
         // Stated, but plainly as the marketplace's obligation rather than a line on the bill.
         // Section 52 has the operator keep this back from what the seller is paid; the customer
         // is not charged it and the figure above does not include it.
         if (tcs > 0) {
-            doc.add(new Paragraph("TCS u/s 52: ₹" + String.format("%.2f", tcs) + " (" + tcsRate
+            doc.add(new Paragraph("TCS u/s 52: Rs. " + String.format("%.2f", tcs) + " (" + tcsRate
                     + "% of taxable value) is collected by the marketplace from the seller's "
                     + "settlement and declared in GSTR-8. It is not charged to the buyer and is "
                     + "not included in the Total Amount above.", small8));
@@ -1756,7 +1768,6 @@ public class GstInvoiceService {
         doc.add(new Paragraph("- " + (interState ? "IGST charged (inter-state supply)."
                 : utgst ? "CGST + UTGST charged (intra-state supply from a Union Territory)."
                         : "CGST + SGST charged (intra-state supply)."), small8));
-        doc.add(new Paragraph("- HSN/SAC digits: " + (inv.getHsnDigits() != null ? inv.getHsnDigits() : 4) + ".", small8));
         if (inv.getSupplierSignature() != null) {
             doc.add(new Paragraph("- Digitally authenticated (SHA-256) and authorized by " + safeStr(inv.getSignedBy())
                     + (inv.getSignatureDate() != null ? " on " + inv.getSignatureDate() : "") + ".", small8));
@@ -1802,9 +1813,13 @@ public class GstInvoiceService {
             signatory.setAlignment(Element.ALIGN_RIGHT);
             doc.add(signatory);
         } else {
-            doc.add(new Paragraph("- No signature is on file for this seller. Rule 46 requires the "
-                    + "supplier's signature on a tax invoice unless it is an e-invoice signed by "
-                    + "the portal.", small8));
+            // Rule 46 needs the supplier's signature, but the customer's copy is the wrong place
+            // to say one is missing: they cannot fix it. The seller has to upload one, so it is
+            // logged here; the space above the signatory line is left for a hand signature.
+            log.warn("Invoice {} printed without a signature: seller {} has none on file. Rule 46 "
+                    + "requires one unless the invoice is e-invoiced.", inv.getInvoiceNumber(), inv.getSellerId());
+            doc.add(new Paragraph(" "));
+            doc.add(new Paragraph(" "));
             Paragraph signatory = new Paragraph("For " + safeStr(inv.getSignedBy())
                     + ", Authorised Signatory", bold9);
             signatory.setAlignment(Element.ALIGN_RIGHT);
