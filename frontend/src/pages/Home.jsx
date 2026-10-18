@@ -187,7 +187,7 @@ const Home = () => {
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title">New from our sellers</h2>
+            <h2 className="sn-section-title">New arrivals</h2>
             <Link className="sn-view-all" to="/products">View all {"\u2192"}</Link>
           </div>
           {loading ? (
@@ -198,7 +198,7 @@ const Home = () => {
             </ProductRow>
           ) : (
             <div className="sn-empty-section">
-              <p className="sn-empty-title">Our sellers are adding their first products</p>
+              <p className="sn-empty-title">New products are on the way</p>
               <p>Please check back soon. Own a shop? You can be among the first to list here.</p>
               <Link to="/seller/register" className="sn-btn">Start selling <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
             </div>

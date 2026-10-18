@@ -726,7 +726,7 @@ const Profile = () => {
                 </div>
                 <div className="profile-order-summary">
                   <span>&#8377;{(order.totalAmount || order.total || 0).toFixed(2)}</span>
-                  <span style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>{order.paymentMethod || "COD"}</span>
+                  <span style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>{order.paymentMethod || "Online"}</span>
                   {(order.paymentStatus === "PAID" || order.paymentStatus === "COMPLETED") && (
                     <span style={{ color: "#0E5C5C", fontSize: "0.8rem" }}>Paid</span>
                   )}
@@ -926,16 +926,6 @@ const Profile = () => {
           <label className="pf-switch">
             <input type="checkbox" checked={preferences?.pushNotifications !== false}
               onChange={(e) => handlePrefsSave({ pushNotifications: e.target.checked })} />
-            <span className="pf-slider"></span>
-          </label>
-        </div>
-
-        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.25rem 0 0.75rem" }}>COD Preference</h4>
-        <div className="pf-toggle-row">
-          <span className="pf-toggle-label">Prefer Cash on Delivery</span>
-          <label className="pf-switch">
-            <input type="checkbox" checked={preferences?.codPreference !== false}
-              onChange={(e) => handlePrefsSave({ codPreference: e.target.checked })} />
             <span className="pf-slider"></span>
           </label>
         </div>

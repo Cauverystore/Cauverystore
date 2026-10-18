@@ -96,7 +96,7 @@ const SearchResults = () => {
             <div className="products-empty">
               <div className="products-empty-icon">📦</div>
               <h3 className="products-empty-title">No results for "{query}"</h3>
-              <p className="products-empty-text">Check the spelling, try a shorter word, or browse everything our sellers offer.</p>
+              <p className="products-empty-text">Check the spelling, try a shorter word, or browse all products.</p>
               <Link to="/products" className="products-empty-action">Browse all products</Link>
             </div>
           ) : (

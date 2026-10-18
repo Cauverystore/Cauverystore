@@ -821,6 +821,9 @@ public class OrderService {
             }
             if (paymentOpt.isPresent()) {
                 Payment payment = paymentOpt.get();
+                if (payment.getStatus() != null && payment.getStatus().contains("NO_ORDER")) {
+                    throw new RuntimeException("This payment was refunded because no order was placed in time");
+                }
                 if (Math.abs(payment.getAmount() - order.getTotalAmount()) > 1.0) {
                     throw new RuntimeException("Paid amount does not match the order total");
                 }

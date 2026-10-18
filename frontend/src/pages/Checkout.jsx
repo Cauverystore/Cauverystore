@@ -26,7 +26,6 @@ const Checkout = () => {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddrId, setSelectedAddrId] = useState(null);
   const [showNewAddr, setShowNewAddr] = useState(false);
-  const [emiOption, setEmiOption] = useState(false);
   const [giftWrap, setGiftWrap] = useState(false);
   const [b2b, setB2b] = useState(false);
   const [gstin, setGstin] = useState("");
@@ -495,17 +494,6 @@ const Checkout = () => {
               ))}
             </div>
 
-            <div style={{ marginTop: "1rem", padding: "0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                <input type="checkbox" checked={emiOption} onChange={(e) => setEmiOption(e.target.checked)} />
-                <span style={{ fontWeight: 500, fontSize: "0.9rem" }}>EMI Options Available</span>
-              </label>
-              {emiOption && (
-                <div style={{ marginTop: "0.5rem", padding: "0.5rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)", fontSize: "0.85rem" }}>
-                  No Cost EMI starting from &#8377;{Math.round(total / 6).toFixed(0)}/month for 6 months
-                </div>
-              )}
-            </div>
 
             <div style={{ marginTop: "0.75rem", padding: "0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>

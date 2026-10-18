@@ -360,7 +360,7 @@ const OrderDetail = () => {
         )}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
           <span style={{ color: "var(--color-text-secondary)" }}>Payment Method</span>
-          <span>{order?.paymentMethod || "COD"}</span>
+          <span>{order?.paymentMethod || "Online"}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
           <span style={{ color: "var(--color-text-secondary)" }}>Payment Status</span>

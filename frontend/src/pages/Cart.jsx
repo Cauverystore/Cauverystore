@@ -312,7 +312,7 @@ const Cart = () => {
                 const image = product.image || product.images?.[0] || "";
                 const qty = item.quantity || 1;
                 const lineTotal = price * qty;
-                const deliveryEst = item.deliveryEstimate || cart?.deliveryDate || "Get it within 5-7 days";
+                const deliveryEst = item.deliveryEstimate || cart?.deliveryDate || "Usually delivered within 3-9 business days";
 
                 return (
                   <div key={itemId} className="cart-item">
@@ -523,7 +523,7 @@ const Cart = () => {
               <span>&#128274;</span> Secure Payment &middot; Easy Returns
             </div>
             <div className="cart-summary-accepted-cards">
-              <span>&#9829;</span> Cards &middot; UPI &middot; Net Banking &middot; COD
+              <span>&#9829;</span> Cards &middot; UPI &middot; Net Banking
             </div>
           </aside>
 

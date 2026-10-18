@@ -93,7 +93,7 @@ const OffersPage = () => {
         <div className="products-empty">
           <div className="products-empty-icon">&#128722;</div>
           <h3 className="products-empty-title">No offers running right now</h3>
-          <p className="products-empty-text">Sellers add offers through the week. Until then, browse everything they have listed.</p>
+          <p className="products-empty-text">New offers are added through the week. Until then, browse all products.</p>
           <button className="products-empty-action" onClick={() => navigate("/products")}>Browse all products</button>
         </div>
       ) : (
