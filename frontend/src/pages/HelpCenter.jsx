@@ -14,22 +14,22 @@ const categories = [
 
 const fallbackFaqs = {
   orders: [
-    { q: "How do I place an order?", a: "Simply browse our catalog, add items to your cart, and proceed to checkout. You can place an order as a guest or after logging in." },
-    { q: "Can I cancel my order?", a: "Orders can be cancelled within 24 hours of placement, provided they have not been shipped yet. Visit your Orders page to cancel." },
-    { q: "How do I track my order?", a: "Open My Orders in your account to see the status of each order. Once an order ships, the courier name and tracking number are shown there when the seller has added them." },
-    { q: "What if I receive a damaged or wrong item?", a: "Please contact our support team within 48 hours of delivery with photos of the item. We will arrange a replacement or refund." },
+    { q: "How do I place an order?", a: "Browse the store, add items to your cart and go to checkout. You need to sign in to place an order." },
+    { q: "Can I cancel my order?", a: "Yes, free of charge, any time before the order ships. Open My Orders and choose Cancel. If you have already paid, the full amount is refunded automatically." },
+    { q: "How do I track my order?", a: "Open My Orders in your account to see the status of each order. Once an order ships, the courier name and tracking number are shown there." },
+    { q: "What if I receive a damaged or wrong item?", a: "Raise a return from My Orders within the 7-day return period and choose the matching reason, or email support@cauverystore.in with photos. Returns for damaged, defective or wrong items are free." },
   ],
   shipping: [
-    { q: "What are the shipping charges?", a: "We offer free shipping on orders above a certain value. For smaller orders, a nominal shipping fee applies based on weight and location." },
+    { q: "What are the shipping charges?", a: "Delivery is free on orders of ₹500 or more. Orders below ₹500 have a flat ₹40 delivery charge." },
     { q: "How long does delivery take?", a: "Sellers normally dispatch within 1-2 business days. After that, delivery usually takes 2-4 business days within the seller's own state and 4-7 business days to the rest of India. Remote areas may take longer." },
     { q: "Do you ship internationally?", a: "No. We deliver to addresses in India only." },
     { q: "Can I change my delivery address after ordering?", a: "You can update the address before the order is shipped. Once shipped, changes are not possible." },
   ],
   returns: [
-    { q: "What is the return policy?", a: "Most items can be returned within 7-15 days of delivery. The exact window depends on the product category." },
+    { q: "What is the return policy?", a: "Most items can be returned within 7 days of delivery. If a product has a different return period, it is shown on the product page." },
     { q: "How do I initiate a return?", a: "Go to your Orders page, select the item, and click 'Return'. Follow the instructions to generate a return request." },
     { q: "When will I get my refund?", a: "Refunds are processed within 5-7 business days after the returned item is received and verified." },
-    { q: "Are there any items that cannot be returned?", a: "Yes, perishable goods, personal care items, and software products are non-returnable unless defective." },
+    { q: "Are there any items that cannot be returned?", a: "Yes. Innerwear, swimwear, perishable goods, clearance items, customised or made-to-order items, and products marked \"No Returns\" cannot be returned. You can still report them if they arrive damaged, defective or wrong." },
   ],
   account: [
     { q: "How do I create an account?", a: "Click on 'Login' and then 'Register'. Fill in your details to create your Cauvery Store account in seconds." },
@@ -38,7 +38,7 @@ const fallbackFaqs = {
     { q: "Can I delete my account?", a: "Yes, please contact our support team at support@cauverystore.in to request account deletion." },
   ],
   payments: [
-    { q: "What payment methods do you accept?", a: "UPI, credit and debit cards, net banking and wallets, all through Razorpay. EMI is available on eligible cards." },
+    { q: "What payment methods do you accept?", a: "UPI, credit and debit cards, net banking and wallets, all through Razorpay." },
     { q: "Is my payment information secure?", a: "Absolutely. All payments are processed through Razorpay with bank-grade encryption. We do not store your payment details." },
     { q: "What should I do if my payment fails?", a: "First, check if the amount was deducted. If yes, it will be refunded automatically within 5-7 days. Contact support if it does not." },
     { q: "Do you offer cash on delivery?", a: "Not at present. All orders are paid online through Razorpay when you place them." },

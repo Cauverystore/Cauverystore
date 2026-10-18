@@ -17,7 +17,7 @@ const NotFound = () => (
     <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: teal, margin: "0 0 1.5rem", letterSpacing: "0.18em" }}>ERROR 404</p>
     <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.25rem, 6vw, 4.25rem)", fontWeight: 400, lineHeight: 1.05, letterSpacing: "-0.03em", color: ink, margin: "0 0 1.25rem", maxWidth: "14ch" }}>We can't find that page</h1>
     <p style={{ fontSize: "1.0625rem", lineHeight: 1.65, color: "#48595a", margin: "0 0 2.25rem", maxWidth: "46ch" }}>
-      The link may be old, or the product may no longer be listed. Everything our sellers offer is one tap away.
+      The link may be old, or the product may no longer be listed. Everything in the store is one tap away.
     </p>
     <div style={{ display: "flex", gap: "1rem 2rem", alignItems: "center", flexWrap: "wrap" }}>
       <Link to="/products" style={{ padding: "0.95rem 1.6rem", borderRadius: 999, background: teal, color: "#fff", fontWeight: 600, fontSize: "0.9375rem", textDecoration: "none", boxShadow: "0 14px 28px -16px rgba(14, 92, 92, 0.7)" }}>Browse products</Link>

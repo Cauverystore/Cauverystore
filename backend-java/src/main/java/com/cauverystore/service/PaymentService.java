@@ -6,19 +6,23 @@ import com.cauverystore.entities.Refund;
 import com.cauverystore.repository.OrderRepository;
 import com.cauverystore.repository.PaymentRepository;
 import com.cauverystore.repository.RefundRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.razorpay.RazorpayClient;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -32,6 +36,16 @@ public class PaymentService {
 
     @Value("${razorpay.key_secret}")
     private String keySecret;
+
+    @Value("${razorpay.webhook_secret}")
+    private String webhookSecret;
+
+    /** How long a paid checkout may go without becoming an order before the money is sent back. */
+    @Value("${payments.unclaimed-refund-after-minutes:30}")
+    private long unclaimedRefundAfterMinutes;
+
+    /** Payment statuses that mean money was taken: COMPLETED from the browser, CAPTURED from the webhook. */
+    private static final List<String> TAKEN_STATUSES = List.of("COMPLETED", "CAPTURED");
 
     private final PaymentRepository paymentRepo;
     private final OrderRepository orderRepo;
@@ -56,21 +70,124 @@ public class PaymentService {
 
     public boolean verifySignature(String orderId, String paymentId, String signature) {
         try {
-            String data = orderId + "|" + paymentId;
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(keySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(secretKeySpec);
-            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString().equals(signature);
+            return hmacSha256Hex(keySecret, orderId + "|" + paymentId).equals(signature);
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * Razorpay signs each webhook body with the secret typed into its webhook settings. Until
+     * RAZORPAY_WEBHOOK_SECRET is set nothing matches, so an unconfigured deployment ignores
+     * webhooks instead of trusting them.
+     */
+    public boolean webhookSignatureMatches(String rawBody, String signature) {
+        if (rawBody == null || signature == null || webhookSecret == null
+                || webhookSecret.isBlank() || "placeholder".equals(webhookSecret)) {
+            return false;
+        }
+        try {
+            byte[] expected = hmacSha256Hex(webhookSecret, rawBody).getBytes(StandardCharsets.UTF_8);
+            return MessageDigest.isEqual(expected, signature.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String hmacSha256Hex(String secret, String data) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+
+    /**
+     * Records a payment.captured webhook.
+     *
+     * <h2>Why this exists</h2>
+     *
+     * The order is only created when the customer's browser comes back from Razorpay. If the tab
+     * closes, the phone dies or the connection drops after paying, the browser never comes back:
+     * the money is taken and nothing on our side knows. The webhook is Razorpay telling us
+     * directly, so every captured payment has a row here whether or not the browser returned.
+     * A row that never gets an order is refunded by refundUnclaimedPayments.
+     */
+    @Transactional
+    public String recordCapturedPayment(JsonNode event) {
+        if (!"payment.captured".equals(event.path("event").asText())) {
+            return "ignored: " + event.path("event").asText("no event");
+        }
+        JsonNode entity = event.path("payload").path("payment").path("entity");
+        String paymentId = entity.path("id").asText(null);
+        if (paymentId == null) {
+            return "ignored: no payment id";
+        }
+        if (paymentRepo.findByRazorpayPaymentId(paymentId).isPresent()) {
+            return "already recorded " + paymentId;
+        }
+        Payment payment = new Payment();
+        payment.setRazorpayPaymentId(paymentId);
+        payment.setRazorpayOrderId(entity.path("order_id").asText(null));
+        payment.setAmount(entity.path("amount").asLong() / 100.0);
+        payment.setCurrency(entity.path("currency").asText("INR"));
+        payment.setStatus("CAPTURED");
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepo.save(payment);
+        return "recorded " + paymentId;
+    }
+
+    /**
+     * Sends back money that was taken but never became an order.
+     *
+     * A payment with no order after the grace period means the customer paid and the checkout
+     * never finished - the browser did not return, or placing the order failed afterwards. We
+     * cannot build the order ourselves (the cart and address only exist in the browser at that
+     * point), so the honest outcome is a full refund. Each payment is tried once: a refund
+     * Razorpay rejects is marked REFUND_FAILED_NO_ORDER and logged for someone to look at,
+     * rather than retried every few minutes.
+     */
+    @Scheduled(fixedDelayString = "${payments.unclaimed-refund-check-ms:300000}",
+               initialDelayString = "${payments.unclaimed-refund-initial-delay-ms:120000}")
+    public void refundUnclaimedPayments() {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(unclaimedRefundAfterMinutes);
+        for (Payment payment : paymentRepo.findByOrderIdIsNullAndStatusInAndPaidAtBefore(TAKEN_STATUSES, cutoff)) {
+            refundUnclaimed(payment);
+        }
+    }
+
+    private void refundUnclaimed(Payment payment) {
+        Refund refund = new Refund();
+        refund.setAmount(payment.getAmount());
+        refund.setRefundDate(LocalDate.now());
+        refund.setRefundMethod("ORIGINAL_METHOD");
+        refund.setReason("Paid but no order was placed (payment " + payment.getRazorpayPaymentId() + ")");
+        try {
+            RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
+            JSONObject refundRequest = new JSONObject();
+            refundRequest.put("amount", (int) Math.round(payment.getAmount() * 100));
+            refundRequest.put("receipt", "NOORDER-" + payment.getRazorpayPaymentId());
+            com.razorpay.Refund razorpayRefund = razorpay.payments.refund(payment.getRazorpayPaymentId(), refundRequest);
+            refund.setGatewayRefundId(razorpayRefund.get("id"));
+            refund.setStatus("processed".equals(razorpayRefund.get("status")) ? "COMPLETED" : "PENDING");
+            refund.setExpectedCredit("5-7 business days to the original payment method");
+            payment.setStatus("REFUNDED_NO_ORDER");
+            log.warn("Refunded payment {} (Rs {}): paid but no order was placed",
+                    payment.getRazorpayPaymentId(), payment.getAmount());
+        } catch (Exception e) {
+            refund.setStatus("FAILED");
+            refund.setReason(refund.getReason() + " [Gateway refund failed: " + e.getMessage() + "]");
+            payment.setStatus("REFUND_FAILED_NO_ORDER");
+            log.error("Could not refund payment {} (Rs {}) that has no order - refund it by hand in Razorpay: {}",
+                    payment.getRazorpayPaymentId(), payment.getAmount(), e.getMessage(), e);
+        }
+        refundRepo.save(refund);
+        paymentRepo.save(payment);
     }
 
     public String getKeyId() {
@@ -136,7 +253,12 @@ public class PaymentService {
             throw new RuntimeException("Unable to verify payment with Razorpay");
         }
 
-        Payment payment = new Payment();
+        // The webhook may have recorded this payment already; reuse that row so the payment is
+        // never stored twice. One that was already refunded for having no order stays refunded.
+        Payment payment = paymentRepo.findByRazorpayPaymentId(razorpayPaymentId).orElseGet(Payment::new);
+        if (payment.getStatus() != null && payment.getStatus().contains("NO_ORDER")) {
+            throw new RuntimeException("This payment was refunded because no order was placed in time");
+        }
         payment.setRazorpayOrderId(razorpayOrderId);
         payment.setRazorpayPaymentId(razorpayPaymentId);
         payment.setRazorpaySignature(signature);

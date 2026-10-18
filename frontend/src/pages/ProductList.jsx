@@ -148,7 +148,7 @@ const ProductList = () => {
             ) : (
               /* No filters and still nothing: the store itself has no products listed yet. */
               <div className="products-empty">
-                <h3 className="products-empty-title">Our sellers are adding their first products</h3>
+                <h3 className="products-empty-title">New products are on the way</h3>
                 <p className="products-empty-text">Please check back soon. Own a shop? You can be among the first to list here.</p>
                 <div className="products-empty-actions">
                   <Link to="/seller/register" className="products-empty-action">Start selling</Link>

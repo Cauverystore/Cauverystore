@@ -183,7 +183,7 @@ const CategoryProducts = () => {
           <div className="products-empty">
             <div className="products-empty-icon">📦</div>
             <h3 className="products-empty-title">Nothing here yet</h3>
-            <p className="products-empty-text">Our sellers have not listed products in this category yet. See what is available now.</p>
+            <p className="products-empty-text">There are no products in this category yet. See what is available now.</p>
             <Link to="/products" className="products-empty-action">Browse all products</Link>
           </div>
         ) : (

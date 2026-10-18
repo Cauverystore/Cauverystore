@@ -32,7 +32,7 @@ const faqs = [
   { q: "How do you ensure product quality?", a: "Every seller is checked before they can list, and each listing is approved before shoppers see it. If something is still not right, most items can be returned within 7 days of delivery." },
   { q: "Do you offer bulk or corporate orders?", a: "Yes. Bulk and corporate orders are priced at a negotiated rate. Email support@cauverystore.in with what you need and the quantity, and we will send you a quote." },
   { q: "Can I sell on Cauvery Store?", a: "Yes. Sellers based in India can apply. Create an account, then complete seller registration from the Sell on Cauvery Store link. Your listings go live once we have approved them." },
-  { q: "What payment methods do you accept?", a: "UPI, credit and debit cards, net banking and wallets, all through Razorpay. EMI is available on eligible cards. We do not offer cash on delivery at present." },
+  { q: "What payment methods do you accept?", a: "UPI, credit and debit cards, net banking and wallets, all through Razorpay. We do not offer cash on delivery at present." },
 ];
 
 const AboutUs = () => {

@@ -74,6 +74,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/chat/**").permitAll()
                 // Courier webhook - checked against its own token in CourierUpdateController.
                 .requestMatchers(HttpMethod.POST, "/api/courier-updates").permitAll()
+                // Razorpay webhook - checked against its signature in PaymentWebhookController.
+                .requestMatchers(HttpMethod.POST, "/api/payment/webhook").permitAll()
                 .requestMatchers("/api/support-tickets/**").authenticated()
                 .requestMatchers("/api/payment-methods/**").authenticated()
                 .requestMatchers("/error").permitAll()
