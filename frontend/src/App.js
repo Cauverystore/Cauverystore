@@ -153,7 +153,7 @@ function App() {
               "name": "Cauvery Store",
               "url": "https://cauverystore.in/",
               "logo": "https://cauverystore.in/logo512.png",
-              "sameAs": ["https://www.facebook.com/profile.php?id=61587653639339", "https://www.instagram.com/cauverystore/", "https://www.youtube.com/@CauveryStore"],
+              "sameAs": ["https://www.facebook.com/profile.php?id=61587653639339", "https://www.instagram.com/cauverystore.in/", "https://www.youtube.com/@CauveryStore"],
               "description": "Online marketplace based in Coimbatore, India. Pay by UPI, card, net banking or wallet.",
               "address": { "@type": "PostalAddress", "addressLocality": "Coimbatore", "addressRegion": "Tamil Nadu", "addressCountry": "IN" },
               // The marketplace default; a product page states its own when the seller's differs.
