@@ -1509,6 +1509,17 @@ public class GstInvoiceService {
         rightCell.addElement(new Paragraph(safeStr(inv.getInvoiceNumber()), bold12));
         rightCell.addElement(new Paragraph("Invoice Date", small8));
         rightCell.addElement(new Paragraph(inv.getInvoiceDate() != null ? inv.getInvoiceDate().toString() : "", normal9));
+        // The customer knows their purchase by its order number, not the invoice serial, so the
+        // order is named here the way the big marketplaces do.
+        if (inv.getOrderId() != null) {
+            rightCell.addElement(new Paragraph("Order No.", small8));
+            String orderLine = String.valueOf(inv.getOrderId());
+            Order order = orderRepo.findById(inv.getOrderId()).orElse(null);
+            if (order != null && order.getCreatedAt() != null) {
+                orderLine += "  |  Ordered " + order.getCreatedAt().toLocalDate();
+            }
+            rightCell.addElement(new Paragraph(orderLine, normal9));
+        }
         // Workflow states like PENDING_DISPATCH are internal and mean nothing to the buyer. Only
         // a cancellation changes what the document is, so that is the one state printed.
         if ("CANCELLED".equalsIgnoreCase(inv.getStatus())) {
@@ -1535,6 +1546,11 @@ public class GstInvoiceService {
         // seller's goes beside it for anyone checking why the tax is CGST+SGST or IGST.
         if (inv.getSellerGstin() != null && inv.getSellerGstin().length() >= 2) {
             sellCell.addElement(new Paragraph("State Code: " + inv.getSellerGstin().substring(0, 2), small8));
+        }
+        // Characters 3-12 of a GSTIN are the holder's PAN, so it is always available; Amazon and
+        // Flipkart print it and business buyers look for it.
+        if (inv.getSellerGstin() != null && inv.getSellerGstin().length() >= 12) {
+            sellCell.addElement(new Paragraph("PAN: " + inv.getSellerGstin().substring(2, 12), small8));
         }
         parties.addCell(sellCell);
 
@@ -1571,15 +1587,17 @@ public class GstInvoiceService {
         doc.add(new Paragraph(" "));
 
         // Identifiers section
-        PdfPTable idTable = new PdfPTable(3);
+        PdfPTable idTable = new PdfPTable(4);
         idTable.setWidthPercentage(100);
-        float[] idW = {33, 33, 34};
+        float[] idW = {24, 26, 20, 30};
         idTable.setWidths(idW);
         String[][] idData = {
             {"Place of Supply", safeStr(inv.getPlaceOfSupply())},
             {"Supply Type", interState ? "Inter-State (IGST)"
                     : "Intra-State (" + (utgst ? "CGST+UTGST" : "CGST+SGST") + ")"},
-            {"Invoice Type", safeStr(inv.getInvoiceType())}
+            {"Invoice Type", safeStr(inv.getInvoiceType())},
+            // Rule 46(p): every tax invoice must say whether tax is payable on reverse charge.
+            {"Tax payable on reverse charge", Boolean.TRUE.equals(inv.getReverseCharge()) ? "Yes" : "No"}
         };
         for (String[] row : idData) {
             PdfPCell c = new PdfPCell();
@@ -1649,12 +1667,10 @@ public class GstInvoiceService {
         double igst = inv.getIgstAmount() != null ? inv.getIgstAmount() : 0;
         double ttax = inv.getTotalTax() != null ? inv.getTotalTax() : 0;
         double cess = inv.getTotalCess() != null ? inv.getTotalCess() : 0;
-        double tcs = inv.getTcsAmount() != null ? inv.getTcsAmount() : 0;
         double total = inv.getTotalAmount() != null ? inv.getTotalAmount() : 0;
         double cgstRate = inv.getCgstRate() != null ? inv.getCgstRate() : 0;
         double sgstRate = inv.getSgstRate() != null ? inv.getSgstRate() : 0;
         double igstRate = !items.isEmpty() && items.get(0).getIgstRate() != null ? items.get(0).getIgstRate() : 0;
-        double tcsRate = inv.getTcsRate() != null ? inv.getTcsRate() : 0.5;
 
         // Header row
         PdfPCell bh = new PdfPCell(new Phrase("Tax Breakup", bold10));
@@ -1729,15 +1745,9 @@ public class GstInvoiceService {
                     + " has already been taken off the taxable amount.", small8));
         }
 
-        // Stated, but plainly as the marketplace's obligation rather than a line on the bill.
-        // Section 52 has the operator keep this back from what the seller is paid; the customer
-        // is not charged it and the figure above does not include it.
-        if (tcs > 0) {
-            doc.add(new Paragraph("TCS u/s 52: Rs. " + String.format("%.2f", tcs) + " (" + tcsRate
-                    + "% of taxable value) is collected by the marketplace from the seller's "
-                    + "settlement and declared in GSTR-8. It is not charged to the buyer and is "
-                    + "not included in the Total Amount above.", small8));
-        }
+        // TCS under section 52 is settled between the marketplace and the seller and is not
+        // printed here: the customer does not pay it, and Amazon and Flipkart bills leave it
+        // off. It stays on the invoice record for GSTR-8 and the seller's settlement statement.
 
         // Payment terms. An invoice that does not say whether it has been paid is one the
         // buyer's accounts team has to ring the seller about.
@@ -1768,11 +1778,8 @@ public class GstInvoiceService {
         doc.add(new Paragraph("- " + (interState ? "IGST charged (inter-state supply)."
                 : utgst ? "CGST + UTGST charged (intra-state supply from a Union Territory)."
                         : "CGST + SGST charged (intra-state supply)."), small8));
-        if (inv.getSupplierSignature() != null) {
-            doc.add(new Paragraph("- Digitally authenticated (SHA-256) and authorized by " + safeStr(inv.getSignedBy())
-                    + (inv.getSignatureDate() != null ? " on " + inv.getSignatureDate() : "") + ".", small8));
-            doc.add(new Paragraph("Signature Digest (SHA-256): " + inv.getSupplierSignature(), small8));
-        }
+        // The SHA-256 digest (inv.getSupplierSignature()) is a tamper check kept on the record. It
+        // is not a signature, and a 64-character hex string on the customer's copy only confused.
 
         // Rule 46(q) asks for the signature of the supplier or their authorised representative.
         // The digest above proves the invoice has not been altered; it is not that signature.
