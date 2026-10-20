@@ -107,6 +107,22 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    /** An invitation to work in a seller's account. The link carries a single-use token. */
+    public void sendSellerInvitation(String to, String storeName, String roleName, String inviterName, String acceptUrl) {
+        String store = escape(storeName != null && !storeName.isBlank() ? storeName : "a seller");
+        String subject = "You're invited to join " + (storeName != null && !storeName.isBlank() ? storeName : "a seller") + " on Cauvery Store";
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Join the team at " + store + "</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>" + escape(inviterName != null ? inviterName : "The store owner")
+                + " has invited you to help run <strong>" + store + "</strong> on Cauvery Store as <strong>"
+                + escape(roleName) + "</strong>.</p>"
+                + "<p style='color:#4b5563;font-size:14px;'>Sign in or create an account with this email address ("
+                + escape(to) + "), then accept the invitation. It works once and expires in 7 days.</p>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='" + acceptUrl + "' style='background:" + TEAL + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Accept invitation</a></div>"
+                + "<p style='color:#9ca3af;font-size:12px;'>If you were not expecting this, ignore this email - nothing happens unless you accept.</p>";
+        send(to, subject, wrapBranded(body));
+    }
+
     public void sendSellerRejected(String to, String businessName, String reason) {
         String subject = "Update on Your Seller Application - Cauvery Store";
         String body = "<h2 style='color:" + RED + ";margin-top:0;'>Application Not Approved</h2>"

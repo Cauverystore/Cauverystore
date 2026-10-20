@@ -24,8 +24,24 @@ public class AdminProductController {
     private final InventoryService inventoryService;
     private final AuthService authService;
 
+    private final com.cauverystore.service.SellerAccessService sellerAccess;
+
+    /**
+     * For a seller (or someone on a seller's team) this is the seller account being worked in,
+     * so products stay with that account whoever on the team adds them. For staff it is their
+     * own id, as before.
+     */
     private Long getCurrentUserId() {
+        if (isSeller()) {
+            Long acting = sellerAccess.actingSellerId();
+            if (acting != null) return acting;
+        }
         return authService.deriveUserId();
+    }
+
+    /** A seller-team member may only do what their role allows; staff are unaffected. */
+    private void sellerMay(String permission) {
+        if (isSeller()) sellerAccess.require(permission);
     }
 
     private boolean isSeller() {
@@ -39,6 +55,7 @@ public class AdminProductController {
     @PostMapping("/bulk-delete")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> bulkDelete(@RequestBody Map<String, List<Long>> body) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         List<Long> ids = body.getOrDefault("ids", List.of());
         int deleted = 0, skipped = 0;
         for (Long id : ids) {
@@ -57,6 +74,7 @@ public class AdminProductController {
     @PostMapping("/bulk-upload")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> bulkUpload(@RequestParam("file") MultipartFile file) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         Long sellerId = isSeller() ? getCurrentUserId() : null;
         return ResponseEntity.ok(productService.bulkUpload(file, sellerId));
     }
@@ -65,6 +83,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<?> getProductsPaginated(@RequestParam(defaultValue = "0") int page,
                                                    @RequestParam(required = false) String search) {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         var all = productService.getAllProducts();
         int size = 20;
         int start = page * size;
@@ -79,6 +98,7 @@ public class AdminProductController {
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<List<Product>> getAllProducts() {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         Long sellerId = isSeller() ? getCurrentUserId() : null;
         return ResponseEntity.ok(productService.getAllProducts(sellerId));
     }
@@ -86,6 +106,7 @@ public class AdminProductController {
     @PostMapping("/add")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Product> addProduct(@RequestBody Product product) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) {
             product.setSellerId(getCurrentUserId());
         }
@@ -95,6 +116,7 @@ public class AdminProductController {
     @GetMapping("/{productId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Product> getProduct(@PathVariable Long productId) {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         if (isSeller()) {
             productService.checkSellerOwnership(productId, getCurrentUserId());
         }
@@ -104,6 +126,7 @@ public class AdminProductController {
     @PutMapping("/{productId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Product> updateProduct(@PathVariable Long productId, @RequestBody Product product) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) {
             productService.checkSellerOwnership(productId, getCurrentUserId());
         }
@@ -113,6 +136,7 @@ public class AdminProductController {
     @DeleteMapping("/{productId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> deleteProduct(@PathVariable Long productId) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) {
             productService.checkSellerOwnership(productId, getCurrentUserId());
         }
@@ -128,6 +152,7 @@ public class AdminProductController {
     @PutMapping("/{productId}/approval")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Product> updateApproval(@PathVariable Long productId, @RequestBody Map<String, String> body) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         Product product = productService.getProductForAdmin(productId);
         product.setApprovalStatus(body.get("approvalStatus"));
         return ResponseEntity.ok(productService.updateProduct(productId, product));
@@ -136,6 +161,7 @@ public class AdminProductController {
     @PutMapping("/{productId}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Product> toggleStatus(@PathVariable Long productId, @RequestBody Map<String,Object> body) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.updateActiveStatus(productId, (Boolean) body.getOrDefault("active", true)));
     }
@@ -143,6 +169,7 @@ public class AdminProductController {
     @PutMapping("/{productId}/suspend")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Product> suspendProduct(@PathVariable Long productId) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) {
             productService.checkSellerOwnership(productId, getCurrentUserId());
         }
@@ -152,6 +179,7 @@ public class AdminProductController {
     @PutMapping("/{productId}/stock")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Product> updateStock(@PathVariable Long productId, @RequestBody Map<String, Integer> body) {
+        sellerMay(SellerPermissions.INVENTORY_MANAGE);
         if (isSeller()) {
             productService.checkSellerOwnership(productId, getCurrentUserId());
         }
@@ -161,6 +189,7 @@ public class AdminProductController {
     @GetMapping("/inventory/dashboard")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> inventoryDashboard() {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         Long sellerId = isSeller() ? getCurrentUserId() : null;
         return ResponseEntity.ok(inventoryService.getDashboard(sellerId));
     }
@@ -169,6 +198,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<List<ProductVariant>> getVariants(@PathVariable Long productId) {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.getVariants(productId));
     }
@@ -176,6 +206,7 @@ public class AdminProductController {
     @PostMapping("/{productId}/variants")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<ProductVariant> addVariant(@PathVariable Long productId, @RequestBody ProductVariant variant) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.addVariant(productId, variant));
     }
@@ -185,6 +216,7 @@ public class AdminProductController {
     public ResponseEntity<ProductVariant> updateVariant(@PathVariable Long productId,
                                                   @PathVariable Long variantId,
                                                   @RequestBody ProductVariant variant) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.updateVariant(productId, variantId, variant));
     }
@@ -193,6 +225,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Void> deleteVariant(@PathVariable Long productId,
                                                @PathVariable Long variantId) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         productService.deleteVariant(productId, variantId);
         return ResponseEntity.noContent().build();
@@ -202,6 +235,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<List<ProductImage>> getImages(@PathVariable Long productId) {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.getImages(productId));
     }
@@ -210,6 +244,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<ProductImage> uploadImage(@PathVariable Long productId,
                                                      @RequestParam("file") MultipartFile file) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.uploadImage(productId, file));
     }
@@ -218,6 +253,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<ProductImage> attachImageUrls(@PathVariable Long productId,
                                                         @RequestBody Map<String, String> body) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.attachImageUrls(
                 productId,
@@ -231,6 +267,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Void> reorderImages(@PathVariable Long productId,
                                                @RequestBody Map<String, List<Long>> body) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         productService.reorderImages(productId, body.getOrDefault("order", List.of()));
         return ResponseEntity.ok().build();
@@ -240,6 +277,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<ProductImage> setMainImage(@PathVariable Long productId,
                                                       @PathVariable Long imageId) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.setMainImage(productId, imageId));
     }
@@ -248,6 +286,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Void> deleteImage(@PathVariable Long productId,
                                              @PathVariable Long imageId) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         productService.deleteImage(productId, imageId);
         return ResponseEntity.noContent().build();
@@ -257,6 +296,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Discount>> getDiscounts(@PathVariable Long productId) {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.getDiscounts(productId));
     }
@@ -264,6 +304,7 @@ public class AdminProductController {
     @PostMapping("/{productId}/discounts")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Discount> addDiscount(@PathVariable Long productId, @RequestBody Discount discount) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.addDiscount(productId, discount));
     }
@@ -272,6 +313,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Discount> getDiscount(@PathVariable Long productId,
                                                  @PathVariable Long discountId) {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.getDiscount(productId, discountId));
     }
@@ -281,6 +323,7 @@ public class AdminProductController {
     public ResponseEntity<Discount> updateDiscount(@PathVariable Long productId,
                                                     @PathVariable Long discountId,
                                                     @RequestBody Discount discount) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.updateDiscount(productId, discountId, discount));
     }
@@ -289,6 +332,7 @@ public class AdminProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Void> deleteDiscount(@PathVariable Long productId,
                                                 @PathVariable Long discountId) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         productService.deleteDiscount(productId, discountId);
         return ResponseEntity.noContent().build();
@@ -297,6 +341,7 @@ public class AdminProductController {
     @PostMapping("/{productId}/clone")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Product> cloneProduct(@PathVariable Long productId) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         if (isSeller()) productService.checkSellerOwnership(productId, getCurrentUserId());
         return ResponseEntity.ok(productService.cloneProduct(productId));
     }
@@ -304,6 +349,7 @@ public class AdminProductController {
     @PutMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> bulkEdit(@RequestBody Map<String, Object> body) {
+        sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         Long sellerId = isSeller() ? getCurrentUserId() : null;
         return ResponseEntity.ok(productService.bulkEdit(body, sellerId));
     }
@@ -311,6 +357,7 @@ public class AdminProductController {
     @GetMapping("/export")
     @PreAuthorize("hasAnyRole('ADMIN', 'EXECUTIVE', 'SUPER_ADMIN')")
     public ResponseEntity<byte[]> exportProducts() throws Exception {
+        sellerMay(SellerPermissions.PRODUCTS_VIEW);
         var products = productService.getAllProducts();
         org.apache.poi.ss.usermodel.Workbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
         org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet("Products");

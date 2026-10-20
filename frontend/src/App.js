@@ -59,6 +59,8 @@ const SellerProducts = lazy(() => import("./pages/SellerProducts"));
 const SellerOrders = lazy(() => import("./pages/SellerOrders"));
 const SellerInventory = lazy(() => import("./pages/SellerInventory"));
 const SellerStore = lazy(() => import("./pages/SellerStore"));
+const SellerTeam = lazy(() => import("./pages/SellerTeam"));
+const SellerInvite = lazy(() => import("./pages/SellerInvite"));
 const SellerPayouts = lazy(() => import("./pages/SellerPayouts"));
 const SellerAnalytics = lazy(() => import("./pages/SellerAnalytics"));
 const SellerRegistration = lazy(() => import("./pages/SellerRegistration"));
@@ -212,6 +214,8 @@ function App() {
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            {/* Team invitations: open to anyone with the link, before they are a seller. */}
+            <Route path="/seller/invite" element={<SellerInvite />} />
             <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPasswordLink />} />
@@ -249,6 +253,7 @@ function App() {
             <Route path="inventory" element={<SellerInventory />} />
             <Route path="orders" element={<SellerOrders />} />
             <Route path="store" element={<SellerStore />} />
+            <Route path="team" element={<SellerTeam />} />
             <Route path="payouts" element={<SellerPayouts />} />
             <Route path="analytics" element={<SellerAnalytics />} />
             <Route path="gst-invoices" element={<GstInvoices />} />

@@ -127,7 +127,7 @@ class ProductServiceTest {
         newProduct.setName("New Product");
         newProduct.setPrice(50.0);
         when(authorizationService.hasRole("SELLER")).thenReturn(true);
-        when(authorizationService.getCurrentUserId()).thenReturn(1L);
+        when(authorizationService.getCurrentSellerId()).thenReturn(1L);
         when(productRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.addProduct(newProduct);
@@ -258,7 +258,7 @@ class ProductServiceTest {
         Product update = new Product();
         when(productRepo.findById(1L)).thenReturn(Optional.of(product));
         when(authorizationService.hasRole("SELLER")).thenReturn(true);
-        when(authorizationService.getCurrentUserId()).thenReturn(2L);
+        when(authorizationService.getCurrentSellerId()).thenReturn(2L);
 
         assertThrows(AccessDeniedException.class, () -> productService.updateProduct(1L, update));
     }
@@ -333,7 +333,7 @@ class ProductServiceTest {
         product.setSellerId(1L);
         when(productRepo.findById(1L)).thenReturn(Optional.of(product));
         when(authorizationService.hasRole("SELLER")).thenReturn(true);
-        when(authorizationService.getCurrentUserId()).thenReturn(2L);
+        when(authorizationService.getCurrentSellerId()).thenReturn(2L);
 
         assertThrows(AccessDeniedException.class, () -> productService.deleteProductCascade(1L));
         verify(productRepo, never()).deleteById(any());

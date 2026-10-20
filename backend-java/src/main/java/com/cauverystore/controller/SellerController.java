@@ -8,7 +8,9 @@ import com.cauverystore.repository.SellerPayoutRepository;
 import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.ProductService;
+import com.cauverystore.service.SellerAccessService;
 import com.cauverystore.service.SellerLicenceService;
+import com.cauverystore.service.SellerPermissions;
 import com.cauverystore.service.SellerService;
 import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.service.ShippingLabelService;
@@ -38,6 +40,7 @@ public class SellerController {
     private final SellerPayoutRepository payoutRepo;
     private final SellerLicenceService licenceService;
     private final SellerGstinRepository sellerGstinRepo;
+    private final SellerAccessService access;
 
     public SellerController(SellerService sellerService, ProductService productService, UserRepository userRepo,
                             GstConfigurationRepository gstConfigRepo,
@@ -45,7 +48,8 @@ public class SellerController {
                             ShippingLabelService shippingLabelService,
                             SellerPayoutRepository payoutRepo,
                             SellerLicenceService licenceService,
-                            SellerGstinRepository sellerGstinRepo) {
+                            SellerGstinRepository sellerGstinRepo,
+                            SellerAccessService access) {
         this.sellerService = sellerService;
         this.productService = productService;
         this.userRepo = userRepo;
@@ -55,21 +59,20 @@ public class SellerController {
         this.payoutRepo = payoutRepo;
         this.licenceService = licenceService;
         this.sellerGstinRepo = sellerGstinRepo;
+        this.access = access;
     }
 
+    /**
+     * The seller account this request works on: the seller's own, or the store a team member is
+     * working in. Each endpoint first checks the person's permission there (access.require).
+     */
     private Long getCurrentSellerId() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) return null;
-        Object details = auth.getDetails();
-        if (details instanceof Long) return (Long) details;
-        String name = auth.getName();
-        var user = userRepo.findByEmail(name);
-        if (user == null) user = userRepo.findByUsername(name);
-        return user != null ? user.getId() : null;
+        return access.actingSellerId();
     }
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard() {
+        access.require(SellerPermissions.DASHBOARD_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
         return ResponseEntity.ok(sellerService.getDashboard(sellerId));
@@ -81,6 +84,7 @@ public class SellerController {
                                           @RequestParam(required = false) String category,
                                           @RequestParam(required = false) String stockStatus,
                                           @RequestParam(required = false) String dateAdded) {
+        access.require(SellerPermissions.PRODUCTS_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         return ResponseEntity.ok(sellerService.getProducts(sellerId, page, size, category, stockStatus, dateAdded));
@@ -88,6 +92,7 @@ public class SellerController {
 
     @PostMapping("/products")
     public ResponseEntity<?> createProduct(@RequestBody com.cauverystore.entities.Product product) {
+        access.require(SellerPermissions.PRODUCTS_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         boolean hasGstConfig = gstConfigRepo.findBySellerId(sellerId)
@@ -110,6 +115,10 @@ public class SellerController {
 
     @PutMapping("/products/{id}")
     public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody com.cauverystore.entities.Product product) {
+        // A role with stock rights but not product rights (a warehouse manager) may change the
+        // stock level and nothing else.
+        boolean stockOnly = !access.require(SellerPermissions.DASHBOARD_VIEW).can(SellerPermissions.PRODUCTS_MANAGE);
+        if (stockOnly) access.require(SellerPermissions.INVENTORY_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         try {
@@ -117,13 +126,23 @@ public class SellerController {
         } catch (Exception e) {
             return ResponseEntity.status(403).body(Map.of("error", "Not your product"));
         }
-        // A seller cannot approve their own listing by sending the field in an edit.
+        // A seller cannot approve their own listing, or hand it to another seller, by sending
+        // the field in an edit.
         product.setApprovalStatus(null);
+        product.setSellerId(null);
+        if (stockOnly) {
+            com.cauverystore.entities.Product current = productService.getProductForAdmin(id);
+            com.cauverystore.entities.Product stock = new com.cauverystore.entities.Product();
+            stock.setStock(product.getStock());
+            stock.setActive(current.isActive());
+            return ResponseEntity.ok(productService.updateProduct(id, stock));
+        }
         return ResponseEntity.ok(productService.updateProduct(id, product));
     }
 
     @DeleteMapping("/products/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        access.require(SellerPermissions.PRODUCTS_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         try {
@@ -142,6 +161,7 @@ public class SellerController {
 
     @GetMapping("/products/{id}")
     public ResponseEntity<?> getProductDetail(@PathVariable Long id) {
+        access.require(SellerPermissions.PRODUCTS_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         try {
@@ -153,6 +173,7 @@ public class SellerController {
 
     @GetMapping("/products/export")
     public ResponseEntity<?> exportProducts() throws Exception {
+        access.require(SellerPermissions.PRODUCTS_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
 
@@ -187,6 +208,7 @@ public class SellerController {
 
     @PostMapping("/products/bulk-upload")
     public ResponseEntity<?> bulkUpload(@RequestParam("file") MultipartFile file) {
+        access.require(SellerPermissions.PRODUCTS_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
         Map<String, Object> result = productService.bulkUpload(file, sellerId);
@@ -196,6 +218,7 @@ public class SellerController {
 
     @PostMapping("/products/bulk-delete")
     public ResponseEntity<?> bulkDelete(@RequestBody Map<String, List<Long>> body) {
+        access.require(SellerPermissions.PRODUCTS_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         List<Long> ids = body.getOrDefault("ids", List.of());
@@ -215,6 +238,7 @@ public class SellerController {
 
     @GetMapping("/orders")
     public ResponseEntity<?> getOrders() {
+        access.require(SellerPermissions.ORDERS_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         return ResponseEntity.ok(sellerService.getOrders(sellerId));
@@ -222,6 +246,7 @@ public class SellerController {
 
     @GetMapping("/orders/{orderId}/shipping-label/pdf")
     public ResponseEntity<?> downloadShippingLabel(@PathVariable Long orderId) {
+        access.require(SellerPermissions.ORDERS_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         try {
@@ -237,6 +262,7 @@ public class SellerController {
 
     @PutMapping("/orders/{orderId}/status")
     public ResponseEntity<?> updateOrderStatus(@PathVariable Long orderId, @RequestBody Map<String, String> body) {
+        access.require(SellerPermissions.ORDERS_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         try {
@@ -248,6 +274,7 @@ public class SellerController {
 
     @PutMapping("/orders/{orderId}/courier")
     public ResponseEntity<?> assignCourier(@PathVariable Long orderId, @RequestBody Map<String, String> body) {
+        access.require(SellerPermissions.ORDERS_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         try {
@@ -259,6 +286,7 @@ public class SellerController {
 
     @GetMapping("/returns")
     public ResponseEntity<?> getReturns() {
+        access.require(SellerPermissions.ORDERS_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         return ResponseEntity.ok(sellerService.getReturns(sellerId));
@@ -266,6 +294,7 @@ public class SellerController {
 
     @PutMapping("/returns/{returnId}/status")
     public ResponseEntity<?> updateReturnStatus(@PathVariable Long returnId, @RequestBody Map<String, String> body) {
+        access.require(SellerPermissions.RETURNS_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         try {
@@ -277,6 +306,7 @@ public class SellerController {
 
     @GetMapping("/analytics")
     public ResponseEntity<?> getAnalytics() {
+        access.require(SellerPermissions.ANALYTICS_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         return ResponseEntity.ok(sellerService.getAnalytics(sellerId));
@@ -288,6 +318,7 @@ public class SellerController {
      */
     @GetMapping("/licences")
     public ResponseEntity<?> getLicences() {
+        access.require(SellerPermissions.DASHBOARD_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         List<Map<String, Object>> gst = new java.util.ArrayList<>();
@@ -319,11 +350,13 @@ public class SellerController {
 
     @PostMapping("/licences")
     public ResponseEntity<?> addLicence(@RequestBody Map<String, Object> body) {
+        access.require(SellerPermissions.STORE_MANAGE);
         return saveLicence(null, body);
     }
 
     @PutMapping("/licences/{id}")
     public ResponseEntity<?> updateLicence(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        access.require(SellerPermissions.STORE_MANAGE);
         return saveLicence(id, body);
     }
 
@@ -339,6 +372,7 @@ public class SellerController {
 
     @DeleteMapping("/licences/{id}")
     public ResponseEntity<?> deleteLicence(@PathVariable Long id) {
+        access.require(SellerPermissions.STORE_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         try {
@@ -355,6 +389,7 @@ public class SellerController {
      */
     @GetMapping("/payouts")
     public ResponseEntity<?> getPayouts() {
+        access.require(SellerPermissions.PAYOUTS_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         List<Map<String, Object>> payouts = new java.util.ArrayList<>();
@@ -373,6 +408,7 @@ public class SellerController {
 
     @GetMapping("/store")
     public ResponseEntity<?> getStore() {
+        access.require(SellerPermissions.DASHBOARD_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         return ResponseEntity.ok(sellerService.getStoreProfile(sellerId));
@@ -380,6 +416,7 @@ public class SellerController {
 
     @PutMapping("/store")
     public ResponseEntity<?> updateStore(@RequestBody Map<String, Object> body) {
+        access.require(SellerPermissions.STORE_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         return ResponseEntity.ok(sellerService.updateStoreProfile(sellerId, body));
@@ -387,6 +424,7 @@ public class SellerController {
 
     @GetMapping("/notifications")
     public ResponseEntity<?> getNotifications() {
+        access.require(SellerPermissions.DASHBOARD_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
         return ResponseEntity.ok(sellerService.getNotifications(sellerId));
@@ -394,6 +432,7 @@ public class SellerController {
 
     @GetMapping("/gst-info")
     public ResponseEntity<?> getGstInfo() {
+        access.require(SellerPermissions.DASHBOARD_VIEW);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
         SellerRegistration reg = sellerRegRepo.findByUserId(sellerId)
@@ -410,6 +449,7 @@ public class SellerController {
 
     @PutMapping("/gst-info")
     public ResponseEntity<?> updateGstInfo(@RequestBody Map<String, Object> body) {
+        access.require(SellerPermissions.TAX_MANAGE);
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not authenticated"));
         SellerRegistration reg = sellerRegRepo.findByUserId(sellerId)

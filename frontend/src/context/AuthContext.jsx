@@ -75,6 +75,11 @@ export const AuthProvider = ({ children }) => {
       const newAccess = res.data.accessToken || res.data.token;
       localStorage.setItem(STORAGE_KEYS.accessToken, newAccess);
       setToken(newAccess);
+      // Capabilities can change while signed in (joining a seller's team adds SELLER).
+      if (Array.isArray(res.data.roles) && res.data.roles.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.roles, JSON.stringify(res.data.roles));
+        setRoles(res.data.roles);
+      }
       return newAccess;
     } catch {
       await logout();

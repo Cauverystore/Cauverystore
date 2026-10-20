@@ -28,6 +28,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // The seller store being worked in, for someone who can reach more than one (see
+    // SellerAccessService). Not sent when empty, so a seller's own account works as before.
+    try {
+      const store = localStorage.getItem('cs_seller_store');
+      if (store && /^\d+$/.test(store)) config.headers['X-Seller-Id'] = store;
+    } catch { /* storage blocked */ }
     try {
       const impSession = localStorage.getItem('impersonation_session');
       if (impSession) {
