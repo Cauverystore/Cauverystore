@@ -48,6 +48,7 @@ public class ProductService {
     private final OrderItemRepository orderItemRepo;
 
     private final HsnClassificationService hsnClassificationService;
+    private final ListingEligibilityService listingEligibility;
 
     public ProductService(ProductRepository productRepo, CategoryRepository catRepo,
                           ProductImageRepository productImageRepo, DiscountRepository discountRepo,
@@ -58,8 +59,10 @@ public class ProductService {
                           InventoryRepository inventoryRepo,
                           ProductDiscountRepository productDiscountRepo,
                           OrderItemRepository orderItemRepo,
-                          HsnClassificationService hsnClassificationService) {
+                          HsnClassificationService hsnClassificationService,
+                          ListingEligibilityService listingEligibility) {
         this.productRepo = productRepo;
+        this.listingEligibility = listingEligibility;
         this.hsnClassificationService = hsnClassificationService;
         this.catRepo = catRepo;
         this.productImageRepo = productImageRepo;
@@ -418,6 +421,8 @@ public class ProductService {
         if (authorizationService.hasRole("SELLER")) {
             Long sellerId = currentSellerId();
             product.setSellerId(sellerId);
+            // Licence-locked categories and protected brands (see ListingEligibilityService).
+            if (listingEligibility != null) listingEligibility.check(sellerId, product.getCategory(), product.getBrand());
         }
         if (product.getSlug() == null || product.getSlug().isEmpty()) {
             if (product.getName() != null && !product.getName().isEmpty()) {
@@ -505,6 +510,16 @@ public class ProductService {
         if (authorizationService.hasRole("SELLER")) {
             Long sellerId = currentSellerId();
             verifySellerOwnership(productId, sellerId);
+            // Only a change is checked, so a listing made before a rule existed keeps selling.
+            if (listingEligibility != null) {
+                if (product.getCategory() != null && (existing.getCategory() == null
+                        || !Objects.equals(product.getCategory().getId(), existing.getCategory().getId()))) {
+                    listingEligibility.checkCategory(sellerId, product.getCategory());
+                }
+                if (product.getBrand() != null && !product.getBrand().equalsIgnoreCase(String.valueOf(existing.getBrand()))) {
+                    listingEligibility.checkBrand(sellerId, product.getBrand());
+                }
+            }
         }
           if (product.getName() != null) existing.setName(product.getName());
           if (product.getDescription() != null) existing.setDescription(product.getDescription());

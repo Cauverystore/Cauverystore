@@ -7,4 +7,6 @@ import java.util.List;
 public interface BrandRepository extends JpaRepository<Brand, Long> {
     List<Brand> findByActiveTrueOrderBySortOrder();
     List<Brand> findAllByOrderBySortOrder();
+    java.util.Optional<Brand> findFirstByNameIgnoreCase(String name);
+    List<Brand> findByGatedTrueOrderByName();
 }

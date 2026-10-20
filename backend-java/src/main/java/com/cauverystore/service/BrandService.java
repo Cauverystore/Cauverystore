@@ -20,6 +20,8 @@ public class BrandService {
         existing.setLogo(b.getLogo());
         existing.setActive(b.isActive());
         existing.setSortOrder(b.getSortOrder());
+        // Left as it was when the request does not say (an older admin page, say).
+        if (b.getGated() != null) existing.setGated(b.getGated());
         return brandRepo.save(existing);
     }
     public void delete(Long id) { brandRepo.deleteById(id); }

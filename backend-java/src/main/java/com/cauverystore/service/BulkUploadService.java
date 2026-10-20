@@ -18,8 +18,11 @@ public class BulkUploadService {
     private final ProductRepository productRepo;
     private final CategoryRepository catRepo;
     private final ProductService productService;
+    private final ListingEligibilityService listingEligibility;
 
-    public BulkUploadService(ProductRepository productRepo, CategoryRepository catRepo, ProductService productService) {
+    public BulkUploadService(ProductRepository productRepo, CategoryRepository catRepo, ProductService productService,
+                             ListingEligibilityService listingEligibility) {
+        this.listingEligibility = listingEligibility;
         this.productRepo = productRepo;
         this.catRepo = catRepo;
         this.productService = productService;
@@ -88,12 +91,20 @@ public class BulkUploadService {
             throw new RuntimeException("Category is required");
         }
 
+        // Staff uploads may still add a category on the fly. A seller's may not: a made-up name
+        // would be a way round a category's licence rule, and the store owns its categories.
         Category category = catRepo.findByName(categoryName)
                 .orElseGet(() -> {
+                    if (sellerId != null) {
+                        throw new RuntimeException("Category \"" + categoryName + "\" does not exist. Use a category name from the list on the site.");
+                    }
                     Category cat = new Category();
                     cat.setName(categoryName);
                     return catRepo.save(cat);
                 });
+        if (sellerId != null && listingEligibility != null) {
+            listingEligibility.check(sellerId, category, brand);
+        }
 
         Product product = new Product();
         product.setName(name);

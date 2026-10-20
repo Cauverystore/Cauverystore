@@ -47,6 +47,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
 
+    /** A seller listing in a licence-locked category or a protected brand. Written for the seller. */
+    @ExceptionHandler(com.cauverystore.service.ListingEligibilityService.NotAllowedException.class)
+    public ResponseEntity<Map<String, String>> handleListingNotAllowed(
+            com.cauverystore.service.ListingEligibilityService.NotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", ex.getMessage()));
+    }
+
     /** Goods that cannot come back. The wording is written for the customer, so it survives. */
     @ExceptionHandler(com.cauverystore.service.ReturnEligibilityService.NotReturnableException.class)
     public ResponseEntity<Map<String, String>> handleNotReturnable(

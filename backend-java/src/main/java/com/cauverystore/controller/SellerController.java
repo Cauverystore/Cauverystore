@@ -9,6 +9,7 @@ import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.ProductService;
 import com.cauverystore.service.SellerAccessService;
+import com.cauverystore.service.SellerBrandService;
 import com.cauverystore.service.SellerLicenceService;
 import com.cauverystore.service.SellerPermissions;
 import com.cauverystore.service.SellerService;
@@ -41,6 +42,7 @@ public class SellerController {
     private final SellerLicenceService licenceService;
     private final SellerGstinRepository sellerGstinRepo;
     private final SellerAccessService access;
+    private final SellerBrandService brandService;
 
     public SellerController(SellerService sellerService, ProductService productService, UserRepository userRepo,
                             GstConfigurationRepository gstConfigRepo,
@@ -49,7 +51,8 @@ public class SellerController {
                             SellerPayoutRepository payoutRepo,
                             SellerLicenceService licenceService,
                             SellerGstinRepository sellerGstinRepo,
-                            SellerAccessService access) {
+                            SellerAccessService access,
+                            SellerBrandService brandService) {
         this.sellerService = sellerService;
         this.productService = productService;
         this.userRepo = userRepo;
@@ -60,6 +63,7 @@ public class SellerController {
         this.licenceService = licenceService;
         this.sellerGstinRepo = sellerGstinRepo;
         this.access = access;
+        this.brandService = brandService;
     }
 
     /**
@@ -346,6 +350,34 @@ public class SellerController {
         out.put("licences", licenceService.list(sellerId));
         out.put("types", licenceService.types());
         return ResponseEntity.ok(out);
+    }
+
+    /** Brand applications, and which brands need one before they can be listed. */
+    @GetMapping("/brands")
+    public ResponseEntity<?> getBrands() {
+        var c = access.require(SellerPermissions.DASHBOARD_VIEW);
+        return ResponseEntity.ok(brandService.forSeller(c.sellerId()));
+    }
+
+    @PostMapping("/brands")
+    public ResponseEntity<?> applyForBrand(@RequestBody Map<String, Object> body) {
+        var c = access.require(SellerPermissions.STORE_MANAGE);
+        try {
+            return ResponseEntity.ok(brandService.apply(c.sellerId(), c.userId(), body));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/brands/{id}")
+    public ResponseEntity<?> withdrawBrand(@PathVariable Long id) {
+        var c = access.require(SellerPermissions.STORE_MANAGE);
+        try {
+            brandService.withdraw(c.sellerId(), c.userId(), id);
+            return ResponseEntity.ok(Map.of("message", "Application withdrawn"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/licences")

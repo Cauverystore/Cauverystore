@@ -57,6 +57,7 @@ public class CategoryServiceImpl implements CategoryService {
             category.setDescription(desc.trim());
         }
         category.setName(name);
+        category.setRequiredLicence(checkedLicence(category.getRequiredLicence()));
         Category saved = categoryRepo.save(category);
         String email = authorizationService.getCurrentUserEmail();
         auditService.log(null, email, "CATEGORY_CREATED", "Category",
@@ -91,8 +92,14 @@ public class CategoryServiceImpl implements CategoryService {
             cat.setDescription(null);
         }
         cat.setName(newName);
+        String before = cat.getRequiredLicence();
+        cat.setRequiredLicence(checkedLicence(updated.getRequiredLicence()));
 
         Category saved = categoryRepo.save(cat);
+        if (!java.util.Objects.equals(before, saved.getRequiredLicence())) {
+            auditService.log(null, authorizationService.getCurrentUserEmail(), "CATEGORY_LICENCE_CHANGED", "Category",
+                    saved.getId(), saved.getName() + ": " + before + " -> " + saved.getRequiredLicence(), null);
+        }
         String email = authorizationService.getCurrentUserEmail();
         auditService.log(null, email, "CATEGORY_UPDATED", "Category",
                 saved.getId(), "Updated category: " + saved.getName(), null);
@@ -115,5 +122,14 @@ public class CategoryServiceImpl implements CategoryService {
         auditService.log(null, email, "CATEGORY_DELETED", "Category",
                 id, "Deleted category: " + cat.getName(), null);
         categoryRepo.deleteById(id);
+    }
+
+    /** A licence code a category may require, or null for none. */
+    private static String checkedLicence(String code) {
+        if (code == null || code.isBlank()) return null;
+        String c = code.trim().toUpperCase();
+        boolean known = SellerLicenceService.TYPES.stream().anyMatch(t -> t.code().equals(c));
+        if (!known) throw new IllegalArgumentException("Unknown licence type: " + code);
+        return c;
     }
 }

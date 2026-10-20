@@ -57,7 +57,7 @@ const EditProduct = () => {
         price: parseFloat(form.price), mrp: parseFloat(form.mrp), stock: parseInt(form.stock), sku: form.sku,
       });
       navigate(role === "SELLER" ? "/seller/products" : "/admin/products");
-    } catch (err) { showMessage("Failed to update product"); }
+    } catch (err) { showMessage(err.response?.data?.error || "Failed to update product"); }
   };
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
