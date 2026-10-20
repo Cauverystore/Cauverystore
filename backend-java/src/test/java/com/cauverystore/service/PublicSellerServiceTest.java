@@ -8,6 +8,7 @@ import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.SellerStoreRepository;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -27,7 +28,8 @@ class PublicSellerServiceTest {
     private final ProductRepository productRepo = mock(ProductRepository.class);
     private final SellerRegistrationRepository regRepo = mock(SellerRegistrationRepository.class);
     private final SellerStoreRepository storeRepo = mock(SellerStoreRepository.class);
-    private final PublicSellerService service = new PublicSellerService(productRepo, regRepo, storeRepo);
+    private final SellerLicenceService licenceService = mock(SellerLicenceService.class);
+    private final PublicSellerService service = new PublicSellerService(productRepo, regRepo, storeRepo, licenceService);
 
     private void productSoldBy(Long sellerId) {
         Product p = new Product();
@@ -68,6 +70,22 @@ class PublicSellerServiceTest {
         when(storeRepo.findBySellerId(7L)).thenReturn(Optional.empty());
 
         assertEquals(Set.of("name", "city", "state"), service.sellerOfProduct(1L).keySet());
+    }
+
+    @Test
+    void showsGstinAndCheckedLicencesButStillNoContactOrTaxIds() {
+        productSoldBy(7L);
+        SellerRegistration reg = registration("APPROVED");
+        reg.setGstin("33ABCDE1234F1Z7");
+        reg.setPanNumber("ABCDE1234F");
+        when(storeRepo.findBySellerId(7L)).thenReturn(Optional.empty());
+        when(licenceService.publicFor(7L)).thenReturn(List.of(Map.of("label", "FSSAI Licence / Registration", "number", "12345678901234")));
+
+        Map<String, Object> seller = service.sellerOfProduct(1L);
+
+        assertEquals("33ABCDE1234F1Z7", seller.get("gstin"));
+        assertEquals(1, ((List<?>) seller.get("licences")).size());
+        assertEquals(Set.of("name", "city", "state", "gstin", "licences"), seller.keySet());
     }
 
     @Test

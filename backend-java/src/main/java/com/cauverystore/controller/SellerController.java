@@ -3,11 +3,14 @@ package com.cauverystore.controller;
 import com.cauverystore.entities.SellerPayout;
 import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.repository.GstConfigurationRepository;
+import com.cauverystore.repository.SellerGstinRepository;
 import com.cauverystore.repository.SellerPayoutRepository;
 import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.ProductService;
+import com.cauverystore.service.SellerLicenceService;
 import com.cauverystore.service.SellerService;
+import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.service.ShippingLabelService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -33,12 +36,16 @@ public class SellerController {
     private final SellerRegistrationRepository sellerRegRepo;
     private final ShippingLabelService shippingLabelService;
     private final SellerPayoutRepository payoutRepo;
+    private final SellerLicenceService licenceService;
+    private final SellerGstinRepository sellerGstinRepo;
 
     public SellerController(SellerService sellerService, ProductService productService, UserRepository userRepo,
                             GstConfigurationRepository gstConfigRepo,
                             SellerRegistrationRepository sellerRegRepo,
                             ShippingLabelService shippingLabelService,
-                            SellerPayoutRepository payoutRepo) {
+                            SellerPayoutRepository payoutRepo,
+                            SellerLicenceService licenceService,
+                            SellerGstinRepository sellerGstinRepo) {
         this.sellerService = sellerService;
         this.productService = productService;
         this.userRepo = userRepo;
@@ -46,6 +53,8 @@ public class SellerController {
         this.sellerRegRepo = sellerRegRepo;
         this.shippingLabelService = shippingLabelService;
         this.payoutRepo = payoutRepo;
+        this.licenceService = licenceService;
+        this.sellerGstinRepo = sellerGstinRepo;
     }
 
     private Long getCurrentSellerId() {
@@ -274,6 +283,73 @@ public class SellerController {
     }
 
     /**
+     * The seller's GST numbers and licences for the Store Profile page. GST numbers are read-only
+     * here (they come from registration and are verified there); licences are the seller's to add.
+     */
+    @GetMapping("/licences")
+    public ResponseEntity<?> getLicences() {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        List<Map<String, Object>> gst = new java.util.ArrayList<>();
+        sellerRegRepo.findByUserId(sellerId).ifPresent(reg -> {
+            if (reg.getGstin() != null && !reg.getGstin().isBlank()) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("gstin", reg.getGstin());
+                m.put("primary", true);
+                m.put("status", reg.getGstinStatus());
+                m.put("stateCode", reg.getGstinStateCode());
+                gst.add(m);
+            }
+        });
+        sellerGstinRepo.findBySellerId(sellerId).forEach(g -> {
+            if (gst.stream().anyMatch(m -> g.getGstin().equalsIgnoreCase((String) m.get("gstin")))) return;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("gstin", g.getGstin());
+            m.put("primary", Boolean.TRUE.equals(g.getPrimaryFlag()));
+            m.put("status", g.getStatus());
+            m.put("stateCode", g.getStateCode());
+            gst.add(m);
+        });
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("gstNumbers", gst);
+        out.put("licences", licenceService.list(sellerId));
+        out.put("types", licenceService.types());
+        return ResponseEntity.ok(out);
+    }
+
+    @PostMapping("/licences")
+    public ResponseEntity<?> addLicence(@RequestBody Map<String, Object> body) {
+        return saveLicence(null, body);
+    }
+
+    @PutMapping("/licences/{id}")
+    public ResponseEntity<?> updateLicence(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        return saveLicence(id, body);
+    }
+
+    private ResponseEntity<?> saveLicence(Long id, Map<String, Object> body) {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        try {
+            return ResponseEntity.ok(licenceService.save(sellerId, id, body));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/licences/{id}")
+    public ResponseEntity<?> deleteLicence(@PathVariable Long id) {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        try {
+            licenceService.delete(sellerId, id);
+            return ResponseEntity.ok(Map.of("message", "Licence removed"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Payments the marketplace has made to this seller. Voided entries stay in the list, marked,
      * so a figure the seller saw earlier never just disappears; they do not count in the total.
      */
@@ -339,7 +415,22 @@ public class SellerController {
         SellerRegistration reg = sellerRegRepo.findByUserId(sellerId)
                 .orElse(null);
         if (reg == null) return ResponseEntity.badRequest().body(Map.of("error", "Seller registration not found. Complete onboarding first."));
-        if (body.containsKey("gstin")) reg.setGstin((String) body.get("gstin"));
+        if (body.containsKey("gstin")) {
+            String gstin = body.get("gstin") == null ? "" : body.get("gstin").toString().trim().toUpperCase();
+            if (!gstin.equals(reg.getGstin() == null ? "" : reg.getGstin())) {
+                if (!gstin.isEmpty()) {
+                    try {
+                        GstComplianceUtil.validateGstinFormat(gstin);
+                    } catch (RuntimeException e) {
+                        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+                    }
+                }
+                // A new GSTIN has not been checked by anyone; it must not keep the old one's tick.
+                reg.setGstin(gstin.isEmpty() ? null : gstin);
+                reg.setGstinStatus("UNVERIFIED");
+                reg.setGstinVerifiedAt(null);
+            }
+        }
         if (body.containsKey("panNumber")) reg.setPanNumber((String) body.get("panNumber"));
         if (body.containsKey("businessName")) reg.setBusinessName((String) body.get("businessName"));
         if (body.containsKey("businessAddress")) reg.setBusinessAddress((String) body.get("businessAddress"));

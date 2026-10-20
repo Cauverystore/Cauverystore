@@ -150,6 +150,7 @@ public class SellerApprovalService {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("registration", r);
         if (r.getUser() != null) {
+            detail.put("sellerId", r.getUser().getId());
             detail.put("documents", docRepo.findByUserId(r.getUser().getId()));
             detail.put("compliance", complianceRepo.findByUserId(r.getUser().getId()));
         }

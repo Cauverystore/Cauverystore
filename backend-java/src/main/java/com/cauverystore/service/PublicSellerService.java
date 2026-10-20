@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -33,6 +34,11 @@ import java.util.Optional;
  * registration behind it, and one whose seller is still being vetted has not earned the
  * endorsement a name on the page implies. In both cases the answer is empty and the page says
  * nothing rather than something untrue.
+ *
+ * The seller's GSTIN and their checked licence numbers (FSSAI and the like) are also given:
+ * the Consumer Protection (E-Commerce) Rules ask a marketplace to show who the seller is, and
+ * FSSAI asks for a food seller's licence number on every listing. Both are public registrations
+ * printed on the seller's invoices anyway.
  */
 @Service
 public class PublicSellerService {
@@ -40,13 +46,16 @@ public class PublicSellerService {
     private final ProductRepository productRepo;
     private final SellerRegistrationRepository sellerRegRepo;
     private final SellerStoreRepository storeRepo;
+    private final SellerLicenceService licenceService;
 
     public PublicSellerService(ProductRepository productRepo,
                                SellerRegistrationRepository sellerRegRepo,
-                               SellerStoreRepository storeRepo) {
+                               SellerStoreRepository storeRepo,
+                               SellerLicenceService licenceService) {
         this.productRepo = productRepo;
         this.sellerRegRepo = sellerRegRepo;
         this.storeRepo = storeRepo;
+        this.licenceService = licenceService;
     }
 
     /** The seller of a product, or an empty map when there is no approved seller to name. */
@@ -71,6 +80,9 @@ public class PublicSellerService {
         seller.put("name", name.trim());
         if (reg.getCity() != null && !reg.getCity().isBlank()) seller.put("city", reg.getCity().trim());
         if (reg.getState() != null && !reg.getState().isBlank()) seller.put("state", reg.getState().trim());
+        if (reg.getGstin() != null && !reg.getGstin().isBlank()) seller.put("gstin", reg.getGstin().trim());
+        List<Map<String, Object>> licences = licenceService.publicFor(sellerId);
+        if (!licences.isEmpty()) seller.put("licences", licences);
         return seller;
     }
 }
