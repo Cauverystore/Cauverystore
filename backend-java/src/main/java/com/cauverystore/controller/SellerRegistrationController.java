@@ -4,16 +4,24 @@ import com.cauverystore.dto.SellerRegistrationRequest;
 import com.cauverystore.entities.BusinessCategory;
 import com.cauverystore.entities.BusinessType;
 import com.cauverystore.entities.SellerApob;
+import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.UserRepository;
+import com.cauverystore.service.AuditService;
+import com.cauverystore.service.KycDocumentService;
 import com.cauverystore.service.BankVerificationService;
 import com.cauverystore.service.GstinVerificationService;
 import com.cauverystore.service.SellerApprovalService;
 import com.cauverystore.service.SellerRegistrationService;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -70,17 +78,26 @@ public class SellerRegistrationController {
     private final GstinVerificationService gstinVerificationService;
     private final BankVerificationService bankVerificationService;
     private final UserRepository userRepo;
+    private final KycDocumentService kycDocumentService;
+    private final SellerRegistrationRepository regRepo;
+    private final AuditService auditService;
 
     public SellerRegistrationController(SellerRegistrationService registrationService,
                                         SellerApprovalService approvalService,
                                         GstinVerificationService gstinVerificationService,
                                         BankVerificationService bankVerificationService,
-                                        UserRepository userRepo) {
+                                        UserRepository userRepo,
+                                        KycDocumentService kycDocumentService,
+                                        SellerRegistrationRepository regRepo,
+                                        AuditService auditService) {
         this.registrationService = registrationService;
         this.approvalService = approvalService;
         this.gstinVerificationService = gstinVerificationService;
         this.bankVerificationService = bankVerificationService;
         this.userRepo = userRepo;
+        this.kycDocumentService = kycDocumentService;
+        this.regRepo = regRepo;
+        this.auditService = auditService;
     }
 
     private Long getCurrentUserId() {
@@ -168,6 +185,11 @@ public class SellerRegistrationController {
             String documentType = (String) body.get("documentType");
             String documentName = (String) body.get("documentName");
             String fileUrl = (String) body.get("fileUrl");
+            // Identity documents are uploaded as files (POST /document/upload) and kept private.
+            // A link to somewhere else would put them back on a public host.
+            if (fileUrl == null || !fileUrl.startsWith(KycDocumentService.FILE_PATH)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Upload the document file itself."));
+            }
             String originalName = (String) body.get("fileOriginalName");
             Long fileSize = body.get("fileSize") != null ? ((Number) body.get("fileSize")).longValue() : 0L;
             String mimeType = (String) body.get("mimeType");
@@ -176,6 +198,46 @@ public class SellerRegistrationController {
             return ResponseEntity.ok(registrationService.uploadDocument(userId, documentType, documentName, fileUrl, originalName, fileSize, mimeType, expiryDate));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/document/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> uploadDocumentFile(@RequestParam("file") MultipartFile file,
+                                                @RequestParam("documentType") String documentType,
+                                                @RequestParam(value = "documentName", required = false) String documentName,
+                                                @RequestParam(value = "expiryDate", required = false) String expiryDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        try {
+            java.time.LocalDate expiry = expiryDate != null && !expiryDate.isBlank() ? java.time.LocalDate.parse(expiryDate) : null;
+            return ResponseEntity.ok(kycDocumentService.upload(userId, file, documentType, documentName, expiry));
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "The expiry date must be in the form YYYY-MM-DD."));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** The seller's own file, or any seller's for an admin. Never cached, never sniffed. */
+    @GetMapping("/document-file/{fileId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> documentFile(@PathVariable Long fileId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean admin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
+        try {
+            KycDocumentService.StoredFile f = kycDocumentService.read(fileId, userId, auth.getName(), admin);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(f.contentType()))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline().filename(f.fileName()).build().toString())
+                    .cacheControl(CacheControl.noStore())
+                    .header("X-Content-Type-Options", "nosniff")
+                    .body(f.bytes());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -228,6 +290,23 @@ public class SellerRegistrationController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> registrationDetail(@PathVariable Long registrationId) {
         return ResponseEntity.ok(approvalService.getDetail(registrationId));
+    }
+
+    /** The full account number, for an admin sending a payout. Each look is audit-logged. */
+    @GetMapping("/admin/registrations/{registrationId}/bank-account")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> revealBankAccount(@PathVariable Long registrationId) {
+        Long adminId = getCurrentUserId();
+        if (adminId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        var reg = regRepo.findById(registrationId).orElse(null);
+        if (reg == null) return ResponseEntity.badRequest().body(Map.of("error", "Registration not found"));
+        auditService.log(adminId, SecurityContextHolder.getContext().getAuthentication().getName(),
+                "BANK_ACCOUNT_VIEWED", "SellerRegistration", reg.getId(), "Full bank account number shown", null);
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("accountNumber", reg.getBankAccountNumber());
+        out.put("accountName", reg.getBankAccountName());
+        out.put("ifsc", reg.getBankIfsc());
+        return ResponseEntity.ok(out);
     }
 
     @PostMapping("/admin/registrations/{registrationId}/approve")

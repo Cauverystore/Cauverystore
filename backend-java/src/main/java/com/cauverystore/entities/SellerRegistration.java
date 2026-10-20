@@ -1,6 +1,10 @@
 package com.cauverystore.entities;
 
+import com.cauverystore.util.KycCrypto;
+import com.cauverystore.util.KycStringConverter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -90,6 +94,7 @@ public class SellerRegistration {
 
     private String gstin;
     private String panNumber;
+    /** Only the last four digits, as "XXXX XXXX 1234". The full number is never kept. */
     private String aadhaarNumber;
 
     /**
@@ -125,7 +130,9 @@ public class SellerRegistration {
     @Column(columnDefinition = "TEXT")
     private String bankAccountName;
 
+    /** Encrypted in the database; sent to the browser only masked (see getBankAccountNumberMasked). */
     @Column(columnDefinition = "TEXT")
+    @Convert(converter = KycStringConverter.class)
     private String bankAccountNumber;
 
     private String bankIfsc;
@@ -248,10 +255,13 @@ public class SellerRegistration {
     public String getPanNumber() { return panNumber; }
     public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
     public String getAadhaarNumber() { return aadhaarNumber; }
-    public void setAadhaarNumber(String aadhaarNumber) { this.aadhaarNumber = aadhaarNumber; }
+    public void setAadhaarNumber(String aadhaarNumber) { this.aadhaarNumber = KycCrypto.maskAadhaar(aadhaarNumber); }
     public String getBankAccountName() { return bankAccountName; }
     public void setBankAccountName(String bankAccountName) { this.bankAccountName = bankAccountName; }
+    @JsonIgnore
     public String getBankAccountNumber() { return bankAccountNumber; }
+    @JsonProperty("bankAccountNumberMasked")
+    public String getBankAccountNumberMasked() { return KycCrypto.maskAccount(bankAccountNumber); }
     public void setBankAccountNumber(String bankAccountNumber) { this.bankAccountNumber = bankAccountNumber; }
     public String getBankIfsc() { return bankIfsc; }
     public void setBankIfsc(String bankIfsc) { this.bankIfsc = bankIfsc; }

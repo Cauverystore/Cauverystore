@@ -3,7 +3,24 @@ import { Store, ChevronLeft, Check, X, FileText, ShieldCheck, Ban, RotateCcw } f
 import api from "../../utils/axios";
 import { useToast } from "../../admin/context/ToastContext";
 import WindDownStatus from "../../components/WindDownStatus";
-import { confirmAction, promptText } from "../../components/ConfirmDialog";
+import { confirmAction, promptText, showMessage } from "../../components/ConfirmDialog";
+
+// KYC files are private: they open through a signed-in request, not a plain link.
+const openPrivateFile = async (url) => {
+  const tab = window.open("", "_blank");
+  try {
+    const res = await api.get(url, { responseType: "blob" });
+    const blobUrl = URL.createObjectURL(res.data);
+    if (tab) tab.location.href = blobUrl; else window.location.href = blobUrl;
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  } catch {
+    if (tab) tab.close();
+    showMessage("Could not open the file");
+  }
+};
+
+// Older uploads were links to an outside host; only files kept by the store open from here.
+const isPrivateFile = (url) => typeof url === "string" && url.startsWith("/api/seller-registration/document-file/") && !url.endsWith("/pending");
 
 const StatusBadge = ({ value }) => (
   <span className={`admin-badge ${value === "VERIFIED" || value === "APPROVED" || value === "ACTIVE" ? "active" : value === "FAILED" || value === "REJECTED" || value === "SUSPENDED" ? "danger" : "inactive"}`}>
@@ -18,6 +35,26 @@ const TABS = [
   { key: "SUSPENDED", label: "Suspended" },
   { key: "ALL", label: "All" },
 ];
+
+// Masked until asked for; each reveal is recorded in the audit log on the server.
+const BankNumber = ({ reg }) => {
+  const [full, setFull] = useState(null);
+  const masked = reg.bankAccountNumberMasked;
+  if (!masked) return "—";
+  if (full) return <span style={{ fontFamily: "monospace" }}>{full}</span>;
+  const reveal = async () => {
+    try {
+      const res = await api.get(`/api/seller-registration/admin/registrations/${reg.id}/bank-account`);
+      setFull(res.data.accountNumber || masked);
+    } catch { showMessage("Could not show the account number"); }
+  };
+  return (
+    <span>
+      <span style={{ fontFamily: "monospace" }}>{masked}</span>{" "}
+      <button type="button" onClick={reveal} style={{ fontSize: "0.75rem", color: "#2563eb", background: "none", border: "none", cursor: "pointer" }}>Show full number</button>
+    </span>
+  );
+};
 
 const SellerApproval = () => {
   const [registrations, setRegistrations] = useState([]);
@@ -237,7 +274,7 @@ const SellerApproval = () => {
         <div className="admin-table-wrapper" style={{ marginBottom: '1.25rem' }}>
           <table className="admin-table">
             <tbody>
-              {[['Business Type', reg.businessType], ['GSTIN', reg.gstin], ['GSTIN Legal Name', reg.gstinLegalName], ['PAN', reg.panNumber], ['Account Holder', reg.bankAccountName], ['Bank / IFSC', reg.bankIfsc ? `${reg.bankName} / ${reg.bankIfsc}` : '—'], ['Address', reg.businessAddress ? `${reg.businessAddress}, ${reg.city || ''} ${reg.state || ''} ${reg.pincode || ''}`.replace(/,\s*,/g, ',') : '—']].map(([k, v]) => (
+              {[['Business Type', reg.businessType], ['GSTIN', reg.gstin], ['GSTIN Legal Name', reg.gstinLegalName], ['PAN', reg.panNumber], ['Account Holder', reg.bankAccountName], ['Account No.', <BankNumber key="bank" reg={reg} />], ['Bank / IFSC', reg.bankIfsc ? `${reg.bankName} / ${reg.bankIfsc}` : '—'], ['Address', reg.businessAddress ? `${reg.businessAddress}, ${reg.city || ''} ${reg.state || ''} ${reg.pincode || ''}`.replace(/,\s*,/g, ',') : '—']].map(([k, v]) => (
                 <tr key={k}>
                   <td style={{ width: '180px', color: '#6b7280', fontSize: '0.85rem' }}>{k}</td>
                   <td style={{ fontWeight: 500 }}>{v || '—'}</td>
@@ -261,7 +298,9 @@ const SellerApproval = () => {
                   <tr key={d.id}>
                     <td>
                       <div style={{ fontWeight: 500 }}>{d.documentName || d.documentType}</div>
-                      {d.fileUrl && <a href={d.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: '#2563eb' }}>View file</a>}
+                      {isPrivateFile(d.fileUrl)
+                        ? <button type="button" onClick={() => openPrivateFile(d.fileUrl)} style={{ fontSize: '0.75rem', color: '#2563eb', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>View file</button>
+                        : d.fileUrl && <span style={{ fontSize: '0.75rem', color: '#b45309' }}>Old upload: ask the seller to upload this again</span>}
                     </td>
                     <td><StatusBadge value={d.status} /></td>
                     <td>

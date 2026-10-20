@@ -30,6 +30,11 @@ public class BankVerificationService {
         SellerRegistration reg = regRepo.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Registration not found. Start registration first."));
 
+        // Verifying a number the page only has masked means re-checking the one already saved.
+        if (!SellerRegistrationService.isNewValue(accountNumber)) accountNumber = reg.getBankAccountNumber();
+        else if (!com.cauverystore.util.KycCrypto.get().isConfigured()) throw new com.cauverystore.util.KycCrypto.NotConfiguredException();
+        if (accountNumber != null) accountNumber = accountNumber.replace(" ", "");
+
         Map<String, Object> resp = bankVerifier.verify(accountNumber, ifsc, accountName);
         boolean verified = Boolean.TRUE.equals(resp.get("verified"));
 
@@ -48,6 +53,7 @@ public class BankVerificationService {
 
         Map<String, Object> result = new LinkedHashMap<>(resp);
         result.put("bankStatus", reg.getBankStatus());
+        result.put("accountNumber", com.cauverystore.util.KycCrypto.maskAccount(accountNumber));
         return result;
     }
 }

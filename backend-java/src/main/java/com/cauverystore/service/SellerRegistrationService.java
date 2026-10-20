@@ -48,7 +48,12 @@ public class SellerRegistrationService {
         SellerRegistration reg = new SellerRegistration();
         reg.setUser(user);
         reg.setBusinessEmail(user.getEmail());
-        reg.setContactPerson(user.getFullName());
+        // These columns are required, but the seller fills them in on step 1, after this record
+        // exists. Saving nulls here failed every new registration before step 1 could be shown.
+        reg.setBusinessName("");
+        reg.setBusinessAddress("");
+        reg.setBusinessType("");
+        reg.setContactPerson(user.getFullName() != null ? user.getFullName() : "");
         reg.setBusinessPhone(user.getPhone() != null ? user.getPhone() : "");
         reg.setStatus("DRAFT");
         reg.setOnboardingStep(1);
@@ -109,11 +114,15 @@ public class SellerRegistrationService {
                 if (req.getGstin() != null) reg.setGstin(req.getGstin());
                 if (req.getCompositionScheme() != null) reg.setCompositionScheme(req.getCompositionScheme());
                 if (req.getPanNumber() != null) reg.setPanNumber(req.getPanNumber());
-                if (req.getAadhaarNumber() != null) reg.setAadhaarNumber(req.getAadhaarNumber());
+                // The page shows the saved value masked; sending that back must not overwrite it.
+                if (isNewValue(req.getAadhaarNumber())) reg.setAadhaarNumber(req.getAadhaarNumber());
                 break;
             case 3:
                 if (req.getBankAccountName() != null) reg.setBankAccountName(req.getBankAccountName());
-                if (req.getBankAccountNumber() != null) reg.setBankAccountNumber(req.getBankAccountNumber());
+                if (isNewValue(req.getBankAccountNumber())) {
+                    if (!com.cauverystore.util.KycCrypto.get().isConfigured()) throw new com.cauverystore.util.KycCrypto.NotConfiguredException();
+                    reg.setBankAccountNumber(req.getBankAccountNumber().replace(" ", ""));
+                }
                 if (req.getBankIfsc() != null) reg.setBankIfsc(req.getBankIfsc());
                 if (req.getBankName() != null) reg.setBankName(req.getBankName());
                 if (req.getBankBranch() != null) reg.setBankBranch(req.getBankBranch());
@@ -233,6 +242,11 @@ public class SellerRegistrationService {
     }
 
     @Transactional
+    /** A value the seller actually typed: not empty, and not the masked copy the page was shown. */
+    static boolean isNewValue(String v) {
+        return v != null && !v.isBlank() && v.indexOf('X') < 0 && v.indexOf('x') < 0;
+    }
+
     public Map<String, Object> uploadDocument(Long userId, String documentType, String documentName, String fileUrl, String originalName, Long fileSize, String mimeType, LocalDate expiryDate) {
         User user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         SellerDocument doc = new SellerDocument();
