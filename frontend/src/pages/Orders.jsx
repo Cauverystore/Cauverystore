@@ -3,6 +3,7 @@ import { variantLabel } from "../utils/variant";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
+import { useConfirm } from "../components/ConfirmDialog";
 import "../styles/orders.css";
 
 const STATUSES = ["ALL", "PLACED", "SHIPPED", "DELIVERED", "CANCELLED"];
@@ -52,6 +53,7 @@ function StatusTimeline({ status }) {
 
 const Orders = () => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -76,7 +78,7 @@ const Orders = () => {
   const canCancelOrder = (order) => CANCELLABLE_STATUSES.includes((order.status || "").toUpperCase());
 
   const handleCancel = async (orderId) => {
-    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    if (!(await confirm({ title: "Cancel this order?", message: "The order will be cancelled. If you have already paid, we will refund you.", confirmLabel: "Cancel order", cancelLabel: "Keep order", danger: true }))) return;
     setCancellingId(orderId);
     setError("");
     try {

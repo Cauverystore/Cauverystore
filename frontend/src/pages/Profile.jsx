@@ -7,6 +7,7 @@ import { getCart, moveToCart } from "../services/cartService";
 import { removeFromWishlist } from "../services/wishlistService";
 import { useWishlist } from "../context/WishlistContext";
 import "../styles/profile.css";
+import { useConfirm } from "../components/ConfirmDialog";
 
 const PLACEHOLDER = "/images/placeholder.svg";
 
@@ -31,6 +32,7 @@ const initialAddr = () => ({
 
 const Profile = () => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const { logout } = useAuth();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "personal");
@@ -167,7 +169,7 @@ const Profile = () => {
   };
 
   const handleDeleteAddress = async (id) => {
-    if (!window.confirm("Delete this address?")) return;
+    if (!(await confirm({ title: "Delete this address?", message: "It will be removed from your saved addresses.", confirmLabel: "Delete", cancelLabel: "Keep it", danger: true }))) return;
     try {
       await userService.deleteAddress(id);
       setAddresses(addresses.filter(a => (a.id || a._id) !== id));
@@ -200,7 +202,7 @@ const Profile = () => {
   };
 
   const handleDeletePayment = async (id) => {
-    if (!window.confirm("Remove this payment method?")) return;
+    if (!(await confirm({ title: "Remove this payment method?", message: "You can add it again later.", confirmLabel: "Remove", cancelLabel: "Keep it", danger: true }))) return;
     try {
       await userService.deletePaymentMethod(id);
       setPaymentMethods(paymentMethods.filter(p => (p.id || p._id) !== id));
@@ -272,7 +274,7 @@ const Profile = () => {
   };
 
   const handleRevokeSession = async (sessionId) => {
-    if (!window.confirm("Sign out this device?")) return;
+    if (!(await confirm({ title: "Sign out this device?", message: "That device will need to sign in again.", confirmLabel: "Sign out" }))) return;
     setSessionBusy(sessionId);
     try {
       await securityService.revokeSession(sessionId);
@@ -283,7 +285,7 @@ const Profile = () => {
   };
 
   const handleLogoutAll = async () => {
-    if (!window.confirm("Sign out from all devices? You will be logged out of this device too.")) return;
+    if (!(await confirm({ title: "Sign out from all devices?", message: "You will be signed out of this device too.", confirmLabel: "Sign out everywhere" }))) return;
     try {
       await securityService.logoutAll();
     } catch { /* ignore */ }
