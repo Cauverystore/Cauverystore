@@ -3,6 +3,8 @@ import { variantLabel } from "../utils/variant";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
+import CopyButton from "../components/CopyButton";
+import { useConfirm } from "../components/ConfirmDialog";
 import "../styles/orderDetail.css";
 
 const STATUS_STEPS = [
@@ -18,6 +20,7 @@ const CANCELLED_STATUSES = ["CANCELLED", "CANCELED", "RETURNED"];
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
 
   const [items, setItems] = useState([]);
   const [timeline, setTimeline] = useState([]);
@@ -86,7 +89,7 @@ const OrderDetail = () => {
     ["PLACED", "CONFIRMED", "PACKED", "PENDING"].includes(status.toUpperCase());
 
   const handleCancel = async () => {
-    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    if (!(await confirm({ title: "Cancel this order?", message: "The order will be cancelled. If you have already paid, we will refund you.", confirmLabel: "Cancel order", cancelLabel: "Keep order", danger: true }))) return;
     setCancelling(true);
     try {
       await api.put(`/api/orders/${id}/cancel`);
@@ -223,6 +226,7 @@ const OrderDetail = () => {
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>
           Order #{orderId}
         </h1>
+        <CopyButton text={orderId} label="Copy" ariaLabel="Copy order number" />
         {isCancelled && (
           <span style={{
             background: "#dc2626", color: "#fff", padding: "3px 10px",

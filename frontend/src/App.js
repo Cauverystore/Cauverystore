@@ -10,6 +10,8 @@ import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import ImpersonationBanner from "./components/ImpersonationBanner";
 import PasswordExpiryBanner from "./components/PasswordExpiryBanner";
 import ChatWidget from "./components/ChatWidget";
+import CookieBanner from "./components/CookieBanner";
+import { ConfirmProvider } from "./components/ConfirmDialog";
 import { trackPageView } from "./utils/analytics";
 
 const PageViewTracker = () => {
@@ -132,6 +134,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <WishlistProvider>
+        <ConfirmProvider>
         <PageViewTracker />
         <Helmet>
           <title>Cauvery Store | Online Shopping in India</title>
@@ -186,6 +189,7 @@ function App() {
         <ImpersonationBanner />
         <PasswordExpiryBanner />
         <ChatWidget />
+        <CookieBanner />
         <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", color: "#94a3b8", fontSize: "0.95rem" }}>Loading...</div>}>
         <Routes>
           <Route element={<CustomerLayout />}>
@@ -318,6 +322,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        </ConfirmProvider>
         </WishlistProvider>
       </AuthProvider>
     </BrowserRouter>

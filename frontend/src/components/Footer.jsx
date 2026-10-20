@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import { OPEN_COOKIE_SETTINGS } from "./CookieBanner";
 
 const Footer = () => {
   const [email, setEmail] = useState("");
@@ -91,6 +92,7 @@ const Footer = () => {
             <Link to="/shipping-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Shipping Policy</Link>
             <Link to="/terms-and-conditions" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Terms & Conditions</Link>
             <Link to="/privacy-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Privacy Policy</Link>
+            <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS))} style={{ color: "#a9c2c0", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontSize: "0.85rem", fontFamily: "inherit" }}>Cookie Settings</button>
           </div>
         </div>
 

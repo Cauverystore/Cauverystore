@@ -16,7 +16,7 @@ const UPDATED = "10 October 2026";
 const policies = {
   privacy: {
     title: "Privacy Policy",
-    updated: UPDATED,
+    updated: "20 October 2026",
     sections: [
       {
         heading: "Information We Collect",
@@ -60,7 +60,7 @@ const policies = {
       },
       {
         heading: "Cookies",
-        content: "We use cookies to enhance your browsing experience, remember your preferences, and analyse site traffic. You can control cookie settings through your browser preferences."
+        content: "We use essential cookies to keep you signed in and remember your cart; the site cannot work without them. Analytics cookies (Google Analytics), which show us which pages are useful, are used only if you choose \"Accept all\" in the cookie banner. You can change your choice at any time with the Cookie Settings link at the bottom of every page, or clear cookies in your browser settings."
       },
       {
         heading: "Contact Us",

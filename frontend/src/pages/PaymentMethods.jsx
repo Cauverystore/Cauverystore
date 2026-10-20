@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
+import { useConfirm } from "../components/ConfirmDialog";
 
 const PaymentMethods = () => {
+  const confirm = useConfirm();
   const [methods, setMethods] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ type:"credit_card", maskedNumber:"", expiry:"", cardholderName:"", upiId:"", bankName:"", isDefault:false });
@@ -11,7 +13,7 @@ const PaymentMethods = () => {
     e.preventDefault();
     try { await api.post("/api/payment-methods", form); setShowForm(false); setForm({ type:"credit_card", maskedNumber:"", expiry:"", cardholderName:"", upiId:"", bankName:"", isDefault:false }); fetch(); } catch { alert("Failed"); }
   };
-  const handleDelete = async (id) => { if (!window.confirm("Remove this payment method?")) return; try { await api.delete(`/api/payment-methods/${id}`); fetch(); } catch { alert("Failed"); } };
+  const handleDelete = async (id) => { if (!(await confirm({ title: "Remove this payment method?", message: "You can add it again later.", confirmLabel: "Remove", cancelLabel: "Keep it", danger: true }))) return; try { await api.delete(`/api/payment-methods/${id}`); fetch(); } catch { alert("Failed"); } };
   const handleSetDefault = async (id) => { try { await api.put(`/api/payment-methods/${id}/default`); fetch(); } catch { alert("Failed"); } };
   const inp = { padding:"0.5rem 0.6rem", border:"1px solid #d1d5db", borderRadius:6, fontSize:"0.85rem", width:"100%", boxSizing:"border-box" };
   return (
