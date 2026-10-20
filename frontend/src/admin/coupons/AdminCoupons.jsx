@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
-import { confirmAction } from "../../components/ConfirmDialog";
+import { confirmAction, showMessage } from "../../components/ConfirmDialog";
 
 const emptyCoupon = { code:"", type:"PERCENTAGE", value:"", minOrderAmount:"", maxUses:"", maxDiscountAmount:"", validFrom:"", validUntil:"", appliesTo:"ALL", appliesToId:"", freeShipping:false, active:true };
 
@@ -28,16 +28,16 @@ const AdminCoupons = () => {
       if (editing) { await api.put(`/api/admin/coupons/${editing}`, payload); }
       else { await api.post("/api/admin/coupons", payload); }
       setShowForm(false); setEditing(null); setForm(emptyCoupon); fetchCoupons();
-    } catch { alert("Failed to save coupon"); }
+    } catch { showMessage("Failed to save coupon"); }
   };
 
   const handleToggle = async (id) => {
-    try { await api.put(`/api/admin/coupons/${id}/toggle`); fetchCoupons(); } catch { alert("Failed"); }
+    try { await api.put(`/api/admin/coupons/${id}/toggle`); fetchCoupons(); } catch { showMessage("Failed"); }
   };
 
   const handleDelete = async (id) => {
     if (!await confirmAction("Delete this coupon?")) return;
-    try { await api.delete(`/api/admin/coupons/${id}`); fetchCoupons(); } catch { alert("Failed"); }
+    try { await api.delete(`/api/admin/coupons/${id}`); fetchCoupons(); } catch { showMessage("Failed"); }
   };
 
   const handleEdit = (c) => {

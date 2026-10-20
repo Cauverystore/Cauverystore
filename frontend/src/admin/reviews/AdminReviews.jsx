@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
-import { confirmAction } from "../../components/ConfirmDialog";
+import { confirmAction, showMessage } from "../../components/ConfirmDialog";
 
 const AdminReviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -13,16 +13,16 @@ const AdminReviews = () => {
   useEffect(() => { fetchReviews(); }, []);
 
   const handleApprove = async (id) => {
-    try { await api.put(`/api/admin/reviews/${id}/approve`); fetchReviews(); } catch { alert("Failed"); }
+    try { await api.put(`/api/admin/reviews/${id}/approve`); fetchReviews(); } catch { showMessage("Failed"); }
   };
 
   const handleReject = async (id) => {
-    try { await api.put(`/api/admin/reviews/${id}/reject`); fetchReviews(); } catch { alert("Failed"); }
+    try { await api.put(`/api/admin/reviews/${id}/reject`); fetchReviews(); } catch { showMessage("Failed"); }
   };
 
   const handleDelete = async (id) => {
     if (!await confirmAction("Delete this review?")) return;
-    try { await api.delete(`/api/admin/reviews/${id}`); fetchReviews(); } catch { alert("Failed"); }
+    try { await api.delete(`/api/admin/reviews/${id}`); fetchReviews(); } catch { showMessage("Failed"); }
   };
 
   const filtered = filter === "ALL" ? reviews : filter === "APPROVED" ? reviews.filter(r => r.approved) : reviews.filter(r => !r.approved);

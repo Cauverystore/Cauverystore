@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../api/axios";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const ManageVariants = () => {
   const { id } = useParams();
@@ -29,7 +30,7 @@ const ManageVariants = () => {
       setForm({ type: form.type, name: "", price: "", stock: "" });
       const res = await api.get(`/api/products/${id}`);
       setVariants(res.data.variants || []);
-    } catch (err) { alert("Failed to add variant"); }
+    } catch (err) { showMessage("Failed to add variant"); }
   };
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;

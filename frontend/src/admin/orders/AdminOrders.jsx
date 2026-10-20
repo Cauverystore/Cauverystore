@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../../api/axios";
 import Pagination from "../../components/Pagination";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const STATUS_FLOW = ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "DELIVERED"];
 const CANCELLED = "CANCELLED";
@@ -40,7 +41,7 @@ const AdminOrders = () => {
     try {
       await api.put(`/api/admin/orders/${orderId}/status`, { status });
       fetch();
-    } catch (err) { alert("Failed to update status"); }
+    } catch (err) { showMessage("Failed to update status"); }
   };
 
   const downloadLabel = async (orderId) => {
@@ -54,16 +55,16 @@ const AdminOrders = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch (err) { alert("Failed to download shipping label"); }
+    } catch (err) { showMessage("Failed to download shipping label"); }
   };
 
   const assignCourier = async (orderId) => {
-    if (!courier.trim()) return alert("Enter courier name");
+    if (!courier.trim()) return showMessage("Enter courier name");
     try {
       await api.put(`/api/admin/orders/${orderId}/assign-courier`, { courier: courier.trim(), trackingNumber: tracking.trim() });
       setAssignModal(null); setCourier(""); setTracking("");
       fetch();
-    } catch (err) { alert("Failed to assign courier"); }
+    } catch (err) { showMessage("Failed to assign courier"); }
   };
 
   // Books the parcel with Shiprocket: courier + AWB assigned, pickup requested, label made.
@@ -73,7 +74,7 @@ const AdminOrders = () => {
       await api.post(`/api/admin/orders/${orderId}/shiprocket`);
       fetch();
     } catch (err) {
-      alert(err.response?.data?.error || "Could not book this order with Shiprocket");
+      showMessage(err.response?.data?.error || "Could not book this order with Shiprocket");
     }
     setBooking(null);
   };

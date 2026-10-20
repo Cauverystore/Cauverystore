@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
-import { confirmAction } from "../../components/ConfirmDialog";
+import { confirmAction, showMessage } from "../../components/ConfirmDialog";
 
 const TABS = ["Banners", "Pages", "FAQ", "Homepage Sections"];
 
@@ -45,7 +45,7 @@ const AdminContent = () => {
     try {
       const res = await api.put("/api/admin/content/homepage-settings", { brandStoresEnabled: next });
       setHomepageSettings(res.data);
-    } catch { alert("Failed to update setting"); }
+    } catch { showMessage("Failed to update setting"); }
     setSavingHomepage(false);
   };
 
@@ -55,7 +55,7 @@ const AdminContent = () => {
       if (editing) { await api.put(`/api/admin/content/banners/${editing}`, { ...bForm, sortOrder: parseInt(bForm.sortOrder) }); }
       else { await api.post("/api/admin/content/banners", { ...bForm, sortOrder: parseInt(bForm.sortOrder) }); }
       setShowBForm(false); setEditing(null); setBForm(emptyBanner); fetchAll();
-    } catch { alert("Failed"); }
+    } catch { showMessage("Failed"); }
   };
 
   const handlePSubmit = async (e) => {
@@ -64,7 +64,7 @@ const AdminContent = () => {
       if (editing) { await api.put(`/api/admin/content/pages/${editing}`, pForm); }
       else { await api.post("/api/admin/content/pages", pForm); }
       setShowPForm(false); setEditing(null); setPForm(emptyPage); fetchAll();
-    } catch { alert("Failed"); }
+    } catch { showMessage("Failed"); }
   };
 
   const handleFSubmit = async (e) => {
@@ -73,12 +73,12 @@ const AdminContent = () => {
       if (editing) { await api.put(`/api/admin/content/faqs/${editing}`, { ...fForm, sortOrder: parseInt(fForm.sortOrder) }); }
       else { await api.post("/api/admin/content/faqs", { ...fForm, sortOrder: parseInt(fForm.sortOrder) }); }
       setShowFForm(false); setEditing(null); setFForm(emptyFaq); fetchAll();
-    } catch { alert("Failed"); }
+    } catch { showMessage("Failed"); }
   };
 
   const handleDelete = async (type, id) => {
     if (!await confirmAction("Delete this item?")) return;
-    try { await api.delete(`/api/admin/content/${type}/${id}`); fetchAll(); } catch { alert("Failed"); }
+    try { await api.delete(`/api/admin/content/${type}/${id}`); fetchAll(); } catch { showMessage("Failed"); }
   };
 
   return (

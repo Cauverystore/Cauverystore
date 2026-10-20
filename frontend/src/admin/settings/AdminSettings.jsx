@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../../api/axios";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({ siteName: "Cauvery Store", siteDescription: "", contactEmail: "", contactPhone: "", razorpayKey: "", shippingCharge: "" });
@@ -8,7 +9,7 @@ const AdminSettings = () => {
   const handleChange = (e) => setSettings({ ...settings, [e.target.name]: e.target.value });
 
   const handleSave = async () => {
-    try { await api.put("/api/admin/settings", settings); setSaved(true); setTimeout(() => setSaved(false), 3000); } catch (err) { alert("Failed to save settings"); }
+    try { await api.put("/api/admin/settings", settings); setSaved(true); setTimeout(() => setSaved(false), 3000); } catch (err) { showMessage("Failed to save settings"); }
   };
 
   return (

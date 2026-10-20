@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import Pagination from "../../components/Pagination";
 import "../../styles/adminProducts.css";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -47,14 +48,14 @@ const AdminProducts = () => {
       setSelected([]);
       setPage(1);
       await fetch();
-    } catch (err) { alert("Failed to delete"); }
+    } catch (err) { showMessage("Failed to delete"); }
   };
 
   const handleDelete = async (id) => {
     try {
       await api.delete(`/api/admin/products/${id}`);
       setProducts(prev => prev.filter(p => (p.id || p._id) !== id));
-    } catch (err) { alert("Failed to delete"); }
+    } catch (err) { showMessage("Failed to delete"); }
   };
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;

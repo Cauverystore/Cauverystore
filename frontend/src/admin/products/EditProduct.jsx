@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import ProductImagesSection from "./ProductImagesSection";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -56,7 +57,7 @@ const EditProduct = () => {
         price: parseFloat(form.price), mrp: parseFloat(form.mrp), stock: parseInt(form.stock), sku: form.sku,
       });
       navigate(role === "SELLER" ? "/seller/products" : "/admin/products");
-    } catch (err) { alert("Failed to update product"); }
+    } catch (err) { showMessage("Failed to update product"); }
   };
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;

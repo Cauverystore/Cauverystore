@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../../api/axios";
 import GstRateChanges from "./GstRateChanges";
+import { promptText } from "../../components/ConfirmDialog";
 
 const inp = { width: "100%", padding: "0.5rem", border: "1px solid #d1d5db", borderRadius: 6, fontSize: "0.85rem" };
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "1.25rem" };
@@ -68,8 +69,8 @@ const AdminGstRates = () => {
     }
   };
 
-  const verify = (rate) => {
-    const note = window.prompt(
+  const verify = async (rate) => {
+    const note = await promptText(
       `Approve ${rate.gstRate}% for HSN ${rate.hsnCode}?\n\n` +
       "This rate will start being charged to customers. Note the notification or reasoning:");
     if (note === null) return;
@@ -77,8 +78,8 @@ const AdminGstRates = () => {
         `HSN ${rate.hsnCode} approved at ${rate.gstRate}%.`);
   };
 
-  const unverify = (rate) => {
-    const reason = window.prompt(
+  const unverify = async (rate) => {
+    const reason = await promptText(
       `Withdraw the approved ${rate.gstRate}% on HSN ${rate.hsnCode}?\n\n` +
       "Products on this code fall back to the default rate until it is approved again.\n" +
       "Reason (required):");
@@ -87,8 +88,8 @@ const AdminGstRates = () => {
         `HSN ${rate.hsnCode} withdrawn from use.`);
   };
 
-  const supersede = (rate) => {
-    const date = window.prompt(
+  const supersede = async (rate) => {
+    const date = await promptText(
       `Close off ${rate.gstRate}% on HSN ${rate.hsnCode}.\n\n` +
       "Last day this rate applied (YYYY-MM-DD). Older invoices keep resolving at it:");
     if (!date) return;

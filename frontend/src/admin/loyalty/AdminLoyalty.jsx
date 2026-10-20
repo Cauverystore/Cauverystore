@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
-import { confirmAction } from "../../components/ConfirmDialog";
+import { confirmAction, showMessage } from "../../components/ConfirmDialog";
 const emptyRule = { name:"", description:"", pointsPerUnit:1, minimumOrderAmount:0, active:true };
 const AdminLoyalty = () => {
   const [rules, setRules] = useState([]);
@@ -15,9 +15,9 @@ const AdminLoyalty = () => {
       const payload = { ...form, pointsPerUnit: parseFloat(form.pointsPerUnit), minimumOrderAmount: parseFloat(form.minimumOrderAmount) };
       if (editing) { await api.put(`/api/admin/loyalty/rules/${editing}`, payload); } else { await api.post("/api/admin/loyalty/rules", payload); }
       setShowForm(false); setEditing(null); setForm(emptyRule); fetchRules();
-    } catch { alert("Failed"); }
+    } catch { showMessage("Failed"); }
   };
-  const handleDelete = async (id) => { if (!await confirmAction("Delete this rule?")) return; try { await api.delete(`/api/admin/loyalty/rules/${id}`); fetchRules(); } catch { alert("Failed"); } };
+  const handleDelete = async (id) => { if (!await confirmAction("Delete this rule?")) return; try { await api.delete(`/api/admin/loyalty/rules/${id}`); fetchRules(); } catch { showMessage("Failed"); } };
   const handleEdit = (r) => { setForm({ name:r.name||"", description:r.description||"", pointsPerUnit:r.pointsPerUnit||1, minimumOrderAmount:r.minimumOrderAmount||0, active:r.active }); setEditing(r.id); setShowForm(true); };
   const inp = { padding:"0.5rem 0.6rem", border:"1px solid #d1d5db", borderRadius:6, fontSize:"0.85rem", width:"100%", boxSizing:"border-box" };
   return (

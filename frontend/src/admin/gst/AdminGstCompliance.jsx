@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../../api/axios";
+import { promptText } from "../../components/ConfirmDialog";
 
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "1.25rem" };
 const inp = { width: "100%", padding: "0.5rem", border: "1px solid #d1d5db", borderRadius: 6, fontSize: "0.85rem" };
@@ -50,7 +51,7 @@ const AdminGstCompliance = () => {
   // CBIC's notification API needs credentials nobody here has, so this cannot be polled. The
   // honest substitute is a named, dated check - which is what this records.
   const confirmRatesCurrent = async () => {
-    const note = window.prompt(
+    const note = await promptText(
       "Confirm the GST rates are current.\n\n" +
       "Check taxinformation.cbic.gov.in for any Central Tax (Rate) notification issued since " +
       (readiness?.rateFreshness?.newestNotification || "the ones applied") + ".\n\n" +

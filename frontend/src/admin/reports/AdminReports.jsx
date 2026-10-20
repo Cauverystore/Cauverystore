@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import api from "../../api/axios";
 import * as XLSX from "xlsx";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const AdminReports = () => {
   const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate()-30); return d.toISOString().split("T")[0]; });
@@ -14,7 +15,7 @@ const AdminReports = () => {
     try {
       const res = await api.get(`/api/admin/reports/sales?from=${from}&to=${to}`);
       setSalesReport(res.data);
-    } catch { alert("Failed to fetch sales report"); }
+    } catch { showMessage("Failed to fetch sales report"); }
     setLoading(false);
   };
 
@@ -23,7 +24,7 @@ const AdminReports = () => {
     try {
       const res = await api.get("/api/admin/reports/products");
       setProductReport(res.data);
-    } catch { alert("Failed to fetch product report"); }
+    } catch { showMessage("Failed to fetch product report"); }
     setLoading(false);
   };
 
