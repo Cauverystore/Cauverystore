@@ -14,12 +14,24 @@ const S = {
   msg: (type) => ({ padding: "10px 14px", borderRadius: "6px", marginBottom: "0.75rem", background: type === "success" ? "#EAF7EE" : "#fef2f2", color: type === "success" ? "#146C43" : "#dc2626", border: `1px solid ${type === "success" ? "#CFE8D6" : "#fecaca"}`, fontSize: "0.85rem" }),
 };
 
+// Licence a seller must hold to list in a category (codes match SellerLicenceService).
+const LICENCES = [
+  ["", "No licence needed"],
+  ["FSSAI", "FSSAI Licence (food)"],
+  ["DRUG", "Drug Licence"],
+  ["BIS", "BIS Certificate"],
+  ["LEGAL_METROLOGY", "Legal Metrology"],
+  ["IEC", "Import Export Code"],
+  ["TRADE", "Trade Licence"],
+];
+const licenceName = (code) => (LICENCES.find(([c]) => c === code) || [, code])[1];
+
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newCat, setNewCat] = useState({ name: "", description: "" });
+  const [newCat, setNewCat] = useState({ name: "", description: "", requiredLicence: "" });
   const [editing, setEditing] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", requiredLicence: "" });
   const [msg, setMsg] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [errors, setErrors] = useState({});
@@ -53,8 +65,8 @@ const AdminCategories = () => {
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     try {
-      await api.post("/api/categories/admin/add", { name: newCat.name.trim(), description: newCat.description.trim() || null });
-      setNewCat({ name: "", description: "" });
+      await api.post("/api/categories/admin/add", { name: newCat.name.trim(), description: newCat.description.trim() || null, requiredLicence: newCat.requiredLicence || null });
+      setNewCat({ name: "", description: "", requiredLicence: "" });
       await fetchCategories();
       setMsg({ type: "success", text: "Category added!" });
     } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Failed to add category" }); }
@@ -62,18 +74,18 @@ const AdminCategories = () => {
 
   const startEdit = (cat) => {
     setEditing(cat.id);
-    setEditForm({ name: cat.name || "", description: cat.description || "" });
+    setEditForm({ name: cat.name || "", description: cat.description || "", requiredLicence: cat.requiredLicence || "" });
     setErrors({});
   };
 
-  const cancelEdit = () => { setEditing(null); setEditForm({ name: "", description: "" }); setErrors({}); };
+  const cancelEdit = () => { setEditing(null); setEditForm({ name: "", description: "", requiredLicence: "" }); setErrors({}); };
 
   const saveEdit = async (id) => {
     const v = validate(editForm.name, editForm.description);
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     try {
-      await api.put("/api/categories/admin/update/" + id, { name: editForm.name.trim(), description: editForm.description.trim() || null });
+      await api.put("/api/categories/admin/update/" + id, { name: editForm.name.trim(), description: editForm.description.trim() || null, requiredLicence: editForm.requiredLicence || null });
       await fetchCategories();
       setEditing(null);
       setMsg({ type: "success", text: "Category updated!" });
@@ -118,6 +130,9 @@ const AdminCategories = () => {
             <input style={S.input} placeholder="Category name *" value={newCat.name} onChange={(e) => setNewCat({ ...newCat, name: e.target.value })} />
             {errMsg("name")}
           </div>
+          <select aria-label="Licence sellers need" style={{ ...S.input, width: "auto", alignSelf: "flex-start" }} value={newCat.requiredLicence} onChange={(e) => setNewCat({ ...newCat, requiredLicence: e.target.value })}>
+            {LICENCES.map(([c, l]) => <option key={c} value={c}>{l}</option>)}
+          </select>
           <button onClick={handleAdd} style={{ ...S.btnP, alignSelf: "flex-start" }}>Add</button>
         </div>
         <div>
@@ -139,6 +154,7 @@ const AdminCategories = () => {
                 <tr style={{ background: "#f8f8f8" }}>
                   <th style={{ padding: "10px", textAlign: "left", minWidth: "150px" }}>Name</th>
                   <th style={{ padding: "10px", textAlign: "left", minWidth: "200px" }}>Description</th>
+                  <th style={{ padding: "10px", textAlign: "left", minWidth: "160px" }}>Sellers need</th>
                   <th style={{ padding: "10px", textAlign: "right", minWidth: "140px" }}>Actions</th>
                 </tr>
               </thead>
@@ -156,6 +172,11 @@ const AdminCategories = () => {
                           <div style={{ fontSize: "0.7rem", color: "#94a3b8", textAlign: "right" }}>{(editForm.description || "").length}/500</div>
                           {errMsg("description")}
                         </td>
+                        <td style={{ padding: "10px", verticalAlign: "top" }}>
+                          <select aria-label="Licence sellers need" style={S.input} value={editForm.requiredLicence} onChange={(e) => setEditForm({ ...editForm, requiredLicence: e.target.value })}>
+                            {LICENCES.map(([code, l]) => <option key={code} value={code}>{l}</option>)}
+                          </select>
+                        </td>
                         <td style={{ padding: "10px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button onClick={() => saveEdit(c.id)} style={{ ...S.btnS, marginRight: "6px" }}>Save</button>
                           <button onClick={cancelEdit} style={{ padding: "6px 14px", border: "1px solid #CFE8D6", borderRadius: "4px", background: "#fff", cursor: "pointer", fontSize: "0.8rem" }}>Cancel</button>
@@ -165,6 +186,7 @@ const AdminCategories = () => {
                       <>
                         <td style={{ padding: "10px", fontWeight: 500 }}>{c.name}</td>
                         <td style={{ padding: "10px", color: "#64748B" }}>{c.description || <span style={{ fontStyle: "italic", color: "#cbd5e1" }}>No description</span>}</td>
+                        <td style={{ padding: "10px", color: c.requiredLicence ? "#b45309" : "#94a3b8", fontSize: "0.85rem" }}>{c.requiredLicence ? licenceName(c.requiredLicence) : "Anyone"}</td>
                         <td style={{ padding: "10px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button onClick={() => startEdit(c)} style={{ ...S.btnS, marginRight: "6px" }}>Edit</button>
                           <button onClick={() => confirmDelete(c)} style={S.btnD}>Delete</button>

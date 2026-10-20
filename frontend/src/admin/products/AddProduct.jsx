@@ -248,7 +248,7 @@ const AddProduct = () => {
             <label style={S.label}>Category</label>
             <select style={S.select} value={form.category} onChange={e => set("category", e.target.value)}>
               <option value="">Select category</option>
-              {categories.map(c => <option key={c.id ?? c.name} value={c.id ?? ""}>{c.name}</option>)}
+              {categories.map(c => <option key={c.id ?? c.name} value={c.id ?? ""}>{c.name}{c.requiredLicence ? ` (needs ${c.requiredLicence === "FSSAI" ? "FSSAI" : c.requiredLicence.replace("_", " ").toLowerCase()} licence)` : ""}</option>)}
             </select>
           </div>
         </div>

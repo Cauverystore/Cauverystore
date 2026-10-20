@@ -25,11 +25,14 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
     private final UserRepository userRepo;
+    private final com.cauverystore.repository.SellerTeamMemberRepository teamMemberRepo;
 
-    public JwtFilter(JwtUtil jwtUtil, ObjectMapper objectMapper, UserRepository userRepo) {
+    public JwtFilter(JwtUtil jwtUtil, ObjectMapper objectMapper, UserRepository userRepo,
+                     com.cauverystore.repository.SellerTeamMemberRepository teamMemberRepo) {
         this.jwtUtil = jwtUtil;
         this.objectMapper = objectMapper;
         this.userRepo = userRepo;
+        this.teamMemberRepo = teamMemberRepo;
     }
 
     @Override
@@ -73,6 +76,20 @@ public class JwtFilter extends OncePerRequestFilter {
                             || (!user.isActive() && !"SUSPENDED".equals(user.getStatus()))) {
                         sendError(response, "This account is not active. Please contact support.");
                         return;
+                    }
+                    // Seller access for someone on a seller's team comes from their membership,
+                    // checked on every request: removal takes effect at once, not when the token
+                    // runs out. Their own account role is left as it is.
+                    com.cauverystore.entities.Role own = user.getRole();
+                    boolean staff = own == com.cauverystore.entities.Role.ADMIN
+                            || own == com.cauverystore.entities.Role.SUPER_ADMIN
+                            || own == com.cauverystore.entities.Role.EXECUTIVE;
+                    if (!staff && own != com.cauverystore.entities.Role.SELLER) {
+                        boolean member = teamMemberRepo.existsByUserIdAndStatus(userId, "ACTIVE");
+                        java.util.List<String> adjusted = new java.util.ArrayList<>(roles);
+                        if (member && !adjusted.contains("SELLER")) adjusted.add("SELLER");
+                        if (!member) adjusted.remove("SELLER");
+                        roles = adjusted;
                     }
                 }
 

@@ -48,6 +48,7 @@ public class ProductService {
     private final OrderItemRepository orderItemRepo;
 
     private final HsnClassificationService hsnClassificationService;
+    private final ListingEligibilityService listingEligibility;
 
     public ProductService(ProductRepository productRepo, CategoryRepository catRepo,
                           ProductImageRepository productImageRepo, DiscountRepository discountRepo,
@@ -58,8 +59,10 @@ public class ProductService {
                           InventoryRepository inventoryRepo,
                           ProductDiscountRepository productDiscountRepo,
                           OrderItemRepository orderItemRepo,
-                          HsnClassificationService hsnClassificationService) {
+                          HsnClassificationService hsnClassificationService,
+                          ListingEligibilityService listingEligibility) {
         this.productRepo = productRepo;
+        this.listingEligibility = listingEligibility;
         this.hsnClassificationService = hsnClassificationService;
         this.catRepo = catRepo;
         this.productImageRepo = productImageRepo;
@@ -114,7 +117,7 @@ public class ProductService {
     @Cacheable(value = "products", key = "'all'")
     public List<Product> getAllProducts() {
         if (authorizationService.hasRole("SELLER")) {
-            Long sellerId = authorizationService.getCurrentUserId();
+            Long sellerId = currentSellerId();
             return productRepo.findAll().stream()
                     .filter(p -> sellerId.equals(p.getSellerId()))
                     .toList();
@@ -416,8 +419,10 @@ public class ProductService {
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product addProduct(Product product) {
         if (authorizationService.hasRole("SELLER")) {
-            Long sellerId = authorizationService.getCurrentUserId();
+            Long sellerId = currentSellerId();
             product.setSellerId(sellerId);
+            // Licence-locked categories and protected brands (see ListingEligibilityService).
+            if (listingEligibility != null) listingEligibility.check(sellerId, product.getCategory(), product.getBrand());
         }
         if (product.getSlug() == null || product.getSlug().isEmpty()) {
             if (product.getName() != null && !product.getName().isEmpty()) {
@@ -437,18 +442,26 @@ public class ProductService {
         return getProductById(productId);
     }
 
+    // A product with no seller is the marketplace's own listing. It used to pass these checks,
+    // which let any seller edit or delete it; a seller may now change only what is theirs.
     public void checkSellerOwnership(Long productId, Long sellerId) {
         Product p = getProductById(productId);
-        if (p.getSellerId() != null && !p.getSellerId().equals(sellerId)) {
+        if (p.getSellerId() == null || !p.getSellerId().equals(sellerId)) {
             throw new RuntimeException("Seller does not own this product");
         }
     }
 
     public void verifySellerOwnership(Long productId, Long sellerId) {
         Product p = getProductById(productId);
-        if (p.getSellerId() != null && !p.getSellerId().equals(sellerId)) {
+        if (p.getSellerId() == null || !p.getSellerId().equals(sellerId)) {
             throw new AccessDeniedException("Seller does not own this product");
         }
+    }
+
+    /** The seller account a seller-side request acts for (the store, for a team member). */
+    private Long currentSellerId() {
+        Long sid = authorizationService.getCurrentSellerId();
+        return sid != null ? sid : authorizationService.getCurrentUserId();
     }
 
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
@@ -470,7 +483,7 @@ public class ProductService {
                                  Long gstRateSelectionId) {
         Product existing = getProductById(productId);
         if (authorizationService.hasRole("SELLER")) {
-            verifySellerOwnership(productId, authorizationService.getCurrentUserId());
+            verifySellerOwnership(productId, currentSellerId());
         }
         if (hsnCode == null || hsnCode.isBlank()) {
             throw new IllegalArgumentException(
@@ -495,14 +508,25 @@ public class ProductService {
     public Product updateProduct(Long productId, Product product) {
         Product existing = getProductById(productId);
         if (authorizationService.hasRole("SELLER")) {
-            Long sellerId = authorizationService.getCurrentUserId();
+            Long sellerId = currentSellerId();
             verifySellerOwnership(productId, sellerId);
+            // Only a change is checked, so a listing made before a rule existed keeps selling.
+            if (listingEligibility != null) {
+                if (product.getCategory() != null && (existing.getCategory() == null
+                        || !Objects.equals(product.getCategory().getId(), existing.getCategory().getId()))) {
+                    listingEligibility.checkCategory(sellerId, product.getCategory());
+                }
+                if (product.getBrand() != null && !product.getBrand().equalsIgnoreCase(String.valueOf(existing.getBrand()))) {
+                    listingEligibility.checkBrand(sellerId, product.getBrand());
+                }
+            }
         }
           if (product.getName() != null) existing.setName(product.getName());
           if (product.getDescription() != null) existing.setDescription(product.getDescription());
           if (product.getPrice() != null) existing.setPrice(product.getPrice());
           if (product.getStock() != null) existing.setStock(product.getStock());
-          if (product.getSellerId() != null) existing.setSellerId(product.getSellerId());
+          // Only staff may move a product between sellers; a seller sending the field is ignored.
+          if (product.getSellerId() != null && !authorizationService.hasRole("SELLER")) existing.setSellerId(product.getSellerId());
           if (product.getSku() != null) existing.setSku(product.getSku());
           if (product.getBrand() != null) existing.setBrand(product.getBrand());
           if (product.getCategory() != null) existing.setCategory(product.getCategory());
@@ -586,7 +610,7 @@ public class ProductService {
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public boolean deleteProductCascade(Long productId) {
         if (authorizationService.hasRole("SELLER")) {
-            Long sellerId = authorizationService.getCurrentUserId();
+            Long sellerId = currentSellerId();
             verifySellerOwnership(productId, sellerId);
         }
 

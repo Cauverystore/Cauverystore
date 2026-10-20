@@ -83,6 +83,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/cart/**").hasAnyRole("CUSTOMER", "SUPER_ADMIN")
                 .requestMatchers("/api/wishlist/**").hasAnyRole("CUSTOMER")
                 .requestMatchers("/api/orders/**").authenticated()
+                // Someone invited to a seller's team is not a seller yet: they must be able to
+                // read and accept the invitation, and list the stores they can work in.
+                .requestMatchers(HttpMethod.GET, "/api/seller/team/invitations/lookup").permitAll()
+                .requestMatchers("/api/seller/team/invitations/accept", "/api/seller/team/my-stores").authenticated()
                 .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "SUPER_ADMIN")
                 .requestMatchers("/api/inventory/**").hasAnyRole("SELLER", "ADMIN", "SUPER_ADMIN", "EXECUTIVE")
                 .requestMatchers(HttpMethod.PUT, "/api/admin/products/*/approval").hasAnyRole("ADMIN", "SUPER_ADMIN")

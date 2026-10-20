@@ -42,6 +42,7 @@ class AuthServiceTest {
     @Mock private TotpService totpService;
     @Mock private OtpService otpService;
     @Mock private com.cauverystore.util.CryptoUtil cryptoUtil;
+    @Mock private com.cauverystore.repository.SellerTeamMemberRepository teamMemberRepo;
 
     @InjectMocks
     private AuthService authService;

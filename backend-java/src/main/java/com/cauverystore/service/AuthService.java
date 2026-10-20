@@ -55,6 +55,7 @@ public class AuthService {
     private final TotpService totpService;
     private final OtpService otpService;
     private final CryptoUtil cryptoUtil;
+    private final com.cauverystore.repository.SellerTeamMemberRepository teamMemberRepo;
 
     @Value("${google.client.id:}")
     private String googleClientId;
@@ -248,6 +249,11 @@ public class AuthService {
         }
         if (r == Role.SELLER) {
             return new java.util.ArrayList<>(java.util.List.of(Role.SELLER.name(), Role.CUSTOMER.name()));
+        }
+        // Someone on a seller's team can open the seller panel; which store and what they may do
+        // there is decided per request by SellerAccessService.
+        if (teamMemberRepo != null && user.getId() != null && teamMemberRepo.existsByUserIdAndStatus(user.getId(), "ACTIVE")) {
+            return new java.util.ArrayList<>(java.util.List.of(Role.CUSTOMER.name(), Role.SELLER.name()));
         }
         return java.util.List.of(Role.CUSTOMER.name());
     }

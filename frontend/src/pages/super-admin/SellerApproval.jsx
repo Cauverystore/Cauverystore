@@ -56,6 +56,54 @@ const BankNumber = ({ reg }) => {
   );
 };
 
+// Licence numbers the seller entered; shoppers see them once checked here.
+const LicenceReview = ({ sellerId }) => {
+  const [licences, setLicences] = useState([]);
+  const load = useCallback(() => {
+    if (!sellerId) return;
+    api.get("/api/admin/seller-licences", { params: { sellerId } }).then((r) => setLicences(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+  }, [sellerId]);
+  useEffect(() => { load(); }, [load]);
+
+  const review = async (l, approved) => {
+    let reason = null;
+    if (approved) {
+      if (!(await confirmAction(`Mark ${l.label} ${l.licenceNumber} as checked?
+
+It will show to customers on this seller's products.`, { confirmLabel: "Mark checked" }))) return;
+    } else {
+      reason = await promptText(`Why is ${l.label} ${l.licenceNumber} not accepted? The seller sees this.`, "", { confirmLabel: "Reject", danger: true });
+      if (reason === null) return;
+      if (!reason.trim()) { showMessage("A reason is needed."); return; }
+    }
+    try { await api.post(`/api/admin/seller-licences/${l.id}/review`, { approved, reason }); load(); }
+    catch (err) { showMessage(err.response?.data?.error || "Could not save the review"); }
+  };
+
+  if (licences.length === 0) return <p style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "1.25rem" }}>No licences entered.</p>;
+  return (
+    <div className="admin-table-wrapper" style={{ marginBottom: "1.25rem" }}>
+      <table className="admin-table">
+        <thead><tr><th>Licence</th><th>Number</th><th>Valid until</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          {licences.map((l) => (
+            <tr key={l.id}>
+              <td>{l.label}</td>
+              <td style={{ fontFamily: "monospace" }}>{l.licenceNumber}</td>
+              <td>{l.validUntil || "—"}</td>
+              <td><StatusBadge value={l.status} />{l.rejectionReason && <div style={{ fontSize: "0.75rem", color: "#b91c1c" }}>{l.rejectionReason}</div>}</td>
+              <td style={{ whiteSpace: "nowrap" }}>
+                {l.status !== "VERIFIED" && <button type="button" className="admin-btn admin-btn-sm" onClick={() => review(l, true)} style={{ marginRight: 6 }}>Mark checked</button>}
+                {l.status !== "REJECTED" && <button type="button" className="admin-btn admin-btn-sm" onClick={() => review(l, false)}>Reject</button>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 const SellerApproval = () => {
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -283,6 +331,9 @@ const SellerApproval = () => {
             </tbody>
           </table>
         </div>
+
+        <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem' }}>Licences</h2>
+        <LicenceReview sellerId={detail?.sellerId} />
 
         <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem' }}>Documents ({documents.length})</h2>
         <div className="admin-table-wrapper" style={{ marginBottom: '1.25rem' }}>

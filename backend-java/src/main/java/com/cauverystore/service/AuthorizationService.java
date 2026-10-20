@@ -26,6 +26,17 @@ public class AuthorizationService {
     private final UserRepository userRepo;
     private final ProductRepository productRepo;
     private final OrderRepository orderRepo;
+    private final SellerAccessService sellerAccess;
+
+    /**
+     * The seller account a seller-side request acts for: the seller's own id, or - for someone
+     * on a seller's team - the store they are working in. Use this, not getCurrentUserId, wherever
+     * the id is used as a seller id.
+     */
+    public Long getCurrentSellerId() {
+        Long acting = sellerAccess != null ? sellerAccess.actingSellerId() : null;
+        return acting != null ? acting : getCurrentUserId();
+    }
 
     public void requireRole(String... roles) {
         String userRole = getCurrentUserRole();
@@ -238,7 +249,7 @@ public class AuthorizationService {
     }
 
     public void verifySellerOwnership(Long productId) {
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = getCurrentSellerId();
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + productId));
         if (product.getSellerId() == null || !product.getSellerId().equals(currentUserId)) {
@@ -248,7 +259,7 @@ public class AuthorizationService {
 
     public Long resolveSellerId() {
         if (hasRole("SELLER")) {
-            return getCurrentUserId();
+            return getCurrentSellerId();
         }
         return null;
     }
@@ -257,7 +268,7 @@ public class AuthorizationService {
         if (!hasRole("SELLER")) {
             return false;
         }
-        Long currentUserId = getCurrentUserId();
+        Long currentUserId = getCurrentSellerId();
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + productId));
         return product.getSellerId() != null && product.getSellerId().equals(currentUserId);

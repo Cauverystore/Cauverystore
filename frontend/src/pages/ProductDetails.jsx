@@ -298,7 +298,15 @@ const ProductDetails = () => {
           <li>
             <Store size={18} />
             {seller
-              ? <span>Sold by <strong>{seller.name}</strong>{seller.city ? `, ${seller.city}` : ""}{seller.state && seller.state !== seller.city ? `, ${seller.state}` : ""}</span>
+              ? <span>
+                  Sold by <strong>{seller.name}</strong>{seller.city ? `, ${seller.city}` : ""}{seller.state && seller.state !== seller.city ? `, ${seller.state}` : ""}
+                  {/* Shown because the e-commerce rules and FSSAI ask for them on every listing. */}
+                  {(seller.gstin || (seller.licences || []).length > 0) && (
+                    <span style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: 2 }}>
+                      {[seller.gstin && `GSTIN ${seller.gstin}`, ...(seller.licences || []).map((l) => `${l.label} ${l.number}`)].filter(Boolean).join(" · ")}
+                    </span>
+                  )}
+                </span>
               : <span><strong>Sold by an approved seller</strong> on Cauvery Store</span>}
           </li>
         </ul>

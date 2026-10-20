@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 import SellerSidebar from "./SellerSidebar";
+import { SellerStoreProvider } from "../context/SellerStoreContext";
 import { useAuth } from "../context/AuthContext";
 import "../styles/seller-layout.css";
 
@@ -17,6 +18,7 @@ const PAGE_TITLES = [
   ["/seller/gst-invoices", "GST Invoices"],
   ["/seller/gst-compliance", "GST Compliance"],
   ["/seller/store", "Store Profile"],
+  ["/seller/team", "Team"],
   ["/seller/dashboard", "Dashboard"],
 ];
 
@@ -30,6 +32,7 @@ const SellerLayout = () => {
   const title = PAGE_TITLES.find(([path]) => pathname.startsWith(path))?.[1] || "Seller Centre";
 
   return (
+    <SellerStoreProvider>
     <div style={{ display: "flex", minHeight: "100vh", background: "#f1f5f9" }}>
       <SellerSidebar open={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
       {sidebarOpen && <div className="cd-seller-overlay" onClick={() => setSidebarOpen(false)} />}
@@ -85,6 +88,7 @@ const SellerLayout = () => {
         </main>
       </div>
     </div>
+    </SellerStoreProvider>
   );
 };
 

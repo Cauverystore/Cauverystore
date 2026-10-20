@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
+import SellerLicences from "../components/SellerLicences";
+import SellerBrands from "../components/SellerBrands";
 
 const SellerStore = () => {
   const [store, setStore] = useState(null);
@@ -120,6 +122,10 @@ const SellerStore = () => {
             </button>
           </form>
         </div>
+
+        <SellerLicences inputStyle={inputStyle} labelStyle={labelStyle} sectionStyle={sectionStyle} btnStyle={btnStyle} />
+
+        <SellerBrands inputStyle={inputStyle} labelStyle={labelStyle} sectionStyle={sectionStyle} btnStyle={btnStyle} />
 
         <div style={sectionStyle}>
           <h2 style={{ fontSize: "1.125rem", fontWeight: 700, marginBottom: "1rem" }}>Return & Shipping Policy</h2>

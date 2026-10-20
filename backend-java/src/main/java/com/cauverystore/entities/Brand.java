@@ -14,6 +14,21 @@ public class Brand extends BaseEntity {
     private String logo;
     private boolean active = true;
     private Integer sortOrder;
+    /**
+     * When true, a seller may list this brand only after the store has approved their brand
+     * application (owner, or authorised to sell it). Null on rows made before this existed,
+     * which reads as not gated.
+     */
+    @Column(name = "gated")
+    private Boolean gated = false;
+
+    public Boolean getGated() {
+        return this.gated;
+    }
+
+    public void setGated(final Boolean gated) {
+        this.gated = gated;
+    }
 
     @java.lang.SuppressWarnings("all")
     public String getName() {

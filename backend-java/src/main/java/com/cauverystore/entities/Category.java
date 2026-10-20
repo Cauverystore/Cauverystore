@@ -9,6 +9,20 @@ import jakarta.persistence.Table;
 public class Category extends BaseEntity {
     private String name;
     private String description;
+    /**
+     * A licence a seller must hold, checked and in date, to list products here - an FSSAI
+     * licence for food, say. A code from SellerLicenceService.TYPES; null means open to all.
+     */
+    @jakarta.persistence.Column(name = "required_licence", length = 30)
+    private String requiredLicence;
+
+    public String getRequiredLicence() {
+        return this.requiredLicence;
+    }
+
+    public void setRequiredLicence(final String requiredLicence) {
+        this.requiredLicence = requiredLicence;
+    }
 
     @java.lang.SuppressWarnings("all")
     public String getName() {
