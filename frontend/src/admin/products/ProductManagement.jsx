@@ -7,6 +7,7 @@ import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
 import "../../styles/admin.css";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"];
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -60,7 +61,7 @@ const ProductManagement = () => {
 
   const toggleSel = (id) => { const s = new Set(selected); s.has(id)?s.delete(id):s.add(id); setSelected(s); };
   const selectAll = () => { if(selected.size===filtered.length) setSelected(new Set()); else setSelected(new Set(filtered.map(p=>p.id))); };
-  const bulkDelete = async () => { if(selected.size===0)return; if(!window.confirm(`Delete ${selected.size} product(s)?`))return;
+  const bulkDelete = async () => { if(selected.size===0)return; if(!await confirmAction(`Delete ${selected.size} product(s)?`))return;
     try{const ep=isSeller?"/api/seller/products/bulk-delete":"/api/admin/products/bulk-delete"; await api.post(ep,{ids:Array.from(selected)}); setSelected(new Set()); setTimeout(()=>loadProducts(),300); setMsg({type:"success",text:"Deleted"});}catch(e){setMsg({type:"error",text:"Bulk delete failed"});} };
 
   const setF = (k,v) => setFilters(f=>({...f,[k]:v}));
@@ -165,7 +166,7 @@ const ProductManagement = () => {
   };
   const toggleStatus = async (id, active) => { try{await api.put("/api/admin/products/"+id+"/status",{active}); loadProducts(); }catch{}; };
   const delProduct = async (id) => {
-    if (!window.confirm(isSuperAdmin ? "Permanently delete this product? This cannot be undone." : "Delete this product?")) return;
+    if (!await confirmAction(isSuperAdmin ? "Permanently delete this product? This cannot be undone." : "Delete this product?")) return;
     try {
       const ep = isSuperAdmin ? "/api/super-admin/products/" + id : (isSeller ? "/api/seller/products/" + id : "/api/admin/products/" + id);
       const r = await api.delete(ep);

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction, showMessage } from "../../components/ConfirmDialog";
 
 const AdminNewsletter = () => {
   const [subs, setSubs] = useState([]);
   const fetch = async () => { try { setSubs((await api.get("/api/admin/newsletter")).data); } catch {} };
   useEffect(() => { fetch(); }, []);
-  const handleDelete = async (id, email) => { if (!window.confirm(`Unsubscribe ${email}?`)) return; try { await api.delete(`/api/admin/newsletter/${id}`); fetch(); } catch { alert("Failed"); } };
+  const handleDelete = async (id, email) => { if (!await confirmAction(`Unsubscribe ${email}?`)) return; try { await api.delete(`/api/admin/newsletter/${id}`); fetch(); } catch { showMessage("Failed"); } };
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.5rem" }}>

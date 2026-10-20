@@ -3,6 +3,7 @@ import { Store, ChevronLeft, Check, X, FileText, ShieldCheck, Ban, RotateCcw } f
 import api from "../../utils/axios";
 import { useToast } from "../../admin/context/ToastContext";
 import WindDownStatus from "../../components/WindDownStatus";
+import { confirmAction, promptText } from "../../components/ConfirmDialog";
 
 const StatusBadge = ({ value }) => (
   <span className={`admin-badge ${value === "VERIFIED" || value === "APPROVED" || value === "ACTIVE" ? "active" : value === "FAILED" || value === "REJECTED" || value === "SUSPENDED" ? "danger" : "inactive"}`}>
@@ -113,7 +114,7 @@ const SellerApproval = () => {
   const handleSuspend = async (registrationId) => {
     // Suspension is a wind-down, not a lockout: the listings come down so nothing new arrives,
     // but orders already placed still have to be fulfilled, so the seller keeps access for that.
-    const reason = window.prompt(
+    const reason = await promptText(
       "Suspend this seller?\n\n"
       + "Their listings come off sale at once, so no new orders can arrive. Orders already "
       + "placed still have to be fulfilled, and they keep access to do that.\n\n"
@@ -137,7 +138,7 @@ const SellerApproval = () => {
   };
 
   const handleReinstate = async (registrationId) => {
-    if (!window.confirm("Lift this suspension? The listings it took down go back on sale.")) return;
+    if (!await confirmAction("Lift this suspension? The listings it took down go back on sale.")) return;
     setActioning(registrationId);
     try {
       const res = await api.post(

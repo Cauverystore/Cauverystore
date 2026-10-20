@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
-import { useConfirm } from "../components/ConfirmDialog";
+import { useConfirm, showMessage } from "../components/ConfirmDialog";
 
 const PaymentMethods = () => {
   const confirm = useConfirm();
@@ -11,10 +11,10 @@ const PaymentMethods = () => {
   useEffect(() => { fetch(); }, []);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try { await api.post("/api/payment-methods", form); setShowForm(false); setForm({ type:"credit_card", maskedNumber:"", expiry:"", cardholderName:"", upiId:"", bankName:"", isDefault:false }); fetch(); } catch { alert("Failed"); }
+    try { await api.post("/api/payment-methods", form); setShowForm(false); setForm({ type:"credit_card", maskedNumber:"", expiry:"", cardholderName:"", upiId:"", bankName:"", isDefault:false }); fetch(); } catch { showMessage("Failed"); }
   };
-  const handleDelete = async (id) => { if (!(await confirm({ title: "Remove this payment method?", message: "You can add it again later.", confirmLabel: "Remove", cancelLabel: "Keep it", danger: true }))) return; try { await api.delete(`/api/payment-methods/${id}`); fetch(); } catch { alert("Failed"); } };
-  const handleSetDefault = async (id) => { try { await api.put(`/api/payment-methods/${id}/default`); fetch(); } catch { alert("Failed"); } };
+  const handleDelete = async (id) => { if (!(await confirm({ title: "Remove this payment method?", message: "You can add it again later.", confirmLabel: "Remove", cancelLabel: "Keep it", danger: true }))) return; try { await api.delete(`/api/payment-methods/${id}`); fetch(); } catch { showMessage("Failed"); } };
+  const handleSetDefault = async (id) => { try { await api.put(`/api/payment-methods/${id}/default`); fetch(); } catch { showMessage("Failed"); } };
   const inp = { padding:"0.5rem 0.6rem", border:"1px solid #d1d5db", borderRadius:6, fontSize:"0.85rem", width:"100%", boxSizing:"border-box" };
   return (
     <div style={{ padding:"1.5rem", maxWidth:"800px", margin:"0 auto" }}>

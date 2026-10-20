@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction, showMessage } from "../../components/ConfirmDialog";
 const emptyFaq = { question:"", answer:"", category:"general", sortOrder:0, active:true };
 const AdminFaq = () => {
   const [faqs, setFaqs] = useState([]);
@@ -10,9 +11,9 @@ const AdminFaq = () => {
   useEffect(() => { fetchFaqs(); }, []);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try { if (editing) { await api.put(`/api/admin/faqs/${editing}`, { ...form, sortOrder: parseInt(form.sortOrder) }); } else { await api.post("/api/admin/faqs", { ...form, sortOrder: parseInt(form.sortOrder) }); } setShowForm(false); setEditing(null); setForm(emptyFaq); fetchFaqs(); } catch { alert("Failed"); }
+    try { if (editing) { await api.put(`/api/admin/faqs/${editing}`, { ...form, sortOrder: parseInt(form.sortOrder) }); } else { await api.post("/api/admin/faqs", { ...form, sortOrder: parseInt(form.sortOrder) }); } setShowForm(false); setEditing(null); setForm(emptyFaq); fetchFaqs(); } catch { showMessage("Failed"); }
   };
-  const handleDelete = async (id) => { if (!window.confirm("Delete this FAQ?")) return; try { await api.delete(`/api/admin/faqs/${id}`); fetchFaqs(); } catch { alert("Failed"); } };
+  const handleDelete = async (id) => { if (!await confirmAction("Delete this FAQ?")) return; try { await api.delete(`/api/admin/faqs/${id}`); fetchFaqs(); } catch { showMessage("Failed"); } };
   const handleEdit = (f) => { setForm({ question:f.question||"", answer:f.answer||"", category:f.category||"general", sortOrder:f.sortOrder||0, active:f.active }); setEditing(f.id); setShowForm(true); };
   const inp = { padding:"0.5rem 0.6rem", border:"1px solid #d1d5db", borderRadius:6, fontSize:"0.85rem", width:"100%", boxSizing:"border-box" };
   return (

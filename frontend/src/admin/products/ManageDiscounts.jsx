@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../api/axios";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const ManageDiscounts = () => {
   const { id } = useParams();
@@ -25,7 +26,7 @@ const ManageDiscounts = () => {
       setForm({ percentage: "", startDate: "", endDate: "" });
       const res = await api.get(`/api/admin/products/${id}/discounts`);
       setDiscounts(res.data || []);
-    } catch (err) { alert("Failed to add discount"); }
+    } catch (err) { showMessage("Failed to add discount"); }
   };
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { imgUrl } from "../../utils/images";
 import { compressImages } from "../../utils/compressImage";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const ManageImages = () => {
   const { id } = useParams();
@@ -64,7 +65,7 @@ const ManageImages = () => {
   };
 
   const handleDelete = async (imageId, url) => {
-    if (!window.confirm("Delete this image?")) return;
+    if (!await confirmAction("Delete this image?")) return;
     try {
       await api.delete(`/api/admin/products/${id}/images/${imageId}`);
       await loadImages();

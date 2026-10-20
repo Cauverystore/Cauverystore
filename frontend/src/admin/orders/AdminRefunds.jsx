@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
 import Pagination from "../../components/Pagination";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const AdminRefunds = () => {
   const [refunds, setRefunds] = useState([]);
@@ -32,7 +33,7 @@ const AdminRefunds = () => {
       const all = Array.isArray(res.data) ? res.data : res.data.content || [];
       setTotalPages(Math.max(1, Math.ceil(all.length / PAGE_SIZE)));
       setRefunds(all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
-    } catch (err) { alert("Failed to process"); }
+    } catch (err) { showMessage("Failed to process"); }
   };
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;

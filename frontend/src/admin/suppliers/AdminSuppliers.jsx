@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const styles = {
   container: { padding: "24px" },
@@ -101,7 +102,7 @@ export default function AdminSuppliers() {
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete supplier "${name}"?`)) return;
+    if (!await confirmAction(`Are you sure you want to delete supplier "${name}"?`)) return;
     try {
       setError(null);
       setMessage(null);

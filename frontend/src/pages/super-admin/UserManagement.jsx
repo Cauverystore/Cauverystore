@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, AlertTriangle, Edit, RefreshCw, Key, ShieldOff, Shield, Trash2, Lock, Unlock, Copy } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../admin/context/ToastContext';
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const TABS = [
   { key: 'SUPER_ADMIN', label: 'SuperAdmin' },
@@ -128,7 +129,7 @@ const UserManagement = () => {
   };
 
   const handleSuspend = async (user) => {
-    if (!window.confirm(`Suspend ${user.fullName || user.name || user.email} (${user.role})? They will lose all access until revoked.`)) return;
+    if (!await confirmAction(`Suspend ${user.fullName || user.name || user.email} (${user.role})? They will lose all access until revoked.`)) return;
     try {
       await api.post(`/api/super-admin/users/${user._id || user.id}/suspend`);
       showToast(`${user.fullName || user.email} suspended successfully`, 'success');
@@ -139,7 +140,7 @@ const UserManagement = () => {
   };
 
   const handleRevoke = async (user) => {
-    if (!window.confirm(`Revoke suspension for ${user.fullName || user.name || user.email}? They will regain full access.`)) return;
+    if (!await confirmAction(`Revoke suspension for ${user.fullName || user.name || user.email}? They will regain full access.`)) return;
     try {
       await api.post(`/api/super-admin/users/${user._id || user.id}/revoke`);
       showToast(`${user.fullName || user.email} restored successfully`, 'success');
@@ -151,7 +152,7 @@ const UserManagement = () => {
 
   const handleDelete = async (user) => {
     const roleLabel = TABS.find(t => t.key === activeTab)?.label || 'user';
-    if (!window.confirm(`Are you sure you want to delete this ${roleLabel.toLowerCase()}?`)) return;
+    if (!await confirmAction(`Are you sure you want to delete this ${roleLabel.toLowerCase()}?`)) return;
     try {
       await api.post(`/api/super-admin/users/${user._id || user.id}/delete`);
       showToast(`${user.fullName || user.email} deleted successfully`, 'success');

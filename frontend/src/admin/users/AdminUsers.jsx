@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Users, ShieldOff, Shield } from "lucide-react";
 import api from "../../utils/axios";
 import WindDownStatus from "../../components/WindDownStatus";
+import { confirmAction, showMessage, promptText } from "../../components/ConfirmDialog";
 
 const ROLES = ['CUSTOMER', 'SELLER', 'EXECUTIVE', 'ADMIN'];
 const CREATABLE_ROLES = ['SELLER', 'CUSTOMER'];
@@ -70,42 +71,42 @@ const AdminUsers = () => {
     try {
       await api.put(`/api/admin/users/${id}/role?role=${role}`);
       fetchUsers(page);
-    } catch { alert('Failed to change role'); }
+    } catch { showMessage('Failed to change role'); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this user?')) return;
+    if (!await confirmAction('Delete this user?')) return;
     try {
       await api.delete(`/api/admin/users/${id}`);
       fetchUsers(page);
-    } catch { alert('Failed to delete user'); }
+    } catch { showMessage('Failed to delete user'); }
   };
 
   const handleSuspend = async (id, name) => {
     // The reason is emailed to the person, so it is written for them rather than kept as an
     // internal note. Suspension is a wind-down, not a lockout - saying so matters, because an
     // admin who thinks this removes somebody instantly will reach for it in the wrong situation.
-    const reason = window.prompt(
+    const reason = await promptText(
       `Suspend ${name}?\n\nThey cannot place new orders. Orders they already have run to `
       + `completion, including the return window, and they stay able to sign in for that.\n\n`
       + `Reason (sent to them):`
     );
     if (reason === null) return;
-    if (!reason.trim()) { alert('A suspension needs a reason'); return; }
+    if (!reason.trim()) { showMessage('A suspension needs a reason'); return; }
     try {
       await api.post(`/api/admin/users/${id}/suspend`, { reason: reason.trim() });
-      alert(`${name} suspended successfully`);
+      showMessage(`${name} suspended successfully`);
       fetchUsers(page);
-    } catch (err) { alert(err.response?.data?.message || err.response?.data?.error || 'Failed to suspend user'); }
+    } catch (err) { showMessage(err.response?.data?.message || err.response?.data?.error || 'Failed to suspend user'); }
   };
 
   const handleRevoke = async (id, name) => {
-    if (!window.confirm(`Revoke suspension for ${name}? They will regain full access.`)) return;
+    if (!await confirmAction(`Revoke suspension for ${name}? They will regain full access.`)) return;
     try {
       await api.post(`/api/admin/users/${id}/revoke`);
-      alert(`${name} restored successfully`);
+      showMessage(`${name} restored successfully`);
       fetchUsers(page);
-    } catch (err) { alert(err.response?.data?.message || 'Failed to revoke suspension'); }
+    } catch (err) { showMessage(err.response?.data?.message || 'Failed to revoke suspension'); }
   };
 
   const handleCreate = async (e) => {

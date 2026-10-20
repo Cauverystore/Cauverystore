@@ -66,7 +66,7 @@
   padding: 1.5rem;
 }
 .cs-confirm-box h2 { margin: 0 0 0.5rem; font-size: 1.1rem; color: var(--color-text-primary, #111827); }
-.cs-confirm-box p { margin: 0 0 1.25rem; color: var(--color-text-secondary, #4b5563); font-size: 0.95rem; line-height: 1.5; }
+.cs-confirm-box p { white-space: pre-line; margin: 0 0 1.25rem; color: var(--color-text-secondary, #4b5563); font-size: 0.95rem; line-height: 1.5; }
 
 .cs-copy-btn {
   display: inline-flex;
@@ -103,3 +103,15 @@
   h1, h2, h3 { page-break-after: avoid; }
   * { box-shadow: none !important; }
 }
+
+.cs-confirm-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: -0.5rem 0 1.25rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border-dark, #d1d5db);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+.cs-confirm-input:focus { outline: none; border-color: var(--color-primary, #0E5C5C); box-shadow: var(--shadow-focus, 0 0 0 3px rgba(14, 92, 92, 0.2)); }

@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const AdminQna = () => {
   const [qnas, setQnas] = useState([]);
@@ -12,7 +13,7 @@ const AdminQna = () => {
   }, []);
 
   const handleAnswer = async (qnaId) => {
-    try { await api.put(`/api/admin/qna/${qnaId}/answer`, { answer: answerText[qnaId] }); setAnswerText({ ...answerText, [qnaId]: "" }); const res = await api.get("/api/admin/qna"); setQnas(res.data || []); } catch (err) { alert("Failed to submit answer"); }
+    try { await api.put(`/api/admin/qna/${qnaId}/answer`, { answer: answerText[qnaId] }); setAnswerText({ ...answerText, [qnaId]: "" }); const res = await api.get("/api/admin/qna"); setQnas(res.data || []); } catch (err) { showMessage("Failed to submit answer"); }
   };
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;

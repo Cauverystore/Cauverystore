@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { variantLabel } from "../utils/variant";
 import api from "../api/axios";
+import { showMessage } from "../components/ConfirmDialog";
 
 const statusColors = {
   PLACED: "#3b82f6",
@@ -36,7 +37,7 @@ const SellerOrders = () => {
     try {
       await api.put(`/api/seller/orders/${orderId}/status`, { status: newStatus });
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    } catch { alert("Failed to update status"); }
+    } catch { showMessage("Failed to update status"); }
   };
 
   const UNLABELABLE_STATUSES = ["CANCELLED", "REFUNDED", "RETURNED"];
@@ -56,7 +57,7 @@ const SellerOrders = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch { alert("Failed to download shipping label"); }
+    } catch { showMessage("Failed to download shipping label"); }
   };
 
   const printLabel = async (orderId) => {
@@ -66,19 +67,19 @@ const SellerOrders = () => {
       if (printWindow) {
         printWindow.addEventListener("load", () => printWindow.print());
       }
-    } catch { alert("Failed to print shipping label"); }
+    } catch { showMessage("Failed to print shipping label"); }
   };
 
   const assignCourier = async (order) => {
     const courier = prompt("Courier name:", order.courier || "");
     if (courier === null) return;
-    if (!courier.trim()) { alert("Courier name is required"); return; }
+    if (!courier.trim()) { showMessage("Courier name is required"); return; }
     const trackingNumber = prompt("Tracking / AWB number (optional):", order.trackingNumber || "");
     if (trackingNumber === null) return;
     try {
       await api.put(`/api/seller/orders/${order.id}/courier`, { courier, trackingNumber });
       setOrders(prev => prev.map(o => o.id === order.id ? { ...o, courier, trackingNumber } : o));
-    } catch (e) { alert(e.response?.data?.error || "Failed to assign courier"); }
+    } catch (e) { showMessage(e.response?.data?.error || "Failed to assign courier"); }
   };
 
   const handleReturnAction = async (returnId, status) => {
@@ -86,7 +87,7 @@ const SellerOrders = () => {
     try {
       await api.put(`/api/seller/returns/${returnId}/status`, { status, adminNote: note });
       setReturns(prev => prev.map(r => r.id === returnId ? { ...r, status } : r));
-    } catch { alert("Failed to update return"); }
+    } catch { showMessage("Failed to update return"); }
   };
 
   const getNextStatus = (status) => {

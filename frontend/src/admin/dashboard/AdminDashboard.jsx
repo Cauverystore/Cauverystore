@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Package, Users, Key, ClipboardList, CreditCard, Tags, BarChart3, HelpCircle, PlusCircle, ShieldCheck, PackageX, Store } from "lucide-react";
 import api from "../../api/axios";
 import "../../styles/adminDashboard.css";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const quickActions = [
   { to: "/admin/products", label: "Product Management", icon: Package, desc: "Add, edit, manage products", color: "#2563eb" },
@@ -50,7 +51,7 @@ const AdminDashboard = () => {
       await api.put(`/api/admin/users/${id}/role?role=${role}`);
       const r = await api.get("/api/admin/users");
       setUsers(Array.isArray(r.data) ? r.data.slice(0, 8) : []);
-    } catch { alert("Failed to update role"); }
+    } catch { showMessage("Failed to update role"); }
   };
 
   const statCards = stats ? [

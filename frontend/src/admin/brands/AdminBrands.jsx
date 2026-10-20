@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction, showMessage } from "../../components/ConfirmDialog";
 
 const emptyBrand = { name:"", description:"", logo:"", active:true, sortOrder:0 };
 
@@ -21,12 +22,12 @@ const AdminBrands = () => {
       if (editing) { await api.put(`/api/admin/brands/${editing}`, { ...form, sortOrder: parseInt(form.sortOrder) }); }
       else { await api.post("/api/admin/brands", { ...form, sortOrder: parseInt(form.sortOrder) }); }
       setShowForm(false); setEditing(null); setForm(emptyBrand); fetchBrands();
-    } catch { alert("Failed"); }
+    } catch { showMessage("Failed"); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this brand?")) return;
-    try { await api.delete(`/api/admin/brands/${id}`); fetchBrands(); } catch { alert("Failed"); }
+    if (!await confirmAction("Delete this brand?")) return;
+    try { await api.delete(`/api/admin/brands/${id}`); fetchBrands(); } catch { showMessage("Failed"); }
   };
 
   const handleEdit = (b) => {

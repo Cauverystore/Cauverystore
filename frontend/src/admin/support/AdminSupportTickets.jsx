@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const AdminSupportTickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -8,8 +9,8 @@ const AdminSupportTickets = () => {
     try { const url = filter === "ALL" ? "/api/admin/support-tickets" : `/api/admin/support-tickets/status/${filter}`; setTickets((await api.get(url)).data); } catch {}
   };
   useEffect(() => { fetchTickets(); }, [filter]);
-  const handleStatus = async (id, status) => { try { await api.put(`/api/admin/support-tickets/${id}/status`, { status }); fetchTickets(); } catch { alert("Failed"); } };
-  const handleAssign = async (id) => { try { await api.put(`/api/admin/support-tickets/${id}/assign`); fetchTickets(); } catch { alert("Failed"); } };
+  const handleStatus = async (id, status) => { try { await api.put(`/api/admin/support-tickets/${id}/status`, { status }); fetchTickets(); } catch { showMessage("Failed"); } };
+  const handleAssign = async (id) => { try { await api.put(`/api/admin/support-tickets/${id}/assign`); fetchTickets(); } catch { showMessage("Failed"); } };
   const statusColors = { OPEN:"#f59e0b", IN_PROGRESS:"#3b82f6", RESOLVED:"#16a34a", CLOSED:"#6b7280" };
   return (
     <div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
 import Pagination from "../../components/Pagination";
+import { showMessage } from "../../components/ConfirmDialog";
 
 const AdminCustomers = () => {
   const [customers, setCustomers] = useState([]);
@@ -35,14 +36,14 @@ const AdminCustomers = () => {
       else await api.put(`/api/admin/users/${id}/block`);
       const r = await api.get("/api/admin/users");
       setCustomers(Array.isArray(r.data) ? r.data : []);
-    } catch { alert("Failed"); }
+    } catch { showMessage("Failed"); }
   };
 
   const handleRole = async (id, role) => {
     try { await api.put(`/api/admin/users/${id}/role?role=${role}`);
       const r = await api.get("/api/admin/users");
       setCustomers(Array.isArray(r.data) ? r.data : []);
-    } catch { alert("Failed"); }
+    } catch { showMessage("Failed"); }
   };
 
   const totalPages = Math.ceil(filtered.length / pageSize);
