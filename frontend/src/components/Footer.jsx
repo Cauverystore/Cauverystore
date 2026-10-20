@@ -43,11 +43,15 @@ const Footer = () => {
             flex: 1, padding: "0.6rem 1rem", border: "none", borderRadius: "999px",
             fontSize: "0.85rem", outline: "none"
           }} />
+          {/* White on the teal band: a teal button would vanish into it. */}
           <button type="submit" style={{
-            padding: "0.6rem 1.25rem", background: "#C8A24B", color: "#fff",
-            border: "none", borderRadius: "999px", fontWeight: 600, fontSize: "0.85rem",
-            cursor: "pointer", whiteSpace: "nowrap"
-          }}>Subscribe</button>
+            padding: "0.6rem 1.25rem", background: "#fff", color: "var(--color-primary, #0E5C5C)",
+            border: "1px solid #fff", borderRadius: "999px", fontWeight: 600, fontSize: "0.85rem",
+            cursor: "pointer", whiteSpace: "nowrap", transition: "background 0.2s"
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary-lighter, #f0fdfa)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
+          >Subscribe</button>
         </form>
       </div>
     </section>
