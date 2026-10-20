@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ExternalLink, Eye, FileMinus, BarChart3, FileSpreadsheet, FileJson } from "lucide-react";
 import api from "../api/axios";
+import { promptText } from "../components/ConfirmDialog";
 
 const GST_DASHBOARD_STYLES = `
   .gst-page { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
@@ -235,7 +236,7 @@ const GstInvoices = () => {
 
   const handleSyncInvoice = async (id) => {
     try {
-      const irn = prompt("Enter IRN (Invoice Reference Number):");
+      const irn = await promptText("Enter IRN (Invoice Reference Number):");
       if (!irn) return;
       await api.post(`/api/gst/invoice/${id}/sync`, { irn, qrCode: "", ackNo: "", ackDate: "" });
       fetchInvoices();

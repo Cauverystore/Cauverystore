@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { variantLabel } from "../utils/variant";
 import api from "../api/axios";
-import { showMessage } from "../components/ConfirmDialog";
+import { showMessage, promptText } from "../components/ConfirmDialog";
 
 const statusColors = {
   PLACED: "#3b82f6",
@@ -71,10 +71,10 @@ const SellerOrders = () => {
   };
 
   const assignCourier = async (order) => {
-    const courier = prompt("Courier name:", order.courier || "");
+    const courier = await promptText("Courier name:", order.courier || "");
     if (courier === null) return;
     if (!courier.trim()) { showMessage("Courier name is required"); return; }
-    const trackingNumber = prompt("Tracking / AWB number (optional):", order.trackingNumber || "");
+    const trackingNumber = await promptText("Tracking / AWB number (optional):", order.trackingNumber || "");
     if (trackingNumber === null) return;
     try {
       await api.put(`/api/seller/orders/${order.id}/courier`, { courier, trackingNumber });
@@ -83,7 +83,7 @@ const SellerOrders = () => {
   };
 
   const handleReturnAction = async (returnId, status) => {
-    const note = prompt("Admin note (optional):") || "";
+    const note = (await promptText("Note (optional):")) ?? "";
     try {
       await api.put(`/api/seller/returns/${returnId}/status`, { status, adminNote: note });
       setReturns(prev => prev.map(r => r.id === returnId ? { ...r, status } : r));
