@@ -6,6 +6,7 @@ import com.cauverystore.repository.ProductRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.entities.ProductQuestion;
 import com.cauverystore.entities.ProductAnswer;
+import com.cauverystore.service.AuthorizationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,9 +20,12 @@ public class ProductQnaController {
     private final ProductAnswerRepository aRepo;
     private final ProductRepository pRepo;
     private final UserRepository uRepo;
+    private final AuthorizationService authorizationService;
 
-    public ProductQnaController(ProductQuestionRepository qr, ProductAnswerRepository ar, ProductRepository pr, UserRepository ur) {
+    public ProductQnaController(ProductQuestionRepository qr, ProductAnswerRepository ar, ProductRepository pr, UserRepository ur,
+                                AuthorizationService authorizationService) {
         this.qRepo = qr; this.aRepo = ar; this.pRepo = pr; this.uRepo = ur;
+        this.authorizationService = authorizationService;
     }
 
     @GetMapping("/api/products/{productId}/questions")
@@ -49,17 +53,26 @@ public class ProductQnaController {
     public ResponseEntity<?> answerQuestion(@PathVariable Long questionId, @RequestBody Map<String,String> body) {
         var q = qRepo.findById(questionId).orElse(null);
         if(q==null) return ResponseEntity.badRequest().body(Map.of("error","Not found"));
+        // A seller answers questions about their own listings, not about anyone else's.
+        if (authorizationService.hasRole("SELLER")) {
+            Long sellerId = authorizationService.getCurrentUserId();
+            Long owner = q.getProduct() != null ? q.getProduct().getSellerId() : null;
+            if (owner == null || !owner.equals(sellerId)) {
+                return ResponseEntity.status(403).body(Map.of("error","You can only answer questions about your own products."));
+            }
+        }
         var user = uRepo.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
         ProductAnswer a = new ProductAnswer(); a.setAnswer(body.get("answer")); a.setQuestion(q); a.setUser(user);
         aRepo.save(a);
         return ResponseEntity.ok(Map.of("id",a.getId(),"answer",a.getAnswer()));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
+    // Removing what customers asked or answered is the marketplace's call, not the seller's.
+    @PreAuthorize("hasAnyRole('ADMIN', 'EXECUTIVE', 'SUPER_ADMIN')")
     @DeleteMapping("/api/admin/questions/{id}")
     public ResponseEntity<?> deleteQ(@PathVariable Long id) { qRepo.deleteById(id); return ResponseEntity.ok(Map.of("message","Deleted")); }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EXECUTIVE', 'SUPER_ADMIN')")
     @DeleteMapping("/api/admin/answers/{id}")
     public ResponseEntity<?> deleteA(@PathVariable Long id) { aRepo.deleteById(id); return ResponseEntity.ok(Map.of("message","Deleted")); }
 

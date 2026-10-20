@@ -1,45 +1,79 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
 
+const METHOD_LABELS = { BANK_TRANSFER: "Bank transfer", UPI: "UPI", OTHER: "Other" };
+const rupees = (n) => "₹" + Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const dateText = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");
+const cell = { padding: "12px", textAlign: "left", verticalAlign: "top" };
+
 const SellerPayouts = () => {
   const [payouts, setPayouts] = useState([]);
+  const [totalPaid, setTotalPaid] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     api.get("/api/seller/payouts")
-      .then(r => setPayouts(Array.isArray(r.data) ? r.data : []))
-      .catch(() => {})
+      .then((r) => {
+        setPayouts(Array.isArray(r.data?.payouts) ? r.data.payouts : []);
+        setTotalPaid(Number(r.data?.totalPaid || 0));
+      })
+      .catch((e) => setError(e.response?.data?.error || "Your payouts could not be loaded. Please try again later."))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="page-loader"><div>Loading payouts...</div></div>;
 
   return (
-    <div style={{padding:"2rem"}}>
-      <h1 style={{fontSize:"1.5rem",fontWeight:700,marginBottom:"1rem"}}>Payouts</h1>
-      {payouts.length === 0 ? (
-        <div style={{textAlign:"center",padding:"3rem",color:"var(--sn-text-secondary)"}}>
-          <p>No payouts yet.</p>
-        </div>
+    <div style={{ padding: "2rem" }}>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>Payouts</h1>
+      <p style={{ color: "var(--sn-text-secondary)", margin: "0 0 1.5rem", fontSize: "0.9rem" }}>
+        Payments Cauvery Store has sent to your bank account. Match each one to your bank statement using the reference.
+      </p>
+
+      {error ? (
+        <p style={{ color: "#dc2626" }}>{error}</p>
       ) : (
-        <table className="sn-data-table" style={{width:"100%",borderCollapse:"collapse"}}>
-          <thead><tr style={{background:"#f8f8f8"}}>
-            <th style={{padding:"12px",textAlign:"left"}}>Date</th>
-            <th style={{padding:"12px",textAlign:"left"}}>Amount</th>
-            <th style={{padding:"12px",textAlign:"left"}}>Status</th>
-            <th style={{padding:"12px",textAlign:"left"}}>Reference</th>
-          </tr></thead>
-          <tbody>
-            {payouts.map(p => (
-              <tr key={p.id} style={{borderBottom:"1px solid var(--sn-border)"}}>
-                <td style={{padding:"12px"}}>{p.date || p.createdAt ? new Date(p.date||p.createdAt).toLocaleDateString() : "N/A"}</td>
-                <td style={{padding:"12px"}}>₹{p.amount?.toLocaleString?.() || "0"}</td>
-                <td style={{padding:"12px"}}><span className={`status-badge ${p.status?.toLowerCase()}`}>{p.status || "PENDING"}</span></td>
-                <td style={{padding:"12px"}}>{p.reference || "N/A"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <div style={{ display: "inline-block", background: "#fff", border: "1px solid var(--sn-border, #e5e7eb)", borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+            <div style={{ fontSize: "0.8rem", color: "var(--sn-text-secondary)" }}>Total paid to you</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>{rupees(totalPaid)}</div>
+          </div>
+
+          {payouts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "3rem", color: "var(--sn-text-secondary)" }}>
+              <p>No payouts yet. Payments appear here once they have been sent.</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table className="sn-data-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr style={{ background: "#f8f8f8" }}>
+                  <th style={cell}>Date sent</th>
+                  <th style={cell}>Amount</th>
+                  <th style={cell}>Reference</th>
+                  <th style={cell}>Method</th>
+                  <th style={cell}>Sales period</th>
+                  <th style={cell}>Note</th>
+                </tr></thead>
+                <tbody>
+                  {payouts.map((p) => (
+                    <tr key={p.id} style={{ borderBottom: "1px solid var(--sn-border)", color: p.voided ? "#9ca3af" : "inherit" }}>
+                      <td style={cell}>{dateText(p.paidOn)}</td>
+                      <td style={{ ...cell, fontWeight: 600 }}>
+                        <span style={{ textDecoration: p.voided ? "line-through" : "none" }}>{rupees(p.amount)}</span>
+                        {p.voided && <div style={{ fontSize: "0.75rem", fontWeight: 500 }}>Cancelled entry: {p.voidReason}</div>}
+                      </td>
+                      <td style={cell}>{p.reference}</td>
+                      <td style={cell}>{METHOD_LABELS[p.method] || p.method}</td>
+                      <td style={cell}>{p.periodFrom || p.periodTo ? `${dateText(p.periodFrom)} to ${dateText(p.periodTo)}` : "—"}</td>
+                      <td style={cell}>{p.note || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

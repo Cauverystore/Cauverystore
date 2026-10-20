@@ -48,15 +48,14 @@ public class ProductReviewController {
         return ResponseEntity.ok(result);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SELLER', 'EXECUTIVE', 'SUPER_ADMIN')")
+    // Staff only. A seller removing reviews of their own products would leave buyers reading only
+    // the good ones; a seller who thinks a review breaks the rules reports it to the marketplace.
+    @PreAuthorize("hasAnyRole('ADMIN', 'EXECUTIVE', 'SUPER_ADMIN')")
     @DeleteMapping("/api/admin/products/{productId}/reviews/{reviewId}")
     public ResponseEntity<?> deleteReview(@PathVariable Long productId, @PathVariable Long reviewId) {
         ProductReview review = reviewRepo.findById(reviewId).orElse(null);
         if (review == null || review.getProduct() == null || !review.getProduct().getId().equals(productId)) {
             return ResponseEntity.badRequest().body(Map.of("error","Review not found"));
-        }
-        if (authorizationService.hasRole("SELLER")) {
-            productService.checkSellerOwnership(productId, authorizationService.getCurrentUserId());
         }
         reviewRepo.deleteById(reviewId);
         return ResponseEntity.ok(Map.of("message","Review deleted"));

@@ -1,7 +1,9 @@
 package com.cauverystore.controller;
 
+import com.cauverystore.entities.SellerPayout;
 import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.repository.GstConfigurationRepository;
+import com.cauverystore.repository.SellerPayoutRepository;
 import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.UserRepository;
 import com.cauverystore.service.ProductService;
@@ -30,17 +32,20 @@ public class SellerController {
     private final GstConfigurationRepository gstConfigRepo;
     private final SellerRegistrationRepository sellerRegRepo;
     private final ShippingLabelService shippingLabelService;
+    private final SellerPayoutRepository payoutRepo;
 
     public SellerController(SellerService sellerService, ProductService productService, UserRepository userRepo,
                             GstConfigurationRepository gstConfigRepo,
                             SellerRegistrationRepository sellerRegRepo,
-                            ShippingLabelService shippingLabelService) {
+                            ShippingLabelService shippingLabelService,
+                            SellerPayoutRepository payoutRepo) {
         this.sellerService = sellerService;
         this.productService = productService;
         this.userRepo = userRepo;
         this.gstConfigRepo = gstConfigRepo;
         this.sellerRegRepo = sellerRegRepo;
         this.shippingLabelService = shippingLabelService;
+        this.payoutRepo = payoutRepo;
     }
 
     private Long getCurrentSellerId() {
@@ -266,6 +271,28 @@ public class SellerController {
         Long sellerId = getCurrentSellerId();
         if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
         return ResponseEntity.ok(sellerService.getAnalytics(sellerId));
+    }
+
+    /**
+     * Payments the marketplace has made to this seller. Voided entries stay in the list, marked,
+     * so a figure the seller saw earlier never just disappears; they do not count in the total.
+     */
+    @GetMapping("/payouts")
+    public ResponseEntity<?> getPayouts() {
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        List<Map<String, Object>> payouts = new java.util.ArrayList<>();
+        double totalPaid = 0;
+        for (SellerPayout p : payoutRepo.findBySellerIdOrderByPaidOnDescIdDesc(sellerId)) {
+            Map<String, Object> m = AdminSellerPayoutController.toMap(p);
+            m.remove("recordedBy");
+            payouts.add(m);
+            if (!Boolean.TRUE.equals(p.getVoided())) totalPaid += p.getAmount();
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("payouts", payouts);
+        out.put("totalPaid", Math.round(totalPaid * 100.0) / 100.0);
+        return ResponseEntity.ok(out);
     }
 
     @GetMapping("/store")
