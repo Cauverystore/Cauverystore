@@ -8,7 +8,7 @@ import {
   ShoppingCart, CreditCard, Users, ClipboardList, Ticket, Ship, Percent,
   Star, HelpCircle, FileEdit, Bell, FileSpreadsheet, FolderArchive,
   Image, Mail, Trophy, ArrowUpDown, ShieldCheck, Settings, Shield,
-  BookOpen, MapPin,
+  BookOpen, MapPin, Wallet,
 } from "lucide-react";
 
 const allLinks = [
@@ -26,6 +26,7 @@ const allLinks = [
   { to: "/admin/bulk-operations", label: "Bulk Operations", icon: Zap, module: "bulkOperations" },
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart, module: "orders" },
   { to: "/admin/refunds", label: "Refunds", icon: CreditCard, module: "refunds" },
+  { to: "/admin/seller-payouts", label: "Seller Payouts", icon: Wallet, module: "sellerPayouts" },
   { to: "/admin/customers", label: "Customers", icon: Users, module: "customers" },
   { to: "/admin/addresses", label: "Addresses", icon: MapPin, module: "addresses" },
   { to: "/admin/inventory", label: "Inventory", icon: ClipboardList, module: "inventory" },

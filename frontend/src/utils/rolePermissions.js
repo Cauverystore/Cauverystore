@@ -50,6 +50,8 @@ export function canAccessModule(role, module) {
     addresses: ['ADMIN', 'SUPER_ADMIN'],
     orders: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     refunds: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
+    // Matches the backend: recording money sent to sellers is for admins only.
+    sellerPayouts: ['ADMIN', 'SUPER_ADMIN'],
     returns: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     inventory: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     products: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
