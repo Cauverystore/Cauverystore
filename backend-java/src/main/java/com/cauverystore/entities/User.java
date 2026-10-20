@@ -72,6 +72,8 @@ public class User extends BaseEntity {
     /** Why the account was stopped. Shown to the person it happened to, so it is written for them. */
     @Column(length = 500)
     private String suspensionReason;
+    // Never sent to the browser: anyone holding it can generate this user's sign-in codes.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String mfaSecret;
     private String mfaMethod = "TOTP";
     private java.time.LocalDateTime passwordChangedAt;

@@ -103,7 +103,8 @@ const SellerRegistration = () => {
             panNumber: reg.panNumber || prev.panNumber,
             aadhaarNumber: reg.aadhaarNumber || prev.aadhaarNumber,
             bankAccountName: reg.bankAccountName || prev.bankAccountName,
-            bankAccountNumber: reg.bankAccountNumber || prev.bankAccountNumber,
+            // The saved number never comes back from the server; only a masked copy does (savedAccount).
+            bankAccountNumber: prev.bankAccountNumber,
             bankIfsc: reg.bankIfsc || prev.bankIfsc,
             bankName: reg.bankName || prev.bankName,
             bankBranch: reg.bankBranch || prev.bankBranch,
@@ -220,6 +221,9 @@ const SellerRegistration = () => {
 
   const handlePrev = () => { if (step > 1) setStep(step - 1); };
 
+  // What the server has on file, masked. Typing a new number replaces it.
+  const savedAccount = regData?.bankAccountNumberMasked || "";
+
   const handleDocUpload = async (docType, docName) => {
     const input = document.createElement("input");
     input.type = "file";
@@ -227,21 +231,15 @@ const SellerRegistration = () => {
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      if (file.size > 5 * 1024 * 1024) { setError("The file is too large. The limit is 5 MB."); return; }
+      // Sent to the store's own server, which keeps it encrypted and private to you and the
+      // review team - never to a public image host.
       const data = new FormData();
       data.append("file", file);
-      data.append("upload_preset", "ml_default");
+      data.append("documentType", docType);
+      data.append("documentName", docName);
       try {
-        const cloudRes = await fetch("https://api.cloudinary.com/v1_1/demo/image/upload", { method: "POST", body: data });
-        const cloudData = await cloudRes.json();
-        const fileUrl = cloudData.secure_url || URL.createObjectURL(file);
-        await api.post("/api/seller-registration/document", {
-          documentType: docType,
-          documentName: docName,
-          fileUrl: fileUrl,
-          fileOriginalName: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-        });
+        await api.post("/api/seller-registration/document/upload", data);
         const statusRes = await api.get("/api/seller-registration/status");
         if (statusRes.data.documents) {
           const docMap = {};
@@ -249,7 +247,7 @@ const SellerRegistration = () => {
           setDocuments(docMap);
         }
         if (statusRes.data.compliance) setCompliance(statusRes.data.compliance);
-      } catch { setError("Failed to upload document. Please try again."); }
+      } catch (err) { setError(err.response?.data?.error || "Failed to upload document. Please try again."); }
     };
     input.click();
   };
@@ -273,7 +271,7 @@ const SellerRegistration = () => {
   };
 
   const handleVerifyBank = async () => {
-    if (!form.bankAccountNumber || !form.bankIfsc) {
+    if ((!form.bankAccountNumber && !savedAccount) || !form.bankIfsc) {
       setError("Enter your bank account number and IFSC before verifying."); return;
     }
     setError("");
@@ -281,7 +279,8 @@ const SellerRegistration = () => {
     setBankResult(null);
     try {
       const res = await api.post("/api/seller-registration/verify/bank", {
-        accountNumber: form.bankAccountNumber,
+        // An empty field means "check the number already saved"; the server uses its own copy.
+        accountNumber: form.bankAccountNumber || savedAccount,
         ifsc: form.bankIfsc,
         accountName: form.bankAccountName,
       });
@@ -493,9 +492,10 @@ const SellerRegistration = () => {
               </div>
               <div className="reg-field">
                 <label>Aadhaar Number
-                  <span className="reg-tooltip"><Info size={12} /><span className="reg-tooltip-text">12-digit Aadhaar number for individual sellers and proprietorships. Used for KYC.</span></span>
+                  <span className="reg-tooltip"><Info size={12} /><span className="reg-tooltip-text">For individual sellers and proprietorships. We keep only the last 4 digits; the full number is not stored.</span></span>
                 </label>
                 <input value={form.aadhaarNumber} onChange={handleChange("aadhaarNumber")} placeholder="1234 5678 9012" maxLength={14} />
+                <small style={{ fontSize: "0.72rem", color: "#64748b" }}>Only the last 4 digits are kept.</small>
               </div>
             </div>
           </>
@@ -507,7 +507,7 @@ const SellerRegistration = () => {
             <p className="reg-form-subtitle">Enter your bank account information for payouts and settlements.</p>
             <div className="reg-form-grid">
               <div className="reg-field full"><label>Account Holder Name <span className="required">*</span></label><input value={form.bankAccountName} onChange={handleChange("bankAccountName")} placeholder="As per bank records" /></div>
-              <div className="reg-field"><label>Account Number <span className="required">*</span></label><input value={form.bankAccountNumber} onChange={handleChange("bankAccountNumber")} type="password" placeholder="Enter account number" /></div>
+              <div className="reg-field"><label>Account Number <span className="required">*</span></label><input value={form.bankAccountNumber} onChange={handleChange("bankAccountNumber")} type="password" placeholder={savedAccount ? `Saved: ${savedAccount} (type to change)` : "Enter account number"} /></div>
               <div className="reg-field"><label>Confirm Account Number <span className="required">*</span></label><input onChange={(e) => { if (e.target.value !== form.bankAccountNumber) setError("Account numbers do not match"); else setError(""); }} type="password" placeholder="Re-enter account number" /></div>
               <div className="reg-field"><label>IFSC Code <span className="required">*</span></label><input value={form.bankIfsc} onChange={handleChange("bankIfsc")} placeholder="SBIN0001234" maxLength={11} style={{ textTransform: "uppercase" }} /></div>
               <div className="reg-field"><label>Bank Name <span className="required">*</span></label><input value={form.bankName} onChange={handleChange("bankName")} /></div>
@@ -631,7 +631,7 @@ const SellerRegistration = () => {
               <div className="reg-review-grid">
                 <div className="reg-review-item"><p className="reg-review-label">Account Holder</p><p className="reg-review-value">{form.bankAccountName || "-"}</p></div>
                 <div className="reg-review-item"><p className="reg-review-label">Bank / IFSC</p><p className="reg-review-value">{form.bankName} / {form.bankIfsc}</p></div>
-                <div className="reg-review-item"><p className="reg-review-label">Account No.</p><p className="reg-review-value">{"*".repeat(Math.max(0, (form.bankAccountNumber || "").length - 4)) + (form.bankAccountNumber || "").slice(-4)}</p></div>
+                <div className="reg-review-item"><p className="reg-review-label">Account No.</p><p className="reg-review-value">{form.bankAccountNumber ? "X".repeat(Math.max(0, form.bankAccountNumber.length - 4)) + form.bankAccountNumber.slice(-4) : savedAccount || "-"}</p></div>
                 <div className="reg-review-item"><p className="reg-review-label">Branch</p><p className="reg-review-value">{form.bankBranch || "-"}</p></div>
               </div>
             </div>
