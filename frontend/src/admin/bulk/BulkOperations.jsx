@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const tabs = [
   { key: "price", label: "Bulk Price Update" },
@@ -127,7 +128,7 @@ export default function BulkOperations() {
   const handleBulkDelete = async () => {
     const ids = parseIds(deleteForm.ids);
     if (ids.length === 0) { setError("Enter at least one product ID"); return; }
-    if (!window.confirm(`Are you sure you want to delete ${ids.length} product(s)? This action cannot be undone.`)) return;
+    if (!await confirmAction(`Are you sure you want to delete ${ids.length} product(s)? This action cannot be undone.`)) return;
     try {
       setLoading(true);
       setError(null);

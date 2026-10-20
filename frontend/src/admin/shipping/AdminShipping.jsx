@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const emptyZone = { name:"", regions:"", charge:"", freeShippingThreshold:"", estimatedMinDays:"", estimatedMaxDays:"", courierPartner:"", codAvailable:true, active:true };
 
@@ -26,7 +27,7 @@ const AdminShipping = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this shipping zone?")) return;
+    if (!await confirmAction("Delete this shipping zone?")) return;
     try { await api.delete(`/api/admin/shipping/${id}`); fetchZones(); } catch { alert("Failed"); }
   };
 

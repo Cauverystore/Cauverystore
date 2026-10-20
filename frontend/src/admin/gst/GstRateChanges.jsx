@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "1.25rem" };
 const btn = { padding: "0.4rem 0.85rem", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 500 };
@@ -36,7 +37,7 @@ const GstRateChanges = ({ onChanged }) => {
       const warning = change.needsAttention
         ? `\n\nCheck first: ${change.attentionReason}`
         : "";
-      if (!window.confirm(`Charge ${pct(change.proposedRate)} GST on ${change.hsnCode} from ${change.effectiveFrom}?${warning}`)) return;
+      if (!await confirmAction(`Charge ${pct(change.proposedRate)} GST on ${change.hsnCode} from ${change.effectiveFrom}?${warning}`)) return;
     } else {
       note = window.prompt(action === "reject"
         ? "Why is this change being rejected?"

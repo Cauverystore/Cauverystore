@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const TABS = ["Banners", "Pages", "FAQ", "Homepage Sections"];
 
@@ -76,7 +77,7 @@ const AdminContent = () => {
   };
 
   const handleDelete = async (type, id) => {
-    if (!window.confirm("Delete this item?")) return;
+    if (!await confirmAction("Delete this item?")) return;
     try { await api.delete(`/api/admin/content/${type}/${id}`); fetchAll(); } catch { alert("Failed"); }
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 const emptyBanner = { title:"", subtitle:"", imageUrl:"", link:"", position:"home_top", sortOrder:0, active:true };
 const AdminBanners = () => {
   const [banners, setBanners] = useState([]);
@@ -12,7 +13,7 @@ const AdminBanners = () => {
     e.preventDefault();
     try { if (editing) { await api.put(`/api/admin/banners/${editing}`, { ...form, sortOrder: parseInt(form.sortOrder) }); } else { await api.post("/api/admin/banners", { ...form, sortOrder: parseInt(form.sortOrder) }); } setShowForm(false); setEditing(null); setForm(emptyBanner); fetchBanners(); } catch { alert("Failed"); }
   };
-  const handleDelete = async (id) => { if (!window.confirm("Delete this banner?")) return; try { await api.delete(`/api/admin/banners/${id}`); fetchBanners(); } catch { alert("Failed"); } };
+  const handleDelete = async (id) => { if (!await confirmAction("Delete this banner?")) return; try { await api.delete(`/api/admin/banners/${id}`); fetchBanners(); } catch { alert("Failed"); } };
   const handleEdit = (b) => { setForm({ title:b.title||"", subtitle:b.subtitle||"", imageUrl:b.imageUrl||"", link:b.link||"", position:b.position||"home_top", sortOrder:b.sortOrder||0, active:b.active }); setEditing(b.id); setShowForm(true); };
   const inp = { padding:"0.5rem 0.6rem", border:"1px solid #d1d5db", borderRadius:6, fontSize:"0.85rem", width:"100%", boxSizing:"border-box" };
   return (

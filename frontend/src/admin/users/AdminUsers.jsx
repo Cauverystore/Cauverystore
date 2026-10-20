@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Users, ShieldOff, Shield } from "lucide-react";
 import api from "../../utils/axios";
 import WindDownStatus from "../../components/WindDownStatus";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const ROLES = ['CUSTOMER', 'SELLER', 'EXECUTIVE', 'ADMIN'];
 const CREATABLE_ROLES = ['SELLER', 'CUSTOMER'];
@@ -74,7 +75,7 @@ const AdminUsers = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this user?')) return;
+    if (!await confirmAction('Delete this user?')) return;
     try {
       await api.delete(`/api/admin/users/${id}`);
       fetchUsers(page);
@@ -100,7 +101,7 @@ const AdminUsers = () => {
   };
 
   const handleRevoke = async (id, name) => {
-    if (!window.confirm(`Revoke suspension for ${name}? They will regain full access.`)) return;
+    if (!await confirmAction(`Revoke suspension for ${name}? They will regain full access.`)) return;
     try {
       await api.post(`/api/admin/users/${id}/revoke`);
       alert(`${name} restored successfully`);

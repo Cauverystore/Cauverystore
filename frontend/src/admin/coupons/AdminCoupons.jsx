@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const emptyCoupon = { code:"", type:"PERCENTAGE", value:"", minOrderAmount:"", maxUses:"", maxDiscountAmount:"", validFrom:"", validUntil:"", appliesTo:"ALL", appliesToId:"", freeShipping:false, active:true };
 
@@ -35,7 +36,7 @@ const AdminCoupons = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this coupon?")) return;
+    if (!await confirmAction("Delete this coupon?")) return;
     try { await api.delete(`/api/admin/coupons/${id}`); fetchCoupons(); } catch { alert("Failed"); }
   };
 

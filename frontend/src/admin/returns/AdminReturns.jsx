@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PackageX, Download } from "lucide-react";
 import api from "../../utils/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 /**
  * Returns Management.
@@ -102,7 +103,7 @@ const AdminReturns = () => {
   };
 
   const retryRefund = async (id) => {
-    if (!window.confirm("Retry sending this refund to the customer's original payment method?")) return;
+    if (!await confirmAction("Retry sending this refund to the customer's original payment method?")) return;
     setActing(id);
     setMessage("");
     setError("");
@@ -127,7 +128,7 @@ const AdminReturns = () => {
   const nameOf = (o) => (o && typeof o === "object" ? o.name || o.fullName || o.email : null);
 
   const move = async (id, status, confirmText) => {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !await confirmAction(confirmText)) return;
     setActing(id);
     setMessage("");
     setError("");

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const AdminReviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -20,7 +21,7 @@ const AdminReviews = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this review?")) return;
+    if (!await confirmAction("Delete this review?")) return;
     try { await api.delete(`/api/admin/reviews/${id}`); fetchReviews(); } catch { alert("Failed"); }
   };
 

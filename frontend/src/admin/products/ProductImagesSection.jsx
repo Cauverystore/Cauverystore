@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "../../api/axios";
 import { imgUrl } from "../../utils/images";
 import { compressImages } from "../../utils/compressImage";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const ProductImagesSection = ({ productId }) => {
   const [images, setImages] = useState([]);
@@ -61,7 +62,7 @@ const ProductImagesSection = ({ productId }) => {
   };
 
   const handleDelete = async (imageId) => {
-    if (!window.confirm("Delete this image?")) return;
+    if (!await confirmAction("Delete this image?")) return;
     try {
       await api.delete(`/api/admin/products/${productId}/images/${imageId}`);
       await loadImages();

@@ -3,6 +3,7 @@ import { Store, ChevronLeft, Check, X, FileText, ShieldCheck, Ban, RotateCcw } f
 import api from "../../utils/axios";
 import { useToast } from "../../admin/context/ToastContext";
 import WindDownStatus from "../../components/WindDownStatus";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const StatusBadge = ({ value }) => (
   <span className={`admin-badge ${value === "VERIFIED" || value === "APPROVED" || value === "ACTIVE" ? "active" : value === "FAILED" || value === "REJECTED" || value === "SUSPENDED" ? "danger" : "inactive"}`}>
@@ -137,7 +138,7 @@ const SellerApproval = () => {
   };
 
   const handleReinstate = async (registrationId) => {
-    if (!window.confirm("Lift this suspension? The listings it took down go back on sale.")) return;
+    if (!await confirmAction("Lift this suspension? The listings it took down go back on sale.")) return;
     setActioning(registrationId);
     try {
       const res = await api.post(

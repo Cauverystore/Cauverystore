@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { confirmAction } from "../../components/ConfirmDialog";
 
 const emptyBrand = { name:"", description:"", logo:"", active:true, sortOrder:0 };
 
@@ -25,7 +26,7 @@ const AdminBrands = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this brand?")) return;
+    if (!await confirmAction("Delete this brand?")) return;
     try { await api.delete(`/api/admin/brands/${id}`); fetchBrands(); } catch { alert("Failed"); }
   };
 

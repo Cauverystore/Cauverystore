@@ -5,6 +5,7 @@ import "../styles/site-extras.css";
 //   const confirm = useConfirm();
 //   if (!(await confirm({ message: "Delete this address?", confirmLabel: "Delete", danger: true }))) return;
 const ConfirmContext = createContext(null);
+let activeConfirm = null;
 
 export const ConfirmProvider = ({ children }) => {
   const [request, setRequest] = useState(null);
@@ -24,6 +25,11 @@ export const ConfirmProvider = ({ children }) => {
     });
     returnFocusRef.current?.focus?.();
   }, []);
+
+  useEffect(() => {
+    activeConfirm = confirm;
+    return () => { if (activeConfirm === confirm) activeConfirm = null; };
+  }, [confirm]);
 
   useEffect(() => {
     if (!request) return;
@@ -61,4 +67,21 @@ export const useConfirm = () => {
   const confirm = useContext(ConfirmContext);
   // Outside the provider, fall back to the browser box rather than skipping the question.
   return confirm || ((options) => Promise.resolve(window.confirm(options.message)));
+};
+
+// Drop-in for window.confirm(message) in code that cannot use the hook:
+//   if (!(await confirmAction("Delete this banner?"))) return;
+// Picks a red button and a matching label for actions that remove or block something.
+export const confirmAction = (message, options = {}) => {
+  const verb = (String(message).match(/^\s*(?:are you sure you want to\s+)?(\w+)/i) || [])[1] || "";
+  const risky = /^(delete|remove|unsubscribe|suspend|reject)$/i.test(verb) || /permanently|cannot be undone/i.test(message);
+  const known = /^(delete|remove|unsubscribe|suspend|charge|retry|revoke|lift)$/i.test(verb);
+  const request = {
+    title: "Please confirm",
+    message,
+    confirmLabel: known ? verb.charAt(0).toUpperCase() + verb.slice(1).toLowerCase() : "Yes",
+    danger: risky,
+    ...options
+  };
+  return activeConfirm ? activeConfirm(request) : Promise.resolve(window.confirm(message));
 };
