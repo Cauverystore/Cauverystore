@@ -341,10 +341,10 @@ const Cart = () => {
                   <div className="cart-item-actions">
                     <div className="cart-item-qty">
                       <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty - 1)}
-                        disabled={qty <= 1 || isLoading(`qty-${itemId}`)} aria-label={`Decrease quantity of ${product.name || "item"}`}>-</button>
-                      <input className="cart-item-qty-value" type="number" value={qty} readOnly aria-label={`Quantity of ${product.name || "item"}`} />
+                        disabled={qty <= 1 || isLoading(`qty-${itemId}`)} aria-label={i18n.t("msgs.decreaseQty", { name: product.name || "item" })}>-</button>
+                      <input className="cart-item-qty-value" type="number" value={qty} readOnly aria-label={i18n.t("msgs.quantityOf", { name: product.name || "item" })} />
                       <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty + 1)}
-                        disabled={isLoading(`qty-${itemId}`)} aria-label={`Increase quantity of ${product.name || "item"}`}>+</button>
+                        disabled={isLoading(`qty-${itemId}`)} aria-label={i18n.t("msgs.increaseQty", { name: product.name || "item" })}>+</button>
                     </div>
                     <div className="cart-item-secondary-actions">
                       <button

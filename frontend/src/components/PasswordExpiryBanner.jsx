@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/axios";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const PasswordExpiryBanner = () => {
   const { t } = useTranslation();
@@ -38,7 +39,7 @@ const PasswordExpiryBanner = () => {
       color: "#fff", textAlign: "center", padding: "0.5rem 1rem",
       fontSize: "0.85rem", fontWeight: 500
     }}>
-      {expired ? t("passwordExpiryBanner.yourPasswordHasExpired") : `Your password expires in ${info.days} day${info.days === 1 ? "" : "s"}.`}{" "}
+      {expired ? t("passwordExpiryBanner.yourPasswordHasExpired") : i18n.t("msgs.pwExpires", { count: info.days })}{" "}
       <Link to="/profile?tab=security" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>{t("passwordExpiryBanner.updatePasswordNow")}</Link>
     </div>
   );

@@ -76,7 +76,7 @@ const SearchResults = () => {
         <div className="search-results-content">
           <Breadcrumb items={[
             { label: t("nav.home"), to: "/" },
-            ...(query ? [{ label: `Search: ${query}` }] : [{ label: t("search.button") }])
+            ...(query ? [{ label: i18n.t("msgs.searchCrumb", { query }) }] : [{ label: t("search.button") }])
           ]} />
           <div className="section-header">
             <h2 className="section-title">{t("searchResults.searchResultsFor")}{query}"</h2>

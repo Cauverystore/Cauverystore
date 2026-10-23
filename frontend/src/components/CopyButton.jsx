@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Copy, Check } from "lucide-react";
 import "../styles/site-extras.css";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const copyText = async (text) => {
   try {
@@ -23,7 +24,7 @@ const copyText = async (text) => {
   }
 };
 
-const CopyButton = ({ text, label = "Copy", ariaLabel }) => {
+const CopyButton = ({ text, label = i18n.t("msgs.copy"), ariaLabel }) => {
   const { t } = useTranslation();
 
   const [state, setState] = useState("idle");

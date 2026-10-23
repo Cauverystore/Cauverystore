@@ -60,7 +60,7 @@ const PaymentMethods = () => {
           <div key={m.id} style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"1rem", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <div>
               <div style={{ fontWeight:600, fontSize:"0.9rem" }}>
-                {m.type === "upi" ? `UPI: ${m.upiId}` : m.type === "net_banking" ? `Net Banking: ${m.bankName}` : `${m.cardholderName || "Card"} - ${m.maskedNumber || "****"}`}
+                {m.type === "upi" ? i18n.t("msgs.upiLabel", { id: m.upiId }) : m.type === "net_banking" ? i18n.t("msgs.netBankingLabel", { bank: m.bankName }) : `${m.cardholderName || i18n.t("msgs.cardWord")} - ${m.maskedNumber || "****"}`}
                 {m.isDefault && <span style={{ marginLeft:"0.5rem", padding:"0.15rem 0.5rem", background:"#edf8f7", color:"#0E5C5C", borderRadius:4, fontSize:"0.7rem", fontWeight:600 }}>{t("addressBook.default")}</span>}
               </div>
               {(m.type === "credit_card" || m.type === "debit_card") && <div style={{ fontSize:"0.8rem", color:"#6b7280", marginTop:"0.25rem" }}>{t("paymentMethods.expires")}{" "}{m.expiry || "N/A"}</div>}

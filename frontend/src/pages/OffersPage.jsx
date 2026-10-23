@@ -8,6 +8,7 @@ import Pagination from "../components/Pagination";
 import "../styles/products.css";
 import "../styles/product-tray.css";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const PAGE_SIZE = 12;
 
@@ -48,7 +49,7 @@ const OffersPage = () => {
     if (!token) { navigate("/login"); return; }
     try {
       await addToCart(product.id || product._id, 1);
-      setCartMsg(`${product.name} added to your cart`);
+      setCartMsg(i18n.t("msgs.addedToCartNamed", { name: product.name }));
       setTimeout(() => setCartMsg(null), 2500);
     } catch {
       setCartMsg(t("home.weCouldnTAddThat"));

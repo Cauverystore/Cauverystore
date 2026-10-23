@@ -95,7 +95,7 @@ const ChatWidget = () => {
       {
         id: nextId(),
         from: "bot",
-        text: data?.reply || "Sorry, I didn't understand that.",
+        text: data?.reply || i18n.t("msgs.chatNoUnderstand"),
         actions: data?.actions || [],
         quickReplies: data?.quickReplies || [],
       },

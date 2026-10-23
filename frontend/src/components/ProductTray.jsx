@@ -25,7 +25,7 @@ const rupees = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 const compactCount = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, "")}K` : String(n));
 
 const StarRating = ({ rating, reviewCount }) => (
-  <div className="pt-rating" aria-label={`Rated ${Number(rating).toFixed(1)} out of 5${reviewCount ? ` by ${reviewCount} buyers` : ""}`}>
+  <div className="pt-rating" aria-label={reviewCount ? i18n.t("msgs.ratedAriaBuyers", { rating: Number(rating).toFixed(1), count: reviewCount }) : i18n.t("msgs.ratedAria", { rating: Number(rating).toFixed(1) })}>
     <span className="pt-rating-pill">
       {Number(rating).toFixed(1)}
       <svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11" aria-hidden="true">
@@ -256,7 +256,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
                   key={i}
                   className={`pt-gallery-dot ${i === shown ? "active" : ""}`}
                   onClick={() => showImage(i)}
-                  aria-label={`Photo ${i + 1} of ${images.length}`}
+                  aria-label={i18n.t("msgs.photoOf", { n: i + 1, total: images.length })}
                   aria-current={i === shown}
                 />
               ))}
@@ -287,7 +287,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
                 onClick={handleSaveForLater}
                 disabled={saving}
                 aria-pressed={saved}
-                aria-label={saved ? `${name} saved for later` : i18n.t("msgs.saveForLaterAria", { name })}
+                aria-label={saved ? i18n.t("msgs.savedForLaterNamed", { name }) : i18n.t("msgs.saveForLaterAria", { name })}
                 data-tip={saved ? tr("productTray.savedForLater") : tr("productTray.saveForLater")}
               >
                 <Bookmark size={16} strokeWidth={1.8} fill={saved ? "currentColor" : "none"} />

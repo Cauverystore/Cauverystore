@@ -14,6 +14,7 @@ import CookieBanner from "./components/CookieBanner";
 import { ConfirmProvider } from "./components/ConfirmDialog";
 import { trackPageView } from "./utils/analytics";
 import LangRoutes from "./i18n/LangRoutes";
+import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 
 const PageViewTracker = () => {
@@ -134,6 +135,7 @@ const StockMovements = lazy(() => import("./admin/inventory/StockMovements"));
 const AdminAddresses = lazy(() => import("./admin/addresses/AdminAddresses"));
 
 function App() {
+  useTranslation(); // re-render the page-level meta tags when the language changes
   return (
     <HelmetProvider>
     <BrowserRouter>
@@ -142,10 +144,10 @@ function App() {
         <ConfirmProvider>
         <PageViewTracker />
         <Helmet>
-          <title>Cauvery Store | Online Shopping in India</title>
-          <meta name="description" content="Shop online at Cauvery Store. Free delivery on orders of ₹500 or more and 7-day returns." />
+          <title>{i18n.t("msgs.appTitle")}</title>
+          <meta name="description" content={i18n.t("msgs.appDesc")} />
           <meta property="og:title" content="Cauvery Store" />
-          <meta property="og:description" content="Online shopping in India, delivered to your door." />
+          <meta property="og:description" content={i18n.t("msgs.appOgDesc")} />
           <meta property="og:type" content="website" />
           <meta property="og:image" content="https://cauverystore.in/logo512.png" />
           <meta property="og:url" content="https://cauverystore.in" />
