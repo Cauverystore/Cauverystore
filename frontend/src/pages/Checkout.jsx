@@ -7,10 +7,11 @@ import loadRazorpay from "../utils/loadRazorpay";
 import { trackBeginCheckout } from "../utils/analytics";
 import "../styles/checkout.css";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
 // Shown on the review step, so the customer reads "Cash on Delivery" rather than "COD".
-const PAYMENT_LABELS = { COD: "Cash on Delivery", CARD: "Credit / Debit Card", UPI: "UPI", NET_BANKING: "Net Banking", WALLET: "Wallet" };
+const PAYMENT_LABELS = { get COD() { return i18n.t("msgs.payCod"); }, get CARD() { return i18n.t("msgs.payCard"); }, UPI: "UPI", get NET_BANKING() { return i18n.t("msgs.payNetBanking"); }, get WALLET() { return i18n.t("msgs.payWallet"); } };
 
 const Checkout = () => {
   const {
@@ -132,27 +133,27 @@ const Checkout = () => {
 
   const validateStep = () => {
     if (step === 0) {
-      if (!shipping.fullName?.trim()) return "Full name is required";
-      if (!shipping.phone?.trim() || shipping.phone.length < 10) return "Valid phone number is required";
-      if (!shipping.line1?.trim() && !shipping.street?.trim()) return "Address is required";
-      if (!shipping.city?.trim()) return "City is required";
-      if (!shipping.state?.trim()) return "State is required";
-      if (!shipping.pincode?.trim() || shipping.pincode.length < 5) return "Valid pincode is required";
+      if (!shipping.fullName?.trim()) return i18n.t("msgs.fullNameRequired");
+      if (!shipping.phone?.trim() || shipping.phone.length < 10) return i18n.t("msgs.phoneRequired");
+      if (!shipping.line1?.trim() && !shipping.street?.trim()) return i18n.t("msgs.addressRequired");
+      if (!shipping.city?.trim()) return i18n.t("msgs.cityRequired");
+      if (!shipping.state?.trim()) return i18n.t("msgs.stateRequired");
+      if (!shipping.pincode?.trim() || shipping.pincode.length < 5) return i18n.t("msgs.pincodeRequired");
       if (b2b) {
         const g = gstin.trim().toUpperCase();
-        if (g.length !== 15) return "GSTIN must be exactly 15 characters";
-        if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(g)) return "Invalid GSTIN format";
-        if (!buyerLegalName.trim()) return "Registered legal name is required for a GST invoice";
+        if (g.length !== 15) return i18n.t("msgs.gstin15");
+        if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(g)) return i18n.t("msgs.gstinInvalid");
+        if (!buyerLegalName.trim()) return i18n.t("msgs.legalNameRequired");
         // Rule 46(o) requires the consignee on the invoice when they are not the buyer. Caught
         // here rather than at the API, so nobody reaches the payment step and is turned back.
         if (billToShipTo && !consigneeName.trim()) {
-          return "Tell us who is receiving the goods - the invoice has to name the consignee";
+          return i18n.t("msgs.consigneeRequired");
         }
       }
       // Only a registered buyer can declare this: the rule turns on a third person's principal
       // place of business, and an unregistered buyer has none.
       if (billToShipTo && !b2b) {
-        return "Delivery to a third party needs your GSTIN. Tick 'Buying for a business' first.";
+        return i18n.t("msgs.thirdPartyNeedsGstin");
       }
     }
     return null;
@@ -169,14 +170,14 @@ const Checkout = () => {
 
   const applyPromo = async () => {
     setPromoError("");
-    if (!promoCode.trim()) { setPromoError("Enter a promo code"); return; }
+    if (!promoCode.trim()) { setPromoError(i18n.t("msgs.enterPromo")); return; }
     try {
       const res = await api.post("/api/promo/validate", { code: promoCode.trim(), cartTotal: subtotal });
       setPromoApplied(res.data?.promo || res.data);
       setPromoError("");
     } catch (err) {
       setPromoApplied(null);
-      setPromoError(err.response?.data?.message || err.response?.data?.error || "Invalid or expired promo code");
+      setPromoError(err.response?.data?.message || err.response?.data?.error || i18n.t("msgs.promoInvalid"));
     }
   };
 
@@ -274,7 +275,7 @@ const Checkout = () => {
         };
         const rzpInst = new rzp(options);
         rzpInst.on("payment.failed", function (response) {
-          setError("Payment failed: " + (response.error?.description || "Unknown error"));
+          setError(i18n.t("msgs.paymentFailed", { reason: response.error?.description || i18n.t("msgs.unknownError") }));
           setPlacing(false);
         });
         rzpInst.open();

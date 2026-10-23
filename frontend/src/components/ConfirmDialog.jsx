@@ -25,7 +25,7 @@ export const ConfirmProvider = ({ children }) => {
   const open = useCallback((options) => new Promise((resolve) => {
     setQueue((q) => {
       if (q.length === 0) returnFocusRef.current = document.activeElement;
-      return [...q, { kind: "confirm", title: t("confirmDialog.areYouSure"), confirmLabel: "Yes", cancelLabel: "No, go back", ...options, resolve }];
+      return [...q, { kind: "confirm", title: t("confirmDialog.areYouSure"), confirmLabel: i18n.t("msgs.yes"), cancelLabel: i18n.t("msgs.noGoBack"), ...options, resolve }];
     });
   }), []);
 
@@ -125,7 +125,7 @@ export const confirmAction = (message, options = {}) => {
     title: i18n.t("confirmDialog.pleaseConfirm"),
     message,
     confirmLabel: known ? verb.charAt(0).toUpperCase() + verb.slice(1).toLowerCase() : "Yes",
-    cancelLabel: "No, go back",
+    cancelLabel: i18n.t("msgs.noGoBack"),
     danger: risky,
     ...options
   };
@@ -140,10 +140,10 @@ export const showMessage = (message, options = {}) => {
   const done = /\bsuccessfully\b/i.test(text);
   const request = {
     kind: "message",
-    title: failed ? "Something went wrong" : done ? "Done" : "Please note",
+    title: failed ? i18n.t("msgs.somethingWrong") : done ? i18n.t("msgs.done") : i18n.t("msgs.pleaseNote"),
     // A bare "Failed" tells the person nothing they can act on.
-    message: /^failed\.?$/i.test(text) ? "That didn't work. Please try again." : text,
-    confirmLabel: "OK",
+    message: /^failed\.?$/i.test(text) ? i18n.t("msgs.didntWork") : text,
+    confirmLabel: i18n.t("msgs.ok"),
     ...options
   };
   return activeOpen ? activeOpen(request) : Promise.resolve(window.alert(text));
@@ -156,8 +156,8 @@ export const promptText = (message, defaultValue = "", options = {}) => {
     title: i18n.t("confirmDialog.pleaseConfirm"),
     message,
     defaultValue,
-    confirmLabel: "OK",
-    cancelLabel: "Cancel",
+    confirmLabel: i18n.t("msgs.ok"),
+    cancelLabel: i18n.t("msgs.cancel"),
     ...options
   };
   return activeOpen ? activeOpen(request) : Promise.resolve(window.prompt(message, defaultValue));

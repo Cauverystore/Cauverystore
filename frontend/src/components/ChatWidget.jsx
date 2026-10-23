@@ -138,7 +138,7 @@ const ChatWidget = () => {
         appendBot(data);
       } catch {
         appendBot({
-          reply: "Something went wrong. Please try again in a moment.",
+          reply: i18n.t("msgs.chatError"),
           intent: "error",
           actions: [],
           quickReplies: [],
@@ -162,7 +162,7 @@ const ChatWidget = () => {
         appendBot(data);
       } catch {
         appendBot({
-          reply: "I had trouble reaching the server. Please try again in a moment.",
+          reply: i18n.t("msgs.chatNetwork"),
           intent: "error",
           actions: [],
           quickReplies: [],

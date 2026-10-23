@@ -9,6 +9,7 @@ import Pagination from "../components/Pagination";
 import "../styles/products.css";
 import "../styles/product-tray.css";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const SearchResults = () => {
   const { t } = useTranslation();
@@ -68,8 +69,8 @@ const SearchResults = () => {
     <>
       <style>{`.search-results-content { grid-column: 1 / -1; }`}</style>
       <Helmet>
-        <title>{query ? `Search: ${query} - Cauvery Store` : t("searchResults.searchCauveryStore")}</title>
-        <meta name="description" content={query ? `Search results for "${query}" at Cauvery Store` : "Search for products at Cauvery Store"} />
+        <title>{query ? i18n.t("msgs.searchTitle", { query }) : t("searchResults.searchCauveryStore")}</title>
+        <meta name="description" content={query ? i18n.t("msgs.searchResultsMeta", { query }) : i18n.t("msgs.searchMeta")} />
       </Helmet>
       <div className="products-page">
         <div className="search-results-content">

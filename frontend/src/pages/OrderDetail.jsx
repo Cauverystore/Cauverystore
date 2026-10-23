@@ -123,7 +123,7 @@ const OrderDetail = () => {
     ["PLACED", "CONFIRMED", "PACKED", "PENDING"].includes(status.toUpperCase());
 
   const handleCancel = async () => {
-    if (!(await confirm({ title: t("orderDetail.cancelThisOrder"), message: t("orderDetail.theOrderWillBeCancelled"), confirmLabel: "Cancel order", cancelLabel: "Keep order", danger: true }))) return;
+    if (!(await confirm({ title: t("orderDetail.cancelThisOrder"), message: t("orderDetail.theOrderWillBeCancelled"), confirmLabel: i18n.t("msgs.cancelOrder"), cancelLabel: i18n.t("msgs.keepOrder"), danger: true }))) return;
     setCancelling(true);
     try {
       await api.put(`/api/orders/${id}/cancel`);
@@ -181,7 +181,7 @@ const OrderDetail = () => {
     const imageSrc = product.image || product.images?.[0] || item.image || null;
     const baseName = item.product
       ? (product.name || item.productName || item.name || "Product")
-      : "Product is no longer available";
+      : i18n.t("msgs.productUnavailable");
     const name = variantLabel(item) ? `${baseName} (${variantLabel(item)})` : baseName;
     const price = item.price || product.price || 0;
     const qty = item.quantity || 1;
@@ -248,7 +248,7 @@ const OrderDetail = () => {
         >{t("checkout.back")}</button>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>{t("orderDetail.orderNo", { id: orderId })}
         </h1>
-        <CopyButton text={orderId} label={t("orderDetail.copy")} ariaLabel="Copy order number" />
+        <CopyButton text={orderId} label={t("orderDetail.copy")} ariaLabel={i18n.t("msgs.copyOrderNumber")} />
         {isCancelled && (
           <span style={{
             background: "#dc2626", color: "#fff", padding: "3px 10px",

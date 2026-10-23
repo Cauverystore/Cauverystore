@@ -9,6 +9,7 @@ import { toggleCompare, isCompared } from "../utils/compare";
 import { variantNoun } from "../utils/variant";
 import "../styles/product-tray.css";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 /*
  * The Cauvery Store product card. One standard for every list on the site:
@@ -105,7 +106,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
   // One tag at most, and only one the product record really carries.
   const tag = product?.badge
     || (Array.isArray(product?.badges) && typeof product.badges[0] === "string" ? product.badges[0] : "")
-    || (product?.bestSeller ? "Best seller" : product?.newArrival ? "New" : product?.trending ? "Trending" : "");
+    || (product?.bestSeller ? i18n.t("msgs.bestSeller") : product?.newArrival ? i18n.t("msgs.tagNew") : product?.trending ? i18n.t("msgs.tagTrending") : "");
   const wishlisted = wishlistIds.has(pid);
 
   const showImage = (i) => {
@@ -273,7 +274,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               className={`pt-action-btn ${wishlisted ? "wishlisted" : ""}`}
               onClick={handleWishlist}
               aria-pressed={wishlisted}
-              aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
+              aria-label={wishlisted ? i18n.t("msgs.removeFromWishlistAria", { name }) : i18n.t("msgs.addToWishlistAria", { name })}
               data-tip={wishlisted ? tr("productTray.removeFromWishlist") : tr("product.addToWishlist")}
             >
               <Heart size={16} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
@@ -286,7 +287,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
                 onClick={handleSaveForLater}
                 disabled={saving}
                 aria-pressed={saved}
-                aria-label={saved ? `${name} saved for later` : `Save ${name} for later`}
+                aria-label={saved ? `${name} saved for later` : i18n.t("msgs.saveForLaterAria", { name })}
                 data-tip={saved ? tr("productTray.savedForLater") : tr("productTray.saveForLater")}
               >
                 <Bookmark size={16} strokeWidth={1.8} fill={saved ? "currentColor" : "none"} />
@@ -296,7 +297,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               type="button"
               className="pt-action-btn pt-action-extra"
               onClick={handleShare}
-              aria-label={`Share ${name}`}
+              aria-label={i18n.t("msgs.shareAria", { name })}
               data-tip={linkCopied ? tr("productTray.linkCopied") : tr("productTray.share")}
             >
               <Share2 size={16} strokeWidth={1.8} />
@@ -306,7 +307,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               className={`pt-action-btn pt-action-extra ${compared ? "compared" : ""}`}
               onClick={handleCompare}
               aria-pressed={compared}
-              aria-label={compared ? `Remove ${name} from compare` : `Add ${name} to compare`}
+              aria-label={compared ? i18n.t("msgs.removeFromCompareAria", { name }) : i18n.t("msgs.addToCompareAria", { name })}
               data-tip={compared ? tr("productTray.removeFromCompare") : tr("productTray.compare")}
             >
               <GitCompareArrows size={16} strokeWidth={1.8} />
@@ -368,11 +369,11 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
           </div>
         ) : (
           <div className="pt-actions">
-            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={adding} aria-label={`Add ${name} to cart`} data-tip={tr("product.addToCart")}>
+            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={adding} aria-label={i18n.t("msgs.addToCartAria", { name })} data-tip={tr("product.addToCart")}>
               <ShoppingCart size={16} aria-hidden="true" />
               <span className="pt-btn-label">{adding ? tr("productTray.adding") : tr("product.addToCart")}</span>
             </button>
-            <button type="button" className="pt-btn pt-btn-buy" onClick={handleBuyNow} aria-label={`Buy ${name} now`}>
+            <button type="button" className="pt-btn pt-btn-buy" onClick={handleBuyNow} aria-label={i18n.t("msgs.buyNowAria", { name })}>
               <Zap size={15} aria-hidden="true" />
               <span>{tr("product.buyNow")}</span>
             </button>

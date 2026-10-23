@@ -206,7 +206,7 @@ const Login = () => {
         setLoading(false);
         return;
       }
-      const msg = err.response?.data?.error || err.response?.data?.message || 'Login failed. Please check your credentials.';
+      const msg = err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.loginFailed");
       setError(msg);
       const match = msg.match(/(\d+) attempt\(s\) remaining/);
       if (match) setRemainingAttempts(parseInt(match[1]));

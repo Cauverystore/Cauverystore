@@ -5,6 +5,7 @@ import api from "../api/axios";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import { getCategoryNames } from "../services/i18nService";
+import i18n from "../i18n";
 
 const Navbar = () => {
   const { t, i18n } = useTranslation();
@@ -186,7 +187,7 @@ const Navbar = () => {
                 fontSize: "0.85rem", outline: "none", background: "#fff"
               }}
             />
-            <button type="submit" aria-label="Search" style={{
+            <button type="submit" aria-label={i18n.t("msgs.searchAria")} style={{
               padding: "0.55rem 1rem", background: "var(--color-primary, #0E5C5C)",
               color: "#fff", border: "none", cursor: "pointer", display: "flex",
               alignItems: "center", justifyContent: "center"

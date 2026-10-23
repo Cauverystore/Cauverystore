@@ -13,6 +13,7 @@ import Breadcrumb from "../components/Breadcrumb";
 import ProductTray from "../components/ProductTray";
 import ProductRow from "../components/ProductRow";
 import "../styles/productDetails.css";
+import i18n from "../i18n";
 
 const ProductDetails = () => {
   const {
@@ -84,14 +85,14 @@ const ProductDetails = () => {
   const flash = (text) => { setCartMsg(text); setTimeout(() => setCartMsg(""), 2500); };
 
   const handleAddToCart = async () => {
-    if (hasVariants && chosenVariantId == null) { flash(`Please choose a ${variantWord} first.`); return; }
+    if (hasVariants && chosenVariantId == null) { flash(i18n.t("msgs.chooseFirst", { type: variantWord })); return; }
     const res = await addToCartOrLogin(navigate, product, quantity, chosenVariantId);
     if (res.needLogin) return;
     flash(res.ok ? tr("productDetails.addedToYourCart") : (res.message || tr("home.weCouldnTAddThat")));
   };
 
   const handleBuyNow = async () => {
-    if (hasVariants && chosenVariantId == null) { flash(`Please choose a ${variantWord} first.`); return; }
+    if (hasVariants && chosenVariantId == null) { flash(i18n.t("msgs.chooseFirst", { type: variantWord })); return; }
     const res = await addToCartOrLogin(navigate, product, quantity, chosenVariantId);
     if (res.ok) navigate("/checkout");
     else if (!res.needLogin) flash(res.message || tr("cart.weCouldnTStartCheckout"));
@@ -145,7 +146,7 @@ const ProductDetails = () => {
   };
   const metaDescription = product.description
     ? trimAt(product.description, 155)
-    : `Buy ${product.name} online at Cauvery Store. Pay securely and get it delivered to your door.`;
+    : i18n.t("msgs.metaBuy", { name: product.name });
 
   // The seller's own search title wins when they wrote one; otherwise the product name.
   const pageTitle = product.metaTitle?.trim() || `${product.name} - Cauvery Store`;

@@ -10,6 +10,7 @@ import { trackEvent } from "../utils/analytics";
 import { variantLabel } from "../utils/variant";
 import "../styles/cart.css";
 import { useTranslation, Trans } from "react-i18next";
+import i18n from "../i18n";
 
 const Cart = () => {
   const { t } = useTranslation();
@@ -101,7 +102,7 @@ const Cart = () => {
     try {
       await api.post(`/api/cart/save-for-later/${itemId}`);
       await fetchCart();
-      setSuccessMsg("Saved for later. You'll find it below your cart.");
+      setSuccessMsg(i18n.t("msgs.savedForLater"));
     } catch (err) {
                 void err;
       setError(t("cart.weCouldnTSaveThat"));
@@ -131,7 +132,7 @@ const Cart = () => {
     try {
       await api.post(`/api/cart/move-to-cart/${itemId}`);
       await fetchCart();
-      setSuccessMsg("Moved back to your cart.");
+      setSuccessMsg(i18n.t("msgs.movedBack"));
     } catch (err) {
                 void err;
       setError(t("cart.weCouldnTMoveThat"));
@@ -169,10 +170,10 @@ const Cart = () => {
     try {
       const res = await api.post("/api/promo/validate", { code: promoCode, cartTotal: subtotal });
       setAppliedCoupon(res.data);
-      setPromoMsg({ type: "success", text: `Coupon "${promoCode}" applied!` });
+      setPromoMsg({ type: "success", text: i18n.t("msgs.couponApplied", { code: promoCode }) });
     } catch (err) {
       setAppliedCoupon(null);
-      setPromoMsg({ type: "error", text: err.response?.data?.error || err.response?.data?.message || "Invalid or expired coupon" });
+      setPromoMsg({ type: "error", text: err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.couponInvalid") });
     }
   };
 
@@ -313,7 +314,7 @@ const Cart = () => {
             const image = product.image || product.images?.[0] || "";
             const qty = item.quantity || 1;
             const lineTotal = price * qty;
-            const deliveryEst = item.deliveryEstimate || cart?.deliveryDate || "Usually delivered within 3-9 business days";
+            const deliveryEst = item.deliveryEstimate || cart?.deliveryDate || i18n.t("msgs.deliveryUsually");
 
             return (
               <div key={itemId} className="cart-item">
