@@ -5,6 +5,7 @@ import api from "../api/axios";
 import CartItemImage from "../components/CartItemImage";
 import { useConfirm } from "../components/ConfirmDialog";
 import "../styles/orders.css";
+import { useTranslation } from "react-i18next";
 
 const STATUSES = ["ALL", "PLACED", "SHIPPED", "DELIVERED", "CANCELLED"];
 const STATUS_LABELS = { ALL: "All Orders", PLACED: "Placed", SHIPPED: "Shipped", DELIVERED: "Delivered", CANCELLED: "Cancelled" };
@@ -52,6 +53,8 @@ function StatusTimeline({ status }) {
 }
 
 const Orders = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const confirm = useConfirm();
   const [orders, setOrders] = useState([]);
@@ -78,14 +81,14 @@ const Orders = () => {
   const canCancelOrder = (order) => CANCELLABLE_STATUSES.includes((order.status || "").toUpperCase());
 
   const handleCancel = async (orderId) => {
-    if (!(await confirm({ title: "Cancel this order?", message: "The order will be cancelled. If you have already paid, we will refund you.", confirmLabel: "Cancel order", cancelLabel: "Keep order", danger: true }))) return;
+    if (!(await confirm({ title: t("orderDetail.cancelThisOrder"), message: t("orderDetail.theOrderWillBeCancelled"), confirmLabel: "Cancel order", cancelLabel: "Keep order", danger: true }))) return;
     setCancellingId(orderId);
     setError("");
     try {
       await api.put(`/api/orders/${orderId}/cancel`);
       await fetchOrders();
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to cancel order. Please try again.");
+      setError(err.response?.data?.error || t("orderDetail.failedToCancelOrderPlease"));
     }
     setCancellingId(null);
   };
@@ -112,7 +115,7 @@ const Orders = () => {
   if (loading) {
     return (
       <div className="orders-page">
-        <div className="orders-loading">Loading your orders...</div>
+        <div className="orders-loading">{t("orders.loadingYourOrders")}</div>
       </div>
     );
   }
@@ -120,8 +123,8 @@ const Orders = () => {
   return (
     <div className="orders-page">
       <div className="orders-header">
-        <h1 className="orders-title">My Orders</h1>
-        <span className="orders-count">{orders.length} order{orders.length !== 1 ? "s" : ""}</span>
+        <h1 className="orders-title">{t("nav.orders")}</h1>
+        <span className="orders-count">{orders.length}{" "}{t("orders.order")}{orders.length !== 1 ? "s" : ""}</span>
       </div>
 
       {error && (
@@ -133,7 +136,7 @@ const Orders = () => {
 
       <div className="orders-toolbar">
         <div className="orders-filter-group">
-          <label className="orders-filter-label">Status</label>
+          <label className="orders-filter-label">{t("orderDetail.status")}</label>
           <select className="orders-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             {STATUSES.map((s) => (
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -141,12 +144,12 @@ const Orders = () => {
           </select>
         </div>
         <div className="orders-filter-group">
-          <label className="orders-filter-label">Sort by</label>
+          <label className="orders-filter-label">{t("orders.sortBy")}</label>
           <select className="orders-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="price-desc">Price: High to Low</option>
-            <option value="price-asc">Price: Low to High</option>
+            <option value="newest">{t("orders.newestFirst")}</option>
+            <option value="oldest">{t("orders.oldestFirst")}</option>
+            <option value="price-desc">{t("orders.priceHighToLow")}</option>
+            <option value="price-asc">{t("orders.priceLowToHigh")}</option>
           </select>
         </div>
       </div>
@@ -154,9 +157,9 @@ const Orders = () => {
       {sorted.length === 0 ? (
         <div className="orders-empty">
           <div className="orders-empty-icon">&#128230;</div>
-          <h2 className="orders-empty-title">No orders yet</h2>
-          <p className="orders-empty-text">When you place an order, you can track it, cancel it or return it from here.</p>
-          <button className="orders-empty-btn" onClick={() => navigate("/products")}>Browse products</button>
+          <h2 className="orders-empty-title">{t("orders.noOrdersYet")}</h2>
+          <p className="orders-empty-text">{t("orders.whenYouPlaceAnOrder")}</p>
+          <button className="orders-empty-btn" onClick={() => navigate("/products")}>{t("cartDrawer.browseProducts")}</button>
         </div>
       ) : (
         <div className="orders-list">
@@ -169,7 +172,7 @@ const Orders = () => {
               <div key={oid} className="order-card">
                 <div className="order-card-header">
                   <div className="order-card-id-group">
-                    <span className="order-card-id">Order #{oid?.toString().slice(-8)}</span>
+                    <span className="order-card-id">{t("orderDetail.order")}{oid?.toString().slice(-8)}</span>
                     <span className="order-card-date">
                       {formatDate(order.createdAt)}
                       {order.createdAt && <span className="order-card-time">{formatTime(order.createdAt)}</span>}
@@ -189,9 +192,9 @@ const Orders = () => {
                             <CartItemImage src={item.productImage || ""} name={item.productName} width={64} height={64} />
                           </div>
                           <div className="order-card-item-info">
-                            <div className="order-card-item-name">{item.productName || "Product"}</div>
+                            <div className="order-card-item-name">{item.productName || t("cart.product")}</div>
                             <div className="order-card-item-meta">
-                              {variantLabel(item) ? `${variantLabel(item)} · ` : ""}Qty: {item.quantity || 1} x &#8377;{(item.price || 0).toFixed(2)}
+                              {variantLabel(item) ? `${variantLabel(item)} · ` : ""}{t("checkout.qty")}{" "}{item.quantity || 1}x ₹{(item.price || 0).toFixed(2)}
                             </div>
                           </div>
                           <div className="order-card-item-total">
@@ -200,17 +203,17 @@ const Orders = () => {
                         </div>
                       ))}
                       {items.length > 3 && (
-                        <div className="order-card-more">+{items.length - 3} more item{items.length - 3 > 1 ? "s" : ""}</div>
+                        <div className="order-card-more">+{items.length - 3}{" "}{t("orders.moreItem")}{items.length - 3 > 1 ? "s" : ""}</div>
                       )}
                     </div>
                   ) : (
-                    <div className="order-card-no-items">No items</div>
+                    <div className="order-card-no-items">{t("orders.noItems")}</div>
                   )}
                 </div>
 
                 <div className="order-card-footer">
                   <div className="order-card-total">
-                    <span className="order-card-total-label">Total: </span>
+                    <span className="order-card-total-label">{t("orders.total")}{" "}</span>
                     <span className="order-card-total-value">&#8377;{(order.totalAmount || 0).toFixed(2)}</span>
                   </div>
 
@@ -226,12 +229,10 @@ const Orders = () => {
                         disabled={cancellingId === oid}
                         onClick={() => handleCancel(oid)}
                       >
-                        {cancellingId === oid ? "Cancelling..." : "Cancel Order"}
+                        {cancellingId === oid ? t("orderDetail.cancelling") : t("orderDetail.cancelOrder")}
                       </button>
                     )}
-                    <button className="order-card-btn" onClick={() => navigate(`/orders/${oid}`)}>
-                      View Details
-                    </button>
+                    <button className="order-card-btn" onClick={() => navigate(`/orders/${oid}`)}>{t("orders.viewDetails")}</button>
                   </div>
                 </div>
               </div>

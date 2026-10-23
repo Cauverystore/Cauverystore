@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Copy, Check } from "lucide-react";
 import "../styles/site-extras.css";
+import { useTranslation } from "react-i18next";
 
 const copyText = async (text) => {
   try {
@@ -23,6 +24,8 @@ const copyText = async (text) => {
 };
 
 const CopyButton = ({ text, label = "Copy", ariaLabel }) => {
+  const { t } = useTranslation();
+
   const [state, setState] = useState("idle");
   const timerRef = useRef(null);
 
@@ -38,7 +41,7 @@ const CopyButton = ({ text, label = "Copy", ariaLabel }) => {
   return (
     <button type="button" className="cs-copy-btn" onClick={handleClick} aria-label={ariaLabel || label}>
       {state === "copied" ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-      <span aria-live="polite">{state === "copied" ? "Copied" : state === "failed" ? "Couldn't copy" : label}</span>
+      <span aria-live="polite">{state === "copied" ? t("copyButton.copied") : state === "failed" ? t("copyButton.couldnTCopy") : label}</span>
     </button>
   );
 };

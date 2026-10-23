@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import userService from "../services/userService";
 import "../styles/notifications.css";
+import { useTranslation } from "react-i18next";
 
 const Notifications = () => {
+  const { t } = useTranslation();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,12 +16,12 @@ const Notifications = () => {
     try { await userService.markNotificationRead(id); setNotifications(notifications.map(n => (n.id || n._id) === id ? { ...n, read: true } : n)); } catch (err) { void err; }
   };
 
-  if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
+  if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>{t("cartDrawer.loading")}</div>;
 
   return (
     <div className="notifications-page">
-      <h1>Notifications</h1>
-      {notifications.length === 0 ? <div style={{ textAlign: "center", color: "#475569" }}>No notifications</div> : notifications.map((n) => (
+      <h1>{t("notifications.title")}</h1>
+      {notifications.length === 0 ? <div style={{ textAlign: "center", color: "#475569" }}>{t("notifications.noNotifications")}</div> : notifications.map((n) => (
         <div key={n.id || n._id} className={`notification-item${n.read ? "" : " unread"}`} onClick={() => !n.read && markRead(n.id || n._id)}>
           <div className="notification-icon"><Bell size={20} /></div>
           <div className="notification-content">

@@ -1,0 +1,8 @@
+.cs-lang { display: inline-flex; align-items: center; }
+.cs-lang select {
+  background: transparent; color: inherit; border: 1px solid rgba(255,255,255,0.45); border-radius: 4px;
+  font: inherit; padding: 1px 6px; cursor: pointer;
+}
+.cs-lang select option { color: #111; }
+.cs-lang select:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.cs-lang-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -2,159 +2,322 @@ import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import StaticLayout from "../components/StaticLayout";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 // Each policy has its own address. Payment partners (Razorpay) and search engines check a
 // policy by its URL, and a tab chosen by a "#terms" suffix all looks like one page to them.
 const tabs = [
-  { id: "privacy", label: "Privacy Policy", path: "/privacy-policy" },
-  { id: "terms", label: "Terms & Conditions", path: "/terms-and-conditions" },
-  { id: "shipping", label: "Shipping Policy", path: "/shipping-policy" },
+  {
+    id: "privacy",
+
+    get label() {
+      return i18n.t("footer.privacy");
+    },
+
+    path: "/privacy-policy"
+  },
+  {
+    id: "terms",
+
+    get label() {
+      return i18n.t("footer.terms");
+    },
+
+    path: "/terms-and-conditions"
+  },
+  {
+    id: "shipping",
+
+    get label() {
+      return i18n.t("footer.shipping");
+    },
+
+    path: "/shipping-policy"
+  },
 ];
 
 const UPDATED = "10 October 2026";
 
 const policies = {
   privacy: {
-    title: "Privacy Policy",
+    get title() {
+      return i18n.t("footer.privacy");
+    },
+
     updated: "20 October 2026",
+
     sections: [
       {
-        heading: "Information We Collect",
-        content: "We collect information you provide when creating an account, placing an order, or contacting support. This includes your name, email address, phone number and delivery address. We also automatically collect certain technical information such as IP address, browser type, and device information to improve our services."
+        get heading() {
+          return i18n.t("policies.informationWeCollect");
+        },
+
+        get content() {
+          return i18n.t("policies.weCollectInformationYouProvide");
+        }
       },
       {
-        heading: "Payment Information",
-        items: [
-          "Online payments are handled by Razorpay, our payment partner. You enter your card, UPI or bank details on Razorpay's secure payment window, not on our pages",
-          "We do not receive or store your full card number, CVV, UPI PIN or net banking password",
-          "Razorpay tells us whether the payment succeeded, the amount, the payment method used and a payment reference number. We keep these with your order so we can confirm it, issue invoices and process refunds",
-          "Razorpay handles your payment details under its own privacy policy, published at razorpay.com/privacy"
-        ]
+        get heading() {
+          return i18n.t("policies.paymentInformation");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.onlinePaymentsAreHandledBy"),
+            i18n.t("policies.weDoNotReceiveOr"),
+            i18n.t("policies.razorpayTellsUsWhetherThe"),
+            i18n.t("policies.razorpayHandlesYourPaymentDetails")
+          ];
+        }
       },
       {
-        heading: "How We Use Your Information",
-        items: [
-          "Process and fulfill your orders, including sending order confirmations and updates",
-          "Provide customer support and respond to your inquiries",
-          "Send personalised product recommendations and promotional offers (with your consent)",
-          "Improve our website, products, and services based on usage patterns",
-          "Prevent fraud and ensure the security of our platform"
-        ]
+        get heading() {
+          return i18n.t("policies.howWeUseYourInformation");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.processAndFulfillYourOrders"),
+            i18n.t("policies.provideCustomerSupportAndRespond"),
+            i18n.t("policies.sendPersonalisedProductRecommendat"),
+            i18n.t("policies.improveOurWebsiteProductsAnd"),
+            i18n.t("policies.preventFraudAndEnsureThe")
+          ];
+        }
       },
       {
-        heading: "Information Sharing",
-        content: "We do not sell your personal information. We share only what is needed with the seller who fulfils your order (your name, delivery address and phone number), with Razorpay to process payments and refunds, and with delivery partners to deliver your order. We may also disclose information where the law requires it."
+        get heading() {
+          return i18n.t("policies.informationSharing");
+        },
+
+        get content() {
+          return i18n.t("policies.weDoNotSellYour");
+        }
       },
       {
-        heading: "Data Security",
-        content: "We implement industry-standard security measures including SSL encryption, secure servers, and regular security audits. Your card and bank details are processed directly by Razorpay and are never stored on our servers."
+        get heading() {
+          return i18n.t("policies.dataSecurity");
+        },
+
+        get content() {
+          return i18n.t("policies.weImplementIndustryStandardSecurit");
+        }
       },
       {
-        heading: "Your Rights",
-        items: [
-          "Access, update, or delete your personal information at any time",
-          "Withdraw consent for marketing communications",
-          "Request a copy of the data we hold about you",
-          "File a complaint with the relevant data protection authority"
-        ]
+        get heading() {
+          return i18n.t("policies.yourRights");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.accessUpdateOrDeleteYour"),
+            i18n.t("policies.withdrawConsentForMarketingCommuni"),
+            i18n.t("policies.requestACopyOfThe"),
+            i18n.t("policies.fileAComplaintWithThe")
+          ];
+        }
       },
       {
-        heading: "Cookies",
+        get heading() {
+          return i18n.t("policies.cookies");
+        },
+
         content: "We use essential cookies to keep you signed in and remember your cart; the site cannot work without them. Analytics cookies (Google Analytics), which show us which pages are useful, are used only if you choose \"Accept all\" in the cookie banner. You can change your choice at any time with the Cookie Settings link at the bottom of every page, or clear cookies in your browser settings."
       },
       {
-        heading: "Contact Us",
-        content: "For privacy-related queries, please email us at support@cauverystore.in. We will respond within 48 hours."
+        get heading() {
+          return i18n.t("footer.contact");
+        },
+
+        get content() {
+          return i18n.t("policies.forPrivacyRelatedQueriesPlease");
+        }
       }
     ]
   },
   terms: {
-    title: "Terms & Conditions",
+    get title() {
+      return i18n.t("footer.terms");
+    },
+
     updated: UPDATED,
+
     sections: [
       {
-        heading: "Acceptance of Terms",
-        content: "By accessing or using Cauvery Store, you agree to be bound by these Terms of Service. If you do not agree with any part of the terms, you may not use our services."
+        get heading() {
+          return i18n.t("policies.acceptanceOfTerms");
+        },
+
+        get content() {
+          return i18n.t("policies.byAccessingOrUsingCauvery");
+        }
       },
       {
-        heading: "Eligibility",
-        content: "You must be at least 18 years of age to use our services. By using Cauvery Store, you represent that you meet this requirement. If you are under 18, you may use the platform only under the supervision of a parent or guardian."
+        get heading() {
+          return i18n.t("policies.eligibility");
+        },
+
+        get content() {
+          return i18n.t("policies.youMustBeAtLeast");
+        }
       },
       {
-        heading: "Account Registration",
-        items: [
-          "You are responsible for maintaining the confidentiality of your account credentials",
-          "You must provide accurate, current, and complete information during registration",
-          "You are responsible for all activities that occur under your account",
-          "Notify us immediately of any unauthorised use of your account"
-        ]
+        get heading() {
+          return i18n.t("policies.accountRegistration");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.youAreResponsibleForMaintaining"),
+            i18n.t("policies.youMustProvideAccurateCurrent"),
+            i18n.t("policies.youAreResponsibleForAll"),
+            i18n.t("policies.notifyUsImmediatelyOfAny")
+          ];
+        }
       },
       {
-        heading: "How the Marketplace Works",
-        content: "Cauvery Store is an online marketplace. Products are listed and sold by third-party sellers, and the contract of sale for a product is between you and that seller. Cauvery Store runs the website, takes payment on the seller's behalf, and supports you with delivery, returns and refunds as set out in these terms and our policies."
+        get heading() {
+          return i18n.t("policies.howTheMarketplaceWorks");
+        },
+
+        get content() {
+          return i18n.t("policies.cauveryStoreIsAnOnline");
+        }
       },
       {
-        heading: "Prices and Orders",
-        items: [
-          "All prices are in Indian Rupees (INR). The price, GST and delivery charge are shown at checkout before you pay",
-          "All orders are subject to availability and acceptance",
-          "We or the seller may cancel an order because of a pricing error, the item being out of stock, or suspected fraud. If you have already paid, the full amount is refunded"
-        ]
+        get heading() {
+          return i18n.t("policies.pricesAndOrders");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.allPricesAreInIndian"),
+            i18n.t("policies.allOrdersAreSubjectTo"),
+            i18n.t("policies.weOrTheSellerMay")
+          ];
+        }
       },
       {
-        heading: "Payments",
-        items: [
-          "Online payments are processed by Razorpay Software Private Limited (Razorpay), a payment gateway. By paying online you also agree to Razorpay's terms of use, published at razorpay.com/terms",
-          "You can pay using the methods shown at checkout, which may include UPI, credit and debit cards, net banking and wallets",
-          "You must use a payment method that belongs to you or that you are authorised to use, and the details you give must be accurate",
-          "Your card, UPI and bank details are entered on Razorpay's secure payment window. Cauvery Store does not receive or store them",
-          "An order paid online is confirmed only when Razorpay tells us the payment has succeeded. You will see a confirmation on screen and under My Orders",
-          "Your bank or card issuer may apply its own charges or limits. These are between you and them"
-        ]
+        get heading() {
+          return i18n.t("helpCenter.payments");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.onlinePaymentsAreProcessedBy"),
+            i18n.t("policies.youCanPayUsingThe"),
+            i18n.t("policies.youMustUseAPayment"),
+            i18n.t("policies.yourCardUpiAndBank"),
+            i18n.t("policies.anOrderPaidOnlineIs"),
+            i18n.t("policies.yourBankOrCardIssuer")
+          ];
+        }
       },
       {
-        heading: "Failed and Duplicate Payments",
-        items: [
-          "If a payment fails, no order is placed and you can try again or choose another method",
-          "If money leaves your account but the order is not confirmed, the amount is usually returned to the same account automatically by your bank within 5-7 business days",
-          "If you are charged twice for the same order, email support@cauverystore.in with your order number and the payment reference. We will refund the extra amount to the original payment method",
-          "We are not responsible for delays caused by your bank or the payment network once a refund has been sent"
-        ]
+        get heading() {
+          return i18n.t("policies.failedAndDuplicatePayments");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.ifAPaymentFailsNo"),
+            i18n.t("policies.ifMoneyLeavesYourAccount"),
+            i18n.t("policies.ifYouAreChargedTwice"),
+            i18n.t("policies.weAreNotResponsibleFor")
+          ];
+        }
       },
       {
-        heading: "Cancellations, Returns and Refunds",
-        content: "You can cancel an order free of charge before it ships, and return most items within 7 days of delivery. Refunds are sent through Razorpay to the original payment method, normally within 5-7 business days. The full rules are in our Returns, Cancellations & Refunds policy, which forms part of these terms.",
-        link: { to: "/refund-policy", label: "Read the Returns, Cancellations & Refunds policy" }
+        get heading() {
+          return i18n.t("policies.cancellationsReturnsAndRefunds");
+        },
+
+        get content() {
+          return i18n.t("policies.youCanCancelAnOrder");
+        },
+
+        link: {
+          to: "/refund-policy",
+
+          get label() {
+            return i18n.t("policies.readTheReturnsCancellationsRefunds");
+          }
+        }
       },
       {
-        heading: "Delivery",
-        content: "Delivery areas, charges and timeframes are set out in our Shipping Policy, which forms part of these terms.",
-        link: { to: "/shipping-policy", label: "Read the Shipping Policy" }
+        get heading() {
+          return i18n.t("cart.delivery");
+        },
+
+        get content() {
+          return i18n.t("policies.deliveryAreasChargesAndTimeframes");
+        },
+
+        link: {
+          to: "/shipping-policy",
+
+          get label() {
+            return i18n.t("policies.readTheShippingPolicy");
+          }
+        }
       },
       {
-        heading: "Prohibited Use",
-        items: [
-          "Do not use the site for any unlawful or fraudulent purpose, or use a payment method without the owner's permission",
-          "Do not attempt to interfere with the site, its security or other customers' accounts",
-          "We may suspend an account or cancel orders where we reasonably suspect fraud or misuse"
-        ]
+        get heading() {
+          return i18n.t("policies.prohibitedUse");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.doNotUseTheSite"),
+            i18n.t("policies.doNotAttemptToInterfere"),
+            i18n.t("policies.weMaySuspendAnAccount")
+          ];
+        }
       },
       {
-        heading: "Intellectual Property",
-        content: "All content on Cauvery Store — including text, graphics, logos, images, and software — is the property of Cauvery Store or its licensors and is protected by Indian copyright and intellectual property laws."
+        get heading() {
+          return i18n.t("policies.intellectualProperty");
+        },
+
+        get content() {
+          return i18n.t("policies.allContentOnCauveryStore");
+        }
       },
       {
-        heading: "Limitation of Liability",
-        content: "Cauvery Store shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the platform. Our total liability is limited to the amount paid by you for the product or service in question."
+        get heading() {
+          return i18n.t("policies.limitationOfLiability");
+        },
+
+        get content() {
+          return i18n.t("policies.cauveryStoreShallNotBe");
+        }
       },
       {
-        heading: "Complaints and Contact",
-        content: "If something has gone wrong with an order or a payment, email support@cauverystore.in with your order number. Our support team is available Monday to Saturday, 9 AM to 6 PM. Nothing in these terms limits the rights you have under Indian consumer law.",
-        link: { to: "/contact", label: "Contact us" }
+        get heading() {
+          return i18n.t("policies.complaintsAndContact");
+        },
+
+        get content() {
+          return i18n.t("policies.ifSomethingHasGoneWrong");
+        },
+
+        link: {
+          to: "/contact",
+
+          get label() {
+            return i18n.t("aboutUs.contactUs");
+          }
+        }
       },
       {
-        heading: "Governing Law",
-        content: "These terms are governed by the laws of India. Any disputes arising from these terms shall be subject to the exclusive jurisdiction of the courts in Coimbatore, Tamil Nadu."
+        get heading() {
+          return i18n.t("policies.governingLaw");
+        },
+
+        get content() {
+          return i18n.t("policies.theseTermsAreGovernedBy");
+        }
       }
     ]
   },
@@ -164,97 +327,173 @@ const policies = {
   // against the courier agreement actually in use before changing a number. Charges mirror
   // the cart: free from Rs. 500, otherwise Rs. 40.
   shipping: {
-    title: "Shipping Policy",
+    get title() {
+      return i18n.t("footer.shipping");
+    },
+
     updated: UPDATED,
+
     sections: [
       {
-        heading: "Where We Deliver",
-        items: [
-          "Cauvery Store is a marketplace. Each order is packed by the seller and sent through one of several courier and postal partners",
-          "The courier for your order is chosen according to your pincode and the size of the parcel. You cannot choose the courier, and different parcels in one order may come by different couriers",
-          "We deliver to addresses in India only. We do not deliver outside India",
-          "Whether a product can be delivered to your pincode depends on the seller and on which of our couriers serve your area. If an order cannot be delivered to your address, we tell you and refund anything you have paid"
-        ]
+        get heading() {
+          return i18n.t("policies.whereWeDeliver");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.cauveryStoreIsAMarketplace"),
+            i18n.t("policies.theCourierForYourOrder"),
+            i18n.t("policies.weDeliverToAddressesIn"),
+            i18n.t("policies.whetherAProductCanBe")
+          ];
+        }
       },
       {
-        heading: "Delivery Charges",
-        items: [
-          "Free delivery on orders of Rs. 500 or more",
-          "A flat Rs. 40 delivery charge applies to orders below Rs. 500",
-          "The delivery charge is shown in your cart and at checkout before you pay. There are no other delivery fees"
-        ]
+        get heading() {
+          return i18n.t("policies.deliveryCharges");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.freeDeliveryOnOrdersOf"),
+            i18n.t("policies.aFlatRs40Delivery"),
+            i18n.t("policies.theDeliveryChargeIsShown")
+          ];
+        }
       },
       {
-        heading: "How Long Delivery Takes",
-        content: "Delivery time has two parts: the time the seller takes to pack and hand over your order, and the time the courier takes to bring it to you.",
-        items: [
-          "Dispatch: sellers normally hand your order to the courier within 1-2 business days of the order being confirmed",
-          "Within the seller's own state: usually 2-4 business days after dispatch",
-          "Neighbouring states: usually 3-5 business days after dispatch",
-          "Rest of India: usually 4-7 business days after dispatch",
-          "Remote areas, the North-East, Jammu & Kashmir, Ladakh and the islands: usually 7-10 business days after dispatch"
-        ]
+        get heading() {
+          return i18n.t("policies.howLongDeliveryTakes");
+        },
+
+        get content() {
+          return i18n.t("policies.deliveryTimeHasTwoParts");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.dispatchSellersNormallyHandYour"),
+            i18n.t("policies.withinTheSellerSOwn"),
+            i18n.t("policies.neighbouringStatesUsually35"),
+            i18n.t("policies.restOfIndiaUsually4"),
+            i18n.t("policies.remoteAreasTheNorthEast")
+          ];
+        }
       },
       {
-        heading: "About These Estimates",
-        items: [
-          "These are estimates, not guaranteed dates. Actual times differ from one courier to another. Where a product page or checkout shows a different estimate for your order, that estimate applies",
-          "Business days are Monday to Saturday and do not include Sundays or public holidays",
-          "Delivery can take longer during festivals and sales, in bad weather, during strikes or transport disruptions, or where the courier cannot reach your area",
-          "If your order is running late, we do not cancel it automatically. See \"Late or Missing Orders\" below for what you can do"
-        ]
+        get heading() {
+          return i18n.t("policies.aboutTheseEstimates");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.theseAreEstimatesNotGuaranteed"),
+            i18n.t("policies.businessDaysAreMondayTo"),
+            i18n.t("policies.deliveryCanTakeLongerDuring"),
+            i18n.t("policies.ifYourOrderIsRunning")
+          ];
+        }
       },
       {
-        heading: "Orders From More Than One Seller",
-        content: "If your order has products from different sellers, they may arrive in separate parcels on different days. You pay the delivery charge once for the order, not once per parcel."
+        get heading() {
+          return i18n.t("policies.ordersFromMoreThanOne");
+        },
+
+        get content() {
+          return i18n.t("policies.ifYourOrderHasProducts");
+        }
       },
       {
-        heading: "Tracking Your Order",
-        items: [
-          "You can follow every stage of your order, from confirmed to packed, shipped and delivered, under My Orders",
-          "Once your order ships, the name of the courier and the tracking number are shown on the order page, so you can also track it on that courier’s own website",
-          "We email you when your order is confirmed and when its status changes",
-          "Courier tracking can take up to 24 hours to show movement after an order is marked as shipped"
-        ]
+        get heading() {
+          return i18n.t("policies.trackingYourOrder");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.youCanFollowEveryStage"),
+            i18n.t("policies.onceYourOrderShipsThe"),
+            i18n.t("policies.weEmailYouWhenYour"),
+            i18n.t("policies.courierTrackingCanTakeUp")
+          ];
+        }
       },
       {
-        heading: "Changing or Cancelling Before Dispatch",
-        items: [
-          "You can cancel an order free of charge from My Orders at any time before it ships",
-          "To correct a delivery address or phone number, email support@cauverystore.in with your order number as soon as possible. We can only make changes before the order is handed to the courier"
-        ]
+        get heading() {
+          return i18n.t("policies.changingOrCancellingBeforeDispatch");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.youCanCancelAnOrder18w"),
+            i18n.t("policies.toCorrectADeliveryAddress")
+          ];
+        }
       },
       {
-        heading: "When Your Order Arrives",
-        items: [
-          "Please make sure someone is available at the delivery address to receive the parcel and that your phone is reachable. The courier may call before delivery",
-          "Check the parcel before accepting it. If the outer packaging is open, torn or looks tampered with, you may refuse it and tell us",
-          "If the item inside is damaged, defective or not what you ordered, raise a return from My Orders within the return period. The return is free",
-          "The risk in the goods passes to you once the parcel has been delivered to your address"
-        ],
-        link: { to: "/refund-policy", label: "Read the Returns, Cancellations & Refunds policy" }
+        get heading() {
+          return i18n.t("policies.whenYourOrderArrives");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.pleaseMakeSureSomeoneIs"),
+            i18n.t("policies.checkTheParcelBeforeAccepting"),
+            i18n.t("policies.ifTheItemInsideIs"),
+            i18n.t("policies.theRiskInTheGoods")
+          ];
+        },
+
+        link: {
+          to: "/refund-policy",
+
+          get label() {
+            return i18n.t("policies.readTheReturnsCancellationsRefunds");
+          }
+        }
       },
       {
-        heading: "If Delivery Cannot Be Completed",
-        items: [
-          "The courier tries to deliver more than once. The number of attempts depends on the courier, and is usually two or three",
-          "If delivery fails because the address is wrong or incomplete, nobody is available, or the parcel is refused, it is returned to the seller and the order is cancelled",
-          "For an order you have paid for, we refund the price of the items to your original payment method once the parcel is back with the seller. The delivery charge, if you paid one, is not refunded in this case",
-          "If delivery fails for a reason that is not yours, such as the courier being unable to serve your area, you receive a full refund including any delivery charge"
-        ]
+        get heading() {
+          return i18n.t("policies.ifDeliveryCannotBeCompleted");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.theCourierTriesToDeliver"),
+            i18n.t("policies.ifDeliveryFailsBecauseThe"),
+            i18n.t("policies.forAnOrderYouHave"),
+            i18n.t("policies.ifDeliveryFailsForA")
+          ];
+        }
       },
       {
-        heading: "Late or Missing Orders",
-        items: [
-          "If your order has not arrived 3 business days after the latest estimated date, email support@cauverystore.in with your order number. We will trace it with the seller and the courier",
-          "If a parcel is confirmed lost in transit, you can choose a replacement, where the seller has stock, or a full refund",
-          "If your order is marked as delivered but you have not received it, tell us within 7 days of the delivery date so that we can investigate with the courier"
-        ]
+        get heading() {
+          return i18n.t("policies.lateOrMissingOrders");
+        },
+
+        get items() {
+          return [
+            i18n.t("policies.ifYourOrderHasNot"),
+            i18n.t("policies.ifAParcelIsConfirmed"),
+            i18n.t("policies.ifYourOrderIsMarked")
+          ];
+        }
       },
       {
-        heading: "Contact",
-        content: "For any delivery question, email support@cauverystore.in with your order number. Our support team is available Monday to Saturday, 9 AM to 6 PM.",
-        link: { to: "/contact", label: "Contact us" }
+        get heading() {
+          return i18n.t("policies.contact");
+        },
+
+        get content() {
+          return i18n.t("policies.forAnyDeliveryQuestionEmail");
+        },
+
+        link: {
+          to: "/contact",
+
+          get label() {
+            return i18n.t("aboutUs.contactUs");
+          }
+        }
       }
     ]
   }
@@ -268,6 +507,10 @@ const descriptions = {
 };
 
 const Policies = ({ tab }) => {
+  const {
+    t: tr
+  } = useTranslation();
+
   const navigate = useNavigate();
   // Old links used /policies#terms; keep them opening the right policy.
   const hashTab = window.location.hash.replace("#", "");
@@ -283,7 +526,7 @@ const Policies = ({ tab }) => {
     <StaticLayout
       hero={{
         title: policy.title,
-        subtitle: "Understand how we handle your data, your rights, and our commitments to you.",
+        subtitle: tr("policies.understandHowWeHandleYour"),
       }}
       tabs={tabsConfig}
       activeTab={activeTab}
@@ -296,8 +539,7 @@ const Policies = ({ tab }) => {
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
-      <p style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "1.5rem" }}>
-        Last updated: {policy.updated}
+      <p style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "1.5rem" }}>{tr("policies.lastUpdated")}{" "}{policy.updated}
       </p>
 
       {policy.sections.map((section, i) => (
@@ -316,9 +558,8 @@ const Policies = ({ tab }) => {
       ))}
 
       <div className="static-section" style={{ borderTop: "1px solid #e2e8f0", paddingTop: "1.5rem" }}>
-        <p style={{ fontSize: "0.85rem", color: "#64748b" }}>
-          If you have any questions about our policies, please contact us at{" "}
-          <a href="mailto:support@cauverystore.in">support@cauverystore.in</a>.
+        <p style={{ fontSize: "0.85rem", color: "#64748b" }}>{tr("policies.ifYouHaveAnyQuestions")}{" "}
+          <a href="mailto:support@cauverystore.in">{tr("contactUs.supportCauverystoreIn")}</a>.
         </p>
       </div>
     </StaticLayout>

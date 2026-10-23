@@ -6,18 +6,52 @@ import CartItemImage from "../components/CartItemImage";
 import CopyButton from "../components/CopyButton";
 import { useConfirm } from "../components/ConfirmDialog";
 import "../styles/orderDetail.css";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const STATUS_STEPS = [
-  { key: "PLACED", label: "Placed" },
-  { key: "CONFIRMED", label: "Confirmed" },
-  { key: "PACKED", label: "Packed" },
-  { key: "SHIPPED", label: "Shipped" },
-  { key: "DELIVERED", label: "Delivered" }
+  {
+    key: "PLACED",
+
+    get label() {
+      return i18n.t("orders.status.placed");
+    }
+  },
+  {
+    key: "CONFIRMED",
+
+    get label() {
+      return i18n.t("orderDetail.confirmed");
+    }
+  },
+  {
+    key: "PACKED",
+
+    get label() {
+      return i18n.t("orderDetail.packed");
+    }
+  },
+  {
+    key: "SHIPPED",
+
+    get label() {
+      return i18n.t("orders.status.shipped");
+    }
+  },
+  {
+    key: "DELIVERED",
+
+    get label() {
+      return i18n.t("orders.status.delivered");
+    }
+  }
 ];
 
 const CANCELLED_STATUSES = ["CANCELLED", "CANCELED", "RETURNED"];
 
 const OrderDetail = () => {
+  const { t } = useTranslation();
+
   const { id } = useParams();
   const navigate = useNavigate();
   const confirm = useConfirm();
@@ -45,7 +79,7 @@ const OrderDetail = () => {
         if (orderRes.status === "fulfilled") {
           setOrder(orderRes.value.data);
         } else {
-          setError("Failed to load order details.");
+          setError(t("orderDetail.failedToLoadOrderDetails"));
         }
 
         if (itemsRes.status === "fulfilled") {
@@ -63,7 +97,7 @@ const OrderDetail = () => {
         }
       } catch (err) {
         void err;
-        setError("Failed to load order details.");
+        setError(t("orderDetail.failedToLoadOrderDetails"));
       }
       try {
         const invRes = await api.get(`/api/gst/my-order-invoice/${id}`);
@@ -89,7 +123,7 @@ const OrderDetail = () => {
     ["PLACED", "CONFIRMED", "PACKED", "PENDING"].includes(status.toUpperCase());
 
   const handleCancel = async () => {
-    if (!(await confirm({ title: "Cancel this order?", message: "The order will be cancelled. If you have already paid, we will refund you.", confirmLabel: "Cancel order", cancelLabel: "Keep order", danger: true }))) return;
+    if (!(await confirm({ title: t("orderDetail.cancelThisOrder"), message: t("orderDetail.theOrderWillBeCancelled"), confirmLabel: "Cancel order", cancelLabel: "Keep order", danger: true }))) return;
     setCancelling(true);
     try {
       await api.put(`/api/orders/${id}/cancel`);
@@ -97,7 +131,7 @@ const OrderDetail = () => {
       setOrder(orderRes.data);
     } catch (err) {
       void err;
-      setError("Failed to cancel order. Please try again.");
+      setError(t("orderDetail.failedToCancelOrderPlease"));
     }
     setCancelling(false);
   };
@@ -119,7 +153,7 @@ const OrderDetail = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch { setError("Failed to download invoice PDF."); }
+    } catch { setError(t("orderDetail.failedToDownloadInvoicePdf")); }
     setPdfDl(false);
   };
 
@@ -171,8 +205,7 @@ const OrderDetail = () => {
               {item.variantName}
             </div>
           )}
-          <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
-            Qty: {qty} x &#8377;{price.toFixed(2)}
+          <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>{t("checkout.qty")}{" "}{qty}x ₹{price.toFixed(2)}
           </div>
         </div>
         <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>
@@ -183,28 +216,20 @@ const OrderDetail = () => {
   }), [items]);
 
   if (loading) {
-    return (
-      <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
-        Loading order details...
-      </div>
-    );
+    return (<div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>{t("orderDetail.loadingOrderDetails")}</div>);
   }
 
   if (!loading && items.length === 0 && !order) {
     return (
       <div style={{ textAlign: "center", padding: "3rem" }}>
-        <p style={{ fontSize: "1.1rem", color: "var(--color-text-secondary)", marginBottom: "1rem" }}>
-          Order not found
-        </p>
+        <p style={{ fontSize: "1.1rem", color: "var(--color-text-secondary)", marginBottom: "1rem" }}>{t("orderDetail.orderNotFound")}</p>
         <button
           onClick={() => navigate("/orders")}
           style={{
             padding: "0.5rem 1.25rem", background: "var(--color-primary)", color: "#fff",
             border: "none", borderRadius: "var(--radius-sm)", cursor: "pointer", fontWeight: 600
           }}
-        >
-          Back to Orders
-        </button>
+        >{t("orderDetail.backToOrders")}</button>
       </div>
     );
   }
@@ -220,20 +245,15 @@ const OrderDetail = () => {
             borderRadius: "var(--radius-sm)", background: "#fff", cursor: "pointer",
             fontSize: "0.9rem", color: "var(--color-text-secondary)"
           }}
-        >
-          &larr; Back
-        </button>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>
-          Order #{orderId}
+        >{t("checkout.back")}</button>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>{t("orderDetail.orderNo", { id: orderId })}
         </h1>
-        <CopyButton text={orderId} label="Copy" ariaLabel="Copy order number" />
+        <CopyButton text={orderId} label={t("orderDetail.copy")} ariaLabel="Copy order number" />
         {isCancelled && (
           <span style={{
             background: "#dc2626", color: "#fff", padding: "3px 10px",
             borderRadius: "var(--radius-full)", fontSize: "0.75rem", fontWeight: 600
-          }}>
-            Cancelled
-          </span>
+          }}>{t("orders.status.cancelled")}</span>
         )}
       </div>
 
@@ -317,7 +337,7 @@ const OrderDetail = () => {
         borderRadius: "var(--radius-md)", background: "var(--color-surface)",
         marginBottom: "1.25rem"
       }}>
-        <h3 style={{ fontWeight: 600, marginBottom: "1rem", fontSize: "1.05rem" }}>Order Items</h3>
+        <h3 style={{ fontWeight: 600, marginBottom: "1rem", fontSize: "1.05rem" }}>{t("orderDetail.orderItems")}</h3>
         {orderItemsList}
       </div>
 
@@ -326,14 +346,14 @@ const OrderDetail = () => {
         padding: "1.25rem", border: "1px solid var(--color-border)",
         borderRadius: "var(--radius-md)", background: "var(--color-surface)", marginBottom: "1.25rem"
       }}>
-        <h3 style={{ fontWeight: 600, marginBottom: "0.75rem", fontSize: "1.05rem" }}>Order Summary</h3>
+        <h3 style={{ fontWeight: 600, marginBottom: "0.75rem", fontSize: "1.05rem" }}>{t("checkout.orderSummary")}</h3>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
-          <span style={{ color: "var(--color-text-secondary)" }}>Items</span>
+          <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.items")}</span>
           <span>&#8377;{itemsTotal.toFixed(2)}</span>
         </div>
         {discount >= 0.01 && (
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
-            <span style={{ color: "var(--color-text-secondary)" }}>Discount</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>{t("cart.discount")}</span>
             <span style={{ color: "#16a34a" }}>-&#8377;{discount.toFixed(2)}</span>
           </div>
         )}
@@ -344,30 +364,29 @@ const OrderDetail = () => {
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
-          <span style={{ color: "var(--color-text-secondary)" }}>Delivery</span>
+          <span style={{ color: "var(--color-text-secondary)" }}>{t("cart.delivery")}</span>
           <span>{deliveryCharge > 0 ? <>&#8377;{deliveryCharge.toFixed(2)}</> : "FREE"}</span>
         </div>
         {giftWrapCharge > 0 && (
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
-            <span style={{ color: "var(--color-text-secondary)" }}>Gift Wrap</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>{t("checkout.giftWrap")}</span>
             <span>&#8377;{giftWrapCharge.toFixed(2)}</span>
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
-          <span style={{ color: "var(--color-text-secondary)" }}>Total Amount</span>
+          <span style={{ color: "var(--color-text-secondary)" }}>{t("cart.totalAmount")}</span>
           <strong>&#8377;{orderTotal.toFixed(2)}</strong>
         </div>
         {order?.pricesIncludeTax && (
-          <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", margin: "0 0 0.4rem" }}>
-            Prices include GST{order.tax ? <> (&#8377;{order.tax.toFixed(2)})</> : null}
+          <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", margin: "0 0 0.4rem" }}>{t("orderDetail.pricesIncludeGst")}{order.tax ? <> (&#8377;{order.tax.toFixed(2)})</> : null}
           </p>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
-          <span style={{ color: "var(--color-text-secondary)" }}>Payment Method</span>
-          <span>{order?.paymentMethod || "Online"}</span>
+          <span style={{ color: "var(--color-text-secondary)" }}>{t("checkout.paymentMethod")}</span>
+          <span>{order?.paymentMethod || t("orderDetail.online")}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
-          <span style={{ color: "var(--color-text-secondary)" }}>Payment Status</span>
+          <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.paymentStatus")}</span>
           <span style={{
             fontWeight: 600,
             color: order?.paymentStatus === "PAID" || order?.paymentStatus === "COMPLETED" ? "#0E5C5C" : "#f59e0b"
@@ -376,7 +395,7 @@ const OrderDetail = () => {
           </span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>
-          <span style={{ color: "var(--color-text-secondary)" }}>Status</span>
+          <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.status")}</span>
           <span style={{
             fontWeight: 600,
             color: isCancelled ? "#dc2626" : currentStep >= STATUS_STEPS.length - 1 ? "#0E5C5C" : "#f59e0b"
@@ -388,28 +407,26 @@ const OrderDetail = () => {
           <div style={{ marginTop: "0.5rem", padding: "0.5rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)" }}>
             {order?.courier && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "0.25rem" }}>
-                <span style={{ color: "var(--color-text-secondary)" }}>Courier</span>
+                <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.courier")}</span>
                 <span style={{ fontWeight: 500 }}>{order.courier}</span>
               </div>
             )}
             {order?.trackingNumber && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
-                <span style={{ color: "var(--color-text-secondary)" }}>Tracking #</span>
+                <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.tracking")}</span>
                 <span style={{ fontWeight: 500 }}>{order.trackingNumber}</span>
               </div>
             )}
             {order?.trackingUrl && (
               <div style={{ textAlign: "right", fontSize: "0.85rem", marginTop: "0.25rem" }}>
-                <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)", fontWeight: 500 }}>
-                  Track parcel
-                </a>
+                <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)", fontWeight: 500 }}>{t("orderDetail.trackParcel")}</a>
               </div>
             )}
           </div>
         )}
         {order?.shippingAddress && (
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
-            <span style={{ color: "var(--color-text-secondary)" }}>Shipping To</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.shippingTo")}</span>
             <span style={{ textAlign: "right", maxWidth: "60%" }}>
               {[
                 order.shippingAddress.name,
@@ -423,7 +440,7 @@ const OrderDetail = () => {
         )}
         {order?.createdAt && (
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.4rem", fontSize: "0.9rem" }}>
-            <span style={{ color: "var(--color-text-secondary)" }}>Ordered On</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.orderedOn")}</span>
             <span>{new Date(order.createdAt).toLocaleDateString("en-IN", {
               day: "numeric", month: "short", year: "numeric",
               hour: "2-digit", minute: "2-digit"
@@ -438,7 +455,7 @@ const OrderDetail = () => {
           padding: "1.25rem", border: "1px solid var(--color-border)",
           borderRadius: "var(--radius-md)", background: "var(--color-surface)", marginBottom: "1.25rem"
         }}>
-          <h3 style={{ fontWeight: 600, marginBottom: "1rem", fontSize: "1.05rem" }}>Order Timeline</h3>
+          <h3 style={{ fontWeight: 600, marginBottom: "1rem", fontSize: "1.05rem" }}>{t("orderDetail.orderTimeline")}</h3>
           <div className="timeline" style={{ position: "relative", paddingLeft: "1.5rem" }}>
             <div style={{
               position: "absolute", left: 6, top: 0, bottom: 0, width: 2,
@@ -490,7 +507,7 @@ const OrderDetail = () => {
             fontWeight: 600, cursor: "pointer"
           }}
         >
-          {hasInvoice ? "View GST Invoice" : "Check Invoice"}
+          {hasInvoice ? t("orderDetail.viewGstInvoice") : t("orderDetail.checkInvoice")}
         </button>
         {hasInvoice && (
           <button
@@ -503,7 +520,7 @@ const OrderDetail = () => {
               cursor: pdfDl ? "not-allowed" : "pointer", opacity: pdfDl ? 0.7 : 1
             }}
           >
-            {pdfDl ? "Downloading..." : "Download Invoice PDF"}
+            {pdfDl ? t("orderDetail.downloading") : t("orderDetail.downloadInvoicePdf")}
           </button>
         )}
         {canCancel && (
@@ -517,7 +534,7 @@ const OrderDetail = () => {
               cursor: cancelling ? "not-allowed" : "pointer", opacity: cancelling ? 0.7 : 1
             }}
           >
-            {cancelling ? "Cancelling..." : "Cancel Order"}
+            {cancelling ? t("orderDetail.cancelling") : t("orderDetail.cancelOrder")}
           </button>
         )}
         {status === "DELIVERED" && (
@@ -529,9 +546,7 @@ const OrderDetail = () => {
               borderRadius: "var(--radius-sm)", fontSize: "0.9rem", fontWeight: 600,
               cursor: "pointer"
             }}
-          >
-            Return / Replace
-          </button>
+          >{t("orderDetail.returnReplace")}</button>
         )}
         <button
           onClick={() => navigate("/orders")}
@@ -541,9 +556,7 @@ const OrderDetail = () => {
             borderRadius: "var(--radius-sm)", fontSize: "0.9rem", fontWeight: 500,
             cursor: "pointer", marginLeft: "auto"
           }}
-        >
-          Back to Orders
-        </button>
+        >{t("orderDetail.backToOrders")}</button>
       </div>
     </div>
   );

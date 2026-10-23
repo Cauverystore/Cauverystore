@@ -4,8 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import { getCart, updateQuantity as updateCartItemQuantity, removeItem as removeCartItem } from "../services/cartService";
 import CartItemImage from "./CartItemImage";
+import { useTranslation } from "react-i18next";
 
 const CartDrawer = ({ open, onClose }) => {
+  const { t } = useTranslation();
+
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -94,23 +97,21 @@ const CartDrawer = ({ open, onClose }) => {
   return (
     <>
       <div className="cart-drawer-overlay" onClick={onClose} aria-hidden="true" />
-      <div className="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping cart" ref={drawerRef}>
+      <div className="cart-drawer" role="dialog" aria-modal="true" aria-label={t("cartDrawer.shoppingCart")} ref={drawerRef}>
         <div className="cart-drawer-header">
-          <h3><ShoppingCart size={18} /> Your Cart ({cartItems.length})</h3>
-          <button className="cart-drawer-close" onClick={onClose} aria-label="Close cart"><X size={20} /></button>
+          <h3><ShoppingCart size={18} />{" "}{t("cartDrawer.yourCartCount", { count: cartItems.length })}</h3>
+          <button className="cart-drawer-close" onClick={onClose} aria-label={t("cartDrawer.closeCart")}><X size={20} /></button>
         </div>
 
         <div className="cart-drawer-body" aria-live="polite">
           {loading ? (
-            <div className="cart-drawer-loading">Loading...</div>
+            <div className="cart-drawer-loading">{t("cartDrawer.loading")}</div>
           ) : cartItems.length === 0 ? (
             <div className="cart-drawer-empty">
               <ShoppingCart size={40} />
-              <p>Your cart is empty</p>
-              <p style={{ fontSize: "0.85rem", color: "#64748b", margin: 0 }}>Delivery is free on orders of {"\u20B9"}500 or more.</p>
-              <button className="cart-drawer-shop-btn" onClick={() => { onClose(); navigate("/products"); }}>
-                Browse products
-              </button>
+              <p>{t("cart.empty")}</p>
+              <p style={{ fontSize: "0.85rem", color: "#64748b", margin: 0 }}>{t("cartDrawer.freeDeliveryEmpty")}</p>
+              <button className="cart-drawer-shop-btn" onClick={() => { onClose(); navigate("/products"); }}>{t("cartDrawer.browseProducts")}</button>
             </div>
           ) : (
             cartItems.map((item) => {
@@ -128,10 +129,10 @@ const CartDrawer = ({ open, onClose }) => {
                     {variantLabel(item) && <p className="cd-attr" style={{ fontWeight: 600 }}>{variantLabel(item)}</p>}
                     <p className="cart-drawer-item-price">{"\u20B9"}{(price * qty).toLocaleString()}</p>
                     <div className="cd-attrs">
-                      {product.color && <span className="cd-attr">Color: {product.color}</span>}
-                      {product.size && <span className="cd-attr">Size: {product.size}</span>}
-                      {product.material && <span className="cd-attr">Material: {product.material}</span>}
-                      {product.weight && <span className="cd-attr">Weight: {product.weight}g</span>}
+                      {product.color && <span className="cd-attr">{t("cartDrawer.color")}{" "}{product.color}</span>}
+                      {product.size && <span className="cd-attr">{t("cartDrawer.size")}{" "}{product.size}</span>}
+                      {product.material && <span className="cd-attr">{t("cartDrawer.material")}{" "}{product.material}</span>}
+                      {product.weight && <span className="cd-attr">{t("cartDrawer.weight")}{" "}{product.weight}g</span>}
                     </div>
                     <div className="cart-drawer-item-qty">
                       <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty - 1)} disabled={qty <= 1} aria-label={`Decrease quantity of ${name}`}><Minus size={14} /></button>
@@ -149,12 +150,10 @@ const CartDrawer = ({ open, onClose }) => {
         {cartItems.length > 0 && (
           <div className="cart-drawer-footer">
             <div className="cart-drawer-subtotal">
-              <span>Subtotal</span>
+              <span>{t("cart.subtotal")}</span>
               <span>{"\u20B9"}{subtotal.toLocaleString()}</span>
             </div>
-            <button className="cart-drawer-checkout-btn" onClick={() => { onClose(); navigate("/cart"); }}>
-              View cart and checkout
-            </button>
+            <button className="cart-drawer-checkout-btn" onClick={() => { onClose(); navigate("/cart"); }}>{t("cartDrawer.viewCartAndCheckout")}</button>
           </div>
         )}
       </div>

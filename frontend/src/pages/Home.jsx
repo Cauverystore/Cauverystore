@@ -7,14 +7,52 @@ import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import ProductRow from "../components/ProductRow";
 import "../styles/shopnest-home.css";
+import { useTranslation, Trans } from "react-i18next";
+import i18n from "../i18n";
 
 // The promises a first-time shopper looks for, stated once under the hero. Each one mirrors
 // what the cart and order system really do - update them together.
 const PROMISES = [
-  { Icon: Truck, title: "Free delivery", text: "on orders of ₹500 or more" },
-  { Icon: RotateCcw, title: "7-day returns", text: "free if the item is faulty or wrong" },
-  { Icon: ShieldCheck, title: "Secure payment", text: "UPI, card, net banking or wallet" },
-  { Icon: Headset, title: "Support", text: "Monday to Saturday, 9 AM to 6 PM" },
+  {
+    Icon: Truck,
+
+    get title() {
+      return i18n.t("productTray.freeDelivery");
+    },
+
+    text: "on orders of ₹500 or more"
+  },
+  {
+    Icon: RotateCcw,
+
+    get title() {
+      return i18n.t("cart.7DayReturns");
+    },
+
+    text: "free if the item is faulty or wrong"
+  },
+  {
+    Icon: ShieldCheck,
+
+    get title() {
+      return i18n.t("cart.securePayment");
+    },
+
+    get text() {
+      return i18n.t("home.upiCardNetBankingOr");
+    }
+  },
+  {
+    Icon: Headset,
+
+    get title() {
+      return i18n.t("home.support");
+    },
+
+    get text() {
+      return i18n.t("home.mondayToSaturday9Am");
+    }
+  },
 ];
 
 function normalizeProduct(p) {
@@ -43,6 +81,8 @@ function getCategoryName(p) {
 const ROW_LIMIT = 15;
 
 const Home = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [allProducts, setAllProducts] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -80,7 +120,7 @@ const Home = () => {
       await addToCart(p.id, 1);
       setToast({ type: "success", text: `${p.name} added to your cart` });
     } catch {
-      setToast({ type: "error", text: "We couldn't add that to your cart. Please try again." });
+      setToast({ type: "error", text: t("home.weCouldnTAddThat") });
     }
   }, [navigate]);
 
@@ -91,23 +131,23 @@ const Home = () => {
       await addToCart(p.id, 1);
       navigate("/checkout");
     } catch {
-      setToast({ type: "error", text: "We couldn't start checkout. Please try again." });
+      setToast({ type: "error", text: t("cart.weCouldnTStartCheckout") });
     }
   }, [navigate]);
 
   return (
     <div className="sn-page">
       <Helmet>
-        <title>Cauvery Store | Online Shopping in India</title>
+        <title>{t("home.cauveryStoreOnlineShoppingIn")}</title>
         <meta
           name="description"
-          content="Shop online at Cauvery Store. Pay by UPI, card, net banking or wallet, with free delivery on orders of ₹500 or more and 7-day returns."
+          content={t("home.shopOnlineAtCauveryStore")}
         />
         <link rel="canonical" href="https://cauverystore.in/" />
-        <meta property="og:title" content="Cauvery Store | Online Shopping in India" />
+        <meta property="og:title" content={t("home.cauveryStoreOnlineShoppingIn")} />
         <meta
           property="og:description"
-          content="Shop online at Cauvery Store. Pay by UPI, card, net banking or wallet, with free delivery on orders of ₹500 or more and 7-day returns."
+          content={t("home.shopOnlineAtCauveryStore")}
         />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
         <meta property="og:type" content="website" />
@@ -128,16 +168,16 @@ const Home = () => {
         </svg>
         <div className="sn-container sn-hero-inner">
           <p className="sn-eyebrow">Cauvery Store</p>
-          <h1 className="sn-hero-title">Online shopping, <em>delivered</em> to your door</h1>
-          <p className="sn-hero-sub">Free delivery on orders of ₹500 or more, and 7-day returns.</p>
+          <h1 className="sn-hero-title"><Trans i18nKey="home.heroTitle" components={{ em: <em /> }} /></h1>
+          <p className="sn-hero-sub">{t("home.freeDeliveryOnOrdersOf")}</p>
           <div className="sn-hero-actions">
-            <Link to="/products" className="sn-btn">Browse products <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
-            <Link to="/seller/register" className="sn-text-link">Own a shop? Start selling</Link>
+            <Link to="/products" className="sn-btn">{t("cartDrawer.browseProducts")}{" "}<ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
+            <Link to="/seller/register" className="sn-text-link">{t("home.ownAShopStartSelling")}</Link>
           </div>
         </div>
       </section>
 
-      <section className="sn-promises" aria-label="Why shop at Cauvery Store">
+      <section className="sn-promises" aria-label={t("home.whyShopAtCauveryStore")}>
         <div className="sn-container">
           <ul className="sn-promises-grid">
             {PROMISES.map(({ Icon, title, text }) => (
@@ -172,8 +212,8 @@ const Home = () => {
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title">Discounted now</h2>
-            <Link className="sn-view-all" to="/offers">View all offers {"\u2192"}</Link>
+            <h2 className="sn-section-title">{t("home.discountedNow")}</h2>
+            <Link className="sn-view-all" to="/offers">{t("home.viewAllOffers")}{" "}{"\u2192"}</Link>
           </div>
           <ProductRow>
             {productsWithDiscount.length > 0
@@ -187,8 +227,8 @@ const Home = () => {
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title">New arrivals</h2>
-            <Link className="sn-view-all" to="/products">View all {"\u2192"}</Link>
+            <h2 className="sn-section-title">{t("home.newArrivals")}</h2>
+            <Link className="sn-view-all" to="/products">{t("home.viewAll")}{" "}{"\u2192"}</Link>
           </div>
           {loading ? (
             <ProductRow>{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</ProductRow>
@@ -198,9 +238,9 @@ const Home = () => {
             </ProductRow>
           ) : (
             <div className="sn-empty-section">
-              <p className="sn-empty-title">New products are on the way</p>
-              <p>Please check back soon. Own a shop? You can be among the first to list here.</p>
-              <Link to="/seller/register" className="sn-btn">Start selling <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
+              <p className="sn-empty-title">{t("home.newProductsAreOnThe")}</p>
+              <p>{t("home.pleaseCheckBackSoonOwn")}</p>
+              <Link to="/seller/register" className="sn-btn">{t("home.startSelling")}{" "}<ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
             </div>
           )}
         </div>
@@ -212,8 +252,8 @@ const Home = () => {
       <section className="sn-section">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title">Electronics</h2>
-            <Link className="sn-view-all" to="/category/Electronics">View all {"\u2192"}</Link>
+            <h2 className="sn-section-title">{t("home.electronics")}</h2>
+            <Link className="sn-view-all" to="/category/Electronics">{t("home.viewAll")}{" "}{"\u2192"}</Link>
           </div>
           {loading ? (
             <ProductRow>{[...Array(6)].map((_, i) => <LoadingSkeleton key={i} />)}</ProductRow>
@@ -230,8 +270,8 @@ const Home = () => {
       <section className="sn-section sn-section-accent">
         <div className="sn-container">
           <div className="sn-section-top">
-            <h2 className="sn-section-title">Fashion</h2>
-            <Link className="sn-view-all" to="/category/Fashion">View all {"\u2192"}</Link>
+            <h2 className="sn-section-title">{t("home.fashion")}</h2>
+            <Link className="sn-view-all" to="/category/Fashion">{t("home.viewAll")}{" "}{"\u2192"}</Link>
           </div>
           {loading ? (
             <ProductRow>{[...Array(4)].map((_, i) => <LoadingSkeleton key={i} />)}</ProductRow>

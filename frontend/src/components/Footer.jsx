@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
 import { OPEN_COOKIE_SETTINGS } from "./CookieBanner";
+import { useTranslation } from "react-i18next";
 
 const Footer = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -11,10 +13,10 @@ const Footer = () => {
     e.preventDefault();
     try {
       const res = await api.post("/api/newsletter/subscribe", { email });
-      setMsg(res.data.message || "Subscribed!");
+      setMsg(res.data.message || t("footer.subscribed"));
       setEmail("");
       setTimeout(() => setMsg(""), 3000);
-    } catch { setMsg("We couldn't sign you up just now. Please try again."); setTimeout(() => setMsg(""), 3000); }
+    } catch { setMsg(t("footer.subscribeFailed")); setTimeout(() => setMsg(""), 3000); }
   };
 
   return (
@@ -30,16 +32,16 @@ const Footer = () => {
         gap: "2rem", flexWrap: "wrap"
       }}>
         <div style={{ flex: 1, minWidth: "250px" }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, letterSpacing: "-0.015em", margin: "0 0 0.35rem" }}>New arrivals and offers, in your inbox</h3>
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, letterSpacing: "-0.015em", margin: "0 0 0.35rem" }}>{t("footer.newsletterTitle")}</h3>
           <p style={{ fontSize: "0.85rem", opacity: 0.85, margin: 0 }}>
-            Hear about new products and offers first. Unsubscribe any time.
+            {t("footer.newsletterText")}
           </p>
           {msg && <p style={{ fontSize:"0.8rem", marginTop:"0.5rem", color:"#f1dfae" }}>{msg}</p>}
         </div>
         <form onSubmit={handleSubscribe} style={{
           display: "flex", gap: "0.5rem", flexShrink: 0, width: "100%", maxWidth: "420px"
         }}>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your email address" aria-label="Email address for newsletter" required style={{
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t("footer.emailPlaceholder")} aria-label={t("footer.emailAria")} required style={{
             flex: 1, padding: "0.6rem 1rem", border: "none", borderRadius: "999px",
             fontSize: "0.85rem", outline: "none"
           }} />
@@ -51,7 +53,7 @@ const Footer = () => {
           }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary-lighter, #f0fdfa)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
-          >Subscribe</button>
+          >{t("footer.subscribe")}</button>
         </form>
       </div>
     </section>
@@ -72,50 +74,50 @@ const Footer = () => {
             <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff" }}>Cauvery Store</span>
           </div>
           <h4 style={{ color: "#fff", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Get to Know Us
+            {t("footer.getToKnow")}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/about" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>About Cauvery Store</Link>
-            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
-            <Link to="/faq" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Help Center</Link>
-            <Link to="/offers" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Offers & Deals</Link>
+            <Link to="/about" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.about")}</Link>
+            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.contact")}</Link>
+            <Link to="/faq" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.helpCenter")}</Link>
+            <Link to="/offers" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.offers")}</Link>
           </div>
         </div>
 
         {/* Customer Service */}
         <div className="sn-footer-col">
           <h4 style={{ color: "#fff", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Customer Service
+            {t("footer.customerService")}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Contact Us</Link>
-            <Link to="/faq" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>FAQ</Link>
-            <Link to="/orders" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Your Orders</Link>
+            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.contact")}</Link>
+            <Link to="/faq" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.faq")}</Link>
+            <Link to="/orders" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.yourOrders")}</Link>
             {/* One link per policy: payment partners and shoppers look for each by name. */}
-            <Link to="/refund-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Cancellations & Refunds</Link>
-            <Link to="/shipping-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Shipping Policy</Link>
-            <Link to="/terms-and-conditions" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Terms & Conditions</Link>
-            <Link to="/privacy-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Privacy Policy</Link>
-            <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS))} style={{ color: "#a9c2c0", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontSize: "0.85rem", fontFamily: "inherit" }}>Cookie Settings</button>
+            <Link to="/refund-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.refunds")}</Link>
+            <Link to="/shipping-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.shipping")}</Link>
+            <Link to="/terms-and-conditions" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.terms")}</Link>
+            <Link to="/privacy-policy" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.privacy")}</Link>
+            <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS))} style={{ color: "#a9c2c0", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontSize: "0.85rem", fontFamily: "inherit" }}>{t("footer.cookies")}</button>
           </div>
         </div>
 
         {/* Seller Services */}
         <div className="sn-footer-col">
           <h4 style={{ color: "#fff", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Seller Services
+            {t("footer.sellerServices")}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/seller/register" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Sell on Cauvery Store</Link>
-            <Link to="/seller/dashboard" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Seller Dashboard</Link>
-            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>Partner Support</Link>
+            <Link to="/seller/register" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.sellOn")}</Link>
+            <Link to="/seller/dashboard" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("nav.sellerDashboard")}</Link>
+            <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.partnerSupport")}</Link>
           </div>
         </div>
 
         {/* Connect With Us */}
         <div className="sn-footer-col">
           <h4 style={{ color: "#fff", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Connect With Us
+            {t("footer.connect")}
           </h4>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
             {[
@@ -170,17 +172,17 @@ const Footer = () => {
           <span>MC</span><span style={{ opacity: 0.3 }}>|</span>
           <span>Amex</span><span style={{ opacity: 0.3 }}>|</span>
           <span>UPI</span><span style={{ opacity: 0.3 }}>|</span>
-          <span>Net Banking</span><span style={{ opacity: 0.3 }}>|</span>
-          <span>Wallets</span>
+          <span>{t("footer.netBanking")}</span><span style={{ opacity: 0.3 }}>|</span>
+          <span>{t("footer.wallets")}</span>
         </div>
         <p style={{ margin: 0, color: "#86a3a1" }}>
-          &copy; {new Date().getFullYear()} Cauvery Store. All rights reserved.
+          &copy; {new Date().getFullYear()} Cauvery Store. {t("footer.rights")}
         </p>
       </div>
     </footer>
 
     {/* Back to Top */}
-    <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title="Back to top" aria-label="Back to top" style={{
+    <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title={t("footer.backToTop")} aria-label={t("footer.backToTop")} style={{
       position: "fixed", bottom: "calc(80px + var(--bottom-bar-offset, 0px))", right: "1.5rem", zIndex: 50,
       width: 40, height: 40, borderRadius: "50%", background: "var(--color-primary, #0E5C5C)",
       color: "#fff", border: "none", cursor: "pointer", display: "flex",

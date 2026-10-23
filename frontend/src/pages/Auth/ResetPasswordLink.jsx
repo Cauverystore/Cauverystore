@@ -2,16 +2,50 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/auth.css';
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 const PASSWORD_REQUIREMENTS = [
-  { label: 'At least 8 characters', test: (v) => v.length >= 8 },
-  { label: 'Contains uppercase letter', test: (v) => /[A-Z]/.test(v) },
-  { label: 'Contains lowercase letter', test: (v) => /[a-z]/.test(v) },
-  { label: 'Contains a number', test: (v) => /\d/.test(v) },
-  { label: 'Contains special character', test: (v) => /[!@#$%^&*(),.?":{}|<>]/.test(v) },
+  {
+    get label() {
+      return i18n.t("forgotPassword.atLeast8Characters");
+    },
+
+    test: (v) => v.length >= 8
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsUppercaseLetter");
+    },
+
+    test: (v) => /[A-Z]/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsLowercaseLetter");
+    },
+
+    test: (v) => /[a-z]/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsANumber");
+    },
+
+    test: (v) => /\d/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsSpecialCharacter");
+    },
+
+    test: (v) => /[!@#$%^&*(),.?":{}|<>]/.test(v)
+  },
 ];
 
 const ResetPasswordLink = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
@@ -30,16 +64,16 @@ const ResetPasswordLink = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!token) { setError('This reset link is invalid. Please request a new one.'); return; }
-    if (!passwordValid) { setError('Password does not meet the requirements below'); return; }
-    if (!passwordsMatch) { setError('Passwords do not match'); return; }
+    if (!token) { setError(t("resetPasswordLink.thisResetLinkIsInvalid")); return; }
+    if (!passwordValid) { setError(t("forgotPassword.passwordDoesNotMeetThe")); return; }
+    if (!passwordsMatch) { setError(t("forgotPassword.passwordsDoNotMatch")); return; }
     setLoading(true);
     try {
       await resetPasswordWithLink(token, newPassword);
-      setSuccess('Password reset successfully! Redirecting to login...');
+      setSuccess(t("forgotPassword.passwordResetSuccessfullyRedirecti"));
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to reset password. This link may have expired.');
+      setError(err.response?.data?.error || err.response?.data?.message || t("resetPasswordLink.failedToResetPasswordThis"));
     } finally {
       setLoading(false);
     }
@@ -52,32 +86,32 @@ const ResetPasswordLink = () => {
           <div className="auth-header">
             <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: '48px', width: 'auto' }} />
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #0E5C5C)' }}>Cauvery Store</div>
-            <h1 className="auth-title">Reset Password</h1>
-            <p className="auth-subtitle">Choose a new password for your account</p>
+            <h1 className="auth-title">{t("forgotPassword.resetPassword")}</h1>
+            <p className="auth-subtitle">{t("resetPasswordLink.chooseANewPasswordFor")}</p>
           </div>
 
           {error && <div className="auth-alert error">{error}</div>}
           {success && <div className="auth-alert success">{success}</div>}
 
           {!token ? (
-            <div className="auth-alert error">This reset link is missing or invalid. Please request a new one.</div>
+            <div className="auth-alert error">{t("resetPasswordLink.thisResetLinkIsMissing")}</div>
           ) : (
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="auth-field">
-                <label className="auth-field-label" htmlFor="rpl-new-password">New Password</label>
+                <label className="auth-field-label" htmlFor="rpl-new-password">{t("profile.newPassword")}</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
                     id="rpl-new-password"
                     type={showPassword ? 'text' : 'password'}
                     className="auth-input"
-                    placeholder="Create a strong password"
+                    placeholder={t("forgotPassword.createAStrongPassword")}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
                   />
                   <button type="button" className="auth-password-toggle" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
-                    {showPassword ? 'Hide' : 'Show'}
+                    {showPassword ? t("forgotPassword.hide") : t("forgotPassword.show")}
                   </button>
                 </div>
                 {newPassword && (
@@ -93,21 +127,21 @@ const ResetPasswordLink = () => {
               </div>
 
               <div className="auth-field">
-                <label className="auth-field-label" htmlFor="rpl-confirm-password">Confirm New Password</label>
+                <label className="auth-field-label" htmlFor="rpl-confirm-password">{t("profile.confirmNewPassword")}</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
                     id="rpl-confirm-password"
                     type={showPassword ? 'text' : 'password'}
                     className="auth-input"
-                    placeholder="Confirm your password"
+                    placeholder={t("forgotPassword.confirmYourPassword")}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                   />
                 </div>
                 {confirmPassword && !passwordsMatch && (
-                  <span className="auth-field-error">Passwords do not match</span>
+                  <span className="auth-field-error">{t("forgotPassword.passwordsDoNotMatch")}</span>
                 )}
               </div>
 
@@ -116,14 +150,13 @@ const ResetPasswordLink = () => {
                 className={`auth-submit-btn${loading ? ' loading' : ''}`}
                 disabled={loading || !passwordValid || !passwordsMatch}
               >
-                {loading ? 'Resetting...' : 'Reset Password'}
+                {loading ? t("forgotPassword.resetting") : t("forgotPassword.resetPassword")}
               </button>
             </form>
           )}
 
-          <div className="auth-footer">
-            Remember your password?{' '}
-            <Link to="/login" className="auth-link">Sign in</Link>
+          <div className="auth-footer">{t("forgotPassword.rememberYourPassword")}{' '}
+            <Link to="/login" className="auth-link">{t("forgotPassword.signIn")}</Link>
           </div>
         </div>
       </div>

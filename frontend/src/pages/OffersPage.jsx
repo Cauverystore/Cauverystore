@@ -7,10 +7,13 @@ import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Pagination from "../components/Pagination";
 import "../styles/products.css";
 import "../styles/product-tray.css";
+import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE = 12;
 
 const OffersPage = () => {
+  const { t } = useTranslation();
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -48,7 +51,7 @@ const OffersPage = () => {
       setCartMsg(`${product.name} added to your cart`);
       setTimeout(() => setCartMsg(null), 2500);
     } catch {
-      setCartMsg("We couldn't add that to your cart. Please try again.");
+      setCartMsg(t("home.weCouldnTAddThat"));
       setTimeout(() => setCartMsg(null), 2500);
     }
   };
@@ -60,7 +63,7 @@ const OffersPage = () => {
       await addToCart(product.id || product._id, 1);
       navigate("/checkout");
     } catch {
-      setCartMsg("We couldn't add that to your cart. Please try again.");
+      setCartMsg(t("home.weCouldnTAddThat"));
       setTimeout(() => setCartMsg(null), 2500);
     }
   };
@@ -68,21 +71,21 @@ const OffersPage = () => {
   return (
     <div className="products-page">
       <Helmet>
-        <title>Offers and Deals | Cauvery Store</title>
-        <meta name="description" content="Current offers and discounted products on Cauvery Store." />
+        <title>{t("offersPage.offersAndDealsCauveryStore")}</title>
+        <meta name="description" content={t("offersPage.currentOffersAndDiscountedProducts")} />
         <link rel="canonical" href="https://cauverystore.in/offers" />
         {/* An empty shelf is a thin page: keep it out of search results until offers exist. */}
         {!loading && products.length === 0 && <meta name="robots" content="noindex, follow" />}
-        <meta property="og:title" content="Offers and Deals | Cauvery Store" />
-        <meta property="og:description" content="Current offers and discounted products at Cauvery Store." />
+        <meta property="og:title" content={t("offersPage.offersAndDealsCauveryStore")} />
+        <meta property="og:description" content={t("offersPage.currentOffersAndDiscountedProductsr28")} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://cauverystore.in/offers" />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
       </Helmet>
       {cartMsg &&<div className="pt-toast" role="status" aria-live="polite">{cartMsg}</div>}
       <div className="section-header">
-        <h2 className="section-title">Current offers</h2>
-        <span className="products-toolbar-count">{products.length} products</span>
+        <h2 className="section-title">{t("offersPage.currentOffers")}</h2>
+        <span className="products-toolbar-count">{t("categoryProducts.productsCount", { count: products.length })}</span>
       </div>
 
       {loading ? (
@@ -92,9 +95,9 @@ const OffersPage = () => {
       ) : products.length === 0 ? (
         <div className="products-empty">
           <div className="products-empty-icon">&#128722;</div>
-          <h3 className="products-empty-title">No offers running right now</h3>
-          <p className="products-empty-text">New offers are added through the week. Until then, browse all products.</p>
-          <button className="products-empty-action" onClick={() => navigate("/products")}>Browse all products</button>
+          <h3 className="products-empty-title">{t("offersPage.noOffersRunningRightNow")}</h3>
+          <p className="products-empty-text">{t("offersPage.newOffersAreAddedThrough")}</p>
+          <button className="products-empty-action" onClick={() => navigate("/products")}>{t("search.browseAll")}</button>
         </div>
       ) : (
         <>

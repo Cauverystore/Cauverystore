@@ -8,6 +8,7 @@ import { trackSelectItem, trackAddToCart } from "../utils/analytics";
 import { toggleCompare, isCompared } from "../utils/compare";
 import { variantNoun } from "../utils/variant";
 import "../styles/product-tray.css";
+import { useTranslation } from "react-i18next";
 
 /*
  * The Cauvery Store product card. One standard for every list on the site:
@@ -54,6 +55,10 @@ const LoadingSkeleton = () => (
 );
 
 const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, quickActions = true }) => {
+  const {
+    t: tr
+  } = useTranslation();
+
   const navigate = useNavigate();
   const [imgLoaded, setImgLoaded] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
@@ -228,9 +233,9 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
           onError={(e) => { if (imgErrorFixed.current) return; imgErrorFixed.current = true; setImgLoaded(true); e.target.src = PLACEHOLDER; }}
         />
         {tag && inStock && <span className="pt-badge">{tag}</span>}
-        {!inStock && <span className="pt-out-label">Out of stock</span>}
+        {!inStock && <span className="pt-out-label">{tr("product.outOfStock")}</span>}
 
-        {linkCopied && <span className="pt-copied" role="status">Link copied</span>}
+        {linkCopied && <span className="pt-copied" role="status">{tr("productTray.linkCopied")}</span>}
 
       </div>
 
@@ -240,7 +245,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         <div className="pt-gallery-controls">
         {images.length > 1 && (
           <>
-            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown - 1)} aria-label="Previous photo">
+            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown - 1)} aria-label={tr("productTray.previousPhoto")}>
               <ChevronLeft size={16} />
             </button>
             <div className="pt-gallery-dots">
@@ -255,7 +260,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
                 />
               ))}
             </div>
-            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown + 1)} aria-label="Next photo">
+            <button type="button" className="pt-gallery-nav" onClick={() => showImage(shown + 1)} aria-label={tr("productTray.nextPhoto")}>
               <ChevronRight size={16} />
             </button>
           </>
@@ -269,7 +274,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               onClick={handleWishlist}
               aria-pressed={wishlisted}
               aria-label={wishlisted ? `Remove ${name} from wishlist` : `Add ${name} to wishlist`}
-              data-tip={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              data-tip={wishlisted ? tr("productTray.removeFromWishlist") : tr("product.addToWishlist")}
             >
               <Heart size={16} strokeWidth={1.8} fill={wishlisted ? "currentColor" : "none"} />
             </button>
@@ -282,7 +287,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
                 disabled={saving}
                 aria-pressed={saved}
                 aria-label={saved ? `${name} saved for later` : `Save ${name} for later`}
-                data-tip={saved ? "Saved for later" : "Save for later"}
+                data-tip={saved ? tr("productTray.savedForLater") : tr("productTray.saveForLater")}
               >
                 <Bookmark size={16} strokeWidth={1.8} fill={saved ? "currentColor" : "none"} />
               </button>
@@ -292,7 +297,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               className="pt-action-btn pt-action-extra"
               onClick={handleShare}
               aria-label={`Share ${name}`}
-              data-tip={linkCopied ? "Link copied" : "Share"}
+              data-tip={linkCopied ? tr("productTray.linkCopied") : tr("productTray.share")}
             >
               <Share2 size={16} strokeWidth={1.8} />
             </button>
@@ -302,7 +307,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
               onClick={handleCompare}
               aria-pressed={compared}
               aria-label={compared ? `Remove ${name} from compare` : `Add ${name} to compare`}
-              data-tip={compared ? "Remove from compare" : "Compare"}
+              data-tip={compared ? tr("productTray.removeFromCompare") : tr("productTray.compare")}
             >
               <GitCompareArrows size={16} strokeWidth={1.8} />
             </button>
@@ -319,7 +324,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
             {name}
           </Link>
         </h3>
-        {optionCount > 1 && <div className="pt-options">{optionCount} options</div>}
+        {optionCount > 1 && <div className="pt-options">{optionCount}{" "}{tr("productTray.options")}</div>}
 
         {/* No stars until a product has a real rating - a made-up default misleads shoppers. */}
         {rating > 0 && <StarRating rating={rating} reviewCount={reviewCount} />}
@@ -329,20 +334,19 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         <div className="pt-meta">
           {/* Matches the cart rule: delivery is free on orders of 500 or more. */}
           {/* Low stock leads: the line is cut with "..." on a narrow card, and this must not be lost. */}
-          {isLowStock && <span className="pt-meta-low">Only {stock} left</span>}
-          {inStock && price >= 500 && <span className="pt-meta-item">Free delivery</span>}
-          {inStock && returnDays > 0 && <span className="pt-meta-item">{returnDays}-day returns</span>}
+          {isLowStock && <span className="pt-meta-low">{tr("productTray.only")}{" "}{stock}{" "}{tr("productTray.left")}</span>}
+          {inStock && price >= 500 && <span className="pt-meta-item">{tr("productTray.freeDelivery")}</span>}
+          {inStock && returnDays > 0 && <span className="pt-meta-item">{returnDays}{tr("productTray.dayReturns")}</span>}
         </div>
 
         {inStock && optionCount > 0 ? (
           /* Sold in sizes: the size is chosen on the product page, so the card leads there. */
           <div className="pt-actions pt-actions-stacked">
-            <Link to={`/product/${pid}`} className="pt-btn pt-btn-buy" onClick={handleOpen}>
-              Choose {variantNoun(product)}
+            <Link to={`/product/${pid}`} className="pt-btn pt-btn-buy" onClick={handleOpen}>{tr("productTray.choose")}{" "}{variantNoun(product)}
             </Link>
             {onRemove && (
               <button type="button" className="pt-btn pt-btn-remove" onClick={handleRemove} disabled={removing}>
-                {removing ? "Removing..." : "Remove"}
+                {removing ? tr("productTray.removing") : tr("cart.remove")}
               </button>
             )}
           </div>
@@ -350,27 +354,27 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
           <div className="pt-actions pt-actions-stacked">
             <button type="button" className="pt-btn pt-btn-buy" onClick={handleMoveToCart} disabled={!inStock || moving}>
               <ArrowRightCircle size={16} aria-hidden="true" />
-              <span>{!inStock ? "Out of stock" : moving ? "Moving..." : "Move to cart"}</span>
+              <span>{!inStock ? tr("product.outOfStock") : moving ? tr("productTray.moving") : tr("productTray.moveToCart")}</span>
             </button>
             {onRemove && (
               <button type="button" className="pt-btn pt-btn-remove" onClick={handleRemove} disabled={removing}>
-                {removing ? "Removing..." : "Remove"}
+                {removing ? tr("productTray.removing") : tr("cart.remove")}
               </button>
             )}
           </div>
         ) : !inStock ? (
           <div className="pt-actions">
-            <button type="button" className="pt-btn pt-btn-buy" disabled>Out of stock</button>
+            <button type="button" className="pt-btn pt-btn-buy" disabled>{tr("product.outOfStock")}</button>
           </div>
         ) : (
           <div className="pt-actions">
-            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={adding} aria-label={`Add ${name} to cart`} data-tip="Add to cart">
+            <button type="button" className="pt-btn pt-btn-cart" onClick={handleAddToCart} disabled={adding} aria-label={`Add ${name} to cart`} data-tip={tr("product.addToCart")}>
               <ShoppingCart size={16} aria-hidden="true" />
-              <span className="pt-btn-label">{adding ? "Adding..." : "Add to cart"}</span>
+              <span className="pt-btn-label">{adding ? tr("productTray.adding") : tr("product.addToCart")}</span>
             </button>
             <button type="button" className="pt-btn pt-btn-buy" onClick={handleBuyNow} aria-label={`Buy ${name} now`}>
               <Zap size={15} aria-hidden="true" />
-              <span>Buy now</span>
+              <span>{tr("product.buyNow")}</span>
             </button>
           </div>
         )}

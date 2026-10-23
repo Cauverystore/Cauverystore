@@ -3,49 +3,255 @@ import { Helmet } from "react-helmet-async";
 import { Search, Package, Truck, RotateCcw, User, CreditCard, Headphones, ChevronDown } from "lucide-react";
 import StaticLayout from "../components/StaticLayout";
 import api from "../api/axios";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const categories = [
-  { id: "orders", label: "Orders", icon: Package },
-  { id: "shipping", label: "Shipping & Delivery", icon: Truck },
-  { id: "returns", label: "Returns & Refunds", icon: RotateCcw },
-  { id: "account", label: "Account & Profile", icon: User },
-  { id: "payments", label: "Payments", icon: CreditCard },
+  {
+    id: "orders",
+
+    get label() {
+      return i18n.t("nav.ordersShort");
+    },
+
+    icon: Package
+  },
+  {
+    id: "shipping",
+
+    get label() {
+      return i18n.t("helpCenter.shippingDelivery");
+    },
+
+    icon: Truck
+  },
+  {
+    id: "returns",
+
+    get label() {
+      return i18n.t("helpCenter.returnsRefunds");
+    },
+
+    icon: RotateCcw
+  },
+  {
+    id: "account",
+
+    get label() {
+      return i18n.t("helpCenter.accountProfile");
+    },
+
+    icon: User
+  },
+  {
+    id: "payments",
+
+    get label() {
+      return i18n.t("helpCenter.payments");
+    },
+
+    icon: CreditCard
+  },
 ];
 
 const fallbackFaqs = {
   orders: [
-    { q: "How do I place an order?", a: "Browse the store, add items to your cart and go to checkout. You need to sign in to place an order." },
-    { q: "Can I cancel my order?", a: "Yes, free of charge, any time before the order ships. Open My Orders and choose Cancel. If you have already paid, the full amount is refunded automatically." },
-    { q: "How do I track my order?", a: "Open My Orders in your account to see the status of each order. Once an order ships, the courier name and tracking number are shown there." },
-    { q: "What if I receive a damaged or wrong item?", a: "Raise a return from My Orders within the 7-day return period and choose the matching reason, or email support@cauverystore.in with photos. Returns for damaged, defective or wrong items are free." },
+    {
+      get q() {
+        return i18n.t("helpCenter.howDoIPlaceAn");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.browseTheStoreAddItems");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.canICancelMyOrder");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.yesFreeOfChargeAny");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.howDoITrackMy");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.openMyOrdersInYour");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.whatIfIReceiveA");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.raiseAReturnFromMy");
+      }
+    },
   ],
   shipping: [
-    { q: "What are the shipping charges?", a: "Delivery is free on orders of ₹500 or more. Orders below ₹500 have a flat ₹40 delivery charge." },
-    { q: "How long does delivery take?", a: "Sellers normally dispatch within 1-2 business days. After that, delivery usually takes 2-4 business days within the seller's own state and 4-7 business days to the rest of India. Remote areas may take longer." },
-    { q: "Do you ship internationally?", a: "No. We deliver to addresses in India only." },
-    { q: "Can I change my delivery address after ordering?", a: "You can update the address before the order is shipped. Once shipped, changes are not possible." },
+    {
+      get q() {
+        return i18n.t("helpCenter.whatAreTheShippingCharges");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.deliveryIsFreeOnOrders");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.howLongDoesDeliveryTake");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.sellersNormallyDispatchWithin1");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.doYouShipInternationally");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.noWeDeliverToAddresses");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.canIChangeMyDelivery");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.youCanUpdateTheAddress");
+      }
+    },
   ],
   returns: [
-    { q: "What is the return policy?", a: "Most items can be returned within 7 days of delivery. If a product has a different return period, it is shown on the product page." },
-    { q: "How do I initiate a return?", a: "Go to your Orders page, select the item, and click 'Return'. Follow the instructions to generate a return request." },
-    { q: "When will I get my refund?", a: "Refunds are processed within 5-7 business days after the returned item is received and verified." },
-    { q: "Are there any items that cannot be returned?", a: "Yes. Innerwear, swimwear, perishable goods, clearance items, customised or made-to-order items, and products marked \"No Returns\" cannot be returned. You can still report them if they arrive damaged, defective or wrong." },
+    {
+      get q() {
+        return i18n.t("helpCenter.whatIsTheReturnPolicy");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.mostItemsCanBeReturned");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.howDoIInitiateA");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.goToYourOrdersPage");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.whenWillIGetMy");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.refundsAreProcessedWithin5");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.areThereAnyItemsThat");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.yesInnerwearSwimwearPerishableGood");
+      }
+    },
   ],
   account: [
-    { q: "How do I create an account?", a: "Click on 'Login' and then 'Register'. Fill in your details to create your Cauvery Store account in seconds." },
-    { q: "I forgot my password. What should I do?", a: "On the login page, click 'Forgot Password' and follow the instructions to reset it via email." },
-    { q: "How do I update my profile?", a: "Log in and visit the Profile section. You can edit your name, email, phone number, and saved addresses." },
-    { q: "Can I delete my account?", a: "Yes, please contact our support team at support@cauverystore.in to request account deletion." },
+    {
+      get q() {
+        return i18n.t("helpCenter.howDoICreateAn");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.clickOnLoginAndThen");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.iForgotMyPasswordWhat");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.onTheLoginPageClick");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.howDoIUpdateMy");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.logInAndVisitThe");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.canIDeleteMyAccount");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.yesPleaseContactOurSupport");
+      }
+    },
   ],
   payments: [
-    { q: "What payment methods do you accept?", a: "UPI, credit and debit cards, net banking and wallets, all through Razorpay." },
-    { q: "Is my payment information secure?", a: "Absolutely. All payments are processed through Razorpay with bank-grade encryption. We do not store your payment details." },
-    { q: "What should I do if my payment fails?", a: "First, check if the amount was deducted. If yes, it will be refunded automatically within 5-7 days. Contact support if it does not." },
-    { q: "Do you offer cash on delivery?", a: "Not at present. All orders are paid online through Razorpay when you place them." },
+    {
+      get q() {
+        return i18n.t("aboutUs.whatPaymentMethodsDoYou");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.upiCreditAndDebitCards");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.isMyPaymentInformationSecure");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.absolutelyAllPaymentsAreProcessed");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.whatShouldIDoIf");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.firstCheckIfTheAmount");
+      }
+    },
+    {
+      get q() {
+        return i18n.t("helpCenter.doYouOfferCashOn");
+      },
+
+      get a() {
+        return i18n.t("helpCenter.notAtPresentAllOrders");
+      }
+    },
   ],
 };
 
 const HelpCenter = () => {
+  const {
+    t: tr
+  } = useTranslation();
+
   const [activeTab, setActiveTab] = useState("orders");
   const [faqs, setFaqs] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,7 +279,7 @@ const HelpCenter = () => {
 
   const data = faqs || fallbackFaqs;
   // Only offer tabs that have questions, so no tab opens onto an empty list.
-  const tabs = [{ id: "general", label: "General" }, ...categories]
+  const tabs = [{ id: "general", label: tr("helpCenter.general") }, ...categories]
     .filter((c) => data[c.id]?.length > 0)
     .map((c) => ({ id: c.id, label: c.label }));
   const currentTab = tabs.some((t) => t.id === activeTab) ? activeTab : tabs[0]?.id;
@@ -103,18 +309,18 @@ const HelpCenter = () => {
   return (
     <StaticLayout
       hero={{
-        title: "Help Center",
-        subtitle: "Find answers to common questions or reach out to our support team.",
+        title: tr("footer.helpCenter"),
+        subtitle: tr("helpCenter.findAnswersToCommonQuestions"),
       }}
       tabs={tabs}
       activeTab={currentTab}
       onTabChange={setActiveTab}
     >
       <Helmet>
-        <title>Help Center | Cauvery Store</title>
+        <title>{tr("helpCenter.helpCenterCauveryStore")}</title>
         {/* /faq and /help both render this page; /faq is the one in the sitemap. */}
         <link rel="canonical" href="https://cauverystore.in/faq" />
-        <meta name="description" content="Get answers to frequently asked questions about orders, shipping, returns, account, and payments at Cauvery Store." />
+        <meta name="description" content={tr("helpCenter.getAnswersToFrequentlyAsked")} />
         {faqJsonLd && faqJsonLd.mainEntity.length > 0 && (
           <script type="application/ld+json">{JSON.stringify(faqJsonLd).replace(/</g, "\\u003c")}</script>
         )}
@@ -124,17 +330,17 @@ const HelpCenter = () => {
         <Search size={18} className="static-search-icon" />
         <input
           type="text"
-          placeholder="Search within this section..."
+          placeholder={tr("helpCenter.searchWithinThisSection")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
       {loading ? (
-        <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>Loading FAQs...</p>
+        <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>{tr("helpCenter.loadingFaqs")}</p>
       ) : filtered.length === 0 ? (
         <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>
-          {searchTerm.trim() ? `No FAQs found for "${searchTerm}". Try a different keyword.` : "No FAQs available at the moment."}
+          {searchTerm.trim() ? `No FAQs found for "${searchTerm}". Try a different keyword.` : tr("helpCenter.noFaqsAvailableAtThe")}
         </p>
       ) : (
         <div className="static-accordion">
@@ -145,11 +351,10 @@ const HelpCenter = () => {
       )}
 
       <div className="static-section" style={{ textAlign: "center", marginTop: "2.5rem" }}>
-        <h3 style={{ marginBottom: "0.75rem" }}>Still need help?</h3>
-        <p style={{ marginBottom: "1rem" }}>Our support team is available Mon-Sat, 9 AM - 6 PM.</p>
+        <h3 style={{ marginBottom: "0.75rem" }}>{tr("helpCenter.stillNeedHelp")}</h3>
+        <p style={{ marginBottom: "1rem" }}>{tr("helpCenter.ourSupportTeamIsAvailable")}</p>
         <a href="mailto:support@cauverystore.in" className="static-btn static-btn-outline">
-          <Headphones size={16} /> Contact Support
-        </a>
+          <Headphones size={16} />{" "}{tr("helpCenter.contactSupport")}</a>
       </div>
     </StaticLayout>
   );

@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { useWishlist } from "../context/WishlistContext";
 import { sendChatMessage, performChatAction } from "../services/chatService";
 import "../styles/chat-widget.css";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 let uid = 0;
 const nextId = () => `msg-${Date.now()}-${uid++}`;
@@ -31,12 +33,20 @@ const SendIcon = () => (
 const WELCOME = {
   id: "welcome",
   from: "bot",
-  text: "Hi! I'm the Cauvery Store assistant. I can help you find products, check your cart & wishlist, track orders, and share the latest offers. What would you like to do?",
+
+  get text() {
+    return i18n.t("chatWidget.hiIMTheCauvery");
+  },
+
   actions: [],
-  quickReplies: ["Show me best sellers", "Any offers right now?", "Track my order", "Help"],
+  quickReplies: ["Show me best sellers", "Any offers right now?", "Track my order", "Help"]
 };
 
 const ChatWidget = () => {
+  const {
+    t: tr
+  } = useTranslation();
+
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -239,18 +249,18 @@ const ChatWidget = () => {
   return (
     <>
       {open && (
-        <div className="cw-widget" role="dialog" aria-modal="true" aria-label="Cauvery Store assistant chat" ref={widgetRef}>
+        <div className="cw-widget" role="dialog" aria-modal="true" aria-label={tr("chatWidget.cauveryStoreAssistantChat")} ref={widgetRef}>
           <div className="cw-header">
             <div className="cw-header-info">
               <div className="cw-avatar">
                 <ChatIcon />
               </div>
               <div>
-                <div className="cw-title">Cauvery Store Assistant</div>
-                <div className="cw-subtitle">{isAuthenticated ? "Online · here to help" : "Online · shopping help"}</div>
+                <div className="cw-title">{tr("chatWidget.cauveryStoreAssistant")}</div>
+                <div className="cw-subtitle">{isAuthenticated ? tr("chatWidget.onlineHereToHelp") : tr("chatWidget.onlineShoppingHelp")}</div>
               </div>
             </div>
-            <button className="cw-close" onClick={closeWidget} aria-label="Close chat">
+            <button className="cw-close" onClick={closeWidget} aria-label={tr("chatWidget.closeChat")}>
               <CloseIcon />
             </button>
           </div>
@@ -298,18 +308,18 @@ const ChatWidget = () => {
               className="cw-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about products, orders, offers..."
+              placeholder={tr("chatWidget.askAboutProductsOrdersOffers")}
               disabled={busy}
-              aria-label="Type a message"
+              aria-label={tr("chatWidget.typeAMessage")}
             />
-            <button className="cw-send" type="submit" disabled={busy || !input.trim()} aria-label="Send message">
+            <button className="cw-send" type="submit" disabled={busy || !input.trim()} aria-label={tr("chatWidget.sendMessage")}>
               <SendIcon />
             </button>
           </form>
         </div>
       )}
 
-      <button className="cw-launcher" ref={launcherRef} onClick={() => setOpen((o) => !o)} aria-label={open ? "Close chat" : "Open chat assistant"}>
+      <button className="cw-launcher" ref={launcherRef} onClick={() => setOpen((o) => !o)} aria-label={open ? tr("chatWidget.closeChat") : tr("chatWidget.openChatAssistant")}>
         {open ? <CloseIcon /> : <ChatIcon />}
       </button>
     </>

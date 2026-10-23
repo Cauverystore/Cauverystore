@@ -3,6 +3,8 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { Package, CreditCard, Clock, Truck, HelpCircle, ArrowRight, ShieldCheck, ChevronDown, Mail, XCircle, AlertTriangle, Ban } from "lucide-react";
 import "../styles/staticLayout.css";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const green = "#0E5C5C";
 const dark = "#14302f";
@@ -12,44 +14,264 @@ const border = "1px solid rgba(14, 92, 92, 0.14)";
 const LAST_UPDATED = "10 October 2026";
 
 const sidebarLinks = [
-  { id: "summary", label: "At a Glance", icon: ShieldCheck },
-  { id: "returns", label: "Returns", icon: Package },
-  { id: "non-returnable", label: "Non-Returnable Items", icon: Ban },
-  { id: "how-to-return", label: "How to Return", icon: Truck },
-  { id: "damaged", label: "Damaged or Wrong Items", icon: AlertTriangle },
-  { id: "cancellations", label: "Cancellations", icon: XCircle },
-  { id: "refunds", label: "Refunds", icon: CreditCard },
-  { id: "faqs", label: "FAQs", icon: HelpCircle },
-  { id: "contact", label: "Contact Us", icon: Mail },
+  {
+    id: "summary",
+
+    get label() {
+      return i18n.t("returnsandRefundPolicy.atAGlance");
+    },
+
+    icon: ShieldCheck
+  },
+  {
+    id: "returns",
+
+    get label() {
+      return i18n.t("returnsandRefundPolicy.returns");
+    },
+
+    icon: Package
+  },
+  {
+    id: "non-returnable",
+
+    get label() {
+      return i18n.t("returnsandRefundPolicy.nonReturnableItems");
+    },
+
+    icon: Ban
+  },
+  {
+    id: "how-to-return",
+
+    get label() {
+      return i18n.t("returnsandRefundPolicy.howToReturn");
+    },
+
+    icon: Truck
+  },
+  {
+    id: "damaged",
+
+    get label() {
+      return i18n.t("returnsandRefundPolicy.damagedOrWrongItems");
+    },
+
+    icon: AlertTriangle
+  },
+  {
+    id: "cancellations",
+
+    get label() {
+      return i18n.t("returnsandRefundPolicy.cancellations");
+    },
+
+    icon: XCircle
+  },
+  {
+    id: "refunds",
+
+    get label() {
+      return i18n.t("returnsandRefundPolicy.refunds");
+    },
+
+    icon: CreditCard
+  },
+  {
+    id: "faqs",
+
+    get label() {
+      return i18n.t("returnsandRefundPolicy.faqs");
+    },
+
+    icon: HelpCircle
+  },
+  {
+    id: "contact",
+
+    get label() {
+      return i18n.t("footer.contact");
+    },
+
+    icon: Mail
+  },
 ];
 
 // The figures here mirror what the order system enforces (ReturnEligibilityService and
 // OrderService on the backend) - change them together, or this page promises something
 // the Return button will refuse.
 const summaryCards = [
-  { label: "Return window", value: "7 days", note: "from delivery, unless the product page says otherwise", color: green },
-  { label: "Faulty or wrong item", value: "Free pickup", note: "the return costs you nothing", color: green },
-  { label: "Refund goes to", value: "Original payment method", note: "the card, UPI or account you paid with", color: green },
-  { label: "Refund time", value: "5-7 business days", note: "after we approve it; often faster", color: green },
+  {
+    get label() {
+      return i18n.t("returnsandRefundPolicy.returnWindow");
+    },
+
+    get value() {
+      return i18n.t("returnsandRefundPolicy.7Days");
+    },
+
+    note: "from delivery, unless the product page says otherwise",
+    color: green
+  },
+  {
+    get label() {
+      return i18n.t("returnsandRefundPolicy.faultyOrWrongItem");
+    },
+
+    get value() {
+      return i18n.t("returnsandRefundPolicy.freePickup");
+    },
+
+    note: "the return costs you nothing",
+    color: green
+  },
+  {
+    get label() {
+      return i18n.t("returnsandRefundPolicy.refundGoesTo");
+    },
+
+    get value() {
+      return i18n.t("returnsandRefundPolicy.originalPaymentMethod");
+    },
+
+    note: "the card, UPI or account you paid with",
+    color: green
+  },
+  {
+    get label() {
+      return i18n.t("returnsandRefundPolicy.refundTime");
+    },
+
+    get value() {
+      return i18n.t("returnsandRefundPolicy.57BusinessDays");
+    },
+
+    note: "after we approve it; often faster",
+    color: green
+  },
 ];
 
 const returnSteps = [
-  { title: "1. Request the return", desc: "Go to My Orders, open the order and choose Return. Pick the reason and add a short note. You will see whether the order can be returned, and until what date, before you submit." },
-  { title: "2. We review it", desc: "We check the request and email you the decision. If it is approved, the email tells you how the item will be sent back." },
-  { title: "3. The item travels back", desc: "Pack the item securely with everything it came with. We email you again when it has been collected." },
-  { title: "4. The item is checked", desc: "When the item reaches us it is checked against the conditions on this page. This usually takes a day or two, and we email you the outcome either way." },
-  { title: "5. Your refund is sent", desc: "Once the item passes the check, the refund is sent to your original payment method." },
+  {
+    get title() {
+      return i18n.t("returnsandRefundPolicy.1RequestTheReturn");
+    },
+
+    get desc() {
+      return i18n.t("returnsandRefundPolicy.goToMyOrdersOpen");
+    }
+  },
+  {
+    get title() {
+      return i18n.t("returnsandRefundPolicy.2WeReviewIt");
+    },
+
+    get desc() {
+      return i18n.t("returnsandRefundPolicy.weCheckTheRequestAnd");
+    }
+  },
+  {
+    get title() {
+      return i18n.t("returnsandRefundPolicy.3TheItemTravelsBack");
+    },
+
+    get desc() {
+      return i18n.t("returnsandRefundPolicy.packTheItemSecurelyWith");
+    }
+  },
+  {
+    get title() {
+      return i18n.t("returnsandRefundPolicy.4TheItemIsChecked");
+    },
+
+    get desc() {
+      return i18n.t("returnsandRefundPolicy.whenTheItemReachesUs");
+    }
+  },
+  {
+    get title() {
+      return i18n.t("returnsandRefundPolicy.5YourRefundIsSent");
+    },
+
+    get desc() {
+      return i18n.t("returnsandRefundPolicy.onceTheItemPassesThe");
+    }
+  },
 ];
 
 const faqs = [
-  { question: "How many days do I have to return an item?", answer: "7 days from the date of delivery, unless the product page shows a different return period set by the seller. If an order has several items with different return periods, the shortest one applies to the whole order." },
-  { question: "Which items cannot be returned?", answer: "Innerwear, swimwear, perishable goods (such as fresh, dairy, meat and frozen items), clearance items, customised or made-to-order items, and any product marked \"No Returns\" on its product page. You can still report these if they arrive damaged, defective or wrong." },
-  { question: "Who pays for return shipping?", answer: "If the item is damaged, defective, wrong, not as described or has missing parts, the return is free. If you are returning it for any other reason, such as a change of mind, you pay the cost of sending it back." },
-  { question: "Where will my refund be credited?", answer: "To the same payment method you used for the order: the same card, UPI ID or bank account. We cannot send a refund to a different account." },
-  { question: "How long does a refund take?", answer: "Once we send it, some refunds arrive within minutes. Otherwise allow 5-7 business days for your bank to credit it. If it has not arrived after 7 business days, email support@cauverystore.in with your order number." },
-  { question: "Can I cancel an order?", answer: "Yes, any time before it is shipped, from My Orders. If you have already paid, the full amount is refunded automatically. Once an order has shipped it can no longer be cancelled, but you can return it after delivery if it is eligible." },
-  { question: "What happens if my return is not accepted?", answer: "We email you the reason. No refund is issued for a return that does not pass the check. If you think the decision is wrong, reply to that email or write to support@cauverystore.in and we will look at it again." },
-  { question: "Can I cancel a refund once it has started?", answer: "No. Once a refund has been sent to your bank it cannot be stopped or reversed." },
+  {
+    get question() {
+      return i18n.t("returnsandRefundPolicy.howManyDaysDoI");
+    },
+
+    get answer() {
+      return i18n.t("returnsandRefundPolicy.7DaysFromTheDate");
+    }
+  },
+  {
+    get question() {
+      return i18n.t("returnsandRefundPolicy.whichItemsCannotBeReturned");
+    },
+
+    get answer() {
+      return i18n.t("returnsandRefundPolicy.innerwearSwimwearPerishableGoodsSu");
+    }
+  },
+  {
+    get question() {
+      return i18n.t("returnsandRefundPolicy.whoPaysForReturnShipping");
+    },
+
+    get answer() {
+      return i18n.t("returnsandRefundPolicy.ifTheItemIsDamaged");
+    }
+  },
+  {
+    get question() {
+      return i18n.t("returnsandRefundPolicy.whereWillMyRefundBe");
+    },
+
+    get answer() {
+      return i18n.t("returnsandRefundPolicy.toTheSamePaymentMethod");
+    }
+  },
+  {
+    get question() {
+      return i18n.t("returnsandRefundPolicy.howLongDoesARefund");
+    },
+
+    get answer() {
+      return i18n.t("returnsandRefundPolicy.onceWeSendItSome");
+    }
+  },
+  {
+    get question() {
+      return i18n.t("returnsandRefundPolicy.canICancelAnOrder");
+    },
+
+    get answer() {
+      return i18n.t("returnsandRefundPolicy.yesAnyTimeBeforeIt");
+    }
+  },
+  {
+    get question() {
+      return i18n.t("returnsandRefundPolicy.whatHappensIfMyReturn");
+    },
+
+    get answer() {
+      return i18n.t("returnsandRefundPolicy.weEmailYouTheReason");
+    }
+  },
+  {
+    get question() {
+      return i18n.t("returnsandRefundPolicy.canICancelARefund");
+    },
+
+    get answer() {
+      return i18n.t("returnsandRefundPolicy.noOnceARefundHas");
+    }
+  },
 ];
 
 const Section = ({ id, title, icon: Icon, children }) => (
@@ -62,6 +284,8 @@ const Section = ({ id, title, icon: Icon, children }) => (
 );
 
 const ReturnsandRefundPolicy = () => {
+  const { t } = useTranslation();
+
   const [openFaq, setOpenFaq] = useState(null);
 
   const jumpTo = (id) => {
@@ -73,30 +297,26 @@ const ReturnsandRefundPolicy = () => {
     <div className="static-page" style={{ paddingBottom: "80px" }}>
       <div className="static-hero" style={{ borderRadius: 0, minHeight: "auto", padding: "2.5rem 1.5rem" }}>
         <div className="static-hero-content">
-          <h1>Returns, Cancellations & Refunds</h1>
-          <p>
-            What you can send back, how to do it, and when you get your money back, in plain words.
-          </p>
+          <h1>{t("returnsandRefundPolicy.returnsCancellationsRefunds")}</h1>
+          <p>{t("returnsandRefundPolicy.whatYouCanSendBack")}</p>
           <div className="static-hero-actions">
             <Link to="/orders" className="static-btn static-btn-primary">
-              <ArrowRight size={16} /> Return or Cancel an Order
-            </Link>
+              <ArrowRight size={16} />{" "}{t("returnsandRefundPolicy.returnOrCancelAnOrder")}</Link>
             <a href="mailto:support@cauverystore.in" className="static-btn static-btn-secondary">
-              <Mail size={16} /> Email Support
-            </a>
+              <Mail size={16} />{" "}{t("returnsandRefundPolicy.emailSupport")}</a>
           </div>
         </div>
       </div>
 
       <Helmet>
-        <title>Returns, Cancellations & Refunds Policy | Cauvery Store</title>
-        <meta name="description" content="Cauvery Store's return, cancellation and refund policy: 7-day returns, free pickup for faulty or wrong items, and refunds to your original payment method." />
+        <title>{t("returnsandRefundPolicy.returnsCancellationsRefundsPolicyC")}</title>
+        <meta name="description" content={t("returnsandRefundPolicy.cauveryStoreSReturnCancellation")} />
         <link rel="canonical" href="https://cauverystore.in/refund-policy" />
       </Helmet>
 
       <div className="static-content" style={{ maxWidth: "1100px" }}>
         <div className="rrp-layout" style={{ display: "flex", gap: "32px", alignItems: "flex-start" }}>
-          <nav className="rrp-nav" aria-label="Policy sections" style={{ width: "240px", flexShrink: 0, position: "sticky", top: "88px", alignSelf: "flex-start" }}>
+          <nav className="rrp-nav" aria-label={t("returnsandRefundPolicy.policySections")} style={{ width: "240px", flexShrink: 0, position: "sticky", top: "88px", alignSelf: "flex-start" }}>
             <div className="rrp-nav-list" style={{ background: "#fff", borderRadius: "12px", border, padding: "8px", marginBottom: "16px" }}>
               {sidebarLinks.map((link) => (
                 <button key={link.id} className="rrp-nav-link" onClick={() => jumpTo(link.id)} style={{
@@ -110,15 +330,14 @@ const ReturnsandRefundPolicy = () => {
               ))}
             </div>
             <div className="rrp-nav-help" style={{ background: "#fefce8", borderRadius: "12px", border: "1px solid #fde68a", padding: "14px", fontSize: "0.8rem", color: "#92400e", lineHeight: 1.6 }}>
-              <strong style={{ display: "block", marginBottom: "4px" }}>Need Help?</strong>
-              Email <strong>support@cauverystore.in</strong>. Our team is available Mon-Sat, 9 AM - 6 PM.
-            </div>
+              <strong style={{ display: "block", marginBottom: "4px" }}>{t("returnsandRefundPolicy.needHelp")}</strong>{t("contactUs.email")}{" "}<strong>{t("contactUs.supportCauverystoreIn")}</strong>. Our team is available Mon-Sat, 9 AM - 6 PM.
+                          </div>
           </nav>
 
           <main style={{ flex: 1, minWidth: 0, background: "#fff", borderRadius: "12px", border, padding: "28px" }}>
-            <p style={{ fontSize: "0.8rem", color: muted, margin: "0 0 20px" }}>Last updated: {LAST_UPDATED}</p>
+            <p style={{ fontSize: "0.8rem", color: muted, margin: "0 0 20px" }}>{t("policies.lastUpdated")}{" "}{LAST_UPDATED}</p>
 
-            <Section id="summary" title="At a Glance" icon={ShieldCheck}>
+            <Section id="summary" title={t("returnsandRefundPolicy.atAGlance")} icon={ShieldCheck}>
               <div className="static-card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "12px" }}>
                 {summaryCards.map((card) => (
                   <div className="static-card" key={card.label} style={{ padding: "14px" }}>
@@ -128,58 +347,49 @@ const ReturnsandRefundPolicy = () => {
                   </div>
                 ))}
               </div>
-              <p style={{ marginTop: "14px" }}>
-                Cauvery Store is a marketplace, and each product is sold by the seller named on its page.
-                This policy applies to every order placed on cauverystore.in. Where a seller offers a longer
-                or shorter return period for a product, it is shown on that product's page and that period applies.
-              </p>
+              <p style={{ marginTop: "14px" }}>{t("returnsandRefundPolicy.cauveryStoreIsAMarketplace")}</p>
             </Section>
 
-            <Section id="returns" title="Returns" icon={Package}>
-              <h3>Return period</h3>
+            <Section id="returns" title={t("returnsandRefundPolicy.returns")} icon={Package}>
+              <h3>{t("returnsandRefundPolicy.returnPeriod")}</h3>
               <ul>
-                <li>You can ask to return an item within <strong>7 days of delivery</strong>.</li>
-                <li>A seller may set a different return period for a product. If so, it is shown on the product page and applies instead of the 7 days.</li>
-                <li>If one order contains items with different return periods, the <strong>shortest</strong> period applies to the whole order.</li>
-                <li>The return must be requested before the period ends. The exact last date is shown when you open the order and choose Return.</li>
+                <li>{t("returnsandRefundPolicy.youCanAskToReturn")}{" "}<strong>{t("returnsandRefundPolicy.7DaysOfDelivery")}</strong>.</li>
+                <li>{t("returnsandRefundPolicy.aSellerMaySetA")}</li>
+                <li>{t("returnsandRefundPolicy.ifOneOrderContainsItems")}{" "}<strong>{t("returnsandRefundPolicy.shortest")}</strong>{" "}{t("returnsandRefundPolicy.periodAppliesToTheWhole")}</li>
+                <li>{t("returnsandRefundPolicy.theReturnMustBeRequested")}</li>
               </ul>
 
-              <h3>Condition of the item</h3>
-              <p>To be accepted, a returned item must be:</p>
+              <h3>{t("returnsandRefundPolicy.conditionOfTheItem")}</h3>
+              <p>{t("returnsandRefundPolicy.toBeAcceptedAReturned")}</p>
               <ul>
-                <li>Unused, unwashed and undamaged (other than the fault you are reporting).</li>
-                <li>In its original packaging, with all tags, labels, manuals, accessories and free gifts that came with it.</li>
-                <li>The same item that was delivered to you.</li>
+                <li>{t("returnsandRefundPolicy.unusedUnwashedAndUndamagedOther")}</li>
+                <li>{t("returnsandRefundPolicy.inItsOriginalPackagingWith")}</li>
+                <li>{t("returnsandRefundPolicy.theSameItemThatWas")}</li>
               </ul>
 
-              <h3>Who pays for the return</h3>
+              <h3>{t("returnsandRefundPolicy.whoPaysForTheReturn")}</h3>
               <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
                 <div className="static-info-box" style={{ flex: 1, minWidth: "220px" }}>
-                  <strong>Free return:</strong> the item is damaged, defective, the wrong item, not as described, or has missing parts.
-                </div>
+                  <strong>{t("returnsandRefundPolicy.freeReturn")}</strong>{" "}{t("returnsandRefundPolicy.theItemIsDamagedDefective")}</div>
                 <div className="static-warning-box" style={{ flex: 1, minWidth: "220px" }}>
-                  <strong>You pay return shipping:</strong> any other reason, such as a change of mind or ordering the wrong size.
-                </div>
+                  <strong>{t("returnsandRefundPolicy.youPayReturnShipping")}</strong>{" "}{t("returnsandRefundPolicy.anyOtherReasonSuchAs")}</div>
               </div>
             </Section>
 
-            <Section id="non-returnable" title="Non-Returnable Items" icon={Ban}>
-              <p>For hygiene and safety reasons, these cannot be returned once delivered:</p>
+            <Section id="non-returnable" title={t("returnsandRefundPolicy.nonReturnableItems")} icon={Ban}>
+              <p>{t("returnsandRefundPolicy.forHygieneAndSafetyReasons")}</p>
               <ul>
-                <li>Innerwear, lingerie and swimwear.</li>
-                <li>Perishable goods, such as fresh, dairy, meat and frozen items.</li>
-                <li>Clearance items.</li>
-                <li>Customised, personalised or made-to-order items.</li>
-                <li>Any product marked <strong>"No Returns"</strong> on its product page.</li>
+                <li>{t("returnsandRefundPolicy.innerwearLingerieAndSwimwear")}</li>
+                <li>{t("returnsandRefundPolicy.perishableGoodsSuchAsFresh")}</li>
+                <li>{t("returnsandRefundPolicy.clearanceItems")}</li>
+                <li>{t("returnsandRefundPolicy.customisedPersonalisedOrMadeTo")}</li>
+                <li>{t("returnsandRefundPolicy.anyProductMarked")}{" "}<strong>{t("returnsandRefundPolicy.noReturns")}</strong>{" "}{t("returnsandRefundPolicy.onItsProductPage")}</li>
               </ul>
-              <div className="static-info-box">
-                If one of these arrives damaged, defective, expired or is not what you ordered, email{" "}
-                <a href="mailto:support@cauverystore.in">support@cauverystore.in</a> with your order number and
-                photos. See <strong>Damaged or Wrong Items</strong> below.
-              </div>
+              <div className="static-info-box">{t("returnsandRefundPolicy.ifOneOfTheseArrives")}{" "}
+                <a href="mailto:support@cauverystore.in">{t("contactUs.supportCauverystoreIn")}</a>{" "}{t("returnsandRefundPolicy.withYourOrderNumberAnd")}{" "}<strong>{t("returnsandRefundPolicy.damagedOrWrongItems")}</strong>{" "}{t("returnsandRefundPolicy.below")}</div>
             </Section>
 
-            <Section id="how-to-return" title="How to Return an Item" icon={Truck}>
+            <Section id="how-to-return" title={t("returnsandRefundPolicy.howToReturnAnItem")} icon={Truck}>
               <div className="static-timeline">
                 {returnSteps.map((step) => (
                   <div className="static-timeline-step" key={step.title}>
@@ -189,68 +399,61 @@ const ReturnsandRefundPolicy = () => {
                   </div>
                 ))}
               </div>
-              <p>
-                We email you at every stage, so you always know where your return stands. You can also
-                check it any time under <Link to="/orders">My Orders</Link>.
-              </p>
-              <h3>If a return is not accepted</h3>
+              <p>{t("returnsandRefundPolicy.weEmailYouAtEvery")}{" "}<Link to="/orders">{t("nav.orders")}</Link>.
+                              </p>
+              <h3>{t("returnsandRefundPolicy.ifAReturnIsNot")}</h3>
               <ul>
-                <li>A request may be declined if it is made after the return period, or the item is non-returnable.</li>
-                <li>A returned item may fail the check if it is used, damaged, incomplete, or not the item we delivered. In that case no refund is issued.</li>
-                <li>We always email you the reason. If you disagree, reply to that email and we will review the decision.</li>
+                <li>{t("returnsandRefundPolicy.aRequestMayBeDeclined")}</li>
+                <li>{t("returnsandRefundPolicy.aReturnedItemMayFail")}</li>
+                <li>{t("returnsandRefundPolicy.weAlwaysEmailYouThe")}</li>
               </ul>
             </Section>
 
-            <Section id="damaged" title="Damaged, Defective or Wrong Items" icon={AlertTriangle}>
+            <Section id="damaged" title={t("returnsandRefundPolicy.damagedDefectiveOrWrongItems")} icon={AlertTriangle}>
               <ul>
-                <li>Please check your parcel when it arrives.</li>
-                <li>If something is damaged, defective, missing or not what you ordered, raise a return from <Link to="/orders">My Orders</Link> and choose the matching reason, or email <a href="mailto:support@cauverystore.in">support@cauverystore.in</a>.</li>
-                <li>Include your order number and clear photos of the item and its packaging. This helps us settle it quickly.</li>
-                <li>Tell us as early as you can, and in any case within the return period.</li>
-                <li>The return is free, and you receive a full refund for the item once it is confirmed.</li>
+                <li>{t("returnsandRefundPolicy.pleaseCheckYourParcelWhen")}</li>
+                <li>{t("returnsandRefundPolicy.ifSomethingIsDamagedDefective")}{" "}<Link to="/orders">{t("nav.orders")}</Link>{" "}{t("returnsandRefundPolicy.andChooseTheMatchingReason")}{" "}<a href="mailto:support@cauverystore.in">{t("contactUs.supportCauverystoreIn")}</a>.</li>
+                <li>{t("returnsandRefundPolicy.includeYourOrderNumberAnd")}</li>
+                <li>{t("returnsandRefundPolicy.tellUsAsEarlyAs")}</li>
+                <li>{t("returnsandRefundPolicy.theReturnIsFreeAnd")}</li>
               </ul>
             </Section>
 
-            <Section id="cancellations" title="Cancellations" icon={XCircle}>
-              <h3>Cancelling your order</h3>
+            <Section id="cancellations" title={t("returnsandRefundPolicy.cancellations")} icon={XCircle}>
+              <h3>{t("returnsandRefundPolicy.cancellingYourOrder")}</h3>
               <ul>
-                <li>You can cancel an order from <Link to="/orders">My Orders</Link> at any time <strong>before it is shipped</strong>. There is no cancellation fee.</li>
-                <li>If you had already paid, the <strong>full amount</strong> is refunded automatically to your original payment method.</li>
-                <li>Once an order has shipped it cannot be cancelled. You can return it after delivery if it is eligible.</li>
+                <li>{t("returnsandRefundPolicy.youCanCancelAnOrder")}{" "}<Link to="/orders">{t("nav.orders")}</Link>{" "}{t("returnsandRefundPolicy.atAnyTime")}{" "}<strong>{t("returnsandRefundPolicy.beforeItIsShipped")}</strong>. There is no cancellation fee.</li>
+                <li>{t("returnsandRefundPolicy.ifYouHadAlreadyPaid")}{" "}<strong>{t("returnsandRefundPolicy.fullAmount")}</strong>{" "}{t("returnsandRefundPolicy.isRefundedAutomaticallyToYour")}</li>
+                <li>{t("returnsandRefundPolicy.onceAnOrderHasShipped")}</li>
               </ul>
-              <h3>If we cancel your order</h3>
-              <p>
-                We or the seller may cancel an order because of a pricing error, the item being out of stock,
-                or suspected fraud. If this happens we email you, and any amount you paid is refunded in full.
-              </p>
+              <h3>{t("returnsandRefundPolicy.ifWeCancelYourOrder")}</h3>
+              <p>{t("returnsandRefundPolicy.weOrTheSellerMay")}</p>
             </Section>
 
-            <Section id="refunds" title="Refunds" icon={CreditCard}>
-              <h3>How refunds are paid</h3>
+            <Section id="refunds" title={t("returnsandRefundPolicy.refunds")} icon={CreditCard}>
+              <h3>{t("returnsandRefundPolicy.howRefundsArePaid")}</h3>
               <ul>
-                <li>Refunds are processed through <strong>Razorpay</strong>, our payment partner.</li>
-                <li>Refunds always go back to the <strong>original payment method</strong>: the same card, UPI ID or bank account. They cannot be sent to a different account.</li>
-                <li>A refund that has been sent cannot be stopped or reversed.</li>
+                <li>{t("returnsandRefundPolicy.refundsAreProcessedThrough")}{" "}<strong>Razorpay</strong>{t("returnsandRefundPolicy.ourPaymentPartner")}</li>
+                <li>{t("returnsandRefundPolicy.refundsAlwaysGoBackTo")}{" "}<strong>{t("returnsandRefundPolicy.originalPaymentMethod1hn")}</strong>{t("returnsandRefundPolicy.theSameCardUpiId")}</li>
+                <li>{t("returnsandRefundPolicy.aRefundThatHasBeen")}</li>
               </ul>
-              <h3>When refunds are sent</h3>
+              <h3>{t("returnsandRefundPolicy.whenRefundsAreSent")}</h3>
               <ul>
-                <li><strong>Cancelled orders:</strong> as soon as the order is cancelled.</li>
-                <li><strong>Returned items:</strong> once the item has reached us and passed the check.</li>
+                <li><strong>{t("returnsandRefundPolicy.cancelledOrders")}</strong>{" "}{t("returnsandRefundPolicy.asSoonAsTheOrder")}</li>
+                <li><strong>{t("returnsandRefundPolicy.returnedItems")}</strong>{" "}{t("returnsandRefundPolicy.onceTheItemHasReached")}</li>
               </ul>
-              <h3>How long it takes to reach you</h3>
+              <h3>{t("returnsandRefundPolicy.howLongItTakesTo")}</h3>
               <ul>
-                <li>Some refunds are credited <strong>within minutes</strong>, where your bank supports it.</li>
-                <li>Otherwise, allow <strong>5-7 business days</strong> for your bank to credit the amount.</li>
-                <li>We email you when the refund is sent.</li>
+                <li>{t("returnsandRefundPolicy.someRefundsAreCredited")}{" "}<strong>{t("returnsandRefundPolicy.withinMinutes")}</strong>{t("returnsandRefundPolicy.whereYourBankSupportsIt")}</li>
+                <li>{t("returnsandRefundPolicy.otherwiseAllow")}{" "}<strong>{t("returnsandRefundPolicy.57BusinessDays")}</strong>{" "}{t("returnsandRefundPolicy.forYourBankToCredit")}</li>
+                <li>{t("returnsandRefundPolicy.weEmailYouWhenThe")}</li>
               </ul>
               <div className="static-info-box">
-                <strong><Clock size={14} style={{ display: "inline", verticalAlign: "-2px" }} /> Refund not arrived?</strong>{" "}
-                If it has not reached you after 7 business days, email{" "}
-                <a href="mailto:support@cauverystore.in">support@cauverystore.in</a> with your order number and we will trace it with the bank.
-              </div>
+                <strong><Clock size={14} style={{ display: "inline", verticalAlign: "-2px" }} />{" "}{t("returnsandRefundPolicy.refundNotArrived")}</strong>{" "}{t("returnsandRefundPolicy.ifItHasNotReached")}{" "}
+                <a href="mailto:support@cauverystore.in">{t("contactUs.supportCauverystoreIn")}</a>{" "}{t("returnsandRefundPolicy.withYourOrderNumberAnd1oq")}</div>
             </Section>
 
-            <Section id="faqs" title="Frequently Asked Questions" icon={HelpCircle}>
+            <Section id="faqs" title={t("returnsandRefundPolicy.frequentlyAskedQuestions")} icon={HelpCircle}>
               <div className="static-accordion" style={{ marginTop: 0 }}>
                 {faqs.map((item, idx) => (
                   <div className="static-accordion-item" key={item.question}>
@@ -266,16 +469,12 @@ const ReturnsandRefundPolicy = () => {
               </div>
             </Section>
 
-            <Section id="contact" title="Contact Us" icon={Mail}>
-              <p>
-                For any question about a return, cancellation or refund, email{" "}
-                <a href="mailto:support@cauverystore.in">support@cauverystore.in</a> with your order number.
-                Our support team is available Monday to Saturday, 9 AM to 6 PM.
-              </p>
-              <p style={{ marginBottom: 0 }}>
-                This policy does not limit any rights you have under Indian consumer law. See also our{" "}
-                <Link to="/terms-and-conditions">Terms &amp; Conditions</Link> and <Link to="/shipping-policy">Shipping Policy</Link>.
-              </p>
+            <Section id="contact" title={t("footer.contact")} icon={Mail}>
+              <p>{t("returnsandRefundPolicy.forAnyQuestionAboutA")}{" "}
+                <a href="mailto:support@cauverystore.in">{t("contactUs.supportCauverystoreIn")}</a>{" "}{t("returnsandRefundPolicy.withYourOrderNumberOur")}</p>
+              <p style={{ marginBottom: 0 }}>{t("returnsandRefundPolicy.thisPolicyDoesNotLimit")}{" "}
+                <Link to="/terms-and-conditions">{t("footer.terms")}</Link>{" "}{t("returnsandRefundPolicy.and")}{" "}<Link to="/shipping-policy">{t("footer.shipping")}</Link>.
+                              </p>
             </Section>
           </main>
         </div>

@@ -2,8 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import CartDrawer from "./CartDrawer";
 import api from "../api/axios";
+import { useTranslation } from "react-i18next";
+import LanguageSelector from "./LanguageSelector";
+import { getCategoryNames } from "../services/i18nService";
 
 const Navbar = () => {
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.language || "en").slice(0, 2);
   const navigate = useNavigate();
   const token = !!localStorage.getItem("accessToken");
   const userRole = localStorage.getItem("role") || "";
@@ -24,10 +29,16 @@ const Navbar = () => {
   const [categories, setCategories] = useState([]);
   useEffect(() => {
     api.get("/api/categories")
-      .then((r) => setCategories((Array.isArray(r.data) ? r.data : []).map((c) => c.name).filter(Boolean)))
+      .then((r) => setCategories((Array.isArray(r.data) ? r.data : []).filter((c) => c && c.name)))
       .catch(() => {});
   }, []);
-  const navLinks = [...categories.map((name) => ({ label: name, to: `/category/${name}` })), { label: "Deals", to: "/offers" }];
+  // Category names in the chosen language (falls back to the English name when none is published).
+  const [catNames, setCatNames] = useState({});
+  useEffect(() => {
+    if (lang === "en") { setCatNames({}); return; }
+    getCategoryNames(lang).then((r) => setCatNames(r.data || {})).catch(() => {});
+  }, [lang]);
+  const navLinks = [...categories.map((c) => ({ key: c.name, label: catNames[c.id] || c.name, to: `/category/${c.name}` })), { key: "deals", label: t("nav.deals"), to: "/offers" }];
   const searchRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const menuFocusRestore = useRef(null);
@@ -109,23 +120,23 @@ const Navbar = () => {
         alignItems: "center", position: "sticky", top: 0, zIndex: 101
       }}>
         <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
-          <span className="sn-lang">| &#127470;&#127475; EN</span>
+          <LanguageSelector />
         </div>
         <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
-          <Link to="/contact" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Customer Support</Link>
+          <Link to="/contact" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>{t("nav.support")}</Link>
           {["SELLER", "ADMIN", "SUPER_ADMIN"].some((r) => userRoles.includes(r)) ? (
-            <Link to="/seller/dashboard" style={{ color: "#d5f2f0", textDecoration: "none", opacity: 0.85 }}>Seller Dashboard</Link>
+            <Link to="/seller/dashboard" style={{ color: "#d5f2f0", textDecoration: "none", opacity: 0.85 }}>{t("nav.sellerDashboard")}</Link>
           ) : (
-            <Link to="/seller/register" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Become a Seller</Link>
+            <Link to="/seller/register" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>{t("nav.becomeSeller")}</Link>
           )}
-          <Link to="/orders" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Orders</Link>
+          <Link to="/orders" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>{t("nav.ordersShort")}</Link>
           {token ? (
             <>
-              <Link to="/profile" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>My Account</Link>
-              <Link to="/logout" style={{ color: "#fca5a5", textDecoration: "none", opacity: 0.85 }}>Logout</Link>
+              <Link to="/profile" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>{t("nav.account")}</Link>
+              <Link to="/logout" style={{ color: "#fca5a5", textDecoration: "none", opacity: 0.85 }}>{t("nav.logoutShort")}</Link>
             </>
           ) : (
-            <Link to="/login" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Sign In</Link>
+            <Link to="/login" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>{t("nav.signIn")}</Link>
           )}
         </div>
       </div>
@@ -145,7 +156,7 @@ const Navbar = () => {
           <button onClick={() => setMobileOpen(!mobileOpen)} style={{
             display: "none", background: "none", border: "none", cursor: "pointer",
             flexDirection: "column", gap: "4px", padding: "4px"
-          }} className="sn-hamburger" aria-label="Menu">
+          }} className="sn-hamburger" aria-label={t("nav.menu")}>
             <span style={{ display: "block", width: 20, height: 2, background: "var(--gray-700)", borderRadius: 1 }} />
             <span style={{ display: "block", width: 20, height: 2, background: "var(--gray-700)", borderRadius: 1 }} />
             <span style={{ display: "block", width: 20, height: 2, background: "var(--gray-700)", borderRadius: 1 }} />
@@ -166,8 +177,8 @@ const Navbar = () => {
             <input
               ref={searchRef}
               type="text"
-              placeholder="Search for products, brands and more..."
-              aria-label="Search for products"
+              placeholder={t("search.placeholder")}
+              aria-label={t("search.ariaLabel")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -188,7 +199,7 @@ const Navbar = () => {
 
           {/* Header Actions */}
           <div className="sn-header-actions" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <button onClick={() => navigate(token ? "/profile" : "/login")} title="Account" style={{
+            <button onClick={() => navigate(token ? "/profile" : "/login")} title={t("nav.accountShort")} style={{
               background: "none", border: "none", cursor: "pointer", display: "flex",
               flexDirection: "column", alignItems: "center", gap: "2px", padding: "0.25rem 0.4rem"
             }}>
@@ -196,19 +207,19 @@ const Navbar = () => {
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
               <span style={{ fontSize: "0.65rem", color: "var(--gray-600)", fontWeight: 500 }}>
-                {token ? "Account" : "Sign In"}
+                {token ? t("nav.accountShort") : t("nav.signIn")}
               </span>
             </button>
-            <button onClick={() => navigate("/wishlist")} title="Wishlist" style={{
+            <button onClick={() => navigate("/wishlist")} title={t("nav.wishlist")} style={{
               background: "none", border: "none", cursor: "pointer", display: "flex",
               flexDirection: "column", alignItems: "center", gap: "2px", padding: "0.25rem 0.4rem"
             }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" strokeWidth="2">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
-              <span style={{ fontSize: "0.65rem", color: "var(--gray-600)", fontWeight: 500 }}>Wishlist</span>
+              <span style={{ fontSize: "0.65rem", color: "var(--gray-600)", fontWeight: 500 }}>{t("nav.wishlist")}</span>
             </button>
-            <button onClick={() => setCartDrawerOpen(true)} title="Cart" style={{
+            <button onClick={() => setCartDrawerOpen(true)} title={t("nav.cart")} style={{
               background: "none", border: "none", cursor: "pointer", display: "flex",
               flexDirection: "column", alignItems: "center", gap: "2px", padding: "0.25rem 0.4rem", position: "relative"
             }}>
@@ -216,7 +227,7 @@ const Navbar = () => {
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
               </svg>
-              <span style={{ fontSize: "0.65rem", color: "var(--gray-600)", fontWeight: 500 }}>Cart</span>
+              <span style={{ fontSize: "0.65rem", color: "var(--gray-600)", fontWeight: 500 }}>{t("nav.cart")}</span>
               {cartCount > 0 && (
                 <span style={{
                   position: "absolute", top: 0, right: 0,
@@ -242,7 +253,7 @@ const Navbar = () => {
           gap: "0.25rem", padding: "0 1rem", width: "100%"
         }}>
           {navLinks.map((item) => (
-            <Link key={item.label} to={item.to} style={{
+            <Link key={item.key} to={item.to} style={{
               padding: "0.55rem 0.7rem", fontSize: "0.82rem", fontWeight: 500,
               color: "var(--gray-600)", textDecoration: "none", whiteSpace: "nowrap",
               display: "flex", alignItems: "center", gap: "2px",
@@ -264,13 +275,13 @@ const Navbar = () => {
       <form onSubmit={handleMobileSearch} className="sn-mobile-search-bar">
         <input
           type="text"
-          placeholder="Search for products, brands and more..."
-          aria-label="Search for products"
+          placeholder={t("search.placeholder")}
+          aria-label={t("search.ariaLabel")}
           value={mobileSearch}
           onChange={(e) => setMobileSearch(e.target.value)}
           className="sn-mobile-search-input"
         />
-        <button type="submit" aria-label="Search" className="sn-mobile-search-submit">
+        <button type="submit" aria-label={t("search.button")} className="sn-mobile-search-submit">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
           </svg>
@@ -283,7 +294,7 @@ const Navbar = () => {
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200,
           display: "flex"
         }} onClick={() => setMobileOpen(false)}>
-          <div ref={mobileMenuRef} role="dialog" aria-modal="true" aria-label="Menu" style={{
+          <div ref={mobileMenuRef} role="dialog" aria-modal="true" aria-label={t("nav.menu")} style={{
             width: "280px", background: "#fff", height: "100%", overflowY: "auto",
             padding: "1rem", boxShadow: "2px 0 12px rgba(0,0,0,0.1)"
           }} onClick={(e) => e.stopPropagation()}>
@@ -292,14 +303,14 @@ const Navbar = () => {
               marginBottom: "1rem", paddingBottom: "0.75rem", borderBottom: "1px solid var(--color-border)"
             }}>
               <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
-                {token ? "Hello, User" : "Welcome"}
+                {token ? t("nav.hello") : t("nav.welcome")}
               </span>
-              <button onClick={() => setMobileOpen(false)} aria-label="Close menu" style={{
+              <button onClick={() => setMobileOpen(false)} aria-label={t("nav.closeMenu")} style={{
                 background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem"
               }}>&times;</button>
             </div>
             {navLinks.map((item) => (
-              <Link key={item.label} to={item.to} onClick={() => setMobileOpen(false)} style={{
+              <Link key={item.key} to={item.to} onClick={() => setMobileOpen(false)} style={{
                 display: "block", padding: "0.6rem 0.5rem", fontSize: "0.9rem",
                 color: "var(--gray-700)", textDecoration: "none", borderBottom: "1px solid var(--color-border-light)"
               }}>{item.label}</Link>
@@ -309,12 +320,12 @@ const Navbar = () => {
                 <Link to="/profile" onClick={() => setMobileOpen(false)} style={{
                   display: "block", padding: "0.6rem 0.5rem", fontSize: "0.9rem",
                   color: "var(--color-primary)", textDecoration: "none", fontWeight: 600
-                }}>My Account</Link>
+                }}>{t("nav.account")}</Link>
               ) : (
                 <Link to="/login" onClick={() => setMobileOpen(false)} style={{
                   display: "block", padding: "0.6rem 0.5rem", fontSize: "0.9rem",
                   color: "var(--color-primary)", textDecoration: "none", fontWeight: 600
-                }}>Sign In</Link>
+                }}>{t("nav.signIn")}</Link>
               )}
             </div>
           </div>

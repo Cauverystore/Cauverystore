@@ -5,6 +5,7 @@ import { addToCartOrLogin } from "../utils/cartActions";
 import { useWishlist } from "../context/WishlistContext";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import "../styles/account.css";
+import { useTranslation } from "react-i18next";
 
 const getItemId = (item) => {
   const p = item.product || item;
@@ -12,6 +13,8 @@ const getItemId = (item) => {
 };
 
 const Wishlist = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +27,7 @@ const Wishlist = () => {
         const res = await getWishlist();
         setItems(res.data || []);
       } catch (err) {
-        setError("We couldn't load your wishlist. Please try again.");
+        setError(t("wishlist.weCouldnTLoadYour"));
       }
       setLoading(false);
     };
@@ -37,13 +40,13 @@ const Wishlist = () => {
 
   const handleAddToCart = async (product) => {
     const res = await addToCartOrLogin(navigate, product, 1);
-    if (!res.ok) setError("We couldn't add that to your cart. Please try again.");
+    if (!res.ok) setError(t("home.weCouldnTAddThat"));
   };
 
   const handleMoveToCart = async (product) => {
     const pid = product.id || product._id;
     const res = await addToCartOrLogin(navigate, product, 1);
-    if (!res.ok) { setError("We couldn't move that to your cart. Please try again."); return; }
+    if (!res.ok) { setError(t("wishlist.weCouldnTMoveThat")); return; }
     await toggleWishlist(pid);
   };
 
@@ -52,7 +55,7 @@ const Wishlist = () => {
     try {
       await toggleWishlist(pid);
     } catch {
-      setError("We couldn't remove that item. Please try again.");
+      setError(t("cart.weCouldnTRemoveThat"));
     }
   };
 
@@ -60,7 +63,7 @@ const Wishlist = () => {
     return (
       <div className="account-page">
         <div className="account-content">
-          <h1 className="account-page-title">My Wishlist</h1>
+          <h1 className="account-page-title">{t("wishlist.myWishlist")}</h1>
           <div className="pt-grid">
             {Array.from({ length: 4 }).map((_, i) => <LoadingSkeleton key={i} />)}
           </div>
@@ -72,16 +75,16 @@ const Wishlist = () => {
   return (
     <div className="account-page">
       <div className="account-content">
-        <h1 className="account-page-title">My Wishlist</h1>
+        <h1 className="account-page-title">{t("wishlist.myWishlist")}</h1>
 
         {error && <div style={{ marginBottom: "1rem", padding: "0.75rem", background: "#fef2f2", borderRadius: 8, color: "#dc2626" }}>{error}</div>}
 
         {displayedItems.length === 0 ? (
           <div className="wishlist-empty">
             <div className="wishlist-empty-icon">❤️</div>
-            <h3 className="wishlist-empty-title">Your wishlist is empty</h3>
-            <p className="wishlist-empty-text">Tap the heart on any product to save it here for later.</p>
-            <Link to="/products" className="products-empty-action">Browse products</Link>
+            <h3 className="wishlist-empty-title">{t("wishlist.yourWishlistIsEmpty")}</h3>
+            <p className="wishlist-empty-text">{t("wishlist.tapTheHeartOnAny")}</p>
+            <Link to="/products" className="products-empty-action">{t("cartDrawer.browseProducts")}</Link>
           </div>
         ) : (
           <div className="pt-grid">

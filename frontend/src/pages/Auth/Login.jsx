@@ -4,15 +4,47 @@ import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../../context/AuthContext';
 import GoogleAuthNative from '../../utils/googleAuthNative';
 import '../../styles/auth.css';
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 const isNativeApp = Capacitor.isNativePlatform();
 
 const PASSWORD_REQUIREMENTS = [
-  { label: 'At least 8 characters', test: (v) => v.length >= 8 },
-  { label: 'Contains uppercase letter', test: (v) => /[A-Z]/.test(v) },
-  { label: 'Contains lowercase letter', test: (v) => /[a-z]/.test(v) },
-  { label: 'Contains a number', test: (v) => /\d/.test(v) },
-  { label: 'Contains special character', test: (v) => /[!@#$%^&*(),.?":{}|<>]/.test(v) },
+  {
+    get label() {
+      return i18n.t("forgotPassword.atLeast8Characters");
+    },
+
+    test: (v) => v.length >= 8
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsUppercaseLetter");
+    },
+
+    test: (v) => /[A-Z]/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsLowercaseLetter");
+    },
+
+    test: (v) => /[a-z]/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsANumber");
+    },
+
+    test: (v) => /\d/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsSpecialCharacter");
+    },
+
+    test: (v) => /[!@#$%^&*(),.?":{}|<>]/.test(v)
+  },
 ];
 
 /**
@@ -30,11 +62,41 @@ const PASSWORD_REQUIREMENTS = [
 const GOOGLE_ROLES = ['customer', 'seller'];
 
 const ROLES = [
-  { value: 'customer', label: 'Customer' },
-  { value: 'seller', label: 'Seller' },
-  { value: 'executive', label: 'Executive' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'super_admin', label: 'Super Admin' },
+  {
+    value: 'customer',
+
+    get label() {
+      return i18n.t("login.customer");
+    }
+  },
+  {
+    value: 'seller',
+
+    get label() {
+      return i18n.t("login.seller");
+    }
+  },
+  {
+    value: 'executive',
+
+    get label() {
+      return i18n.t("login.executive");
+    }
+  },
+  {
+    value: 'admin',
+
+    get label() {
+      return i18n.t("login.admin");
+    }
+  },
+  {
+    value: 'super_admin',
+
+    get label() {
+      return i18n.t("login.superAdmin");
+    }
+  },
 ];
 
 const navigateForRole = (navigate, role) => {
@@ -46,6 +108,8 @@ const navigateForRole = (navigate, role) => {
 };
 
 const Login = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login, loginWithGoogle, completeForcedPasswordReset, completeMfaLogin, cancelMfaLogin } = useAuth();
@@ -76,7 +140,7 @@ const Login = () => {
 
   useEffect(() => {
     if (searchParams.get('reason') === 'session-expired' && !error) {
-      setError('Your session expired. Please sign in again to continue.');
+      setError(t("login.yourSessionExpiredPleaseSign"));
     }
   }, [searchParams]);
 
@@ -87,7 +151,7 @@ const Login = () => {
       if (data.profileIncomplete) navigate('/complete-profile');
       else goAfterLogin((data.role || 'customer').toLowerCase());
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-in failed. Please try again.');
+      setError(err.response?.data?.error || err.response?.data?.message || t("login.googleSignInFailedPlease"));
     }
   }, [loginWithGoogle, rememberMe, goAfterLogin, navigate]);
 
@@ -99,7 +163,7 @@ const Login = () => {
       if (data.profileIncomplete) navigate('/complete-profile');
       else goAfterLogin((data.role || 'customer').toLowerCase());
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-in failed. Please try again.');
+      setError(err.response?.data?.error || err.response?.data?.message || t("login.googleSignInFailedPlease"));
     }
   }, [loginWithGoogle, rememberMe, goAfterLogin, navigate]);
 
@@ -160,7 +224,7 @@ const Login = () => {
       const data = await completeMfaLogin(mfaCode.trim());
       goAfterLogin((data.role || role).toLowerCase());
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Invalid verification code. Please try again.');
+      setError(err.response?.data?.error || err.response?.data?.message || t("login.invalidVerificationCodePleaseTry"));
     } finally {
       setLoading(false);
     }
@@ -176,14 +240,14 @@ const Login = () => {
   const handleCompleteForcedReset = async (e) => {
     e.preventDefault();
     setError('');
-    if (!newPasswordValid) { setError('Password does not meet the requirements below'); return; }
-    if (!newPasswordsMatch) { setError('Passwords do not match'); return; }
+    if (!newPasswordValid) { setError(t("forgotPassword.passwordDoesNotMeetThe")); return; }
+    if (!newPasswordsMatch) { setError(t("forgotPassword.passwordsDoNotMatch")); return; }
     setLoading(true);
     try {
       const data = await completeForcedPasswordReset(forcedReset.email, forcedReset.oldPassword, newPassword, rememberMe);
       goAfterLogin((data.role || role).toLowerCase());
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to set new password.');
+      setError(err.response?.data?.error || err.response?.data?.message || t("login.failedToSetNewPassword"));
     } finally {
       setLoading(false);
     }
@@ -197,8 +261,8 @@ const Login = () => {
             <div className="auth-header">
               <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
-              <h1 className="auth-title">Two-Factor Authentication</h1>
-              <p className="auth-subtitle">Enter the 6-digit code from your authenticator app to continue as {email}.</p>
+              <h1 className="auth-title">{t("login.twoFactorAuthentication")}</h1>
+              <p className="auth-subtitle">{t("login.enterThe6DigitCode")}{" "}{email}.</p>
             </div>
 
             {error && (
@@ -209,14 +273,14 @@ const Login = () => {
 
             <form onSubmit={handleMfaSubmit} className="auth-form">
               <div className="auth-field">
-                <label className="auth-field-label" htmlFor="login-mfa-code">Verification Code</label>
+                <label className="auth-field-label" htmlFor="login-mfa-code">{t("login.verificationCode")}</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
                     id="login-mfa-code"
                     type="text"
                     className="auth-input"
-                    placeholder="6-digit code"
+                    placeholder={t("profile.6DigitCode")}
                     value={mfaCode}
                     onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     inputMode="numeric"
@@ -227,7 +291,7 @@ const Login = () => {
               </div>
 
               <button type="submit" className={`auth-submit-btn${loading ? ' loading' : ''}`} disabled={loading || mfaCode.length < 6}>
-                {loading ? 'Verifying...' : 'Verify & Sign In'}
+                {loading ? t("login.verifying") : t("login.verifySignIn")}
               </button>
             </form>
 
@@ -236,9 +300,7 @@ const Login = () => {
               onClick={handleCancelMfa}
               className="auth-link"
               style={{ display: 'block', margin: '0.75rem auto 0', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              Use a different account
-            </button>
+            >{t("login.useADifferentAccount")}</button>
           </div>
         </div>
       </div>
@@ -253,8 +315,8 @@ const Login = () => {
             <div className="auth-header">
               <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
-              <h1 className="auth-title">Set a new password</h1>
-              <p className="auth-subtitle">Your password was reset by an administrator. Please choose a new password to continue.</p>
+              <h1 className="auth-title">{t("login.setANewPassword")}</h1>
+              <p className="auth-subtitle">{t("login.yourPasswordWasResetBy")}</p>
             </div>
 
             {error && (
@@ -265,14 +327,14 @@ const Login = () => {
 
             <form onSubmit={handleCompleteForcedReset} className="auth-form">
               <div className="auth-field">
-                <label className="auth-field-label" htmlFor="login-new-password">New Password</label>
+                <label className="auth-field-label" htmlFor="login-new-password">{t("profile.newPassword")}</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
                     id="login-new-password"
                     type="password"
                     className="auth-input"
-                    placeholder="Create a strong password"
+                    placeholder={t("forgotPassword.createAStrongPassword")}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
@@ -291,21 +353,21 @@ const Login = () => {
               </div>
 
               <div className="auth-field">
-                <label className="auth-field-label" htmlFor="login-confirm-password">Confirm New Password</label>
+                <label className="auth-field-label" htmlFor="login-confirm-password">{t("profile.confirmNewPassword")}</label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">&#128274;</span>
                   <input
                     id="login-confirm-password"
                     type="password"
                     className="auth-input"
-                    placeholder="Confirm your password"
+                    placeholder={t("forgotPassword.confirmYourPassword")}
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     required
                   />
                 </div>
                 {confirmNewPassword && !newPasswordsMatch && (
-                  <span className="auth-field-error">Passwords do not match</span>
+                  <span className="auth-field-error">{t("forgotPassword.passwordsDoNotMatch")}</span>
                 )}
               </div>
 
@@ -314,7 +376,7 @@ const Login = () => {
                 className={`auth-submit-btn${loading ? ' loading' : ''}`}
                 disabled={loading || !newPasswordValid || !newPasswordsMatch}
               >
-                {loading ? 'Saving...' : 'Set New Password & Sign In'}
+                {loading ? t("addressBook.saving") : t("login.setNewPasswordSignIn")}
               </button>
             </form>
           </div>
@@ -330,8 +392,8 @@ const Login = () => {
           <div className="auth-header">
             <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
             <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
-            <h1 className="auth-title">Welcome back</h1>
-            <p className="auth-subtitle">Sign in to your account</p>
+            <h1 className="auth-title">{t("login.welcomeBack")}</h1>
+            <p className="auth-subtitle">{t("login.signInToYourAccount")}</p>
           </div>
 
           {error && (
@@ -342,7 +404,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">
-              <label className="auth-field-label" htmlFor="login-role">I am a</label>
+              <label className="auth-field-label" htmlFor="login-role">{t("login.iAmA")}</label>
               <select
                 id="login-role"
                 className="auth-input"
@@ -369,29 +431,27 @@ const Login = () => {
                   <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
                   <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
                   <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
-                </svg>
-                Sign in with Google
-              </button>
-              <div className="auth-divider">or sign in with your email</div>
+                </svg>{t("login.signInWithGoogle")}</button>
+              <div className="auth-divider">{t("login.orSignInWithYour")}</div>
             </>
           )}
 
             {GOOGLE_ROLES.includes(role) && !isNativeApp && process.env.REACT_APP_GOOGLE_CLIENT_ID && (
             <>
               <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center' }} />
-              <div className="auth-divider">or sign in with your email</div>
+              <div className="auth-divider">{t("login.orSignInWithYour")}</div>
             </>
             )}
 
             <div className="auth-field">
-              <label className="auth-field-label" htmlFor="login-email">Email or Username</label>
+              <label className="auth-field-label" htmlFor="login-email">{t("login.emailOrUsername")}</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#9993;</span>
                 <input
                   id="login-email"
                   type="text"
                   className="auth-input"
-                  placeholder="Enter your email or username"
+                  placeholder={t("login.enterYourEmailOrUsername")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
@@ -401,14 +461,14 @@ const Login = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label" htmlFor="login-password">Password</label>
+              <label className="auth-field-label" htmlFor="login-password">{t("login.password")}</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128274;</span>
                 <input
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   className="auth-input"
-                  placeholder="Enter your password"
+                  placeholder={t("login.enterYourPassword")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -419,7 +479,7 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword ? t("forgotPassword.hide") : t("forgotPassword.show")}
                 </button>
               </div>
             </div>
@@ -427,10 +487,8 @@ const Login = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--gray-600)', cursor: 'pointer' }}>
                 <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
-                Remember Me
-              </label>
-              <Link to="/forgot-password" className="auth-link" style={{ fontSize: '0.85rem' }}>Forgot password?</Link>
+                  style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />{t("login.rememberMe")}</label>
+              <Link to="/forgot-password" className="auth-link" style={{ fontSize: '0.85rem' }}>{t("login.forgotPassword")}</Link>
             </div>
 
             <button
@@ -438,21 +496,18 @@ const Login = () => {
               className={`auth-submit-btn${loading ? ' loading' : ''}`}
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t("login.signingIn") : t("nav.signIn")}
             </button>
           </form>
 
           <div className="auth-footer">
             {role === 'customer' && (
-              <span>
-                Don't have an account?{' '}
-                <Link to="/register" className="auth-link">Create account</Link>
+              <span>{t("login.donTHaveAnAccount")}{' '}
+                <Link to="/register" className="auth-link">{t("login.createAccount")}</Link>
               </span>
             )}
             {role !== 'customer' && (
-              <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--font-size-xs)' }}>
-                Account creation for {role}s is managed by administrators.
-              </span>
+              <span style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--font-size-xs)' }}>{t("login.accountCreationFor")}{" "}{role}{t("login.sIsManagedByAdministrators")}</span>
             )}
           </div>
         </div>
