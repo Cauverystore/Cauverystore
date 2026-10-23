@@ -9,6 +9,7 @@ import ProductRow from "../components/ProductRow";
 import "../styles/shopnest-home.css";
 import { useTranslation, Trans } from "react-i18next";
 import i18n from "../i18n";
+import useCategoryNames from "../hooks/useCategoryNames";
 
 // The promises a first-time shopper looks for, stated once under the hero. Each one mirrors
 // what the cart and order system really do - update them together.
@@ -82,6 +83,7 @@ const ROW_LIMIT = 15;
 
 const Home = () => {
   const { t } = useTranslation();
+  const catLabel = useCategoryNames();
 
   const navigate = useNavigate();
   const [allProducts, setAllProducts] = useState(null);
@@ -199,7 +201,7 @@ const Home = () => {
               if (!name) return null;
               return (
                 <Link key={name} className="sn-quick-cat" to={`/category/${encodeURIComponent(name)}`}>
-                  <span className="sn-quick-cat-label">{name}</span>
+                  <span className="sn-quick-cat-label">{catLabel(cat)}</span>
                 </Link>
               );
             })}

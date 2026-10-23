@@ -8,6 +8,7 @@ import NotFound from "./NotFound";
 import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Breadcrumb from "../components/Breadcrumb";
+import useCategoryNames from "../hooks/useCategoryNames";
 import Pagination from "../components/Pagination";
 import "../styles/products.css";
 import "../styles/product-tray.css";
@@ -81,6 +82,7 @@ const CategoryProducts = () => {
   const { t } = useTranslation();
 
   const { category } = useParams();
+  const catLabel = useCategoryNames();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -160,10 +162,10 @@ const CategoryProducts = () => {
       <div className="cat-products-content">
         <Breadcrumb items={[
           { label: t("nav.home"), to: "/" },
-          { label: category }
+          { label: catLabel(category) }
         ]} />
         <div className="section-header">
-          <h2 className="section-title">{category}</h2>
+          <h2 className="section-title">{catLabel(category)}</h2>
           <span className="products-toolbar-count">{products.length}{" "}{t("categoryProducts.products")}</span>
         </div>
         <div className="cat-products-banner">
