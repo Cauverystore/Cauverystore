@@ -7,9 +7,11 @@ import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Pagination from "../components/Pagination";
 import "../styles/products.css";
 import { useTranslation } from "react-i18next";
+import useCategoryNames from "../hooks/useCategoryNames";
 
 const ProductList = () => {
   const { t } = useTranslation();
+  const catLabel = useCategoryNames();
 
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
@@ -61,7 +63,7 @@ const ProductList = () => {
   }, [search, sort, category, page]);
 
   const categoryValue = (cat) => cat.name || cat.id || cat._id || cat;
-  const categoryLabel = (cat) => cat.name || cat.title || cat;
+  const categoryLabel = (cat) => catLabel(cat);
 
   const handleAddToCart = async (product) => {
     await addToCartOrLogin(navigate, product, 1);
