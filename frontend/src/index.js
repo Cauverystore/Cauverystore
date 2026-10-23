@@ -1,5 +1,6 @@
 ﻿import React from "react";
 import ReactDOM from "react-dom/client";
+import "./i18n";
 import "./index.css";
 import "./styles/design-system.css";
 import "./styles/auth.css";

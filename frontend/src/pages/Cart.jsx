@@ -9,8 +9,11 @@ import { useWishlist } from "../context/WishlistContext";
 import { trackEvent } from "../utils/analytics";
 import { variantLabel } from "../utils/variant";
 import "../styles/cart.css";
+import { useTranslation, Trans } from "react-i18next";
 
 const Cart = () => {
+  const { t } = useTranslation();
+
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,7 +36,7 @@ const Cart = () => {
       setCart(res.data);
     } catch (err) {
         void err;
-      setError("We couldn't load your cart. Please try again.");
+      setError(t("cart.weCouldnTLoadYour"));
     }
     setLoading(false);
   }, []);
@@ -71,7 +74,7 @@ const Cart = () => {
       await fetchCart();
     } catch (err) {
                 void err;
-      setError("We couldn't update the quantity. Please try again.");
+      setError(t("cart.weCouldnTUpdateThe"));
     }
     setAction(key, false);
   };
@@ -85,7 +88,7 @@ const Cart = () => {
       await fetchCart();
     } catch (err) {
                 void err;
-      setError("We couldn't remove that item. Please try again.");
+      setError(t("cart.weCouldnTRemoveThat"));
     }
     setAction(key, false);
   };
@@ -101,7 +104,7 @@ const Cart = () => {
       setSuccessMsg("Saved for later. You'll find it below your cart.");
     } catch (err) {
                 void err;
-      setError("We couldn't save that item for later. Please try again.");
+      setError(t("cart.weCouldnTSaveThat"));
     }
     setAction(key, false);
   };
@@ -115,7 +118,7 @@ const Cart = () => {
       await toggleWishlistCtx(productId);
     } catch (err) {
       void err;
-      setError("We couldn't update your wishlist. Please try again.");
+      setError(t("cart.weCouldnTUpdateYour"));
     }
     setAction(key, false);
   };
@@ -131,7 +134,7 @@ const Cart = () => {
       setSuccessMsg("Moved back to your cart.");
     } catch (err) {
                 void err;
-      setError("We couldn't move that item to your cart. Please try again.");
+      setError(t("cart.weCouldnTMoveThat"));
     }
     setAction(key, false);
   };
@@ -145,7 +148,7 @@ const Cart = () => {
       await fetchCart();
     } catch (err) {
                 void err;
-      setError("We couldn't add that item to your cart. Please try again.");
+      setError(t("cart.weCouldnTAddThat"));
     }
     setAction(key, false);
   };
@@ -156,7 +159,7 @@ const Cart = () => {
       navigate("/checkout");
     } catch (err) {
                 void err;
-      setError("We couldn't start checkout. Please try again.");
+      setError(t("cart.weCouldnTStartCheckout"));
     }
   };
 
@@ -176,14 +179,14 @@ const Cart = () => {
   const removeCoupon = () => {
     setAppliedCoupon(null);
     setPromoCode("");
-    setPromoMsg({ type: "success", text: "Coupon removed" });
+    setPromoMsg({ type: "success", text: t("cart.couponRemoved") });
   };
 
   if (loading) {
     return (
       <div style={{ maxWidth: "var(--container-wide)", margin: "0 auto", padding: "var(--spacing-4)", display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
         <div className="cart-empty">
-          <div style={{ color: "var(--color-text-secondary)" }}>Loading your cart...</div>
+          <div style={{ color: "var(--color-text-secondary)" }}>{t("cart.loadingYourCart")}</div>
         </div>
       </div>
     );
@@ -239,12 +242,12 @@ const Cart = () => {
   if (items.length === 0 && !error) {
     return (
       <div style={{ maxWidth: "var(--container-wide)", margin: "0 auto", padding: "var(--spacing-4)" }}>
-        <h1 className="cart-title">Shopping Cart</h1>
+        <h1 className="cart-title">{t("cart.shoppingCart")}</h1>
         <div className="cart-empty">
           <span className="cart-empty-icon">&#128722;</span>
-          <span className="cart-empty-text">Your cart is empty</span>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>Delivery is free on orders of &#8377;500 or more.</span>
-          <Link to="/products" className="products-empty-action" style={{ marginTop: "0.5rem" }}>Browse products</Link>
+          <span className="cart-empty-text">{t("cart.empty")}</span>
+          <span style={{ color: "var(--color-text-secondary)", fontSize: "0.9rem" }}>{t("cart.deliveryIsFreeOnOrders")}</span>
+          <Link to="/products" className="products-empty-action" style={{ marginTop: "0.5rem" }}>{t("cartDrawer.browseProducts")}</Link>
         </div>
       </div>
     );
@@ -253,10 +256,10 @@ const Cart = () => {
   if (items.length === 0 && error) {
     return (
       <div style={{ maxWidth: "var(--container-wide)", margin: "0 auto", padding: "var(--spacing-4)" }}>
-        <h1 className="cart-title">Shopping Cart</h1>
+        <h1 className="cart-title">{t("cart.shoppingCart")}</h1>
         <div className="cart-summary-coupon-applied" style={{ justifyContent: "space-between" }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="cart-summary-coupon-remove" aria-label="Dismiss error">&times;</button>
+          <button onClick={() => setError(null)} className="cart-summary-coupon-remove" aria-label={t("cart.dismissError")}>&times;</button>
         </div>
       </div>
     );
@@ -265,268 +268,249 @@ const Cart = () => {
   return (
     <div className="cart-page">
       <div className="cart-header" style={{ gridColumn: "1 / -1" }}>
-        <h1 className="cart-title">Shopping Cart</h1>
-        <span className="cart-count">{items.length} item{items.length > 1 ? "s" : ""}</span>
+        <h1 className="cart-title">{t("cart.shoppingCart")}</h1>
+        <span className="cart-count">{t("cart.itemCount", { count: items.length })}</span>
       </div>
 
       {error && (
         <div className="cart-summary-coupon-applied" style={{ gridColumn: "1 / -1", justifyContent: "space-between" }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="cart-summary-coupon-remove" aria-label="Dismiss error">&times;</button>
+          <button onClick={() => setError(null)} className="cart-summary-coupon-remove" aria-label={t("cart.dismissError")}>&times;</button>
         </div>
       )}
       {successMsg && (
         <div className="cart-summary-coupon-applied" style={{ gridColumn: "1 / -1", justifyContent: "space-between" }}>
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="cart-summary-coupon-remove" aria-label="Dismiss message">&times;</button>
+          <button onClick={() => setSuccessMsg(null)} className="cart-summary-coupon-remove" aria-label={t("cart.dismissMessage")}>&times;</button>
         </div>
       )}
-          {/* ─── LEFT COLUMN: Cart items → Checkout → Continue → Freq Bought ─── */}
-          <div className="cart-left-col">
-            {subtotal < 500 && (
-              <div className="cart-shipping-progress">
-                <div className="cart-shipping-progress-text">
-                  {subtotal === 0 ? "Add items to get " : <>Add <strong>&#8377;{(500 - subtotal).toFixed(2)}</strong> more to get </>}
-                  free delivery
-                </div>
-                <div className="cart-shipping-progress-bar">
-                  <div className={`cart-shipping-progress-fill ${shippingProgress >= 100 ? "complete" : ""}`} style={{ width: `${shippingProgress}%` }} />
-                </div>
-              </div>
-            )}
-            {subtotal >= 500 && (
-              <div className="cart-shipping-progress">
-                <div className="cart-shipping-progress-free">&#10003; You get free delivery on this order</div>
-                <div className="cart-shipping-progress-bar">
-                  <div className="cart-shipping-progress-fill complete" style={{ width: "100%" }} />
-                </div>
-              </div>
-            )}
+      {/* ─── LEFT COLUMN: Cart items → Checkout → Continue → Freq Bought ─── */}
+      <div className="cart-left-col">
+        {subtotal < 500 && (
+          <div className="cart-shipping-progress">
+            <div className="cart-shipping-progress-text">
+              {subtotal === 0 ? t("cart.addItemsForFree") : <Trans i18nKey="cart.addMoreForFree" values={{ amount: (500 - subtotal).toFixed(2) }} components={{ b: <strong /> }} />}</div>
+            <div className="cart-shipping-progress-bar">
+              <div className={`cart-shipping-progress-fill ${shippingProgress >= 100 ? "complete" : ""}`} style={{ width: `${shippingProgress}%` }} />
+            </div>
+          </div>
+        )}
+        {subtotal >= 500 && (
+          <div className="cart-shipping-progress">
+            <div className="cart-shipping-progress-free">{t("cart.youGetFreeDeliveryOn")}</div>
+            <div className="cart-shipping-progress-bar">
+              <div className="cart-shipping-progress-fill complete" style={{ width: "100%" }} />
+            </div>
+          </div>
+        )}
 
-            <div className="cart-items-section">
-              {items.map((item) => {
+        <div className="cart-items-section">
+          {items.map((item) => {
+            const product = safeProduct(item);
+            const itemId = safeId(item);
+            const price = product.price || item.price || 0;
+            const originalPrice = product.originalPrice || product.mrp || 0;
+            const image = product.image || product.images?.[0] || "";
+            const qty = item.quantity || 1;
+            const lineTotal = price * qty;
+            const deliveryEst = item.deliveryEstimate || cart?.deliveryDate || "Usually delivered within 3-9 business days";
+
+            return (
+              <div key={itemId} className="cart-item">
+                <div className="cart-item-image">
+                  <CartItemImage src={image} name={product.name} width={100} height={100} className="cart-item-img" />
+                </div>
+                <div className="cart-item-info">
+                  {product.brand && <div className="cart-item-brand">{product.brand}</div>}
+                  <div className="cart-item-title">{product.name || t("cart.product")}</div>
+                  <div className="cart-item-attrs">
+                    <div className="cart-item-attr"><span className="cart-item-attr-label">{t("filters.brand")}</span><span className="cart-item-attr-value">{product.brand || t("cart.notSpecified")}</span></div>
+                    <div className="cart-item-attr"><span className="cart-item-attr-label">{t("cart.color")}</span><span className="cart-item-attr-value">{product.color || t("cart.notSpecified")}</span></div>
+                    <div className="cart-item-attr"><span className="cart-item-attr-label">{t("cart.size")}</span><span className="cart-item-attr-value">{(/size/i.test(item.variant?.type || "") ? item.variant.value : product.size) || t("cart.notSpecified")}</span></div>
+                    <div className="cart-item-attr"><span className="cart-item-attr-label">{t("cart.material")}</span><span className="cart-item-attr-value">{product.material || t("cart.notSpecified")}</span></div>
+                    <div className="cart-item-attr"><span className="cart-item-attr-label">{t("cart.weight")}</span><span className="cart-item-attr-value">{product.weight ? `${product.weight} g` : t("cart.notSpecified")}</span></div>
+                  </div>
+                  {variantLabel(item) && <div className="cart-item-variant">{variantLabel(item)}</div>}
+                  <div>
+                    <span className="cart-item-price">&#8377;{price.toFixed(2)}</span>
+                    {originalPrice > price && <span className="cart-item-original-price">&#8377;{originalPrice.toFixed(2)}</span>}
+                  </div>
+                  {renderStockStatus(product)}
+                  <div style={{ fontSize: "0.8rem", color: "#0E5C5C", marginTop: "0.2rem" }}>{deliveryEst}</div>
+                  <div className="cart-item-actions">
+                    <div className="cart-item-qty">
+                      <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty - 1)}
+                        disabled={qty <= 1 || isLoading(`qty-${itemId}`)} aria-label={`Decrease quantity of ${product.name || "item"}`}>-</button>
+                      <input className="cart-item-qty-value" type="number" value={qty} readOnly aria-label={`Quantity of ${product.name || "item"}`} />
+                      <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty + 1)}
+                        disabled={isLoading(`qty-${itemId}`)} aria-label={`Increase quantity of ${product.name || "item"}`}>+</button>
+                    </div>
+                    <div className="cart-item-secondary-actions">
+                      <button
+                        className={`cart-item-action-btn wishlist ${wishlistedIds.has(product.id) ? "active" : ""}`}
+                        onClick={() => toggleWishlist(product.id)}
+                        disabled={isLoading(`wishlist-${product.id}`)}
+                      >
+                        <Heart size={14} fill={wishlistedIds.has(product.id) ? "currentColor" : "none"} />
+                        {wishlistedIds.has(product.id) ? t("cart.wishlisted") : t("nav.wishlist")}
+                      </button>
+                      <button className={`cart-item-action-btn save ${isLoading(`save-${itemId}`) ? "disabled" : ""}`}
+                        onClick={() => saveForLater(itemId)} disabled={isLoading(`save-${itemId}`)}>
+                        <Bookmark size={14} />
+                        {isLoading(`save-${itemId}`) ? t("addressBook.saving") : t("cart.saveForLater")}
+                      </button>
+                      <button className={`cart-item-action-btn delete ${isLoading(`remove-${itemId}`) ? "disabled" : ""}`}
+                        onClick={() => removeItem(itemId)} disabled={isLoading(`remove-${itemId}`)}>
+                        <Trash2 size={14} />
+                        {isLoading(`remove-${itemId}`) ? t("productTray.removing") : t("addressBook.delete")}
+                      </button>
+                    </div>
+                    <button className="cart-item-action-btn buy-now"
+                      onClick={() => navigate("/checkout")}>{t("cart.buyNow")}</button>
+                  </div>
+                </div>
+                <div className="cart-item-desktop-price" style={{ fontSize: "1rem", fontWeight: 700, whiteSpace: "nowrap" }}>
+                  &#8377;{lineTotal.toFixed(2)}
+                </div>
+                <div className="cart-item-mobile-price">
+                  &#8377;{lineTotal.toFixed(2)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Proceed to Buy — directly under cart items */}
+        <button className="cart-checkout-btn" onClick={() => navigate("/checkout")}>{t("cart.proceedToBuyCount", { count: items.length })}
+                      </button>
+
+        <div style={{ marginTop: "0.75rem" }}>
+          <Link to="/products" className="cart-continue-link">{t("cart.continueShopping")}</Link>
+        </div>
+
+        {savedItems.length > 0 && (
+          <div className="save-later-section">
+            <h3 className="save-later-title">{t("cart.savedForLater")}{" "}<span className="save-later-title-count">({t("cart.itemCount", { count: savedItems.length })})</span>
+            </h3>
+            <div className="save-later-grid">
+              {savedItems.map((item) => {
                 const product = safeProduct(item);
                 const itemId = safeId(item);
-                const price = product.price || item.price || 0;
-                const originalPrice = product.originalPrice || product.mrp || 0;
                 const image = product.image || product.images?.[0] || "";
-                const qty = item.quantity || 1;
-                const lineTotal = price * qty;
-                const deliveryEst = item.deliveryEstimate || cart?.deliveryDate || "Usually delivered within 3-9 business days";
-
+                const price = product.price || item.price || 0;
                 return (
-                  <div key={itemId} className="cart-item">
-                    <div className="cart-item-image">
+                  <div key={itemId} className="save-later-item">
+                    <div className="save-later-item-image">
                       <CartItemImage src={image} name={product.name} width={100} height={100} className="cart-item-img" />
                     </div>
-                    <div className="cart-item-info">
-                      {product.brand && <div className="cart-item-brand">{product.brand}</div>}
-                      <div className="cart-item-title">{product.name || "Product"}</div>
-                      <div className="cart-item-attrs">
-                        <div className="cart-item-attr"><span className="cart-item-attr-label">Brand</span><span className="cart-item-attr-value">{product.brand || "Not specified"}</span></div>
-                        <div className="cart-item-attr"><span className="cart-item-attr-label">Color</span><span className="cart-item-attr-value">{product.color || "Not specified"}</span></div>
-                        <div className="cart-item-attr"><span className="cart-item-attr-label">Size</span><span className="cart-item-attr-value">{(/size/i.test(item.variant?.type || "") ? item.variant.value : product.size) || "Not specified"}</span></div>
-                        <div className="cart-item-attr"><span className="cart-item-attr-label">Material</span><span className="cart-item-attr-value">{product.material || "Not specified"}</span></div>
-                        <div className="cart-item-attr"><span className="cart-item-attr-label">Weight</span><span className="cart-item-attr-value">{product.weight ? `${product.weight} g` : "Not specified"}</span></div>
-                      </div>
-                      {variantLabel(item) && <div className="cart-item-variant">{variantLabel(item)}</div>}
-                      <div>
-                        <span className="cart-item-price">&#8377;{price.toFixed(2)}</span>
-                        {originalPrice > price && <span className="cart-item-original-price">&#8377;{originalPrice.toFixed(2)}</span>}
-                      </div>
-                      {renderStockStatus(product)}
-                      <div style={{ fontSize: "0.8rem", color: "#0E5C5C", marginTop: "0.2rem" }}>{deliveryEst}</div>
-                      <div className="cart-item-actions">
-                        <div className="cart-item-qty">
-                          <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty - 1)}
-                            disabled={qty <= 1 || isLoading(`qty-${itemId}`)} aria-label={`Decrease quantity of ${product.name || "item"}`}>-</button>
-                          <input className="cart-item-qty-value" type="number" value={qty} readOnly aria-label={`Quantity of ${product.name || "item"}`} />
-                          <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty + 1)}
-                            disabled={isLoading(`qty-${itemId}`)} aria-label={`Increase quantity of ${product.name || "item"}`}>+</button>
-                        </div>
-                        <div className="cart-item-secondary-actions">
-                          <button
-                            className={`cart-item-action-btn wishlist ${wishlistedIds.has(product.id) ? "active" : ""}`}
-                            onClick={() => toggleWishlist(product.id)}
-                            disabled={isLoading(`wishlist-${product.id}`)}
-                          >
-                            <Heart size={14} fill={wishlistedIds.has(product.id) ? "currentColor" : "none"} />
-                            {wishlistedIds.has(product.id) ? "Wishlisted" : "Wishlist"}
-                          </button>
-                          <button className={`cart-item-action-btn save ${isLoading(`save-${itemId}`) ? "disabled" : ""}`}
-                            onClick={() => saveForLater(itemId)} disabled={isLoading(`save-${itemId}`)}>
-                            <Bookmark size={14} />
-                            {isLoading(`save-${itemId}`) ? "Saving..." : "Save for Later"}
-                          </button>
-                          <button className={`cart-item-action-btn delete ${isLoading(`remove-${itemId}`) ? "disabled" : ""}`}
-                            onClick={() => removeItem(itemId)} disabled={isLoading(`remove-${itemId}`)}>
-                            <Trash2 size={14} />
-                            {isLoading(`remove-${itemId}`) ? "Removing..." : "Delete"}
-                          </button>
-                        </div>
-                        <button className="cart-item-action-btn buy-now"
-                          onClick={() => navigate("/checkout")}>
-                          Buy Now
-                        </button>
-                      </div>
-                    </div>
-                    <div className="cart-item-desktop-price" style={{ fontSize: "1rem", fontWeight: 700, whiteSpace: "nowrap" }}>
-                      &#8377;{lineTotal.toFixed(2)}
-                    </div>
-                    <div className="cart-item-mobile-price">
-                      &#8377;{lineTotal.toFixed(2)}
+                    <div className="save-later-item-body">
+                      <div className="save-later-item-title">{product.name || t("cart.product")}</div>
+                      <div className="save-later-item-price">&#8377;{price.toFixed(2)}</div>
+                      <button className="save-later-item-move" onClick={() => moveToCart(itemId)}
+                        disabled={isLoading(`move-${itemId}`)}>
+                        {isLoading(`move-${itemId}`) ? t("productTray.moving") : t("cart.moveToCart")}
+                      </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-
-            {/* Proceed to Buy — directly under cart items */}
-            <button className="cart-checkout-btn" onClick={() => navigate("/checkout")}>
-              Proceed to Buy ({items.length} item{items.length > 1 ? "s" : ""})
-            </button>
-
-            <div style={{ marginTop: "0.75rem" }}>
-              <Link to="/products" className="cart-continue-link">
-                &larr; Continue Shopping
-              </Link>
-            </div>
-
-            {savedItems.length > 0 && (
-              <div className="save-later-section">
-                <h3 className="save-later-title">
-                  Saved for Later <span className="save-later-title-count">({savedItems.length} item{savedItems.length > 1 ? "s" : ""})</span>
-                </h3>
-                <div className="save-later-grid">
-                  {savedItems.map((item) => {
-                    const product = safeProduct(item);
-                    const itemId = safeId(item);
-                    const image = product.image || product.images?.[0] || "";
-                    const price = product.price || item.price || 0;
-                    return (
-                      <div key={itemId} className="save-later-item">
-                        <div className="save-later-item-image">
-                          <CartItemImage src={image} name={product.name} width={100} height={100} className="cart-item-img" />
-                        </div>
-                        <div className="save-later-item-body">
-                          <div className="save-later-item-title">{product.name || "Product"}</div>
-                          <div className="save-later-item-price">&#8377;{price.toFixed(2)}</div>
-                          <button className="save-later-item-move" onClick={() => moveToCart(itemId)}
-                            disabled={isLoading(`move-${itemId}`)}>
-                            {isLoading(`move-${itemId}`) ? "Moving..." : "Move to Cart"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Frequently Bought Together — below the checkout button */}
-            {!freqLoading && freqItemsToShow.length > 0 && (
-              <div className="save-later-section">
-                <h3 className="save-later-title">Frequently Bought Together</h3>
-                <ProductRow>
-                  {freqItemsToShow.map((prod) => (
-                    <ProductTray
-                      key={prod.id || prod._id}
-                      product={prod}
-                      onAddToCart={(p) => addFreqToCart(p.id || p._id)}
-                      onBuyNow={(p) => buyNowFreq(p.id || p._id)}
-                    />
-                  ))}
-                </ProductRow>
-              </div>
-            )}
           </div>
+        )}
 
-          {/* ─── RIGHT COLUMN: Price Details ─── */}
-          <aside className="cart-summary">
-            <h3 className="cart-summary-title">Price Details</h3>
+        {/* Frequently Bought Together — below the checkout button */}
+        {!freqLoading && freqItemsToShow.length > 0 && (
+          <div className="save-later-section">
+            <h3 className="save-later-title">{t("cart.frequentlyBoughtTogether")}</h3>
+            <ProductRow>
+              {freqItemsToShow.map((prod) => (
+                <ProductTray
+                  key={prod.id || prod._id}
+                  product={prod}
+                  onAddToCart={(p) => addFreqToCart(p.id || p._id)}
+                  onBuyNow={(p) => buyNowFreq(p.id || p._id)}
+                />
+              ))}
+            </ProductRow>
+          </div>
+        )}
+      </div>
 
-            <div className="cart-summary-row">
-              <span className="cart-summary-row-label">Price ({items.length} item{items.length > 1 ? "s" : ""})</span>
-              <span className="cart-summary-row-value">&#8377;{subtotal.toFixed(2)}</span>
-            </div>
+      {/* ─── RIGHT COLUMN: Price Details ─── */}
+      <aside className="cart-summary">
+        <h3 className="cart-summary-title">{t("cart.priceDetails")}</h3>
 
-            {discount > 0 && (
-              <div className="cart-summary-row">
-                <span className="cart-summary-row-label">Discount</span>
-                <span className="cart-summary-row-value cart-summary-discount">-&#8377;{discount.toFixed(2)}</span>
-              </div>
-            )}
+        <div className="cart-summary-row">
+          <span className="cart-summary-row-label">{t("cart.priceCount", { count: items.length })}</span>
+          <span className="cart-summary-row-value">&#8377;{subtotal.toFixed(2)}</span>
+        </div>
 
-            <div className="cart-summary-row">
-              <span className="cart-summary-row-label">Delivery</span>
-              <span className="cart-summary-row-value">{delivery === 0 ? <span className="cart-summary-discount">FREE</span> : `\u20B9${delivery.toFixed(2)}`}</span>
-            </div>
+        {discount > 0 && (
+          <div className="cart-summary-row">
+            <span className="cart-summary-row-label">{t("cart.discount")}</span>
+            <span className="cart-summary-row-value cart-summary-discount">-&#8377;{discount.toFixed(2)}</span>
+          </div>
+        )}
 
-            <div className="cart-summary-divider" />
+        <div className="cart-summary-row">
+          <span className="cart-summary-row-label">{t("cart.delivery")}</span>
+          <span className="cart-summary-row-value">{delivery === 0 ? <span className="cart-summary-discount">{t("cart.free")}</span> : `\u20B9${delivery.toFixed(2)}`}</span>
+        </div>
 
-            <div className="cart-summary-total-row">
-              <span>Total Amount</span>
-              <span className="cart-summary-total-value">&#8377;{finalTotal.toFixed(2)}</span>
-            </div>
+        <div className="cart-summary-divider" />
 
-            <div className="cart-summary-row">
-              <span className="cart-summary-row-label">
-                {tax !== null ? "Includes GST of" : "Inclusive of all taxes"}
-              </span>
-              {tax !== null && (
-                <span className="cart-summary-row-value">&#8377;{tax.toFixed(2)}</span>
-              )}
-            </div>
+        <div className="cart-summary-total-row">
+          <span>{t("cart.totalAmount")}</span>
+          <span className="cart-summary-total-value">&#8377;{finalTotal.toFixed(2)}</span>
+        </div>
 
-            {discount > 0 && (
-              <div className="cart-summary-savings">
-                You save &#8377;{discount.toFixed(2)} on this order
-              </div>
-            )}
+        <div className="cart-summary-row">
+          <span className="cart-summary-row-label">
+            {tax !== null ? t("cart.includesGstOf") : t("cart.inclusiveOfAllTaxes")}
+          </span>
+          {tax !== null && (
+            <span className="cart-summary-row-value">&#8377;{tax.toFixed(2)}</span>
+          )}
+        </div>
 
-            <div className="cart-summary-coupon">
-              <input
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="Coupon code"
-                aria-label="Enter coupon code"
-                disabled={!!appliedCoupon}
-              />
-              {!appliedCoupon ? (
-                <button className="cart-summary-coupon-btn" onClick={applyCoupon}>Apply</button>
-              ) : (
-                <button className="cart-summary-coupon-btn cart-summary-coupon-remove" onClick={removeCoupon}>Remove</button>
-              )}
-            </div>
-            {promoMsg && (
-              <div style={{ fontSize: "0.8rem", marginBottom: "0.75rem", color: promoMsg.type === "success" ? "#0E5C5C" : "#92400e" }}>
-                {promoMsg.text}
-              </div>
-            )}
+        {discount > 0 && (
+          <div className="cart-summary-savings">{t("cart.youSaveOnOrder", { amount: discount.toFixed(2) })}</div>
+        )}
 
-            <div className="cart-trust-row">
-              <span className="cart-trust-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-                Secure payment
-              </span>
-              <span className="cart-trust-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-                7-day returns
-              </span>
-              <span className="cart-trust-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Support Mon to Sat
-              </span>
-            </div>
+        <div className="cart-summary-coupon">
+          <input
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value)}
+            placeholder={t("cart.couponCode")}
+            aria-label={t("cart.enterCouponCode")}
+            disabled={!!appliedCoupon}
+          />
+          {!appliedCoupon ? (
+            <button className="cart-summary-coupon-btn" onClick={applyCoupon}>{t("filters.apply")}</button>
+          ) : (
+            <button className="cart-summary-coupon-btn cart-summary-coupon-remove" onClick={removeCoupon}>{t("cart.remove")}</button>
+          )}
+        </div>
+        {promoMsg && (
+          <div style={{ fontSize: "0.8rem", marginBottom: "0.75rem", color: promoMsg.type === "success" ? "#0E5C5C" : "#92400e" }}>
+            {promoMsg.text}
+          </div>
+        )}
 
-            <div className="cart-summary-secure">
-              <span>&#128274;</span> Secure Payment &middot; Easy Returns
-            </div>
-            <div className="cart-summary-accepted-cards">
-              <span>&#9829;</span> Cards &middot; UPI &middot; Net Banking
-            </div>
-          </aside>
+        <div className="cart-trust-row">
+          <span className="cart-trust-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>{t("cart.securePayment")}</span>
+          <span className="cart-trust-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>{t("cart.7DayReturns")}</span>
+          <span className="cart-trust-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>{t("cart.supportMonToSat")}</span>
+        </div>
 
+        <div className="cart-summary-secure">
+          <span>&#128274;</span>{" "}{t("cart.securePaymentEasyReturns")}</div>
+        <div className="cart-summary-accepted-cards">
+          <span>&#9829;</span>{" "}{t("cart.cardsUpiNetBanking")}</div>
+      </aside>
 
     </div>
   );

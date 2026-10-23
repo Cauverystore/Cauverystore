@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import "../styles/product-tray.css";
+import { useTranslation } from "react-i18next";
 
 // The narrowest a card may get before the row drops to one fewer card.
 const MIN_CARD = 200;
@@ -11,6 +12,8 @@ const MIN_CARD = 200;
  * fewer than two. The arrows page through the rest, so every product is reachable from the row.
  */
 const ProductRow = ({ children }) => {
+  const { t } = useTranslation();
+
   const scroller = useRef(null);
   const [cols, setCols] = useState(null);
   const [can, setCan] = useState({ prev: false, next: false });
@@ -52,13 +55,13 @@ const ProductRow = ({ children }) => {
   return (
     <div className="pt-row">
       {can.prev && (
-        <button type="button" className="pt-row-arrow pt-row-arrow-prev" onClick={() => page(-1)} aria-label="Show previous products">
+        <button type="button" className="pt-row-arrow pt-row-arrow-prev" onClick={() => page(-1)} aria-label={t("productRow.showPreviousProducts")}>
           <ChevronLeft size={22} />
         </button>
       )}
       <div className="pt-row-scroll" ref={scroller} style={cols ? { "--pt-cols": cols } : undefined}>{children}</div>
       {can.next && (
-        <button type="button" className="pt-row-arrow pt-row-arrow-next" onClick={() => page(1)} aria-label="Show more products">
+        <button type="button" className="pt-row-arrow pt-row-arrow-next" onClick={() => page(1)} aria-label={t("productRow.showMoreProducts")}>
           <ChevronRight size={22} />
         </button>
       )}

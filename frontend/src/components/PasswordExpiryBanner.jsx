@@ -2,8 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/axios";
+import { useTranslation } from "react-i18next";
 
 const PasswordExpiryBanner = () => {
+  const { t } = useTranslation();
+
   const { isAuthenticated } = useAuth();
   const [info, setInfo] = useState(null);
 
@@ -35,10 +38,8 @@ const PasswordExpiryBanner = () => {
       color: "#fff", textAlign: "center", padding: "0.5rem 1rem",
       fontSize: "0.85rem", fontWeight: 500
     }}>
-      {expired ? "Your password has expired." : `Your password expires in ${info.days} day${info.days === 1 ? "" : "s"}.`}{" "}
-      <Link to="/profile?tab=security" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>
-        Update password now
-      </Link>
+      {expired ? t("passwordExpiryBanner.yourPasswordHasExpired") : `Your password expires in ${info.days} day${info.days === 1 ? "" : "s"}.`}{" "}
+      <Link to="/profile?tab=security" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>{t("passwordExpiryBanner.updatePasswordNow")}</Link>
     </div>
   );
 };

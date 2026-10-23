@@ -5,22 +5,54 @@ import { useAuth } from '../../context/AuthContext';
 import GoogleAuthNative from '../../utils/googleAuthNative';
 import { trackSignUp } from '../../utils/analytics';
 import '../../styles/auth.css';
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 const isNativeApp = Capacitor.isNativePlatform();
 
 const PASSWORD_REQUIREMENTS = [
-  { label: 'At least 8 characters', test: (v) => v.length >= 8 },
-  { label: 'Contains uppercase letter', test: (v) => /[A-Z]/.test(v) },
-  { label: 'Contains lowercase letter', test: (v) => /[a-z]/.test(v) },
-  { label: 'Contains a number', test: (v) => /\d/.test(v) },
-  { label: 'Contains special character', test: (v) => /[!@#$%^&*(),.?":{}|<>]/.test(v) },
+  {
+    get label() {
+      return i18n.t("forgotPassword.atLeast8Characters");
+    },
+
+    test: (v) => v.length >= 8
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsUppercaseLetter");
+    },
+
+    test: (v) => /[A-Z]/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsLowercaseLetter");
+    },
+
+    test: (v) => /[a-z]/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsANumber");
+    },
+
+    test: (v) => /\d/.test(v)
+  },
+  {
+    get label() {
+      return i18n.t("forgotPassword.containsSpecialCharacter");
+    },
+
+    test: (v) => /[!@#$%^&*(),.?":{}|<>]/.test(v)
+  },
 ];
 
 function getPasswordStrength(password) {
   const met = PASSWORD_REQUIREMENTS.filter((r) => r.test(password)).length;
-  if (met <= 2) return { label: 'Weak', className: 'weak' };
-  if (met <= 4) return { label: 'Medium', className: 'medium' };
-  return { label: 'Strong', className: 'strong' };
+  if (met <= 2) return { label: i18n.t("register.weak"), className: 'weak' };
+  if (met <= 4) return { label: i18n.t("register.medium"), className: 'medium' };
+  return { label: i18n.t("register.strong"), className: 'strong' };
 }
 
 function isValidEmail(email) {
@@ -28,6 +60,8 @@ function isValidEmail(email) {
 }
 
 const Register = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const { register, loginWithGoogle } = useAuth();
 
@@ -53,7 +87,7 @@ const Register = () => {
       const data = await loginWithGoogle(response.credential, false);
       navigate(data.profileIncomplete ? '/complete-profile' : '/');
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-up failed. Please try again.');
+      setError(err.response?.data?.error || err.response?.data?.message || t("register.googleSignUpFailedPlease"));
     }
   }, [loginWithGoogle, navigate]);
 
@@ -64,7 +98,7 @@ const Register = () => {
       const data = await loginWithGoogle(result.idToken, false);
       navigate(data.profileIncomplete ? '/complete-profile' : '/');
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Google sign-up failed. Please try again.');
+      setError(err.response?.data?.error || err.response?.data?.message || t("register.googleSignUpFailedPlease"));
     }
   }, [loginWithGoogle, navigate]);
 
@@ -109,7 +143,7 @@ const Register = () => {
     setSuccess('');
 
     if (!passwordsMatch) {
-      setError('Passwords do not match');
+      setError(t("forgotPassword.passwordsDoNotMatch"));
       return;
     }
 
@@ -123,10 +157,10 @@ const Register = () => {
         password: form.password,
       });
       trackSignUp('email');
-      setSuccess('Account created successfully! Redirecting to login...');
+      setSuccess(t("register.accountCreatedSuccessfullyRedirect"));
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(err.response?.data?.error || err.response?.data?.message || t("register.registrationFailedPleaseTryAgain"));
     } finally {
       setLoading(false);
     }
@@ -139,8 +173,8 @@ const Register = () => {
           <div className="auth-header">
             <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
             <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
-            <h1 className="auth-title">Create Account</h1>
-            <p className="auth-subtitle">Join Cauvery Store today</p>
+            <h1 className="auth-title">{t("register.createAccount")}</h1>
+            <p className="auth-subtitle">{t("register.joinCauveryStoreToday")}</p>
           </div>
 
           {error && <div className="auth-alert error">{error}</div>}
@@ -148,14 +182,14 @@ const Register = () => {
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">
-              <label className="auth-field-label" htmlFor="register-name">Full Name</label>
+              <label className="auth-field-label" htmlFor="register-name">{t("checkout.fullName")}</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128100;</span>
                 <input
                   id="register-name"
                   type="text"
                   className={`auth-input${touched.fullName && !form.fullName.trim() ? ' error' : ''}`}
-                  placeholder="Enter your full name"
+                  placeholder={t("register.enterYourFullName")}
                   value={form.fullName}
                   onChange={(e) => update('fullName', e.target.value)}
                   onBlur={() => blur('fullName')}
@@ -165,14 +199,14 @@ const Register = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label" htmlFor="register-email">Email</label>
+              <label className="auth-field-label" htmlFor="register-email">{t("contactUs.email")}</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#9993;</span>
                 <input
                   id="register-email"
                   type="email"
                   className={`auth-input${touched.email && !emailValid ? ' error' : touched.email && emailValid && form.email ? ' valid' : ''}`}
-                  placeholder="Enter your email"
+                  placeholder={t("forgotPassword.enterYourEmail")}
                   value={form.email}
                   onChange={(e) => update('email', e.target.value)}
                   onBlur={() => blur('email')}
@@ -180,19 +214,19 @@ const Register = () => {
                 />
               </div>
               {touched.email && !emailValid && form.email && (
-                <span className="auth-field-error">Please enter a valid email address</span>
+                <span className="auth-field-error">{t("forgotPassword.pleaseEnterAValidEmail")}</span>
               )}
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label" htmlFor="register-phone">Phone</label>
+              <label className="auth-field-label" htmlFor="register-phone">{t("addressBook.phone")}</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128222;</span>
                 <input
                   id="register-phone"
                   type="tel"
                   className={`auth-input${touched.phone && form.phone && form.phone.length < 10 ? ' error' : ''}`}
-                  placeholder="Enter your phone number"
+                  placeholder={t("completeProfile.enterYourPhoneNumber")}
                   value={form.phone}
                   onChange={(e) => update('phone', e.target.value.replace(/\D/g, ''))}
                   onBlur={() => blur('phone')}
@@ -202,14 +236,14 @@ const Register = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label" htmlFor="register-password">Password</label>
+              <label className="auth-field-label" htmlFor="register-password">{t("login.password")}</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128274;</span>
                 <input
                   id="register-password"
                   type={showPassword ? 'text' : 'password'}
                   className={`auth-input${touched.password && form.password.length < 8 ? ' error' : form.password.length >= 8 ? ' valid' : ''}`}
-                  placeholder="Create a strong password"
+                  placeholder={t("forgotPassword.createAStrongPassword")}
                   value={form.password}
                   onChange={(e) => update('password', e.target.value)}
                   onBlur={() => blur('password')}
@@ -221,7 +255,7 @@ const Register = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword ? t("forgotPassword.hide") : t("forgotPassword.show")}
                 </button>
               </div>
 
@@ -230,7 +264,7 @@ const Register = () => {
                   <div className="auth-password-strength-bar">
                     <div className={`auth-password-strength-fill ${strength.className}`}></div>
                   </div>
-                  <span className="auth-password-strength-text">Strength: {strength.label}</span>
+                  <span className="auth-password-strength-text">{t("register.strength")}{" "}{strength.label}</span>
                 </div>
               )}
 
@@ -249,14 +283,14 @@ const Register = () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-field-label" htmlFor="register-confirm-password">Confirm Password</label>
+              <label className="auth-field-label" htmlFor="register-confirm-password">{t("register.confirmPassword")}</label>
               <div className="auth-input-wrapper">
                 <span className="auth-input-icon">&#128274;</span>
                 <input
                   id="register-confirm-password"
                   type={showConfirmPassword ? 'text' : 'password'}
                   className={`auth-input${touched.confirmPassword && !passwordsMatch ? ' error' : touched.confirmPassword && passwordsMatch && form.confirmPassword ? ' valid' : ''}`}
-                  placeholder="Confirm your password"
+                  placeholder={t("forgotPassword.confirmYourPassword")}
                   value={form.confirmPassword}
                   onChange={(e) => update('confirmPassword', e.target.value)}
                   onBlur={() => blur('confirmPassword')}
@@ -268,11 +302,11 @@ const Register = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   tabIndex={-1}
                 >
-                  {showConfirmPassword ? 'Hide' : 'Show'}
+                  {showConfirmPassword ? t("forgotPassword.hide") : t("forgotPassword.show")}
                 </button>
               </div>
               {touched.confirmPassword && form.confirmPassword && !passwordsMatch && (
-                <span className="auth-field-error">Passwords do not match</span>
+                <span className="auth-field-error">{t("forgotPassword.passwordsDoNotMatch")}</span>
               )}
             </div>
 
@@ -283,10 +317,9 @@ const Register = () => {
                 checked={agreeTerms}
                 onChange={(e) => setAgreeTerms(e.target.checked)}
               />
-              <label htmlFor="terms">
-                I agree to the{' '}
-                <Link to="/terms-and-conditions" className="auth-link">Terms &amp; Conditions</Link> and{' '}
-                <Link to="/privacy-policy" className="auth-link">Privacy Policy</Link>
+              <label htmlFor="terms">{t("register.iAgreeToThe")}{' '}
+                <Link to="/terms-and-conditions" className="auth-link">{t("footer.terms")}</Link>{" "}{t("returnsandRefundPolicy.and")}{' '}
+                <Link to="/privacy-policy" className="auth-link">{t("footer.privacy")}</Link>
               </label>
             </div>
 
@@ -295,13 +328,13 @@ const Register = () => {
               className={`auth-submit-btn${loading ? ' loading' : ''}`}
               disabled={loading || !canSubmit}
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? t("register.creatingAccount") : t("register.createAccount")}
             </button>
           </form>
 
           {isNativeApp && (
             <>
-              <div className="auth-divider">or continue with</div>
+              <div className="auth-divider">{t("register.orContinueWith")}</div>
               <button
                 type="button"
                 className="auth-social-btn"
@@ -313,22 +346,19 @@ const Register = () => {
                   <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
                   <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
                   <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
-                </svg>
-                Sign up with Google
-              </button>
+                </svg>{t("register.signUpWithGoogle")}</button>
             </>
           )}
 
           {!isNativeApp && process.env.REACT_APP_GOOGLE_CLIENT_ID && (
             <>
-              <div className="auth-divider">or continue with</div>
+              <div className="auth-divider">{t("register.orContinueWith")}</div>
               <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center' }} />
             </>
           )}
 
-          <div className="auth-footer">
-            Already have an account?{' '}
-            <Link to="/login" className="auth-link">Sign in</Link>
+          <div className="auth-footer">{t("register.alreadyHaveAnAccount")}{' '}
+            <Link to="/login" className="auth-link">{t("forgotPassword.signIn")}</Link>
           </div>
         </div>
       </div>

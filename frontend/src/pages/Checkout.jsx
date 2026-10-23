@@ -6,12 +6,17 @@ import CartItemImage from "../components/CartItemImage";
 import loadRazorpay from "../utils/loadRazorpay";
 import { trackBeginCheckout } from "../utils/analytics";
 import "../styles/checkout.css";
+import { useTranslation } from "react-i18next";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
 // Shown on the review step, so the customer reads "Cash on Delivery" rather than "COD".
 const PAYMENT_LABELS = { COD: "Cash on Delivery", CARD: "Credit / Debit Card", UPI: "UPI", NET_BANKING: "Net Banking", WALLET: "Wallet" };
 
 const Checkout = () => {
+  const {
+    t: tr
+  } = useTranslation();
+
   const [step, setStep] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [serverTax, setServerTax] = useState(null);
@@ -179,11 +184,11 @@ const Checkout = () => {
     // The server refuses to invoice goods it cannot tax, so taking payment for them would only
     // produce a payment with no lawful invoice behind it and a refund to arrange afterwards.
     if (bill && bill.canProceed === false) {
-      setError(bill.message || "Some items in this order cannot be taxed yet, so it cannot be placed.");
+      setError(bill.message || tr("checkout.someItemsInThisOrder"));
       return;
     }
     if (!taxKnown) {
-      setError("The GST on this order has not been worked out yet. Check the delivery address and try again.");
+      setError(tr("checkout.theGstOnThisOrder"));
       return;
     }
 
@@ -221,7 +226,7 @@ const Checkout = () => {
           await loadRazorpay();
           rzp = window.Razorpay;
         } catch (e) {
-          setError("We couldn't open the payment window. Check your internet connection and try again.");
+          setError(tr("checkout.weCouldnTOpenThe"));
           setPlacing(false);
           return;
         }
@@ -234,7 +239,7 @@ const Checkout = () => {
         // got an opaque gateway error, when the actual fault was ours and on our side.
         const razorpayKey = paymentData.key || paymentData.razorpayKey;
         if (!razorpayKey) {
-          setError("Payment is not configured correctly. Please contact support - you have not been charged.");
+          setError(tr("checkout.paymentIsNotConfiguredCorrectly"));
           setPlacing(false);
           return;
         }
@@ -243,7 +248,7 @@ const Checkout = () => {
           amount: paymentData.amount || Math.round(total * 100),
           currency: paymentData.currency || "INR",
           name: "Cauvery Store",
-          description: "Order Payment",
+          description: tr("checkout.orderPayment"),
           order_id: paymentData.razorpayOrderId || paymentData.orderId,
           prefill: { name: shipping.fullName, contact: shipping.phone },
           handler: async function (response) {
@@ -261,11 +266,11 @@ const Checkout = () => {
               const orderId = orderRes.data?.id || orderRes.data?._id || orderRes.data?.orderId;
               navigate(`/order-success?id=${orderId}`);
             } catch (errInner) {
-              setError("We couldn't confirm your payment. If money has left your account, email support@cauverystore.in with your order details and we will sort it out.");
+              setError(tr("checkout.weCouldnTConfirmYour"));
               setPlacing(false);
             }
           },
-          modal: { ondismiss: function () { setError("Payment was cancelled. You have not been charged, and your cart is still here."); setPlacing(false); } }
+          modal: { ondismiss: function () { setError(tr("checkout.paymentWasCancelledYouHave")); setPlacing(false); } }
         };
         const rzpInst = new rzp(options);
         rzpInst.on("payment.failed", function (response) {
@@ -275,25 +280,25 @@ const Checkout = () => {
         rzpInst.open();
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || "Failed to place order. Please try again.");
+      setError(err.response?.data?.error || err.response?.data?.message || tr("checkout.failedToPlaceOrderPlease"));
       setPlacing(false);
     }
   };
 
   if (loading) {
-    return <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>Loading checkout...</div>;
+    return <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>{tr("checkout.loadingCheckout")}</div>;
   }
 
   if (!loading && cartItems.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "3rem" }}>
         <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>&#128722;</div>
-        <h2 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.5rem" }}>Your cart is empty</h2>
-        <p style={{ color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>Add a product to your cart and it will be waiting here.</p>
+        <h2 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.5rem" }}>{tr("cart.empty")}</h2>
+        <p style={{ color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>{tr("checkout.addAProductToYour")}</p>
         <button onClick={() => navigate("/")} style={{
           padding: "0.75rem 2rem", border: "none", borderRadius: "var(--radius-sm)",
           background: "var(--color-primary)", color: "#fff", cursor: "pointer", fontSize: "1rem", fontWeight: 600
-        }}>Browse products</button>
+        }}>{tr("cartDrawer.browseProducts")}</button>
       </div>
     );
   }
@@ -328,7 +333,7 @@ const Checkout = () => {
             padding: "1.25rem", border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)", background: "var(--color-surface)"
           }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>Delivery Address</h2>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>{tr("checkout.deliveryAddress")}</h2>
 
             {savedAddresses.length > 0 && !showNewAddr && (
               <div style={{ marginBottom: "1rem" }}>
@@ -345,27 +350,27 @@ const Checkout = () => {
                     <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>
                       {addr.line1 || addr.street}{addr.line2 ? `, ${addr.line2}` : ""}, {addr.city}, {addr.state} - {addr.pincode}
                     </div>
-                    <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>Phone: {addr.phone}</div>
+                    <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>{tr("checkout.phone")}{" "}{addr.phone}</div>
                   </button>
                 ))}
                 <button onClick={() => { setShowNewAddr(true); setSelectedAddrId(null); }} style={{
                   padding: "0.5rem 1rem", border: "1px dashed var(--color-primary)", borderRadius: "var(--radius-sm)",
                   background: "transparent", color: "var(--color-primary)", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500
-                }}>+ Add New Address</button>
+                }}>{tr("checkout.addNewAddress")}</button>
               </div>
             )}
 
             {(savedAddresses.length === 0 || showNewAddr) && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                 {[
-                  { label: "Full Name", name: "fullName", placeholder: "Enter full name" },
-                  { label: "Phone Number", name: "phone", placeholder: "Enter 10-digit phone number" },
-                  { label: "Address Line 1", name: "line1", placeholder: "House no, building, street" },
-                  { label: "Address Line 2", name: "line2", placeholder: "Area, landmark (optional)" },
-                  { label: "City", name: "city", placeholder: "City" },
-                  { label: "State", name: "state", placeholder: "State" },
-                  { label: "Pincode", name: "pincode", placeholder: "6-digit pincode" },
-                  { label: "Country", name: "country", placeholder: "Country" },
+                  { label: tr("checkout.fullName"), name: "fullName", placeholder: tr("checkout.enterFullName") },
+                  { label: tr("checkout.phoneNumber"), name: "phone", placeholder: tr("checkout.enter10DigitPhoneNumber") },
+                  { label: tr("addressBook.addressLine1"), name: "line1", placeholder: tr("checkout.houseNoBuildingStreet") },
+                  { label: tr("addressBook.addressLine2"), name: "line2", placeholder: tr("addressBook.areaLandmarkOptional") },
+                  { label: tr("addressBook.city"), name: "city", placeholder: tr("addressBook.city") },
+                  { label: tr("addressBook.state"), name: "state", placeholder: tr("addressBook.state") },
+                  { label: tr("addressBook.pincode"), name: "pincode", placeholder: tr("checkout.6DigitPincode") },
+                  { label: tr("addressBook.country"), name: "country", placeholder: tr("addressBook.country") },
                 ].map((field) => (
                   <div key={field.name} style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                     <label htmlFor={`shipping-${field.name}`} style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{field.label}</label>
@@ -375,16 +380,14 @@ const Checkout = () => {
                   </div>
                 ))}
                 {showNewAddr && <button onClick={() => setShowNewAddr(false)}
-                  style={{ background: "none", border: "none", color: "var(--color-primary)", cursor: "pointer", fontSize: "0.85rem", textAlign: "left" }}>
-                  &larr; Select saved address
-                </button>}
+                  style={{ background: "none", border: "none", color: "var(--color-primary)", cursor: "pointer", fontSize: "0.85rem", textAlign: "left" }}>{tr("checkout.selectSavedAddress")}</button>}
               </div>
             )}
 
             <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--color-border-light)" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", marginBottom: "0.75rem" }}>
                 <input type="checkbox" checked={b2b} onChange={(e) => setB2b(e.target.checked)} />
-                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>I have a GSTIN (Business / B2B invoice)</span>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{tr("checkout.iHaveAGstinBusiness")}</span>
               </label>
               {b2b && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -393,20 +396,17 @@ const Checkout = () => {
                       GSTIN <span style={{ color: "var(--color-error)" }}>*</span>
                     </label>
                     <input id="shipping-gstin" name="gstin" value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                      placeholder="22AAAAA0000A1Z5" maxLength={15}
+                      placeholder={tr("checkout.22aaaaa0000a1z5")} maxLength={15}
                       style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none", textTransform: "uppercase" }} />
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                    <label htmlFor="shipping-legal-name" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>
-                      Registered Legal Name <span style={{ color: "var(--color-error)" }}>*</span>
+                    <label htmlFor="shipping-legal-name" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{tr("checkout.registeredLegalName")}{" "}<span style={{ color: "var(--color-error)" }}>*</span>
                     </label>
                     <input id="shipping-legal-name" name="buyerLegalName" value={buyerLegalName} onChange={(e) => setBuyerLegalName(e.target.value)}
-                      placeholder="As registered with GST"
+                      placeholder={tr("checkout.asRegisteredWithGst")}
                       style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none" }} />
                   </div>
-                  <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>
-                    Your invoice will be issued as a B2B tax invoice in your business name with ITC-eligible tax.
-                  </p>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>{tr("checkout.yourInvoiceWillBeIssued")}</p>
 
                   {/*
                     Section 10(1)(b). Declared, never guessed: a delivery address in another
@@ -419,11 +419,8 @@ const Checkout = () => {
                       <input type="checkbox" checked={billToShipTo}
                         onChange={(e) => setBillToShipTo(e.target.checked)} style={{ marginTop: "0.2rem" }} />
                       <span>
-                        <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>Deliver to someone else</span>
-                        <span style={{ display: "block", fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>
-                          Bill this to my business, but send the goods to a different party -
-                          a branch, a customer of ours, or a job site.
-                        </span>
+                        <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{tr("checkout.deliverToSomeoneElse")}</span>
+                        <span style={{ display: "block", fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>{tr("checkout.billThisToMyBusiness")}</span>
                       </span>
                     </label>
                   </div>
@@ -431,32 +428,25 @@ const Checkout = () => {
                   {billToShipTo && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                        <label htmlFor="consignee-name" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>
-                          Who is receiving the goods <span style={{ color: "var(--color-error)" }}>*</span>
+                        <label htmlFor="consignee-name" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{tr("checkout.whoIsReceivingTheGoods")}{" "}<span style={{ color: "var(--color-error)" }}>*</span>
                         </label>
                         <input id="consignee-name" name="consigneeName" value={consigneeName}
                           onChange={(e) => setConsigneeName(e.target.value)}
-                          placeholder="Name of the consignee"
+                          placeholder={tr("checkout.nameOfTheConsignee")}
                           style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none" }} />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                        <label htmlFor="consignee-address" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>
-                          Their address
-                        </label>
+                        <label htmlFor="consignee-address" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{tr("checkout.theirAddress")}</label>
                         <textarea id="consignee-address" name="consigneeAddress" value={consigneeAddress}
                           onChange={(e) => setConsigneeAddress(e.target.value)} rows={2}
-                          placeholder="Leave blank to use the delivery address above"
+                          placeholder={tr("checkout.leaveBlankToUseThe")}
                           style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none", resize: "vertical" }} />
                       </div>
                       {/*
                         Said plainly, because it is the part that surprises people: the tax
                         follows the buyer's registered state, not where the parcel goes.
                       */}
-                      <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>
-                        Under section 10(1)(b) the place of supply is your own registered state,
-                        not the delivery address - so the tax on this invoice follows your GSTIN.
-                        The consignee is named on the invoice as required by rule 46(o).
-                      </p>
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text-secondary)" }}>{tr("checkout.underSection101B")}</p>
                     </div>
                   )}
                 </div>
@@ -471,13 +461,13 @@ const Checkout = () => {
             padding: "1.25rem", border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)", background: "var(--color-surface)"
           }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>How would you like to pay?</h2>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>{tr("checkout.howWouldYouLikeTo")}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {[
-                { value: "CARD", label: "Credit / Debit Card", desc: "Visa, Mastercard and RuPay" },
-                { value: "UPI", label: "UPI", desc: "Google Pay, PhonePe, Paytm or any UPI app" },
-                { value: "NET_BANKING", label: "Net Banking", desc: "All major banks" },
-                { value: "WALLET", label: "Wallet", desc: "Paytm, Amazon Pay, Mobikwik" },
+                { value: "CARD", label: tr("checkout.creditDebitCard"), desc: tr("checkout.visaMastercardAndRupay") },
+                { value: "UPI", label: "UPI", desc: tr("checkout.googlePayPhonepePaytmOr") },
+                { value: "NET_BANKING", label: tr("footer.netBanking"), desc: tr("checkout.allMajorBanks") },
+                { value: "WALLET", label: tr("checkout.wallet"), desc: tr("checkout.paytmAmazonPayMobikwik") },
               ].map((opt) => (
                 <label key={opt.value} onClick={() => setPaymentMethod(opt.value)} style={{
                   display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem",
@@ -494,11 +484,10 @@ const Checkout = () => {
               ))}
             </div>
 
-
             <div style={{ marginTop: "0.75rem", padding: "0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
                 <input type="checkbox" checked={giftWrap} onChange={(e) => setGiftWrap(e.target.checked)} />
-                <span style={{ fontWeight: 500, fontSize: "0.9rem" }}>Gift Wrap (+&#8377;49)</span>
+                <span style={{ fontWeight: 500, fontSize: "0.9rem" }}>{tr("checkout.giftWrap49")}</span>
               </label>
             </div>
           </div>
@@ -510,20 +499,20 @@ const Checkout = () => {
             padding: "1.25rem", border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)", background: "var(--color-surface)"
           }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>Check your order</h2>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>{tr("checkout.checkYourOrder")}</h2>
             <div style={{ marginBottom: "1rem" }}>
-              <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Delivering to</h3>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>{tr("checkout.deliveringTo")}</h3>
               <div style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>
                 {shipping.fullName}, {shipping.phone}<br />
                 {shipping.line1 || shipping.street}{shipping.line2 ? `, ${shipping.line2}` : ""}, {shipping.city}, {shipping.state} - {shipping.pincode}{shipping.country && shipping.country !== "India" ? `, ${shipping.country}` : ""}
               </div>
             </div>
             <div style={{ marginBottom: "1rem" }}>
-              <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Payment Method</h3>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>{tr("checkout.paymentMethod")}</h3>
               <div style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>{PAYMENT_LABELS[paymentMethod] || paymentMethod}</div>
             </div>
             <div>
-              <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>Items ({cartItems.length})</h3>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: 600, marginBottom: "0.5rem" }}>{tr("checkout.itemsCount", { count: cartItems.length })}</h3>
               {cartItems.map((item, idx) => {
                 const product = item.product || {};
                 const image = product.image || product.images?.[0] || "";
@@ -536,7 +525,7 @@ const Checkout = () => {
                     <CartItemImage src={image} name={product.name} width={48} height={48} className="checkout-item-img" />
                     <div style={{ flex: 1, fontSize: "0.85rem" }}>
                       <div style={{ fontWeight: 500 }}>{product.name}</div>
-                      <div style={{ color: "var(--color-text-secondary)" }}>{variantLabel(item) ? `${variantLabel(item)} · ` : ""}Qty: {item.quantity || 1}</div>
+                      <div style={{ color: "var(--color-text-secondary)" }}>{variantLabel(item) ? `${variantLabel(item)} · ` : ""}{tr("checkout.qty")}{" "}{item.quantity || 1}</div>
                     </div>
                     <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>&#8377;{(price * (item.quantity || 1)).toFixed(2)}</div>
                   </div>
@@ -550,14 +539,10 @@ const Checkout = () => {
         return (
           <div style={{ textAlign: "center", padding: "2rem" }}>
             <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>&#9989;</div>
-            <h2 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.5rem" }}>One last look</h2>
-            <p style={{ color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>
-              Your total is <strong>&#8377;{total.toFixed(2)}</strong>, including GST and delivery.
-            </p>
-            <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>
-              You can cancel free of charge any time before your order ships.
-            </p>
-            {giftWrap && <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>Includes gift wrap</p>}
+            <h2 style={{ fontSize: "1.3rem", fontWeight: 700, marginBottom: "0.5rem" }}>{tr("checkout.oneLastLook")}</h2>
+            <p style={{ color: "var(--color-text-secondary)", marginBottom: "1.5rem" }}>{tr("checkout.yourTotalIs")}{" "}<strong>&#8377;{total.toFixed(2)}</strong>{tr("checkout.includingGstAndDelivery")}</p>
+            <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "0.5rem" }}>{tr("checkout.youCanCancelFreeOf")}</p>
+            {giftWrap && <p style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)" }}>{tr("checkout.includesGiftWrap")}</p>}
           </div>
         );
 
@@ -568,7 +553,7 @@ const Checkout = () => {
 
   return (
     <div className="checkout-container" style={{ maxWidth: 900, margin: "0 auto", padding: "1.5rem" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1rem" }}>Checkout</h1>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1rem" }}>{tr("checkout.title")}</h1>
       {renderStepIndicator()}
 
       {error && (
@@ -594,13 +579,13 @@ const Checkout = () => {
               padding: "0.6rem 1.25rem", border: "1px solid var(--color-border)",
               borderRadius: "var(--radius-sm)", background: "#fff", cursor: step === 0 ? "not-allowed" : "pointer",
               fontSize: "0.9rem", fontWeight: 500, opacity: step === 0 ? 0.5 : 1
-            }}>&larr; Back</button>
+            }}>{tr("checkout.back")}</button>
 
             {step < STEPS.length - 1 ? (
               <button onClick={nextStep} style={{
                 padding: "0.6rem 1.25rem", border: "none", borderRadius: "var(--radius-sm)",
                 background: "var(--color-primary)", color: "#fff", cursor: "pointer", fontSize: "0.9rem", fontWeight: 600
-              }}>Continue &rarr;</button>
+              }}>{tr("checkout.continue")}</button>
             ) : (
               <button onClick={handlePlaceOrder} disabled={placing}
                 style={{
@@ -608,7 +593,7 @@ const Checkout = () => {
                   background: placing ? "var(--color-gray-300)" : "var(--color-primary)", color: "#fff",
                   cursor: placing ? "not-allowed" : "pointer", fontSize: "1rem", fontWeight: 700
                 }}>
-                {placing ? "Placing your order..." : `Place order \u00B7 \u20B9${total.toFixed(2)}`}
+                {placing ? tr("checkout.placingYourOrder") : `Place order \u00B7 \u20B9${total.toFixed(2)}`}
               </button>
             )}
           </div>
@@ -620,19 +605,19 @@ const Checkout = () => {
             padding: "1.25rem", border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)", background: "var(--color-surface)", position: "sticky", top: 20
           }}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>Order Summary</h2>
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>{tr("checkout.orderSummary")}</h2>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-              <span style={{ color: "var(--color-text-secondary)" }}>Subtotal</span>
+              <span style={{ color: "var(--color-text-secondary)" }}>{tr("cart.subtotal")}</span>
               <span>&#8377;{subtotal.toFixed(2)}</span>
             </div>
             {discount > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-                <span style={{ color: "#0E5C5C" }}>Discount</span>
+                <span style={{ color: "#0E5C5C" }}>{tr("cart.discount")}</span>
                 <span style={{ color: "#0E5C5C" }}>-&#8377;{discount.toFixed(2)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-              <span style={{ color: "var(--color-text-secondary)" }}>Subtotal after discount</span>
+              <span style={{ color: "var(--color-text-secondary)" }}>{tr("checkout.subtotalAfterDiscount")}</span>
               <span>&#8377;{(subtotal - discount).toFixed(2)}</span>
             </div>
             {/* GST, itemised. A basket can carry four different rates at once, so a single
@@ -642,9 +627,7 @@ const Checkout = () => {
                 margin: "0.75rem 0", padding: "0.6rem", borderRadius: 6,
                 background: "var(--color-bg, #f9fafb)", border: "1px solid var(--color-border)",
               }}>
-                <div style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.4rem" }}>
-                  GST included in these prices
-                </div>
+                <div style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.4rem" }}>{tr("checkout.gstIncludedInThesePrices")}</div>
                 {bill.lines.map((l) => (
                   <div key={l.productId} style={{ fontSize: "0.75rem", marginBottom: "0.45rem" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
@@ -653,12 +636,11 @@ const Checkout = () => {
                       </span>
                       <span style={{ whiteSpace: "nowrap" }}>&#8377;{l.taxAmount.toFixed(2)}</span>
                     </div>
-                    <div style={{ color: "var(--color-text-secondary)" }}>
-                      HSN {l.hsnCode} &middot; &#8377;{l.taxableValue.toFixed(2)} @ {l.gstRate}%
-                      {l.igstAmount > 0
+                    <div style={{ color: "var(--color-text-secondary)" }}>{tr("checkout.hsn")}{" "}{l.hsnCode}· ₹{l.taxableValue.toFixed(2)}@ {l.gstRate}%
+                                            {l.igstAmount > 0
                         ? ` (IGST ${l.igstRate}%)`
                         : ` (CGST ${l.cgstRate}% + SGST ${l.sgstRate}%)`}
-                      {" → "}&#8377;{l.lineTotal.toFixed(2)}
+                      {" → "}₹{l.lineTotal.toFixed(2)}
                     </div>
                   </div>
                 ))}
@@ -666,7 +648,7 @@ const Checkout = () => {
                   display: "flex", justifyContent: "space-between", fontSize: "0.78rem",
                   fontWeight: 600, borderTop: "1px solid var(--color-border)", paddingTop: "0.4rem",
                 }}>
-                  <span>Total GST (included)</span>
+                  <span>{tr("checkout.totalGstIncluded")}</span>
                   <span>&#8377;{tax !== null ? tax.toFixed(2) : bill.totalTax.toFixed(2)}</span>
                 </div>
               </div>
@@ -674,7 +656,7 @@ const Checkout = () => {
 
             {!bill?.lines?.length && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-                <span style={{ color: "var(--color-text-secondary)" }}>GST (included)</span>
+                <span style={{ color: "var(--color-text-secondary)" }}>{tr("checkout.gstIncluded")}</span>
                 <span>
                   {billLoading ? "calculating…"
                     : taxKnown ? `₹${tax.toFixed(2)}`
@@ -689,19 +671,19 @@ const Checkout = () => {
                 background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c",
                 fontSize: "0.75rem",
               }}>
-                <strong>This order cannot be placed yet.</strong>
+                <strong>{tr("checkout.thisOrderCannotBePlaced")}</strong>
                 {bill.blocked.map((b) => (
                   <div key={b.productId} style={{ marginTop: 4 }}>{b.description}: {b.reason}</div>
                 ))}
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-              <span style={{ color: "var(--color-text-secondary)" }}>Delivery</span>
-              <span>{delivery === 0 ? <span style={{ color: "#0E5C5C" }}>FREE</span> : `\u20B9${delivery}`}</span>
+              <span style={{ color: "var(--color-text-secondary)" }}>{tr("cart.delivery")}</span>
+              <span>{delivery === 0 ? <span style={{ color: "#0E5C5C" }}>{tr("cart.free")}</span> : `\u20B9${delivery}`}</span>
             </div>
             {giftCharge > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-                <span style={{ color: "var(--color-text-secondary)" }}>Gift Wrap</span>
+                <span style={{ color: "var(--color-text-secondary)" }}>{tr("checkout.giftWrap")}</span>
                 <span>&#8377;{giftCharge}</span>
               </div>
             )}
@@ -710,7 +692,7 @@ const Checkout = () => {
               paddingTop: "0.75rem", borderTop: "1px solid var(--color-border)",
               fontWeight: 700, fontSize: "1.05rem"
             }}>
-              <span>Total</span>
+              <span>{tr("checkout.total")}</span>
               <span>&#8377;{total.toFixed(2)}</span>
             </div>
           </div>

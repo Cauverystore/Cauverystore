@@ -6,8 +6,11 @@ import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
 import Pagination from "../components/Pagination";
 import "../styles/products.css";
+import { useTranslation } from "react-i18next";
 
 const ProductList = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -50,7 +53,7 @@ const ProductList = () => {
         setTotalPages(res.data.totalPages || 1);
       } catch (err) {
         setProducts([]);
-        setError("Please check your internet connection and try again.");
+        setError(t("categoryProducts.pleaseCheckYourInternetConnection"));
       }
       setLoading(false);
     };
@@ -78,7 +81,7 @@ const ProductList = () => {
   return (
     <div className="products-page">
       <Helmet>
-        <title>{category ? `${category} | Cauvery Store` : "All Products | Cauvery Store"}</title>
+        <title>{category ? `${category} | Cauvery Store` : t("productList.allProductsCauveryStore")}</title>
         <link rel="canonical" href={listCanonical} />
         {/* An empty shelf is a thin page: keep it out of search results until it lists something. */}
         {!loading && !error && products.length === 0 && <meta name="robots" content="noindex, follow" />}
@@ -86,44 +89,44 @@ const ProductList = () => {
       <div className="pl-layout">
         <aside className="pl-sidebar">
           <div className="pl-sidebar-section">
-            <h3 className="pl-sidebar-title">Category</h3>
+            <h3 className="pl-sidebar-title">{t("filters.category")}</h3>
             <div className="pl-sidebar-categories">
-              <button type="button" className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} aria-pressed={category === ""} onClick={() => { setCategory(""); setPage(1); }}>All Categories</button>
+              <button type="button" className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} aria-pressed={category === ""} onClick={() => { setCategory(""); setPage(1); }}>{t("productList.allCategories")}</button>
               {categories.map((cat) => (
                 <button type="button" key={categoryValue(cat)} className={`pl-sidebar-cat ${category === categoryValue(cat) ? "active" : ""}`} aria-pressed={category === categoryValue(cat)} onClick={() => { setCategory(categoryValue(cat)); setPage(1); }}>{categoryLabel(cat)}</button>
               ))}
             </div>
           </div>
           <div className="pl-sidebar-section">
-            <h3 className="pl-sidebar-title">Sort By</h3>
-            <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sidebar-select" aria-label="Sort products">
-              <option value="">Default</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="name-asc">Name: A-Z</option>
-              <option value="name-desc">Name: Z-A</option>
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
+            <h3 className="pl-sidebar-title">{t("productList.sortBy")}</h3>
+            <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sidebar-select" aria-label={t("productList.sortProducts")}>
+              <option value="">{t("addressBook.default")}</option>
+              <option value="price-asc">{t("orders.priceLowToHigh")}</option>
+              <option value="price-desc">{t("orders.priceHighToLow")}</option>
+              <option value="name-asc">{t("productList.nameAZ")}</option>
+              <option value="name-desc">{t("productList.nameZA")}</option>
+              <option value="newest">{t("orders.newestFirst")}</option>
+              <option value="oldest">{t("orders.oldestFirst")}</option>
             </select>
           </div>
           <div className="pl-sidebar-section">
-            <h3 className="pl-sidebar-title">Search</h3>
-            <input type="text" placeholder="Search products..." aria-label="Search products" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-sidebar-input" />
+            <h3 className="pl-sidebar-title">{t("search.button")}</h3>
+            <input type="text" placeholder={t("productList.searchProducts")} aria-label={t("productList.searchProductsh9e")} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-sidebar-input" />
           </div>
-          <button className="pl-sidebar-clear" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>Clear All Filters</button>
+          <button className="pl-sidebar-clear" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>{t("productList.clearAllFilters")}</button>
         </aside>
 
         <div className="pl-content">
           <div className="pl-toolbar">
-            <button className="pl-mobile-filter-btn" onClick={() => setMobileFilterOpen(true)}>Filters</button>
+            <button className="pl-mobile-filter-btn" onClick={() => setMobileFilterOpen(true)}>{t("filters.title")}</button>
             <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sort-select">
-              <option value="">Sort by</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="name-asc">Name: A-Z</option>
-              <option value="name-desc">Name: Z-A</option>
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
+              <option value="">{t("orders.sortBy")}</option>
+              <option value="price-asc">{t("orders.priceLowToHigh")}</option>
+              <option value="price-desc">{t("orders.priceHighToLow")}</option>
+              <option value="name-asc">{t("productList.nameAZ")}</option>
+              <option value="name-desc">{t("productList.nameZA")}</option>
+              <option value="newest">{t("orders.newestFirst")}</option>
+              <option value="oldest">{t("orders.oldestFirst")}</option>
             </select>
           </div>
 
@@ -134,25 +137,25 @@ const ProductList = () => {
           ) : error ? (
             <div className="products-error">
               <div className="products-error-icon">!</div>
-              <h3 className="products-error-title">We couldn't load the products</h3>
+              <h3 className="products-error-title">{t("productList.weCouldnTLoadThe")}</h3>
               <p className="products-error-text">{error}</p>
-              <button className="products-error-retry" onClick={() => window.location.reload()}>Try Again</button>
+              <button className="products-error-retry" onClick={() => window.location.reload()}>{t("categoryProducts.tryAgain")}</button>
             </div>
           ) : products.length === 0 ? (
             category || search ? (
               <div className="products-empty">
-                <h3 className="products-empty-title">Nothing matches these filters</h3>
-                <p className="products-empty-text">Clear the filters or pick a different category to see more products.</p>
-                <button className="products-empty-action" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>Clear all filters</button>
+                <h3 className="products-empty-title">{t("productList.nothingMatchesTheseFilters")}</h3>
+                <p className="products-empty-text">{t("productList.clearTheFiltersOrPick")}</p>
+                <button className="products-empty-action" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>{t("productList.clearAllFilters1vm")}</button>
               </div>
             ) : (
               /* No filters and still nothing: the store itself has no products listed yet. */
               <div className="products-empty">
-                <h3 className="products-empty-title">New products are on the way</h3>
-                <p className="products-empty-text">Please check back soon. Own a shop? You can be among the first to list here.</p>
+                <h3 className="products-empty-title">{t("home.newProductsAreOnThe")}</h3>
+                <p className="products-empty-text">{t("home.pleaseCheckBackSoonOwn")}</p>
                 <div className="products-empty-actions">
-                  <Link to="/seller/register" className="products-empty-action">Start selling</Link>
-                  <Link to="/" className="products-empty-link">Back to the homepage</Link>
+                  <Link to="/seller/register" className="products-empty-action">{t("home.startSelling")}</Link>
+                  <Link to="/" className="products-empty-link">{t("productList.backToTheHomepage")}</Link>
                 </div>
               </div>
             )
@@ -171,41 +174,41 @@ const ProductList = () => {
 
       {mobileFilterOpen && (
         <div className="pl-drawer-overlay" onClick={() => setMobileFilterOpen(false)}>
-          <div className="pl-drawer" role="dialog" aria-modal="true" aria-label="Product filters" onClick={(e) => e.stopPropagation()}>
+          <div className="pl-drawer" role="dialog" aria-modal="true" aria-label={t("productList.productFilters")} onClick={(e) => e.stopPropagation()}>
             <div className="pl-drawer-header">
-              <h3 className="pl-drawer-title">Filters</h3>
-              <button className="pl-drawer-close" onClick={() => setMobileFilterOpen(false)} aria-label="Close filters">{"\u2715"}</button>
+              <h3 className="pl-drawer-title">{t("filters.title")}</h3>
+              <button className="pl-drawer-close" onClick={() => setMobileFilterOpen(false)} aria-label={t("productList.closeFilters")}>{"\u2715"}</button>
             </div>
             <div className="pl-drawer-body">
               <div className="pl-sidebar-section">
-                <h3 className="pl-sidebar-title">Category</h3>
+                <h3 className="pl-sidebar-title">{t("filters.category")}</h3>
                 <div className="pl-sidebar-categories">
-                  <button type="button" className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} aria-pressed={category === ""} onClick={() => { setCategory(""); setPage(1); }}>All Categories</button>
+                  <button type="button" className={`pl-sidebar-cat ${category === "" ? "active" : ""}`} aria-pressed={category === ""} onClick={() => { setCategory(""); setPage(1); }}>{t("productList.allCategories")}</button>
                   {categories.map((cat) => (
                     <button type="button" key={categoryValue(cat)} className={`pl-sidebar-cat ${category === categoryValue(cat) ? "active" : ""}`} aria-pressed={category === categoryValue(cat)} onClick={() => { setCategory(categoryValue(cat)); setPage(1); }}>{categoryLabel(cat)}</button>
                   ))}
                 </div>
               </div>
               <div className="pl-sidebar-section">
-                <h3 className="pl-sidebar-title">Sort By</h3>
-                <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sidebar-select" aria-label="Sort products">
-                  <option value="">Default</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="name-asc">Name: A-Z</option>
-                  <option value="name-desc">Name: Z-A</option>
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
+                <h3 className="pl-sidebar-title">{t("productList.sortBy")}</h3>
+                <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sidebar-select" aria-label={t("productList.sortProducts")}>
+                  <option value="">{t("addressBook.default")}</option>
+                  <option value="price-asc">{t("orders.priceLowToHigh")}</option>
+                  <option value="price-desc">{t("orders.priceHighToLow")}</option>
+                  <option value="name-asc">{t("productList.nameAZ")}</option>
+                  <option value="name-desc">{t("productList.nameZA")}</option>
+                  <option value="newest">{t("orders.newestFirst")}</option>
+                  <option value="oldest">{t("orders.oldestFirst")}</option>
                 </select>
               </div>
               <div className="pl-sidebar-section">
-                <h3 className="pl-sidebar-title">Search</h3>
-                <input type="text" placeholder="Search products..." aria-label="Search products" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-sidebar-input" />
+                <h3 className="pl-sidebar-title">{t("search.button")}</h3>
+                <input type="text" placeholder={t("productList.searchProducts")} aria-label={t("productList.searchProductsh9e")} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-sidebar-input" />
               </div>
-              <button className="pl-sidebar-clear" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>Clear All Filters</button>
+              <button className="pl-sidebar-clear" onClick={() => { setCategory(""); setSort(""); setSearch(""); setPage(1); }}>{t("productList.clearAllFilters")}</button>
             </div>
             <div className="pl-drawer-footer">
-              <button className="pl-drawer-apply" onClick={() => setMobileFilterOpen(false)}>Apply Filters</button>
+              <button className="pl-drawer-apply" onClick={() => setMobileFilterOpen(false)}>{t("productList.applyFilters")}</button>
             </div>
           </div>
         </div>

@@ -11,6 +11,8 @@ import Breadcrumb from "../components/Breadcrumb";
 import Pagination from "../components/Pagination";
 import "../styles/products.css";
 import "../styles/product-tray.css";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 // Unique on-page copy per category, so category pages do not all read the same to a
 // search engine. Each entry doubles as the meta description crawlers and link previews see.
@@ -49,16 +51,20 @@ const CATEGORY_SEO_COPY = {
       "Shop furniture, kitchen essentials and home decor online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
   },
   "Books": {
-    intro:
-      "Fiction, non-fiction and educational titles, delivered across India.",
+    get intro() {
+      return i18n.t("categoryProducts.fictionNonFictionAndEducational");
+    },
+
     metaDescription:
-      "Shop fiction, non-fiction and educational books online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
+      "Shop fiction, non-fiction and educational books online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more."
   },
   "Sports": {
-    intro:
-      "Fitness equipment and sportswear, from a first set of weights to matchday gear.",
+    get intro() {
+      return i18n.t("categoryProducts.fitnessEquipmentAndSportswearFrom");
+    },
+
     metaDescription:
-      "Shop fitness equipment and sportswear online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
+      "Shop fitness equipment and sportswear online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more."
   },
 };
 
@@ -72,6 +78,8 @@ const FALLBACK_SEO_COPY = (category) => ({
 });
 
 const CategoryProducts = () => {
+  const { t } = useTranslation();
+
   const { category } = useParams();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +112,7 @@ const CategoryProducts = () => {
         setProducts(res.data.content || res.data || []);
         setTotalPages(res.data.totalPages || 1);
       } catch (err) {
-        setError(err.response?.data?.error || "Please check your internet connection and try again.");
+        setError(err.response?.data?.error || t("categoryProducts.pleaseCheckYourInternetConnection"));
       }
       setLoading(false);
     };
@@ -151,17 +159,17 @@ const CategoryProducts = () => {
       </Helmet>
       <div className="cat-products-content">
         <Breadcrumb items={[
-          { label: "Home", to: "/" },
+          { label: t("nav.home"), to: "/" },
           { label: category }
         ]} />
         <div className="section-header">
           <h2 className="section-title">{category}</h2>
-          <span className="products-toolbar-count">{products.length} products</span>
+          <span className="products-toolbar-count">{products.length}{" "}{t("categoryProducts.products")}</span>
         </div>
         <div className="cat-products-banner">
           <Store size={22} className="cat-products-banner-icon" aria-hidden="true" />
           <div>
-            <strong className="cat-products-banner-label">Why shop {category} here</strong>
+            <strong className="cat-products-banner-label">{t("categoryProducts.whyShop")}{" "}{category}{" "}{t("categoryProducts.here")}</strong>
             <p className="cat-products-banner-text">{seoCopy.intro}</p>
           </div>
         </div>
@@ -175,16 +183,16 @@ const CategoryProducts = () => {
         ) : error ? (
           <div className="products-error">
             <div className="products-error-icon">!</div>
-            <h3 className="products-error-title">We couldn't load this category</h3>
+            <h3 className="products-error-title">{t("categoryProducts.weCouldnTLoadThis")}</h3>
             <p className="products-error-text">{error}</p>
-            <button className="products-error-retry" onClick={() => window.location.reload()}>Try Again</button>
+            <button className="products-error-retry" onClick={() => window.location.reload()}>{t("categoryProducts.tryAgain")}</button>
           </div>
         ) : products.length === 0 ? (
           <div className="products-empty">
             <div className="products-empty-icon">📦</div>
-            <h3 className="products-empty-title">Nothing here yet</h3>
-            <p className="products-empty-text">There are no products in this category yet. See what is available now.</p>
-            <Link to="/products" className="products-empty-action">Browse all products</Link>
+            <h3 className="products-empty-title">{t("categoryProducts.nothingHereYet")}</h3>
+            <p className="products-empty-text">{t("categoryProducts.thereAreNoProductsIn")}</p>
+            <Link to="/products" className="products-empty-action">{t("search.browseAll")}</Link>
           </div>
         ) : (
           <>

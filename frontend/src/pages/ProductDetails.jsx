@@ -4,6 +4,8 @@ import { Helmet } from "react-helmet-async";
 import { Truck, RotateCcw, ShieldCheck, Store } from "lucide-react";
 import api from "../api/axios";
 import { getProductById } from "../services/productService";
+import { useTranslation } from "react-i18next";
+import { getLocalizedProduct } from "../services/i18nService";
 import { addToCartOrLogin } from "../utils/cartActions";
 import { trackViewItem } from "../utils/analytics";
 import { imgUrl } from "../utils/images";
@@ -13,7 +15,13 @@ import ProductRow from "../components/ProductRow";
 import "../styles/productDetails.css";
 
 const ProductDetails = () => {
+  const {
+    t: tr
+  } = useTranslation();
+
   const { id } = useParams();
+  const { i18n } = useTranslation();
+  const lang = (i18n.language || "en").slice(0, 2);
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +39,20 @@ const ProductDetails = () => {
       try {
         const res = await getProductById(id);
         setProduct(res.data);
+        // Show the published translation when there is one; any failure leaves the original text in place.
+        if (lang !== "en") {
+          getLocalizedProduct(id, lang).then((r) => {
+            const l = r.data || {};
+            setProduct((p) => (p && String(p.id) === String(id) ? {
+              ...p,
+              name: l.name || p.name,
+              shortDescription: l.shortDescription || p.shortDescription,
+              description: l.description || p.description,
+              metaTitle: l.metaTitle || p.metaTitle,
+              metaDescription: l.metaDescription || p.metaDescription,
+            } : p));
+          }).catch(() => {});
+        }
         // Loaded separately and allowed to fail: the page works without it.
         api.get(`/api/products/${id}/seller`).then(r => setSeller(r.data?.name ? r.data : null)).catch(() => {});
         if (res.data.images?.length > 0) setSelectedImage(0);
@@ -48,7 +70,7 @@ const ProductDetails = () => {
       setLoading(false);
     };
     fetchProduct();
-  }, [id]);
+  }, [id, lang]);
 
   useEffect(() => {
     if (product) trackViewItem(product);
@@ -65,28 +87,28 @@ const ProductDetails = () => {
     if (hasVariants && chosenVariantId == null) { flash(`Please choose a ${variantWord} first.`); return; }
     const res = await addToCartOrLogin(navigate, product, quantity, chosenVariantId);
     if (res.needLogin) return;
-    flash(res.ok ? "Added to your cart" : (res.message || "We couldn't add that to your cart. Please try again."));
+    flash(res.ok ? tr("productDetails.addedToYourCart") : (res.message || tr("home.weCouldnTAddThat")));
   };
 
   const handleBuyNow = async () => {
     if (hasVariants && chosenVariantId == null) { flash(`Please choose a ${variantWord} first.`); return; }
     const res = await addToCartOrLogin(navigate, product, quantity, chosenVariantId);
     if (res.ok) navigate("/checkout");
-    else if (!res.needLogin) flash(res.message || "We couldn't start checkout. Please try again.");
+    else if (!res.needLogin) flash(res.message || tr("cart.weCouldnTStartCheckout"));
   };
 
   // The same two actions, for a card in the "You may also like" row.
   const handleRelatedCart = async (p) => {
     const res = await addToCartOrLogin(navigate, p, 1);
     if (res.needLogin) return;
-    setCartMsg(res.ok ? `${p.name} added to your cart` : "We couldn't add that to your cart. Please try again.");
+    setCartMsg(res.ok ? `${p.name} added to your cart` : tr("home.weCouldnTAddThat"));
     setTimeout(() => setCartMsg(""), 2000);
   };
 
   const handleRelatedBuyNow = async (p) => {
     const res = await addToCartOrLogin(navigate, p, 1);
     if (res.ok) navigate("/checkout");
-    else if (!res.needLogin) { setCartMsg("We couldn't start checkout. Please try again."); setTimeout(() => setCartMsg(""), 2000); }
+    else if (!res.needLogin) { setCartMsg(tr("cart.weCouldnTStartCheckout")); setTimeout(() => setCartMsg(""), 2000); }
   };
 
   const toUrl = (img) => (typeof img === "object" ? img?.previewUrl || img?.url || "" : img || "");
@@ -98,17 +120,15 @@ const ProductDetails = () => {
   // script in every visitor's browser (stored XSS via JSON-LD).
   const safeJsonLd = (obj) => JSON.stringify(obj, null, 2).replace(/</g, "\\u003c");
 
-  if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>;
+  if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>{tr("cartDrawer.loading")}</div>;
   if (!product) return (
     <div style={{ textAlign: "center", padding: "3rem" }}>
       {/* Tells Prerender.io to return a real 404 to crawlers instead of a 200 "soft 404". */}
       <Helmet>
-        <title>Product not found - Cauvery Store</title>
+        <title>{tr("productDetails.productNotFoundCauveryStore")}</title>
         <meta name="prerender-status-code" content="404" />
         <meta name="robots" content="noindex" />
-      </Helmet>
-      Product not found
-    </div>
+      </Helmet>{tr("productDetails.productNotFound")}</div>
   );
 
   const canonicalUrl = `https://cauverystore.in/product/${id}`;
@@ -207,7 +227,7 @@ const ProductDetails = () => {
         ]
       })}} />
       <Breadcrumb items={[
-        { label: "Home", to: "/" },
+        { label: tr("nav.home"), to: "/" },
         ...(categoryName ? [{ label: categoryName, to: `/category/${encodeURIComponent(categoryName)}` }] : []),
         { label: product.name }
       ]} />
@@ -234,18 +254,18 @@ const ProductDetails = () => {
         </div>
         <div className="product-info-section">
         <h1>{product.name}</h1>
-        {product.rating && <div className="rating-row">{'★'.repeat(Math.round(product.rating))} {product.rating} ({product.reviewCount || 0} reviews)</div>}
+        {product.rating && <div className="rating-row">{'★'.repeat(Math.round(product.rating))} {product.rating}({product.reviewCount || 0}{" "}{tr("productDetails.reviews")}</div>}
         <div className="price-block">
           <span className="deal-price">&#8377;{product.dealPrice || product.price}</span>
-          {product.mrp > (product.dealPrice || product.price) && <><span className="mrp-price">&#8377;{product.mrp}</span><span className="discount-tag">{Math.round((1 - (product.dealPrice || product.price) / product.mrp) * 100)}% OFF</span></>}
-          <span className="tax-note">Inclusive of all taxes</span>
+          {product.mrp > (product.dealPrice || product.price) && <><span className="mrp-price">&#8377;{product.mrp}</span><span className="discount-tag">{Math.round((1 - (product.dealPrice || product.price) / product.mrp) * 100)}{tr("productDetails.off")}</span></>}
+          <span className="tax-note">{tr("cart.inclusiveOfAllTaxes")}</span>
         </div>
         <p className="description">{product.description}</p>
 
         {(product.variants || []).length > 0 && (
           <div className="variant-section">
             {/* The server names these variantType ("Size") and variantValue ("M"). */}
-            <h3>{product.variants[0]?.variantType || product.variantType || "Options"}</h3>
+            <h3>{product.variants[0]?.variantType || product.variantType || tr("productDetails.options")}</h3>
             <div className="variant-options">
               {product.variants.map((v) => {
                 const vid = v.id ?? v._id;
@@ -254,7 +274,7 @@ const ProductDetails = () => {
                 return (
                   <button key={vid} type="button" className={`variant-btn${active ? " active" : ""}`}
                     onClick={() => setSelectedVariant(v)} disabled={soldOut} aria-pressed={active}
-                    title={soldOut ? "Out of stock" : undefined}>{v.variantValue || v.name || v.value}</button>
+                    title={soldOut ? tr("product.outOfStock") : undefined}>{v.variantValue || v.name || v.value}</button>
                 );
               })}
             </div>
@@ -268,8 +288,8 @@ const ProductDetails = () => {
         </div>
 
         <div className="action-buttons">
-          <button className="btn-buy-now" onClick={handleBuyNow}>Buy Now</button>
-          <button className="btn-add-cart" onClick={handleAddToCart}>Add to Cart</button>
+          <button className="btn-buy-now" onClick={handleBuyNow}>{tr("cart.buyNow")}</button>
+          <button className="btn-add-cart" onClick={handleAddToCart}>{tr("compare.addToCart")}</button>
         </div>
 
         {/* Answers the questions that stop a purchase - delivery cost, returns, payment, who
@@ -279,44 +299,43 @@ const ProductDetails = () => {
           <li>
             <Truck size={18} />
             <span>
-              <strong>{(product.dealPrice || product.price) >= 500 ? "Free delivery" : "Free delivery on orders of ₹500 or more"}</strong>
-              {(product.dealPrice || product.price) < 500 && <> ({"₹"}40 below that)</>}
+              <strong>{(product.dealPrice || product.price) >= 500 ? tr("productTray.freeDelivery") : tr("productDetails.freeDeliveryOnOrdersOf")}</strong>
+              {(product.dealPrice || product.price) < 500 && <> ({"₹"}{tr("productDetails.40BelowThat")}</>}
             </span>
           </li>
           <li>
             <RotateCcw size={18} />
             <span>
               {returnDays > 0
-                ? <><strong>{returnDays}-day returns</strong>, free if the item is faulty or wrong. <Link to="/refund-policy">Returns policy</Link></>
-                : <><strong>This item cannot be returned</strong> unless it arrives damaged or wrong. <Link to="/refund-policy">Returns policy</Link></>}
+                ? <><strong>{returnDays}{tr("productTray.dayReturns")}</strong>{tr("productDetails.freeIfTheItemIs")}{" "}<Link to="/refund-policy">{tr("productDetails.returnsPolicy")}</Link></>
+                : <><strong>{tr("productDetails.thisItemCannotBeReturned")}</strong>{" "}{tr("productDetails.unlessItArrivesDamagedOr")}{" "}<Link to="/refund-policy">{tr("productDetails.returnsPolicy")}</Link></>}
             </span>
           </li>
           <li>
             <ShieldCheck size={18} />
-            <span><strong>Secure payment</strong> by UPI, card, net banking or wallet through Razorpay</span>
+            <span><strong>{tr("cart.securePayment")}</strong>{" "}{tr("productDetails.byUpiCardNetBanking")}</span>
           </li>
           <li>
             <Store size={18} />
             {seller
-              ? <span>
-                  Sold by <strong>{seller.name}</strong>{seller.city ? `, ${seller.city}` : ""}{seller.state && seller.state !== seller.city ? `, ${seller.state}` : ""}
-                  {/* Shown because the e-commerce rules and FSSAI ask for them on every listing. */}
-                  {(seller.gstin || (seller.licences || []).length > 0) && (
-                    <span style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: 2 }}>
-                      {[seller.gstin && `GSTIN ${seller.gstin}`, ...(seller.licences || []).map((l) => `${l.label} ${l.number}`)].filter(Boolean).join(" · ")}
-                    </span>
-                  )}
+              ? <span>{tr("productDetails.soldBy")}{" "}<strong>{seller.name}</strong>{seller.city ? `, ${seller.city}` : ""}{seller.state && seller.state !== seller.city ? `, ${seller.state}` : ""}
+              {/* Shown because the e-commerce rules and FSSAI ask for them on every listing. */}
+              {(seller.gstin || (seller.licences || []).length > 0) && (
+                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: 2 }}>
+                  {[seller.gstin && `GSTIN ${seller.gstin}`, ...(seller.licences || []).map((l) => `${l.label} ${l.number}`)].filter(Boolean).join(" · ")}
                 </span>
-              : <span><strong>Sold by an approved seller</strong> on Cauvery Store</span>}
+              )}
+            </span>
+              : <span><strong>{tr("productDetails.soldByAnApprovedSeller")}</strong>{" "}{tr("productDetails.onCauveryStore")}</span>}
           </li>
         </ul>
 
         {(product.reviews || []).length > 0 && (
           <div className="reviews-section">
-            <h3>Customer reviews</h3>
+            <h3>{tr("productDetails.customerReviews")}</h3>
             {product.reviews.map((r, i) => (
               <div key={i} className="review-card">
-                <div className="review-header"><span className="review-user">{r.user || r.name || "Anonymous"}</span><span>{'★'.repeat(r.rating)}</span></div>
+                <div className="review-header"><span className="review-user">{r.user || r.name || tr("productDetails.anonymous")}</span><span>{'★'.repeat(r.rating)}</span></div>
                 <p className="review-text">{r.comment || r.review}</p>
               </div>
             ))}
@@ -325,11 +344,11 @@ const ProductDetails = () => {
 
         {(product.qnas || []).length > 0 && (
           <div className="qna-section">
-            <h3>Questions and answers</h3>
+            <h3>{tr("productDetails.questionsAndAnswers")}</h3>
             {product.qnas.map((q, i) => (
               <div key={i} className="review-card">
                 <p style={{ fontWeight: 500 }}>Q: {q.question}</p>
-                <p style={{ color: "#475569" }}>A: {q.answer || "The seller has not answered this yet."}</p>
+                <p style={{ color: "#475569" }}>A: {q.answer || tr("productDetails.theSellerHasNotAnswered")}</p>
               </div>
             ))}
           </div>
@@ -347,7 +366,7 @@ const ProductDetails = () => {
       {/* Related Products Carousel */}
       {relatedProducts.length > 0 && (
         <section className="related-products-section">
-          <h2 className="related-products-title">You may also like</h2>
+          <h2 className="related-products-title">{tr("productDetails.youMayAlsoLike")}</h2>
           <ProductRow>
             {relatedProducts.map((p) => (
               <ProductTray key={p.id || p._id} product={p} onAddToCart={handleRelatedCart} onBuyNow={handleRelatedBuyNow} />

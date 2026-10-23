@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 /**
  * What a suspended account still has running.
@@ -13,6 +14,8 @@ import React from "react";
  * row without adding noise to the ones still trading.
  */
 const WindDownStatus = ({ data, compact = false }) => {
+  const { t } = useTranslation();
+
   if (!data) return null;
 
   const awaiting = data.ordersAwaitingFulfilment || 0;
@@ -20,11 +23,7 @@ const WindDownStatus = ({ data, compact = false }) => {
   const openReturns = data.openReturns || 0;
 
   if (data.complete) {
-    return (
-      <div style={{ fontSize: compact ? '0.72rem' : '0.8rem', color: '#146C43', marginTop: '4px', fontWeight: 500 }}>
-        ✓ Nothing outstanding — safe to close
-      </div>
-    );
+    return (<div style={{ fontSize: compact ? '0.72rem' : '0.8rem', color: '#146C43', marginTop: '4px', fontWeight: 500 }}>{t("windDownStatus.nothingOutstandingSafeToClose")}</div>);
   }
 
   const parts = [];
@@ -45,17 +44,17 @@ const WindDownStatus = ({ data, compact = false }) => {
       marginTop: '4px',
       maxWidth: compact ? '200px' : 'none',
     }}>
-      <div style={{ fontWeight: 600 }}>Winding down</div>
+      <div style={{ fontWeight: 600 }}>{t("windDownStatus.windingDown")}</div>
       <div>{parts.join(', ')}</div>
       {ends && (
         <div style={{ marginTop: '2px' }}>
           {/* Marked as an estimate when it rests on the ten-day settlement assumption rather than
               a return window simply running out. A projection shown as a fact is worse than no
               date, because it gets planned around. */}
-          {data.lastObligationEstimated ? 'Expected to clear about ' : 'Last obligation ends '}
+          {data.lastObligationEstimated ? t("windDownStatus.expectedToClearAbout") : t("windDownStatus.lastObligationEnds")}
           {ends.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           {data.lastObligationEstimated && (
-            <span style={{ color: '#b45309' }}> (estimate)</span>
+            <span style={{ color: '#b45309' }}>{t("windDownStatus.estimate")}</span>
           )}
         </div>
       )}

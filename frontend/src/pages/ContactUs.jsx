@@ -3,8 +3,11 @@ import { Helmet } from "react-helmet-async";
 import { Mail, Phone, MapPin, Send, Loader } from "lucide-react";
 import homeService from "../services/homeService";
 import "../styles/contactUs.css";
+import { useTranslation } from "react-i18next";
 
 const ContactUs = () => {
+  const { t } = useTranslation();
+
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -23,7 +26,7 @@ const ContactUs = () => {
       await homeService.submitContact(form);
       setSubmitted(true);
     } catch {
-      setError("Failed to send message. Please try again or email us directly at support@cauverystore.in.");
+      setError(t("contactUs.failedToSendMessagePlease"));
     } finally {
       setSubmitting(false);
     }
@@ -36,11 +39,9 @@ const ContactUs = () => {
           <div className="contact-success-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0E5C5C" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           </div>
-          <h2>Thank You!</h2>
-          <p>Your message has been sent successfully. We will reply within 48 hours (Monday to Saturday).</p>
-          <button className="contact-btn" onClick={() => { setSubmitted(false); setForm({ name: "", email: "", subject: "", message: "" }); }}>
-            Send Another Message
-          </button>
+          <h2>{t("contactUs.thankYou")}</h2>
+          <p>{t("contactUs.yourMessageHasBeenSent")}</p>
+          <button className="contact-btn" onClick={() => { setSubmitted(false); setForm({ name: "", email: "", subject: "", message: "" }); }}>{t("contactUs.sendAnotherMessage")}</button>
         </div>
       </div>
     );
@@ -49,52 +50,52 @@ const ContactUs = () => {
   return (
     <div className="contact-page">
       <Helmet>
-        <title>Contact Us | Cauvery Store</title>
-        <meta name="description" content="Contact Cauvery Store for help with an order, delivery, returns or selling on the marketplace. Email support@cauverystore.in, Monday to Saturday, 9 AM to 6 PM." />
+        <title>{t("contactUs.contactUsCauveryStore")}</title>
+        <meta name="description" content={t("contactUs.contactCauveryStoreForHelp")} />
         <link rel="canonical" href="https://cauverystore.in/contact" />
-        <meta property="og:title" content="Contact Cauvery Store" />
-        <meta property="og:description" content="Questions about an order, delivery, returns or selling? Reach the Cauvery Store team." />
+        <meta property="og:title" content={t("contactUs.contactCauveryStore")} />
+        <meta property="og:description" content={t("contactUs.questionsAboutAnOrderDelivery")} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://cauverystore.in/contact" />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
       </Helmet>
       <div className="contact-header">
-        <h1>Contact Us</h1>
-        <p>Have a question or feedback? We would love to hear from you.</p>
+        <h1>{t("footer.contact")}</h1>
+        <p>{t("contactUs.haveAQuestionOrFeedback")}</p>
       </div>
 
       <div className="contact-layout">
         <form className="contact-form" onSubmit={handleSubmit}>
           {error && <div className="contact-error">{error}</div>}
           <div className="form-group">
-            <label htmlFor="contact-name">Name</label>
-            <input id="contact-name" value={form.name} onChange={handleChange("name")} required placeholder="Your full name" />
+            <label htmlFor="contact-name">{t("addressBook.name")}</label>
+            <input id="contact-name" value={form.name} onChange={handleChange("name")} required placeholder={t("contactUs.yourFullName")} />
           </div>
           <div className="form-group">
-            <label htmlFor="contact-email">Email</label>
-            <input id="contact-email" type="email" value={form.email} onChange={handleChange("email")} required placeholder="your@email.com" />
+            <label htmlFor="contact-email">{t("contactUs.email")}</label>
+            <input id="contact-email" type="email" value={form.email} onChange={handleChange("email")} required placeholder={t("contactUs.yourEmailCom")} />
           </div>
           <div className="form-group">
-            <label htmlFor="contact-subject">Subject</label>
-            <input id="contact-subject" value={form.subject} onChange={handleChange("subject")} required placeholder="What is this about?" />
+            <label htmlFor="contact-subject">{t("contactUs.subject")}</label>
+            <input id="contact-subject" value={form.subject} onChange={handleChange("subject")} required placeholder={t("contactUs.whatIsThisAbout")} />
           </div>
           <div className="form-group">
-            <label htmlFor="contact-message">Message</label>
-            <textarea id="contact-message" value={form.message} onChange={handleChange("message")} required placeholder="Tell us more..." rows={5} />
+            <label htmlFor="contact-message">{t("contactUs.message")}</label>
+            <textarea id="contact-message" value={form.message} onChange={handleChange("message")} required placeholder={t("contactUs.tellUsMore")} rows={5} />
           </div>
           <button type="submit" className="contact-btn" disabled={submitting}>
-            {submitting ? <><Loader size={18} className="contact-spinner" /> Sending...</> : <><Send size={18} /> Send Message</>}
+            {submitting ? <><Loader size={18} className="contact-spinner" />{" "}{t("contactUs.sending")}</> : <><Send size={18} />{" "}{t("contactUs.sendMessage")}</>}
           </button>
         </form>
 
         <aside className="contact-sidebar">
           <div className="contact-details">
-            <h3>Get in Touch</h3>
+            <h3>{t("contactUs.getInTouch")}</h3>
             <div className="contact-detail-item">
               <Mail size={18} />
               <div>
-                <strong>Email</strong>
-                <a href="mailto:support@cauverystore.in">support@cauverystore.in</a>
+                <strong>{t("contactUs.email")}</strong>
+                <a href="mailto:support@cauverystore.in">{t("contactUs.supportCauverystoreIn")}</a>
               </div>
             </div>
             {/* Shown only when a real number is configured - a made-up fallback number
@@ -103,7 +104,7 @@ const ContactUs = () => {
             <div className="contact-detail-item">
               <Phone size={18} />
               <div>
-                <strong>Phone</strong>
+                <strong>{t("addressBook.phone")}</strong>
                 <span>{process.env.REACT_APP_CONTACT_PHONE}</span>
               </div>
             </div>
@@ -111,15 +112,15 @@ const ContactUs = () => {
             <div className="contact-detail-item">
               <MapPin size={18} />
               <div>
-                <strong>Address</strong>
-                <span>Coimbatore, Tamil Nadu, India</span>
+                <strong>{t("addressBook.address")}</strong>
+                <span>{t("contactUs.coimbatoreTamilNaduIndia")}</span>
               </div>
             </div>
           </div>
           <div className="contact-hours">
-            <h4>Business Hours</h4>
-            <p>Mon - Sat: 9:00 AM - 6:00 PM</p>
-            <p>Sunday: Closed</p>
+            <h4>{t("contactUs.businessHours")}</h4>
+            <p>{t("contactUs.monSat900Am")}</p>
+            <p>{t("contactUs.sundayClosed")}</p>
           </div>
         </aside>
       </div>

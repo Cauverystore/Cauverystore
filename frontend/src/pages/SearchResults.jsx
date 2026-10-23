@@ -8,8 +8,11 @@ import Breadcrumb from "../components/Breadcrumb";
 import Pagination from "../components/Pagination";
 import "../styles/products.css";
 import "../styles/product-tray.css";
+import { useTranslation } from "react-i18next";
 
 const SearchResults = () => {
+  const { t } = useTranslation();
+
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const [products, setProducts] = useState([]);
@@ -33,7 +36,7 @@ const SearchResults = () => {
         setProducts(res.data.content || res.data || []);
         setTotalPages(res.data.totalPages || 1);
       } catch (err) {
-        setError(err.response?.data?.error || "Please check your internet connection and try again.");
+        setError(err.response?.data?.error || t("categoryProducts.pleaseCheckYourInternetConnection"));
       }
       setLoading(false);
     };
@@ -54,8 +57,8 @@ const SearchResults = () => {
       <div className="products-page">
         <div className="products-empty">
           <div className="products-empty-icon">🔍</div>
-          <h3 className="products-empty-title">What are you looking for?</h3>
-          <p className="products-empty-text">Type a product name or category in the search box above.</p>
+          <h3 className="products-empty-title">{t("searchResults.whatAreYouLookingFor")}</h3>
+          <p className="products-empty-text">{t("searchResults.typeAProductNameOr")}</p>
         </div>
       </div>
     );
@@ -65,18 +68,18 @@ const SearchResults = () => {
     <>
       <style>{`.search-results-content { grid-column: 1 / -1; }`}</style>
       <Helmet>
-        <title>{query ? `Search: ${query} - Cauvery Store` : "Search - Cauvery Store"}</title>
+        <title>{query ? `Search: ${query} - Cauvery Store` : t("searchResults.searchCauveryStore")}</title>
         <meta name="description" content={query ? `Search results for "${query}" at Cauvery Store` : "Search for products at Cauvery Store"} />
       </Helmet>
       <div className="products-page">
         <div className="search-results-content">
           <Breadcrumb items={[
-            { label: "Home", to: "/" },
-            ...(query ? [{ label: `Search: ${query}` }] : [{ label: "Search" }])
+            { label: t("nav.home"), to: "/" },
+            ...(query ? [{ label: `Search: ${query}` }] : [{ label: t("search.button") }])
           ]} />
           <div className="section-header">
-            <h2 className="section-title">Search results for "{query}"</h2>
-            <span className="products-toolbar-count">{products.length} products found</span>
+            <h2 className="section-title">{t("searchResults.searchResultsFor")}{query}"</h2>
+            <span className="products-toolbar-count">{products.length}{" "}{t("searchResults.productsFound")}</span>
           </div>
 
           {loading ? (
@@ -88,16 +91,16 @@ const SearchResults = () => {
           ) : error ? (
             <div className="products-error">
               <div className="products-error-icon">!</div>
-              <h3 className="products-error-title">We couldn't run that search</h3>
+              <h3 className="products-error-title">{t("searchResults.weCouldnTRunThat")}</h3>
               <p className="products-error-text">{error}</p>
-              <button className="products-error-retry" onClick={() => window.location.reload()}>Try Again</button>
+              <button className="products-error-retry" onClick={() => window.location.reload()}>{t("categoryProducts.tryAgain")}</button>
             </div>
           ) : products.length === 0 ? (
             <div className="products-empty">
               <div className="products-empty-icon">📦</div>
-              <h3 className="products-empty-title">No results for "{query}"</h3>
-              <p className="products-empty-text">Check the spelling, try a shorter word, or browse all products.</p>
-              <Link to="/products" className="products-empty-action">Browse all products</Link>
+              <h3 className="products-empty-title">{t("searchResults.noResultsFor")}{query}"</h3>
+              <p className="products-empty-text">{t("searchResults.checkTheSpellingTryA")}</p>
+              <Link to="/products" className="products-empty-action">{t("search.browseAll")}</Link>
             </div>
           ) : (
             <>

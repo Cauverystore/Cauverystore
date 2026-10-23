@@ -13,6 +13,7 @@ import ChatWidget from "./components/ChatWidget";
 import CookieBanner from "./components/CookieBanner";
 import { ConfirmProvider } from "./components/ConfirmDialog";
 import { trackPageView } from "./utils/analytics";
+import LangRoutes from "./i18n/LangRoutes";
 
 const PageViewTracker = () => {
   const location = useLocation();
@@ -194,6 +195,7 @@ function App() {
         <ChatWidget />
         <CookieBanner />
         <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", color: "#94a3b8", fontSize: "0.95rem" }}>Loading...</div>}>
+        <LangRoutes>
         <Routes>
           <Route element={<CustomerLayout />}>
             <Route path="/" element={<Home />} />
@@ -328,6 +330,7 @@ function App() {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </LangRoutes>
         </Suspense>
         </ConfirmProvider>
         </WishlistProvider>

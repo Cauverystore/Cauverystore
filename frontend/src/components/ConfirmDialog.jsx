@@ -1,5 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import "../styles/site-extras.css";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 // Store-styled stand-ins for the browser's grey boxes:
 //   window.confirm -> useConfirm() in components, or confirmAction(message) anywhere
@@ -9,6 +11,8 @@ const ConfirmContext = createContext(null);
 let activeOpen = null;
 
 export const ConfirmProvider = ({ children }) => {
+  const { t } = useTranslation();
+
   // Requests wait their turn, so a second box never swallows the first one's answer.
   const [queue, setQueue] = useState([]);
   const request = queue[0] || null;
@@ -21,7 +25,7 @@ export const ConfirmProvider = ({ children }) => {
   const open = useCallback((options) => new Promise((resolve) => {
     setQueue((q) => {
       if (q.length === 0) returnFocusRef.current = document.activeElement;
-      return [...q, { kind: "confirm", title: "Are you sure?", confirmLabel: "Yes", cancelLabel: "No, go back", ...options, resolve }];
+      return [...q, { kind: "confirm", title: t("confirmDialog.areYouSure"), confirmLabel: "Yes", cancelLabel: "No, go back", ...options, resolve }];
     });
   }), []);
 
@@ -118,7 +122,7 @@ export const confirmAction = (message, options = {}) => {
   const known = /^(delete|remove|unsubscribe|suspend|charge|retry|revoke|lift)$/i.test(verb);
   const request = {
     kind: "confirm",
-    title: "Please confirm",
+    title: i18n.t("confirmDialog.pleaseConfirm"),
     message,
     confirmLabel: known ? verb.charAt(0).toUpperCase() + verb.slice(1).toLowerCase() : "Yes",
     cancelLabel: "No, go back",
@@ -149,7 +153,7 @@ export const showMessage = (message, options = {}) => {
 export const promptText = (message, defaultValue = "", options = {}) => {
   const request = {
     kind: "prompt",
-    title: "Please confirm",
+    title: i18n.t("confirmDialog.pleaseConfirm"),
     message,
     defaultValue,
     confirmLabel: "OK",

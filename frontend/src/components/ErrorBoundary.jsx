@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import i18n from "../i18n";
 
 /**
  * A chunk that fails to load is not really an error - it means the app was updated while this
@@ -65,7 +66,7 @@ class ErrorBoundary extends Component {
     const { staleBuild, error } = this.state;
     return (
       <div style={{ padding: "2rem", textAlign: "center" }}>
-        <h2>{staleBuild ? "This page is out of date" : "Something went wrong"}</h2>
+        <h2>{staleBuild ? i18n.t("errorBoundary.thisPageIsOutOf") : i18n.t("errorBoundary.somethingWentWrong")}</h2>
         <p style={{ color: "#666", maxWidth: "34rem", margin: "0.5rem auto 0" }}>
           {staleBuild
             ? "The site was updated while this tab was open, and reloading did not pick up the "
@@ -78,9 +79,7 @@ class ErrorBoundary extends Component {
             marginTop: "1rem", padding: "0.5rem 1.5rem", background: "#0E5C5C", color: "#fff",
             border: "none", borderRadius: "6px", cursor: "pointer",
           }}
-        >
-          Reload Page
-        </button>
+        >{i18n.t("errorBoundary.reloadPage")}</button>
       </div>
     );
   }

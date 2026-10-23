@@ -4,10 +4,13 @@ import { GitCompareArrows, Trash2, X, ShoppingCart, Eye } from "lucide-react";
 import { getCompareProducts, removeCompare, clearCompare } from "../utils/compare";
 import { addToCartOrLogin } from "../utils/cartActions";
 import { imgUrl } from "../utils/images";
+import { useTranslation } from "react-i18next";
 
 const PLACEHOLDER = "/images/placeholder.svg";
 
 const Compare = () => {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
 
@@ -50,24 +53,24 @@ const Compare = () => {
   return (
     <div className="cmp-page">
       <div className="cmp-header">
-        <h1 className="cmp-title"><GitCompareArrows size={22} color="#0E5C5C" /> Compare Products</h1>
+        <h1 className="cmp-title"><GitCompareArrows size={22} color="#0E5C5C" />{" "}{t("compare.compareProducts")}</h1>
         {products.length > 0 && (
-          <button className="cmp-clear" onClick={handleClear}>Clear All</button>
+          <button className="cmp-clear" onClick={handleClear}>{t("compare.clearAll")}</button>
         )}
       </div>
 
       {products.length === 0 ? (
         <div className="cmp-empty">
           <div className="cmp-empty-icon">{"\u2696"}</div>
-          <h3>No products to compare</h3>
-          <p>Add products using the compare button on any product card, then view the differences here.</p>
-          <Link className="cmp-empty-cta" to="/products">Browse Products</Link>
+          <h3>{t("compare.noProductsToCompare")}</h3>
+          <p>{t("compare.addProductsUsingTheCompare")}</p>
+          <Link className="cmp-empty-cta" to="/products">{t("compare.browseProducts")}</Link>
         </div>
       ) : (
         <>
           <div className="cmp-scroll">
             <div className="cmp-table" style={{ gridTemplateColumns: `minmax(110px, 140px) repeat(${products.length}, minmax(180px, 1fr))` }}>
-              <div className="cmp-cell cmp-label">Product</div>
+              <div className="cmp-cell cmp-label">{t("cart.product")}</div>
               {products.map((p) => (
                 <div className="cmp-cell cmp-product" key={pidOf(p)}>
                   <button className="cmp-remove" onClick={(e) => handleRemove(e, p)} aria-label={`Remove ${nameOf(p)} from compare`}><X size={16} /></button>
@@ -76,7 +79,7 @@ const Compare = () => {
                 </div>
               ))}
 
-              <div className="cmp-cell cmp-label">Price</div>
+              <div className="cmp-cell cmp-label">{t("filters.price")}</div>
               {products.map((p) => (
                 <div className="cmp-cell cmp-price" key={pidOf(p)}>
                   <span className="cmp-price-now">{"\u20B9"}{Math.round(priceOf(p)).toLocaleString()}</span>
@@ -84,37 +87,37 @@ const Compare = () => {
                 </div>
               ))}
 
-              <div className="cmp-cell cmp-label">Discount</div>
+              <div className="cmp-cell cmp-label">{t("cart.discount")}</div>
               {products.map((p) => {
                 const orig = originalPriceOf(p);
                 const disc = orig > priceOf(p) ? Math.round((1 - priceOf(p) / orig) * 100) : 0;
                 return <div className="cmp-cell" key={pidOf(p)}>{disc > 0 ? `${disc}% OFF` : "—"}</div>;
               })}
 
-              <div className="cmp-cell cmp-label">Rating</div>
+              <div className="cmp-cell cmp-label">{t("compare.rating")}</div>
               {products.map((p) => {
                 const rating = p?.rating || 4.0;
                 return <div className="cmp-cell" key={pidOf(p)}>{"\u2605"} {rating.toFixed(1)}</div>;
               })}
 
-              <div className="cmp-cell cmp-label">Availability</div>
+              <div className="cmp-cell cmp-label">{t("compare.availability")}</div>
               {products.map((p) => {
                 const stock = p?.stock ?? p?.stockQuantity ?? (p?.inStock ? 1 : 0);
                 return (
                   <div className="cmp-cell" key={pidOf(p)}>
                     {stock > 0
-                      ? <span className="cmp-instock">{stock <= 5 ? `Only ${stock} left` : "In Stock"}</span>
-                      : <span className="cmp-ostock">Out of Stock</span>}
+                      ? <span className="cmp-instock">{stock <= 5 ? `Only ${stock} left` : t("compare.inStock")}</span>
+                      : <span className="cmp-ostock">{t("compare.outOfStock")}</span>}
                   </div>
                 );
               })}
 
               {bestPrice > 0 && (
                 <>
-                  <div className="cmp-cell cmp-label">Best Value</div>
+                  <div className="cmp-cell cmp-label">{t("compare.bestValue")}</div>
                   {products.map((p) => (
                     <div className="cmp-cell" key={pidOf(p)}>
-                      {priceOf(p) === bestPrice && <span className="cmp-best">{"\u2713"} Lowest price</span>}
+                      {priceOf(p) === bestPrice && <span className="cmp-best">{"\u2713"}{" "}{t("compare.lowestPrice")}</span>}
                     </div>
                   ))}
                 </>
@@ -125,9 +128,9 @@ const Compare = () => {
           <div className="cmp-actions-bar">
             {products.map((p) => (
               <div className="cmp-actions" key={pidOf(p)}>
-                <button className="cmp-btn cmp-btn-cart" onClick={() => handleAddToCart(p)}><ShoppingCart size={15} /> Add to Cart</button>
-                <button className="cmp-btn cmp-btn-view" onClick={() => navigate(`/product/${pidOf(p)}`)}><Eye size={15} /> View</button>
-                <button className="cmp-btn cmp-btn-remove" onClick={() => { removeCompare(pidOf(p)); reload(); }}><Trash2 size={15} /> Remove</button>
+                <button className="cmp-btn cmp-btn-cart" onClick={() => handleAddToCart(p)}><ShoppingCart size={15} />{" "}{t("compare.addToCart")}</button>
+                <button className="cmp-btn cmp-btn-view" onClick={() => navigate(`/product/${pidOf(p)}`)}><Eye size={15} />{" "}{t("compare.view")}</button>
+                <button className="cmp-btn cmp-btn-remove" onClick={() => { removeCompare(pidOf(p)); reload(); }}><Trash2 size={15} />{" "}{t("cart.remove")}</button>
               </div>
             ))}
           </div>
