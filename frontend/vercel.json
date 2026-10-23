@@ -3,6 +3,7 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "react-scripts build",
   "outputDirectory": "build",
   "framework": "create-react-app",
