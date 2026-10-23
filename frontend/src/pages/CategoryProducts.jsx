@@ -22,60 +22,41 @@ import i18n from "../i18n";
 // Keyed by the exact category name the backend returns (CategoryController's
 // /api/categories, Category.name). A category with no entry here still works (see
 // FALLBACK below); it just has no hand-written copy until one is added.
+const seoT = (k, o) => i18n.t("categorySeo." + k, o);
+
+// Getters, not plain strings, so the text is read in the language that is active when the page renders.
 const CATEGORY_SEO_COPY = {
   "T-Shirts": {
-    intro:
-      "T-shirts in a range of colours and sizes. Choose your size on the product page, pay " +
-      "online, and get free delivery on orders of ₹500 or more.",
-    metaDescription:
-      "Shop t-shirts online at Cauvery Store. Choose your size, pay securely, and get free delivery on orders of ₹500 or more.",
+    get intro() { return seoT("tshirtsIntro"); },
+    get metaDescription() { return seoT("tshirtsMeta"); },
   },
   "Electronics": {
-    intro:
-      "Phones, laptops, TVs and everyday gadgets. Each product page shows the price, " +
-      "delivery time and return period before you buy.",
-    metaDescription:
-      "Shop phones, laptops, TVs and gadgets online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
+    get intro() { return seoT("electronicsIntro"); },
+    get metaDescription() { return seoT("electronicsMeta"); },
   },
   "Fashion": {
-    intro:
-      "Clothing, footwear and accessories for everyday wear. Sizes are listed on each " +
-      "product page, and most items can be returned within 7 days of delivery.",
-    metaDescription:
-      "Shop clothing, footwear and accessories online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
+    get intro() { return seoT("fashionIntro"); },
+    get metaDescription() { return seoT("fashionMeta"); },
   },
   "Home & Kitchen": {
-    intro:
-      "Furniture, kitchen essentials and home decor, delivered to your door. Delivery is " +
-      "free on orders of ₹500 or more.",
-    metaDescription:
-      "Shop furniture, kitchen essentials and home decor online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
+    get intro() { return seoT("homeIntro"); },
+    get metaDescription() { return seoT("homeMeta"); },
   },
   "Books": {
-    get intro() {
-      return i18n.t("categoryProducts.fictionNonFictionAndEducational");
-    },
-
-    metaDescription:
-      "Shop fiction, non-fiction and educational books online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more."
+    get intro() { return i18n.t("categoryProducts.fictionNonFictionAndEducational"); },
+    get metaDescription() { return seoT("booksMeta"); },
   },
   "Sports": {
-    get intro() {
-      return i18n.t("categoryProducts.fitnessEquipmentAndSportswearFrom");
-    },
-
-    metaDescription:
-      "Shop fitness equipment and sportswear online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more."
+    get intro() { return i18n.t("categoryProducts.fitnessEquipmentAndSportswearFrom"); },
+    get metaDescription() { return seoT("sportsMeta"); },
   },
 };
 
 // Any category not in the map above still gets a real sentence, so no category page is
 // left with no body copy for a crawler to read.
-const FALLBACK_SEO_COPY = (category) => ({
-  intro:
-    `Shop ${category} at Cauvery Store, with secure payment and free delivery on orders of ₹500 or more.`,
-  metaDescription:
-    `Shop ${category} online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.`,
+const FALLBACK_SEO_COPY = (label) => ({
+  intro: seoT("fallbackIntro", { category: label }),
+  metaDescription: seoT("fallbackMeta", { category: label }),
 });
 
 const CategoryProducts = () => {
@@ -130,14 +111,14 @@ const CategoryProducts = () => {
     if (res.ok) navigate("/checkout");
   };
 
-  const seoCopy = CATEGORY_SEO_COPY[category] || FALLBACK_SEO_COPY(category);
+  const seoCopy = CATEGORY_SEO_COPY[category] || FALLBACK_SEO_COPY(catLabel(category));
   const canonicalUrl = `https://cauverystore.in/category/${encodeURIComponent(category || "")}`;
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cauverystore.in/" },
-      { "@type": "ListItem", "position": 2, "name": category, "item": canonicalUrl },
+      { "@type": "ListItem", "position": 1, "name": t("nav.home"), "item": "https://cauverystore.in/" },
+      { "@type": "ListItem", "position": 2, "name": catLabel(category), "item": canonicalUrl },
     ],
   };
 
@@ -147,12 +128,12 @@ const CategoryProducts = () => {
     <div className="products-page">
       <style>{`.cat-products-content { grid-column: 1 / -1; }`}</style>
       <Helmet>
-        <title>{`${category} | Cauvery Store`}</title>
+        <title>{`${catLabel(category)} | Cauvery Store`}</title>
         <meta name="description" content={seoCopy.metaDescription} />
         <link rel="canonical" href={canonicalUrl} />
         {/* An empty or made-up category is a thin page: keep it out of search results. */}
         {!loading && !error && products.length === 0 && <meta name="robots" content="noindex, follow" />}
-        <meta property="og:title" content={`${category} | Cauvery Store`} />
+        <meta property="og:title" content={`${catLabel(category)} | Cauvery Store`} />
         <meta property="og:description" content={seoCopy.metaDescription} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
@@ -171,7 +152,7 @@ const CategoryProducts = () => {
         <div className="cat-products-banner">
           <Store size={22} className="cat-products-banner-icon" aria-hidden="true" />
           <div>
-            <strong className="cat-products-banner-label">{t("categoryProducts.whyShop")}{" "}{category}{" "}{t("categoryProducts.here")}</strong>
+            <strong className="cat-products-banner-label">{t("categorySeo.whyShopHere", { category: catLabel(category) })}</strong>
             <p className="cat-products-banner-text">{seoCopy.intro}</p>
           </div>
         </div>

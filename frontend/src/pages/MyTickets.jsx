@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from "../api/axios";
 import { showMessage } from "../components/ConfirmDialog";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const MyTickets = () => {
   const {
@@ -59,7 +60,7 @@ const MyTickets = () => {
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflowX:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"0.85rem" }}>
           <thead><tr style={{ background:"#f9fafb" }}>
-            {["ID","Subject","Category","Priority","Status","Created"].map(h => <th key={h} style={{ textAlign:"left", padding:"10px 12px", fontWeight:600, fontSize:"0.75rem", color:"#6b7280", textTransform:"uppercase" }}>{h}</th>)}
+            {["colId","colSubject","colCategory","colPriority","colStatus","colCreated"].map(h => <th key={h} style={{ textAlign:"left", padding:"10px 12px", fontWeight:600, fontSize:"0.75rem", color:"#6b7280", textTransform:"uppercase" }}>{i18n.t("msgs." + h)}</th>)}
           </tr></thead>
           <tbody>
             {tickets.length === 0 && <tr><td colSpan={6} style={{ padding:"2rem", textAlign:"center", color:"#94a3b8" }}>{tr("myTickets.noTicketsYet")}</td></tr>}

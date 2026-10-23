@@ -102,7 +102,7 @@ const ProductDetails = () => {
   const handleRelatedCart = async (p) => {
     const res = await addToCartOrLogin(navigate, p, 1);
     if (res.needLogin) return;
-    setCartMsg(res.ok ? `${p.name} added to your cart` : tr("home.weCouldnTAddThat"));
+    setCartMsg(res.ok ? i18n.t("msgs.addedToCartNamed", { name: p.name }) : tr("home.weCouldnTAddThat"));
     setTimeout(() => setCartMsg(""), 2000);
   };
 
@@ -243,7 +243,7 @@ const ProductDetails = () => {
                   type="button"
                   className={`product-thumb-btn${i === selectedImage ? " active" : ""}`}
                   onClick={() => setSelectedImage(i)}
-                  aria-label={`View image ${i + 1} of ${product.images.length}`}
+                  aria-label={i18n.t("msgs.viewImageOf", { n: i + 1, total: product.images.length })}
                   aria-pressed={i === selectedImage}
                   style={{ border: "none", padding: 0, background: "none", cursor: "pointer" }}
                 >

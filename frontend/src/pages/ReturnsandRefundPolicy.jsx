@@ -110,7 +110,7 @@ const summaryCards = [
       return i18n.t("returnsandRefundPolicy.7Days");
     },
 
-    note: "from delivery, unless the product page says otherwise",
+    get note() { return i18n.t("msgs.returnNote1"); },
     color: green
   },
   {
@@ -122,7 +122,7 @@ const summaryCards = [
       return i18n.t("returnsandRefundPolicy.freePickup");
     },
 
-    note: "the return costs you nothing",
+    get note() { return i18n.t("msgs.returnNote2"); },
     color: green
   },
   {
@@ -134,7 +134,7 @@ const summaryCards = [
       return i18n.t("returnsandRefundPolicy.originalPaymentMethod");
     },
 
-    note: "the card, UPI or account you paid with",
+    get note() { return i18n.t("msgs.returnNote3"); },
     color: green
   },
   {
@@ -146,7 +146,7 @@ const summaryCards = [
       return i18n.t("returnsandRefundPolicy.57BusinessDays");
     },
 
-    note: "after we approve it; often faster",
+    get note() { return i18n.t("msgs.returnNote4"); },
     color: green
   },
 ];

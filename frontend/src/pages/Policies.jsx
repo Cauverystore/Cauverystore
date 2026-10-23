@@ -123,7 +123,7 @@ const policies = {
           return i18n.t("policies.cookies");
         },
 
-        content: "We use essential cookies to keep you signed in and remember your cart; the site cannot work without them. Analytics cookies (Google Analytics), which show us which pages are useful, are used only if you choose \"Accept all\" in the cookie banner. You can change your choice at any time with the Cookie Settings link at the bottom of every page, or clear cookies in your browser settings."
+        get content() { return i18n.t("msgs.policyCookies"); }
       },
       {
         get heading() {
@@ -501,9 +501,9 @@ const policies = {
 
 // One description per policy: three pages sharing a sentence look like duplicates in search.
 const descriptions = {
-  privacy: "Cauvery Store's privacy policy: what personal data we collect when you shop, how we use and protect it, and the choices you have.",
-  terms: "Cauvery Store's terms and conditions for shoppers and sellers: accounts, orders, payments, and what each side is responsible for.",
-  shipping: "Cauvery Store's shipping policy: when sellers dispatch, how long delivery takes across India, and what delivery costs.",
+  get privacy() { return i18n.t("msgs.policyDescPrivacy"); },
+  get terms() { return i18n.t("msgs.policyDescTerms"); },
+  get shipping() { return i18n.t("msgs.policyDescShipping"); },
 };
 
 const Policies = ({ tab }) => {

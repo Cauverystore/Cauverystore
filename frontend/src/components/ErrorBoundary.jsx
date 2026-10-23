@@ -69,8 +69,7 @@ class ErrorBoundary extends Component {
         <h2>{staleBuild ? i18n.t("errorBoundary.thisPageIsOutOf") : i18n.t("errorBoundary.somethingWentWrong")}</h2>
         <p style={{ color: "#666", maxWidth: "34rem", margin: "0.5rem auto 0" }}>
           {staleBuild
-            ? "The site was updated while this tab was open, and reloading did not pick up the "
-              + "new version. Try again in a moment - nothing you were doing has been lost."
+            ? i18n.t("msgs.staleBuild")
             : error?.message}
         </p>
         <button

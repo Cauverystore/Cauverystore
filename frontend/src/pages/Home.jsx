@@ -21,7 +21,7 @@ const PROMISES = [
       return i18n.t("productTray.freeDelivery");
     },
 
-    text: "on orders of ₹500 or more"
+    get text() { return i18n.t("msgs.homeTrustDelivery"); }
   },
   {
     Icon: RotateCcw,
@@ -30,7 +30,7 @@ const PROMISES = [
       return i18n.t("cart.7DayReturns");
     },
 
-    text: "free if the item is faulty or wrong"
+    get text() { return i18n.t("msgs.homeTrustReturns"); }
   },
   {
     Icon: ShieldCheck,
@@ -120,7 +120,7 @@ const Home = () => {
     if (!isLoggedIn) { navigate("/login"); return; }
     try {
       await addToCart(p.id, 1);
-      setToast({ type: "success", text: `${p.name} added to your cart` });
+      setToast({ type: "success", text: i18n.t("msgs.addedToCartNamed", { name: p.name }) });
     } catch {
       setToast({ type: "error", text: t("home.weCouldnTAddThat") });
     }

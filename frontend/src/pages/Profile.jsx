@@ -558,7 +558,7 @@ const Profile = () => {
       <div className="profile-card-header">
         <h3>{t("paymentMethods.paymentMethods")}</h3>
         <button className="pf-btn pf-btn-outline" onClick={() => setShowPaymentForm(!showPaymentForm)}>
-          {showPaymentForm ? t("addressBook.cancel") : "+ Add Payment"}
+          {showPaymentForm ? t("addressBook.cancel") : i18n.t("msgs.addPayment")}
         </button>
       </div>
 
@@ -840,7 +840,7 @@ const Profile = () => {
 
         {pwDaysLeft !== null && pwDaysLeft <= 7 && (
           <div style={{ padding: "0.75rem", marginBottom: "1rem", borderRadius: "var(--radius-sm)", background: pwDaysLeft <= 0 ? "#fef2f2" : "#fffbeb", border: `1px solid ${pwDaysLeft <= 0 ? "#fecaca" : "#fde68a"}`, fontSize: "0.85rem", color: pwDaysLeft <= 0 ? "#991b1b" : "#92400e" }}>
-            {pwDaysLeft <= 0 ? t("profile.yourPasswordHasExpiredPlease") : `Your password expires in ${pwDaysLeft} day${pwDaysLeft === 1 ? "" : "s"}. Update it below.`}
+            {pwDaysLeft <= 0 ? t("profile.yourPasswordHasExpiredPlease") : i18n.t("msgs.pwExpiresUpdate", { count: pwDaysLeft })}
           </div>
         )}
 

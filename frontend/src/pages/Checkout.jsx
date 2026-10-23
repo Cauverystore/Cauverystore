@@ -317,7 +317,7 @@ const Checkout = () => {
           <span style={{
             fontSize: "0.85rem", fontWeight: i === step ? 600 : 400,
             color: i === step ? "var(--color-primary)" : "var(--color-text-secondary)"
-          }}>{label}</span>
+          }}>{i18n.t("msgs.step" + label)}</span>
           {i < STEPS.length - 1 && <div style={{
             width: 24, height: 2, background: i < step ? "var(--color-primary)" : "var(--color-gray-200)"
           }} />}
@@ -594,7 +594,7 @@ const Checkout = () => {
                   background: placing ? "var(--color-gray-300)" : "var(--color-primary)", color: "#fff",
                   cursor: placing ? "not-allowed" : "pointer", fontSize: "1rem", fontWeight: 700
                 }}>
-                {placing ? tr("checkout.placingYourOrder") : `Place order \u00B7 \u20B9${total.toFixed(2)}`}
+                {placing ? tr("checkout.placingYourOrder") : i18n.t("msgs.placeOrderTotal", { total: total.toFixed(2) })}
               </button>
             )}
           </div>
@@ -659,9 +659,9 @@ const Checkout = () => {
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
                 <span style={{ color: "var(--color-text-secondary)" }}>{tr("checkout.gstIncluded")}</span>
                 <span>
-                  {billLoading ? "calculating…"
+                  {billLoading ? i18n.t("msgs.calculating")
                     : taxKnown ? `₹${tax.toFixed(2)}`
-                    : "enter delivery address"}
+                    : i18n.t("msgs.enterDeliveryAddress")}
                 </span>
               </div>
             )}

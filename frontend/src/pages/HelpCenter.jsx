@@ -340,7 +340,7 @@ const HelpCenter = () => {
         <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>{tr("helpCenter.loadingFaqs")}</p>
       ) : filtered.length === 0 ? (
         <p style={{ textAlign: "center", color: "#94a3b8", padding: "2rem" }}>
-          {searchTerm.trim() ? `No FAQs found for "${searchTerm}". Try a different keyword.` : tr("helpCenter.noFaqsAvailableAtThe")}
+          {searchTerm.trim() ? i18n.t("msgs.noFaqsFor", { term: searchTerm }) : tr("helpCenter.noFaqsAvailableAtThe")}
         </p>
       ) : (
         <div className="static-accordion">
