@@ -5,6 +5,7 @@ import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import { getCart, updateQuantity as updateCartItemQuantity, removeItem as removeCartItem } from "../services/cartService";
 import CartItemImage from "./CartItemImage";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const CartDrawer = ({ open, onClose }) => {
   const { t } = useTranslation();
@@ -135,12 +136,12 @@ const CartDrawer = ({ open, onClose }) => {
                       {product.weight && <span className="cd-attr">{t("cartDrawer.weight")}{" "}{product.weight}g</span>}
                     </div>
                     <div className="cart-drawer-item-qty">
-                      <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty - 1)} disabled={qty <= 1} aria-label={`Decrease quantity of ${name}`}><Minus size={14} /></button>
+                      <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty - 1)} disabled={qty <= 1} aria-label={i18n.t("msgs.decreaseQty", { name })}><Minus size={14} /></button>
                       <span>{qty}</span>
-                      <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty + 1)} aria-label={`Increase quantity of ${name}`}><Plus size={14} /></button>
+                      <button className="cart-drawer-qty-btn" onClick={() => handleQtyChange(id, qty + 1)} aria-label={i18n.t("msgs.increaseQty", { name })}><Plus size={14} /></button>
                     </div>
                   </div>
-                  <button className="cart-drawer-remove-btn" onClick={() => handleRemove(id)} aria-label={`Remove ${name} from cart`}><Trash2 size={16} /></button>
+                  <button className="cart-drawer-remove-btn" onClick={() => handleRemove(id)} aria-label={i18n.t("msgs.removeFromCartAria", { name })}><Trash2 size={16} /></button>
                 </div>
               );
             })

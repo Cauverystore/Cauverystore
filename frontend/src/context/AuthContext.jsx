@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, useContext, useRef } from 'react';
 import API from '../utils/axios';
+import i18n from "../i18n";
 
 export const AuthContext = createContext(null);
 
@@ -377,21 +378,21 @@ export const AuthProvider = ({ children }) => {
           maxWidth: '360px', animation: 'slideUp 0.3s ease'
         }}>
           <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 600 }}>
-            Session Expiring Soon
+            {i18n.t("msgs.sessionExpiring")}
           </p>
           <p style={{ margin: '0 0 0.75rem', fontSize: '0.8rem', color: '#64748b' }}>
-            Your session will expire in 1 minute due to inactivity.
+            {i18n.t("msgs.sessionExpiringBody")}
           </p>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button onClick={extendSession} style={{
               padding: '0.4rem 0.85rem', border: 'none', borderRadius: '6px',
               background: 'var(--color-primary, #16a34a)', color: '#fff',
               fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer'
-            }}>Stay Logged In</button>
+            }}>{i18n.t("msgs.stayLoggedIn")}</button>
             <button onClick={logout} style={{
               padding: '0.4rem 0.85rem', border: '1px solid #d1d5db', borderRadius: '6px',
               background: '#fff', color: '#475569', fontSize: '0.8rem', cursor: 'pointer'
-            }}>Logout</button>
+            }}>{i18n.t("msgs.logout")}</button>
           </div>
         </div>
       )}

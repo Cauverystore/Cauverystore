@@ -6,9 +6,10 @@ import CartItemImage from "../components/CartItemImage";
 import { useConfirm } from "../components/ConfirmDialog";
 import "../styles/orders.css";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const STATUSES = ["ALL", "PLACED", "SHIPPED", "DELIVERED", "CANCELLED"];
-const STATUS_LABELS = { ALL: "All Orders", PLACED: "Placed", SHIPPED: "Shipped", DELIVERED: "Delivered", CANCELLED: "Cancelled" };
+const STATUS_LABELS = { get ALL() { return i18n.t("msgs.statusAll"); }, get PLACED() { return i18n.t("msgs.statusPlaced"); }, get SHIPPED() { return i18n.t("msgs.statusShipped"); }, get DELIVERED() { return i18n.t("msgs.statusDelivered"); }, get CANCELLED() { return i18n.t("msgs.statusCancelled"); } };
 const STATUS_COLORS = { PLACED: "#f59e0b", SHIPPED: "#3b82f6", DELIVERED: "#0E5C5C", CANCELLED: "#dc2626" };
 const STATUS_STEPS = ["PLACED", "SHIPPED", "DELIVERED"];
 
@@ -81,7 +82,7 @@ const Orders = () => {
   const canCancelOrder = (order) => CANCELLABLE_STATUSES.includes((order.status || "").toUpperCase());
 
   const handleCancel = async (orderId) => {
-    if (!(await confirm({ title: t("orderDetail.cancelThisOrder"), message: t("orderDetail.theOrderWillBeCancelled"), confirmLabel: "Cancel order", cancelLabel: "Keep order", danger: true }))) return;
+    if (!(await confirm({ title: t("orderDetail.cancelThisOrder"), message: t("orderDetail.theOrderWillBeCancelled"), confirmLabel: i18n.t("msgs.cancelOrder"), cancelLabel: i18n.t("msgs.keepOrder"), danger: true }))) return;
     setCancellingId(orderId);
     setError("");
     try {

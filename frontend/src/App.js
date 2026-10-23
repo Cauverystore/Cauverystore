@@ -14,6 +14,7 @@ import CookieBanner from "./components/CookieBanner";
 import { ConfirmProvider } from "./components/ConfirmDialog";
 import { trackPageView } from "./utils/analytics";
 import LangRoutes from "./i18n/LangRoutes";
+import i18n from "./i18n";
 
 const PageViewTracker = () => {
   const location = useLocation();
@@ -194,7 +195,7 @@ function App() {
         <PasswordExpiryBanner />
         <ChatWidget />
         <CookieBanner />
-        <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", color: "#94a3b8", fontSize: "0.95rem" }}>Loading...</div>}>
+        <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", color: "#94a3b8", fontSize: "0.95rem" }}>{i18n.t("msgs.loadingPage")}</div>}>
         <LangRoutes>
         <Routes>
           <Route element={<CustomerLayout />}>
@@ -266,7 +267,7 @@ function App() {
           </Route>
 
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/unauthorized" element={<div style={{ padding: "3rem", textAlign: "center" }}><h2>Unauthorized</h2><p>You do not have permission to access this page.</p></div>} />
+          <Route path="/admin/unauthorized" element={<div style={{ padding: "3rem", textAlign: "center" }}><h2>{i18n.t("msgs.unauthorizedTitle")}</h2><p>{i18n.t("msgs.unauthorizedBody")}</p></div>} />
 
           <Route path="/admin" element={<ProtectedRoute requiredRole={['ADMIN','EXECUTIVE','SUPER_ADMIN']}><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />

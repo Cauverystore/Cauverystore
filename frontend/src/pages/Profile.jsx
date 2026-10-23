@@ -179,16 +179,16 @@ const Profile = () => {
       await removeFromWishlist(productId);
       setWishlist((prev) => prev.filter((i) => (i.product?.id || i.product?._id || i.productId) !== productId));
       refreshWishlistCtx();
-      notify("Removed from wishlist");
-    } catch (err) { notify("Failed to remove item", "error"); }
+      notify(i18n.t("msgs.removedFromWishlist"));
+    } catch (err) { notify(i18n.t("msgs.failedRemoveItem"), "error"); }
   };
 
   const handleMoveSavedToCart = async (itemId) => {
     try {
       await moveToCart(itemId);
       setSavedForLater((prev) => prev.filter((i) => (i.id || i._id) !== itemId));
-      notify("Moved to cart");
-    } catch (err) { notify("Failed to move item to cart", "error"); }
+      notify(i18n.t("msgs.movedToCart"));
+    } catch (err) { notify(i18n.t("msgs.failedMoveToCart"), "error"); }
   };
 
   const handleProfileSave = async () => {
@@ -196,8 +196,8 @@ const Profile = () => {
     try {
       const res = await userService.updateProfile(profileForm);
       setProfile(res.data);
-      notify("Profile updated successfully");
-    } catch (err) { notify(err.response?.data?.message || "Failed to update profile", "error"); }
+      notify(i18n.t("msgs.profileUpdated"));
+    } catch (err) { notify(err.response?.data?.message || i18n.t("msgs.failedUpdateProfile"), "error"); }
     setSaving(false);
   };
 
@@ -206,7 +206,7 @@ const Profile = () => {
     // outright would make an old address unsaveable until it was retyped.
     const firstLine = editingAddr.line1?.trim() || editingAddr.street?.trim();
     if (!editingAddr.fullName?.trim() || !firstLine || !editingAddr.city?.trim() || !editingAddr.state?.trim() || !editingAddr.pincode?.trim()) {
-      notify("Please fill all required fields", "error"); return;
+      notify(i18n.t("msgs.fillRequired"), "error"); return;
     }
     setSaving(true);
     try {
@@ -215,31 +215,31 @@ const Profile = () => {
         : await userService.addAddress(editingAddr);
       await loadAll();
       setShowAddrForm(false); setEditingAddr(null);
-      notify(`Address ${editingAddr.id ? "updated" : "added"} successfully`);
-    } catch (err) { notify(err.response?.data?.message || "Failed to save address", "error"); }
+      notify(editingAddr.id ? i18n.t("msgs.addressUpdated") : i18n.t("msgs.addressAdded"));
+    } catch (err) { notify(err.response?.data?.message || i18n.t("msgs.failedSaveAddress"), "error"); }
     setSaving(false);
   };
 
   const handleDeleteAddress = async (id) => {
-    if (!(await confirm({ title: t("profile.deleteThisAddress"), message: t("profile.itWillBeRemovedFrom"), confirmLabel: "Delete", cancelLabel: "Keep it", danger: true }))) return;
+    if (!(await confirm({ title: t("profile.deleteThisAddress"), message: t("profile.itWillBeRemovedFrom"), confirmLabel: i18n.t("msgs.delete"), cancelLabel: i18n.t("msgs.keepIt"), danger: true }))) return;
     try {
       await userService.deleteAddress(id);
       setAddresses(addresses.filter(a => (a.id || a._id) !== id));
-      notify("Address deleted");
+      notify(i18n.t("msgs.addressDeleted"));
     } catch (err) {
       // The server refuses to delete an address an order still points at, and says why - it is
       // needed for the invoice and for the delivery. Replacing that with "Failed to delete"
       // leaves somebody clicking a button that will never work and no idea what to do instead.
-      notify(err.response?.data?.error || err.response?.data?.message || "Failed to delete address", "error");
+      notify(err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.failedDeleteAddress"), "error");
     }
   };
 
   const handleAddPayment = async () => {
     if (paymentForm.type === "CARD" && !paymentForm.maskedNumber?.trim()) {
-      notify("Card number is required", "error"); return;
+      notify(i18n.t("msgs.cardRequired"), "error"); return;
     }
     if (paymentForm.type === "UPI" && !paymentForm.upiId?.trim()) {
-      notify("UPI ID is required", "error"); return;
+      notify(i18n.t("msgs.upiRequired"), "error"); return;
     }
     setSaving(true);
     try {
@@ -248,18 +248,18 @@ const Profile = () => {
       setPaymentMethods(Array.isArray(res.data) ? res.data : []);
       setShowPaymentForm(false);
       setPaymentForm({ type: "CARD", maskedNumber: "", cardholderName: "", expiry: "", upiId: "", bankName: "" });
-      notify("Payment method added");
-    } catch (err) { notify("Failed to add payment method", "error"); }
+      notify(i18n.t("msgs.paymentAdded"));
+    } catch (err) { notify(i18n.t("msgs.failedAddPayment"), "error"); }
     setSaving(false);
   };
 
   const handleDeletePayment = async (id) => {
-    if (!(await confirm({ title: t("paymentMethods.removeThisPaymentMethod"), message: t("paymentMethods.youCanAddItAgain"), confirmLabel: "Remove", cancelLabel: "Keep it", danger: true }))) return;
+    if (!(await confirm({ title: t("paymentMethods.removeThisPaymentMethod"), message: t("paymentMethods.youCanAddItAgain"), confirmLabel: i18n.t("msgs.remove"), cancelLabel: i18n.t("msgs.keepIt"), danger: true }))) return;
     try {
       await userService.deletePaymentMethod(id);
       setPaymentMethods(paymentMethods.filter(p => (p.id || p._id) !== id));
-      notify("Payment method removed");
-    } catch (err) { notify("Failed to remove payment method", "error"); }
+      notify(i18n.t("msgs.paymentRemoved"));
+    } catch (err) { notify(i18n.t("msgs.failedRemovePayment"), "error"); }
   };
 
   const handlePrefsSave = async (updates) => {
@@ -267,8 +267,8 @@ const Profile = () => {
     try {
       const res = await userService.updatePreferences({ ...preferences, ...updates });
       setPreferences(res.data);
-      notify("Preferences saved");
-    } catch (err) { notify("Failed to save preferences", "error"); }
+      notify(i18n.t("msgs.prefsSaved"));
+    } catch (err) { notify(i18n.t("msgs.failedSavePrefs"), "error"); }
     setSaving(false);
   };
 
@@ -284,60 +284,60 @@ const Profile = () => {
       const res = await securityService.enable2fa();
       setTwofaSetup(res.data);
       setMfaOtp("");
-    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Failed to start 2FA setup", "error"); }
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.failed2faSetup"), "error"); }
     setMfaBusy(false);
   };
 
   const handleConfirm2fa = async () => {
-    if (!mfaOtp.trim()) { secNotify("Enter the code from your authenticator app", "error"); return; }
+    if (!mfaOtp.trim()) { secNotify(i18n.t("msgs.enterAuthCode"), "error"); return; }
     setMfaBusy(true); setSecurityErr("");
     try {
       await securityService.confirm2fa(mfaOtp.trim());
       setTwofaSetup(null); setMfaOtp("");
-      secNotify("Two-factor authentication enabled");
+      secNotify(i18n.t("msgs.mfaEnabled"));
       await loadSecurity();
-    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Invalid code. Try again.", "error"); }
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.invalidCode"), "error"); }
     setMfaBusy(false);
   };
 
   const handleDisable2fa = async () => {
-    if (!mfaOtp.trim()) { secNotify("Enter a current code to disable 2FA", "error"); return; }
+    if (!mfaOtp.trim()) { secNotify(i18n.t("msgs.enterCodeDisable2fa"), "error"); return; }
     setMfaBusy(true); setSecurityErr("");
     try {
       await securityService.disable2fa(mfaOtp.trim());
       setMfaOtp("");
-      secNotify("Two-factor authentication disabled");
+      secNotify(i18n.t("msgs.mfaDisabled"));
       await loadSecurity();
-    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Invalid code. Try again.", "error"); }
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.invalidCode"), "error"); }
     setMfaBusy(false);
   };
 
   const handleChangePassword = async () => {
-    if (!pwForm.oldPassword || !pwForm.newPassword) { secNotify("Enter your current and new password", "error"); return; }
-    if (pwForm.newPassword.length < 8) { secNotify("New password must be at least 8 characters", "error"); return; }
-    if (pwForm.newPassword !== pwForm.confirmPassword) { secNotify("New passwords do not match", "error"); return; }
+    if (!pwForm.oldPassword || !pwForm.newPassword) { secNotify(i18n.t("msgs.enterOldNewPassword"), "error"); return; }
+    if (pwForm.newPassword.length < 8) { secNotify(i18n.t("msgs.newPasswordMin8"), "error"); return; }
+    if (pwForm.newPassword !== pwForm.confirmPassword) { secNotify(i18n.t("msgs.passwordsNoMatch"), "error"); return; }
     setMfaBusy(true); setSecurityErr("");
     try {
       await securityService.changePassword(pwForm.oldPassword, pwForm.newPassword);
       setPwForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
-      secNotify("Password changed successfully");
-    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Failed to change password", "error"); }
+      secNotify(i18n.t("msgs.passwordChanged"));
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.failedChangePassword"), "error"); }
     setMfaBusy(false);
   };
 
   const handleRevokeSession = async (sessionId) => {
-    if (!(await confirm({ title: t("profile.signOutThisDevice"), message: t("profile.thatDeviceWillNeedTo"), confirmLabel: "Sign out" }))) return;
+    if (!(await confirm({ title: t("profile.signOutThisDevice"), message: t("profile.thatDeviceWillNeedTo"), confirmLabel: i18n.t("msgs.signOut") }))) return;
     setSessionBusy(sessionId);
     try {
       await securityService.revokeSession(sessionId);
       await loadSecurity();
-      secNotify("Session revoked");
-    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || "Failed to revoke session", "error"); }
+      secNotify(i18n.t("msgs.sessionRevoked"));
+    } catch (err) { secNotify(err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.failedRevokeSession"), "error"); }
     setSessionBusy(null);
   };
 
   const handleLogoutAll = async () => {
-    if (!(await confirm({ title: t("profile.signOutFromAllDevices"), message: t("profile.youWillBeSignedOut"), confirmLabel: "Sign out everywhere" }))) return;
+    if (!(await confirm({ title: t("profile.signOutFromAllDevices"), message: t("profile.youWillBeSignedOut"), confirmLabel: i18n.t("msgs.signOutEverywhere") }))) return;
     try {
       await securityService.logoutAll();
     } catch { /* ignore */ }
@@ -351,7 +351,7 @@ const Profile = () => {
 
   const userId = profile?.id || "";
   const userRole = profile?.role || "";
-  const userLabel = userRole === "SELLER" ? "Seller ID" : userRole === "CUSTOMER" ? "Customer ID" : "User ID";
+  const userLabel = userRole === "SELLER" ? i18n.t("msgs.sellerId") : userRole === "CUSTOMER" ? i18n.t("msgs.customerId") : i18n.t("msgs.userId");
   const profilePic = profile?.profilePicture || PLACEHOLDER;
 
   const renderNotification = () => (

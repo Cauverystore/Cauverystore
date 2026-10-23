@@ -141,7 +141,7 @@ const ForgotPassword = () => {
             <p className="auth-subtitle">
               {step === 1
                 ? t("forgotPassword.enterYourEmailAndWe")
-                : `Enter the code sent to ${email}`}
+                : i18n.t("msgs.enterCodeSentTo", { email })}
             </p>
           </div>
 

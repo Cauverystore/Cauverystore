@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/auth.css';
 import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 const Logout = () => {
   const { t } = useTranslation();
 
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [message, setMessage] = useState('Logging out...');
+  const [message, setMessage] = useState(i18n.t("msgs.loggingOut"));
 
   useEffect(() => {
     const performLogout = async () => {

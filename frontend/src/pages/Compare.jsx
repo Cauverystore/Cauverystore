@@ -5,6 +5,7 @@ import { getCompareProducts, removeCompare, clearCompare } from "../utils/compar
 import { addToCartOrLogin } from "../utils/cartActions";
 import { imgUrl } from "../utils/images";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 const PLACEHOLDER = "/images/placeholder.svg";
 
@@ -73,7 +74,7 @@ const Compare = () => {
               <div className="cmp-cell cmp-label">{t("cart.product")}</div>
               {products.map((p) => (
                 <div className="cmp-cell cmp-product" key={pidOf(p)}>
-                  <button className="cmp-remove" onClick={(e) => handleRemove(e, p)} aria-label={`Remove ${nameOf(p)} from compare`}><X size={16} /></button>
+                  <button className="cmp-remove" onClick={(e) => handleRemove(e, p)} aria-label={i18n.t("msgs.removeFromCompareAria", { name: nameOf(p) })}><X size={16} /></button>
                   <img src={imageOf(p)} alt={nameOf(p)} width="120" height="120" loading="lazy" className="cmp-img" onClick={() => navigate(`/product/${pidOf(p)}`)} />
                   <div className="cmp-name" onClick={() => navigate(`/product/${pidOf(p)}`)}>{nameOf(p)}</div>
                 </div>
@@ -106,7 +107,7 @@ const Compare = () => {
                 return (
                   <div className="cmp-cell" key={pidOf(p)}>
                     {stock > 0
-                      ? <span className="cmp-instock">{stock <= 5 ? `Only ${stock} left` : t("compare.inStock")}</span>
+                      ? <span className="cmp-instock">{stock <= 5 ? i18n.t("msgs.onlyLeft", { count: stock }) : t("compare.inStock")}</span>
                       : <span className="cmp-ostock">{t("compare.outOfStock")}</span>}
                   </div>
                 );
