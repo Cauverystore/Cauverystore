@@ -29,9 +29,12 @@ const Navbar = () => {
   // category the store does not have. "Deals" is the offers page, not a category.
   const [categories, setCategories] = useState([]);
   useEffect(() => {
-    api.get("/api/categories")
-      .then((r) => setCategories((Array.isArray(r.data) ? r.data : []).filter((c) => c && c.name)))
-      .catch(() => {});
+    const keep = (r) => (Array.isArray(r.data) ? r.data : []).filter((c) => c && c.name);
+    // Only categories that have products on sale, so the menu never leads to an empty page.
+    // Falls back to the full list if the server has not got the newer endpoint yet.
+    api.get("/api/categories/with-products")
+      .then((r) => setCategories(keep(r)))
+      .catch(() => api.get("/api/categories").then((r) => setCategories(keep(r))).catch(() => {}));
   }, []);
   // Category names in the chosen language (falls back to the English name when none is published).
   const [catNames, setCatNames] = useState({});

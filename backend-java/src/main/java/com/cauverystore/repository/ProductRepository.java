@@ -81,6 +81,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /** Only products a shopper can actually see - used to decide whether a category/section is worth listing (sitemap, homepage). */
     long countByCategoryAndActiveTrue(Category category);
 
+    /** Categories that hold at least one product a shopper can see (active and approved) - for the storefront menu. */
+    @Query("SELECT DISTINCT p.category FROM Product p WHERE p.category IS NOT NULL AND p.active=true AND (p.approvalStatus IS NULL OR LOWER(p.approvalStatus) = 'approved')")
+    List<Category> findCategoriesWithVisibleProducts();
+
     long countBySellerId(Long sellerId);
 
     List<Product> findByApprovalStatus(String approvalStatus);
