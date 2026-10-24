@@ -123,18 +123,24 @@ const CategoryProducts = () => {
     ],
   };
 
+  // The "Buy X Online in Tamil Nadu" title is English wording, so other languages keep the plain "X | Cauvery Store" form.
+  const isEnglish = String(i18n.language || "en").split("-")[0] === "en";
+  const pageTitle = isEnglish
+    ? t("categorySeo.pageTitle", { category: catLabel(category) })
+    : `${catLabel(category)} | Cauvery Store`;
+
   if (known === false) return <NotFound />;
 
   return (
     <div className="products-page">
       <style>{`.cat-products-content { grid-column: 1 / -1; }`}</style>
       <Helmet>
-        <title>{`${catLabel(category)} | Cauvery Store`}</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={seoCopy.metaDescription} />
         <link rel="canonical" href={canonicalUrl} />
         {/* An empty or made-up category is a thin page: keep it out of search results. */}
         {!loading && !error && products.length === 0 && <meta name="robots" content="noindex, follow" />}
-        <meta property="og:title" content={`${catLabel(category)} | Cauvery Store`} />
+        <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={seoCopy.metaDescription} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={canonicalUrl} />
@@ -147,7 +153,7 @@ const CategoryProducts = () => {
           { label: catLabel(category) }
         ]} />
         <div className="section-header">
-          <h2 className="section-title">{catLabel(category)}</h2>
+          <h1 className="section-title">{catLabel(category)}</h1>
           <span className="products-toolbar-count">{products.length}{" "}{t("categoryProducts.products")}</span>
         </div>
         <div className="cat-products-banner">

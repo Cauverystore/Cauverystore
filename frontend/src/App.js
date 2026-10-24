@@ -150,7 +150,6 @@ function App() {
           <meta property="og:description" content={i18n.t("msgs.appOgDesc")} />
           <meta property="og:type" content="website" />
           <meta property="og:image" content="https://cauverystore.in/logo512.png" />
-          <meta property="og:url" content="https://cauverystore.in" />
           <meta name="twitter:card" content="summary_large_image" />
         </Helmet>
         <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({

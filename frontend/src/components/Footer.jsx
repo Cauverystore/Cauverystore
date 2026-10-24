@@ -109,7 +109,6 @@ const Footer = () => {
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
             <Link to="/seller/register" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.sellOn")}</Link>
-            <Link to="/seller/dashboard" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("nav.sellerDashboard")}</Link>
             <Link to="/contact" style={{ color: "#a9c2c0", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.partnerSupport")}</Link>
           </div>
         </div>

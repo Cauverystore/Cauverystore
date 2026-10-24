@@ -85,7 +85,13 @@ const ProductList = () => {
     <div className="products-page">
       <Helmet>
         <title>{category ? `${category} | Cauvery Store` : t("productList.allProductsCauveryStore")}</title>
+        <meta name="description" content={t("productList.metaDescription")} />
         <link rel="canonical" href={listCanonical} />
+        <meta property="og:title" content={category ? `${category} | Cauvery Store` : t("productList.allProductsCauveryStore")} />
+        <meta property="og:description" content={t("productList.metaDescription")} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={listCanonical} />
+        <meta property="og:image" content="https://cauverystore.in/logo512.png" />
         {/* An empty shelf is a thin page: keep it out of search results until it lists something. */}
         {!loading && !error && products.length === 0 && <meta name="robots" content="noindex, follow" />}
       </Helmet>
@@ -120,6 +126,7 @@ const ProductList = () => {
         </aside>
 
         <div className="pl-content">
+          <h1 className="section-title">{category ? categoryLabel(category) : t("productList.allProductsHeading")}</h1>
           <div className="pl-toolbar">
             <button className="pl-mobile-filter-btn" onClick={() => setMobileFilterOpen(true)}>{t("filters.title")}</button>
             <select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="pl-sort-select">

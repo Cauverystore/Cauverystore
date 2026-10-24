@@ -86,7 +86,7 @@ const OffersPage = () => {
       </Helmet>
       {cartMsg &&<div className="pt-toast" role="status" aria-live="polite">{cartMsg}</div>}
       <div className="section-header">
-        <h2 className="section-title">{t("offersPage.currentOffers")}</h2>
+        <h1 className="section-title">{t("offersPage.currentOffers")}</h1>
         <span className="products-toolbar-count">{t("categoryProducts.productsCount", { count: products.length })}</span>
       </div>
 

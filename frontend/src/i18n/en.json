@@ -34,8 +34,8 @@
     "support": "Support",
     "mondayToSaturday9Am": "Monday to Saturday, 9 AM to 6 PM",
     "weCouldnTAddThat": "We couldn't add that to your cart. Please try again.",
-    "cauveryStoreOnlineShoppingIn": "Cauvery Store | Online Shopping in India",
-    "shopOnlineAtCauveryStore": "Shop online at Cauvery Store. Pay by UPI, card, net banking or wallet, with free delivery on orders of ₹500 or more and 7-day returns.",
+    "cauveryStoreOnlineShoppingIn": "Cauvery Store: Online Shopping from Tamil Nadu Sellers",
+    "shopOnlineAtCauveryStore": "Shop electronics, fashion, home & kitchen and more from Tamil Nadu sellers. Pay by UPI, card or wallet. Free delivery over ₹500, 7-day returns.",
     "onlineShopping": "Online shopping,",
     "delivered": "delivered",
     "freeDeliveryOnOrdersOf": "Free delivery on orders of ₹500 or more, and 7-day returns.",
@@ -988,7 +988,9 @@
     "youMayAlsoLike": "You may also like"
   },
   "productList": {
-    "allProductsCauveryStore": "All Products | Cauvery Store",
+    "allProductsCauveryStore": "All Products from Tamil Nadu Sellers | Cauvery Store",
+    "allProductsHeading": "All Products",
+    "metaDescription": "Browse electronics, fashion, home & kitchen, books and sports from Tamil Nadu sellers. Free delivery over ₹500, 7-day returns.",
     "allCategories": "All Categories",
     "sortBy": "Sort By",
     "sortProducts": "Sort products",
@@ -1447,11 +1449,12 @@
     "searchCrumb": "Search: {{query}}",
     "chatNoUnderstand": "Sorry, I didn't understand that.",
     "quantityOf": "Quantity of {{name}}",
-    "appTitle": "Cauvery Store | Online Shopping in India",
-    "appDesc": "Shop online at Cauvery Store. Free delivery on orders of ₹500 or more and 7-day returns.",
+    "appTitle": "Cauvery Store: Online Shopping from Tamil Nadu Sellers",
+    "appDesc": "Shop electronics, fashion, home & kitchen and more from Tamil Nadu sellers. Pay by UPI, card or wallet. Free delivery over ₹500, 7-day returns.",
     "appOgDesc": "Online shopping in India, delivered to your door."
   },
   "categorySeo": {
+    "pageTitle": "Buy {{category}} Online in Tamil Nadu | Cauvery Store",
     "tshirtsIntro": "T-shirts in a range of colours and sizes. Choose your size on the product page, pay online, and get free delivery on orders of ₹500 or more.",
     "tshirtsMeta": "Shop t-shirts online at Cauvery Store. Choose your size, pay securely, and get free delivery on orders of ₹500 or more.",
     "electronicsIntro": "Phones, laptops, TVs and everyday gadgets. Each product page shows the price, delivery time and return period before you buy.",
