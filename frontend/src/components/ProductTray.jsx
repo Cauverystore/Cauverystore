@@ -226,7 +226,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
           src={imgSrc}
           srcSet={srcSet}
           sizes="(min-width: 960px) 240px, 45vw"
-          alt=""
+          alt={name}
           width="240" height="240"
           className={`pt-image ${imgLoaded ? "loaded" : ""}`}
           loading="lazy"

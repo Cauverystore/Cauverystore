@@ -32,6 +32,11 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    public List<Category> getCategoriesWithProducts() {
+        return productRepo.findCategoriesWithVisibleProducts();
+    }
+
+    @Override
     public Category getCategory(Long id) {
         return categoryRepo.findById(id).orElse(null);
     }

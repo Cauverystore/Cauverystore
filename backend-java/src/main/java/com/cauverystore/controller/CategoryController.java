@@ -25,6 +25,12 @@ public class CategoryController {
         return categoryService.getAllCategories();
     }
 
+    /** Only categories that currently have products on sale - the storefront menu uses this so it never links to an empty page. */
+    @GetMapping("/with-products")
+    public List<Category> getCategoriesWithProducts() {
+        return categoryService.getCategoriesWithProducts();
+    }
+
     @GetMapping("/{id}")
     public Category getCategory(@PathVariable Long id) {
         return categoryService.getCategory(id);
