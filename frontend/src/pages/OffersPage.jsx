@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
@@ -74,13 +75,13 @@ const OffersPage = () => {
       <Helmet>
         <title>{t("offersPage.offersAndDealsCauveryStore")}</title>
         <meta name="description" content={t("offersPage.currentOffersAndDiscountedProducts")} />
-        <link rel="canonical" href="https://cauverystore.in/offers" />
+        <link rel="canonical" href={canonicalFor("/offers")} />
         {/* An empty shelf is a thin page: keep it out of search results until offers exist. */}
         {!loading && products.length === 0 && <meta name="robots" content="noindex, follow" />}
         <meta property="og:title" content={t("offersPage.offersAndDealsCauveryStore")} />
         <meta property="og:description" content={t("offersPage.currentOffersAndDiscountedProductsr28")} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://cauverystore.in/offers" />
+        <meta property="og:url" content={canonicalFor("/offers")} />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
       </Helmet>
       {cartMsg &&<div className="pt-toast" role="status" aria-live="polite">{cartMsg}</div>}

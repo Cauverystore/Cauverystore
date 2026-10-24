@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import { Link } from "react-router-dom";
 import { Package, CreditCard, Clock, Truck, HelpCircle, ArrowRight, ShieldCheck, ChevronDown, Mail, XCircle, AlertTriangle, Ban } from "lucide-react";
 import "../styles/staticLayout.css";
@@ -311,7 +312,7 @@ const ReturnsandRefundPolicy = () => {
       <Helmet>
         <title>{t("returnsandRefundPolicy.returnsCancellationsRefundsPolicyC")}</title>
         <meta name="description" content={t("returnsandRefundPolicy.cauveryStoreSReturnCancellation")} />
-        <link rel="canonical" href="https://cauverystore.in/refund-policy" />
+        <link rel="canonical" href={canonicalFor("/refund-policy")} />
       </Helmet>
 
       <div className="static-content" style={{ maxWidth: "1100px" }}>

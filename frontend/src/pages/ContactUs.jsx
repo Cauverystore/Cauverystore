@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import { Mail, Phone, MapPin, Send, Loader } from "lucide-react";
 import homeService from "../services/homeService";
 import "../styles/contactUs.css";
@@ -52,11 +53,11 @@ const ContactUs = () => {
       <Helmet>
         <title>{t("contactUs.contactUsCauveryStore")}</title>
         <meta name="description" content={t("contactUs.contactCauveryStoreForHelp")} />
-        <link rel="canonical" href="https://cauverystore.in/contact" />
+        <link rel="canonical" href={canonicalFor("/contact")} />
         <meta property="og:title" content={t("contactUs.contactCauveryStore")} />
         <meta property="og:description" content={t("contactUs.questionsAboutAnOrderDelivery")} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://cauverystore.in/contact" />
+        <meta property="og:url" content={canonicalFor("/contact")} />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
       </Helmet>
       <div className="contact-header">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import { Truck, RotateCcw, ShieldCheck, Store } from "lucide-react";
 import api from "../api/axios";
 import { getProductById } from "../services/productService";
@@ -132,7 +133,7 @@ const ProductDetails = () => {
       </Helmet>{tr("productDetails.productNotFound")}</div>
   );
 
-  const canonicalUrl = `https://cauverystore.in/product/${id}`;
+  const canonicalUrl = canonicalFor(`/product/${id}`);
   // The seller's own return period; 7 days is the marketplace default. "No Returns" on the
   // product overrides it, the same way the order system decides.
   const returnDays = /no return/i.test(product.returnPolicy || "") ? 0 : (product.returnWindow ?? 7);

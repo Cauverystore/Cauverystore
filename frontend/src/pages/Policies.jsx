@@ -1,5 +1,6 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import { Link, useNavigate } from "react-router-dom";
 import StaticLayout from "../components/StaticLayout";
 import { useTranslation } from "react-i18next";
@@ -518,7 +519,7 @@ const Policies = ({ tab }) => {
   const activeTab = tabs.some((t) => t.id === wanted) ? wanted : "privacy";
   const setActiveTab = (id) => navigate(tabs.find((t) => t.id === id).path);
   const policy = policies[activeTab];
-  const canonicalUrl = "https://cauverystore.in" + tabs.find((t) => t.id === activeTab).path;
+  const canonicalUrl = canonicalFor(tabs.find((t) => t.id === activeTab).path);
 
   const tabsConfig = tabs.map((t) => ({ id: t.id, label: t.label }));
 

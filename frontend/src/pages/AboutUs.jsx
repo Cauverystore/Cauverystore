@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import { Shield, Truck, IndianRupee, BadgeCheck, Store, HeartHandshake, ArrowRight } from "lucide-react";
 import "../styles/aboutUs.css";
 import { useTranslation } from "react-i18next";
@@ -201,11 +202,11 @@ const AboutUs = () => {
       <Helmet>
         <title>{t("aboutUs.aboutUsCauveryStore")}</title>
         <meta name="description" content={t("aboutUs.cauveryStoreIsAnOnline")} />
-        <link rel="canonical" href="https://cauverystore.in/about" />
+        <link rel="canonical" href={canonicalFor("/about")} />
         <meta property="og:title" content={t("footer.about")} />
         <meta property="og:description" content={t("aboutUs.anOnlineStoreBasedIn")} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://cauverystore.in/about" />
+        <meta property="og:url" content={canonicalFor("/about")} />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
       </Helmet>
 

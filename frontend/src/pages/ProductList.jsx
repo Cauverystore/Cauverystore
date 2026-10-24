@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import api from "../api/axios";
 import { addToCartOrLogin } from "../utils/cartActions";
 import ProductTray, { LoadingSkeleton } from "../components/ProductTray";
@@ -77,8 +78,8 @@ const ProductList = () => {
   // /products?category=X shows the same items as /category/X, so point search engines at
   // the category URL. Other filters (search, sort, page) stay on /products.
   const listCanonical = category
-    ? `https://cauverystore.in/category/${encodeURIComponent(category)}`
-    : "https://cauverystore.in/products";
+    ? canonicalFor(`/category/${encodeURIComponent(category)}`)
+    : canonicalFor("/products");
 
   return (
     <div className="products-page">

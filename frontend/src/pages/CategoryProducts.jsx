@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import { Store } from "lucide-react";
 import { searchProducts } from "../services/productService";
 import api from "../api/axios";
@@ -112,7 +113,7 @@ const CategoryProducts = () => {
   };
 
   const seoCopy = CATEGORY_SEO_COPY[category] || FALLBACK_SEO_COPY(catLabel(category));
-  const canonicalUrl = `https://cauverystore.in/category/${encodeURIComponent(category || "")}`;
+  const canonicalUrl = canonicalFor(`/category/${encodeURIComponent(category || "")}`);
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
