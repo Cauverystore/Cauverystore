@@ -15,4 +15,9 @@ public interface CommissionRateRepository extends JpaRepository<CommissionRate, 
      * the precedence rule is readable.
      */
     List<CommissionRate> findBySellerIdIsNullOrSellerId(Long sellerId);
+
+    /** How many launch offers have been granted, and whether one seller already has theirs. */
+    long countByNotes(String notes);
+
+    boolean existsBySellerIdAndNotes(Long sellerId, String notes);
 }
