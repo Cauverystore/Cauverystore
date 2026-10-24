@@ -1,13 +1,15 @@
 # Cauvery Store
 
-> Cauvery Store (cauverystore.in) is an online store based in Coimbatore, India. Customers shop clothing and other everyday products, pay online and get their order delivered to their door anywhere in India.
+> Cauvery Store (cauverystore.in) is an online store based in Coimbatore, India. Customers shop clothing and other everyday products, pay online and get their order delivered to their door anywhere in India. It is a marketplace: products are listed by sellers that Cauvery Store has approved. It is not connected to the Cauvery emporiums in Karnataka or to other businesses that share the Cauvery name.
 
 ## Key facts
 - Based in Coimbatore, Tamil Nadu, India. Orders are delivered across India.
 - Prices shown on the site include GST. Gift wrap can be added to any order at checkout.
 - Payment is online only, through Razorpay: UPI, credit and debit cards, net banking and wallets. Cash on delivery is not offered at present.
 - Delivery is free on orders of ₹500 or more. Orders normally ship within 1-2 business days and then take 2-7 business days to arrive in most of India.
-- Each product page shows the seller that supplies the item. Products appear on the site only after Cauvery Store has approved them.
+- Each product page shows the seller that supplies the item. Every seller is checked before they can list, and products appear on the site only after Cauvery Store has approved them.
+- Sellers based in India can apply to sell on Cauvery Store; listings go live once approved.
+- The site is available in English, Tamil, Telugu, Hindi, Kannada and Malayalam. Non-English pages use a language prefix, for example https://cauverystore.in/ta/about.
 - Most items can be returned within 7 days of delivery. The return is free if the item is faulty, damaged or wrong.
 - Refunds go back to the original payment method, normally within 5-7 business days.
 - Bulk and corporate orders are priced at a negotiated rate; email support@cauverystore.in for a quote.
@@ -23,6 +25,7 @@
 - [Privacy policy](https://cauverystore.in/privacy-policy)
 - [Terms and conditions](https://cauverystore.in/terms-and-conditions)
 - [Contact](https://cauverystore.in/contact)
+- [Sell on Cauvery Store](https://cauverystore.in/seller/register): seller application
 
 ## Official profiles
 - Facebook: https://www.facebook.com/profile.php?id=61587653639339
@@ -31,3 +34,5 @@
 
 ## Sitemap
 - https://cauverystore.in/sitemap.xml
+
+Last updated: 2026-10-24

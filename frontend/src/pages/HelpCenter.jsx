@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import { Search, Package, Truck, RotateCcw, User, CreditCard, Headphones, ChevronDown } from "lucide-react";
 import StaticLayout from "../components/StaticLayout";
 import api from "../api/axios";
@@ -319,7 +320,7 @@ const HelpCenter = () => {
       <Helmet>
         <title>{tr("helpCenter.helpCenterCauveryStore")}</title>
         {/* /faq and /help both render this page; /faq is the one in the sitemap. */}
-        <link rel="canonical" href="https://cauverystore.in/faq" />
+        <link rel="canonical" href={canonicalFor("/faq")} />
         <meta name="description" content={tr("helpCenter.getAnswersToFrequentlyAsked")} />
         {faqJsonLd && faqJsonLd.mainEntity.length > 0 && (
           <script type="application/ld+json">{JSON.stringify(faqJsonLd).replace(/</g, "\\u003c")}</script>

@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { canonicalFor } from "../i18n/canonical";
 import { Headset, Truck, RotateCcw, ShieldCheck, ArrowRight } from "lucide-react";
 import api from "../api/axios";
 import { addToCart } from "../services/cartService";
@@ -145,7 +146,7 @@ const Home = () => {
           name="description"
           content={t("home.shopOnlineAtCauveryStore")}
         />
-        <link rel="canonical" href="https://cauverystore.in/" />
+        <link rel="canonical" href={canonicalFor("/")} />
         <meta property="og:title" content={t("home.cauveryStoreOnlineShoppingIn")} />
         <meta
           property="og:description"
@@ -153,7 +154,7 @@ const Home = () => {
         />
         <meta property="og:image" content="https://cauverystore.in/logo512.png" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://cauverystore.in/" />
+        <meta property="og:url" content={canonicalFor("/")} />
       </Helmet>
       {toast && (
         <div className={`sn-toast sn-toast-${toast.type}`} role="status" aria-live="polite">
