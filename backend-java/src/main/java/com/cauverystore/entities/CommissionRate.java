@@ -40,6 +40,17 @@ public class CommissionRate {
     @Column(name = "fixed_fee", nullable = false)
     private Double fixedFee = 0.0;
 
+    /**
+     * Optional price floor for the percentage above. An item priced below this is charged
+     * ratePercentBelowMin instead - how a high-value category keeps its higher rate for
+     * genuinely high-value items only. Both null means one rate for every price.
+     */
+    @Column(name = "min_item_price")
+    private Double minItemPrice;
+
+    @Column(name = "rate_percent_below_min")
+    private Double ratePercentBelowMin;
+
     @Column(name = "effective_from", nullable = false)
     private LocalDate effectiveFrom;
 
@@ -56,6 +67,15 @@ public class CommissionRate {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    /** The percentage to charge on one item at this unit price. */
+    @Transient
+    public double percentFor(double unitPrice) {
+        if (minItemPrice != null && ratePercentBelowMin != null && unitPrice < minItemPrice) {
+            return ratePercentBelowMin;
+        }
+        return ratePercent;
     }
 
     /** How closely this row targets a seller and category - higher wins. */
@@ -89,6 +109,10 @@ public class CommissionRate {
     public void setRatePercent(Double ratePercent) { this.ratePercent = ratePercent; }
     public Double getFixedFee() { return fixedFee; }
     public void setFixedFee(Double fixedFee) { this.fixedFee = fixedFee; }
+    public Double getMinItemPrice() { return minItemPrice; }
+    public void setMinItemPrice(Double minItemPrice) { this.minItemPrice = minItemPrice; }
+    public Double getRatePercentBelowMin() { return ratePercentBelowMin; }
+    public void setRatePercentBelowMin(Double ratePercentBelowMin) { this.ratePercentBelowMin = ratePercentBelowMin; }
     public LocalDate getEffectiveFrom() { return effectiveFrom; }
     public void setEffectiveFrom(LocalDate effectiveFrom) { this.effectiveFrom = effectiveFrom; }
     public LocalDate getEffectiveTo() { return effectiveTo; }

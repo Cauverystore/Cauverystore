@@ -2,6 +2,7 @@ package com.cauverystore.service;
 
 import com.cauverystore.entities.*;
 import com.cauverystore.repository.*;
+import com.cauverystore.util.CommissionPolicy;
 import com.cauverystore.util.GstComplianceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -218,19 +219,99 @@ public class CommissionInvoiceService {
 
             double orderValue = nz(order.getTotalAmount());
             CommissionRate r = rate.get();
-            double commission = round(orderValue * r.getRatePercent() / 100.0 + nz(r.getFixedFee()));
+            // One percentage for the order, weighted across its items, so a price floor or
+            // items from different categories are charged at their own rates.
+            double percent = blendedPercentFor(order, sellerId, placed, r);
+            double commission = round(orderValue * percent / 100.0 + nz(r.getFixedFee()));
 
             CommissionInvoiceLine line = new CommissionInvoiceLine();
             line.setOrderId(order.getId());
             line.setGstInvoiceId(gstInvoiceRepo.findByOrderId(order.getId())
                     .map(GstInvoice::getId).orElse(null));
             line.setOrderValue(orderValue);
-            line.setRatePercent(r.getRatePercent());
+            line.setRatePercent(percent);
             line.setFixedFee(nz(r.getFixedFee()));
             line.setCommissionAmount(commission);
             lines.add(line);
         }
         return lines;
+    }
+
+    /**
+     * The percentage for an order: each item at the rate for its own category and price,
+     * weighted by what the item contributes. Falls back to the order's resolved rate for an
+     * item whose category has no rate of its own, and for an order with nothing to weigh.
+     */
+    private double blendedPercentFor(Order order, Long sellerId, LocalDate placed, CommissionRate orderRate) {
+        List<OrderItem> items = order.getItems();
+        if (items == null || items.isEmpty()) return orderRate.getRatePercent();
+
+        double[] values = new double[items.size()];
+        double[] percents = new double[items.size()];
+        for (int i = 0; i < items.size(); i++) {
+            OrderItem item = items.get(i);
+            values[i] = item.getPrice() * Math.max(item.getQuantity(), 0);
+            Long itemCategory = item.getProduct() != null && item.getProduct().getCategory() != null
+                    ? item.getProduct().getCategory().getId() : null;
+            CommissionRate itemRate = resolveRate(sellerId, itemCategory, placed).orElse(orderRate);
+            percents[i] = itemRate.percentFor(item.getPrice());
+        }
+        return CommissionPolicy.blendedPercent(values, percents, orderRate.getRatePercent());
+    }
+
+    /**
+     * What each billable order in a month comes to for a seller after commission, the handling
+     * fee and Razorpay's payment costs, and the first day they can be paid. A preview for the
+     * person making the payout: it does not create an invoice or a payment, and it is before
+     * tax collected at source and any refunds.
+     */
+    public Map<String, Object> previewSettlement(Long sellerId, String period) {
+        YearMonth month = YearMonth.parse(period, PERIOD);
+        List<CommissionInvoiceLine> lines = buildLines(sellerId, month.atDay(1), month.atEndOfMonth());
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        double net = 0.0;
+        double commissionTotal = 0.0;
+        double handlingTotal = 0.0;
+        double paymentFeesTotal = 0.0;
+        for (CommissionInvoiceLine line : lines) {
+            double handling = nz(line.getFixedFee());
+            double commission = line.getCommissionAmount() - handling;
+            CommissionPolicy.Settlement s =
+                    CommissionPolicy.settle(line.getOrderValue(), commission, handling);
+            Order order = orderRepo.findById(line.getOrderId()).orElse(null);
+            LocalDate delivered = order != null && order.getDeliveredAt() != null
+                    ? order.getDeliveredAt().toLocalDate() : null;
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("orderId", line.getOrderId());
+            row.put("orderValue", s.orderValue());
+            row.put("commissionPercent", line.getRatePercent());
+            row.put("commission", s.commission());
+            row.put("handlingFee", s.handlingFee());
+            row.put("gatewayFee", s.gatewayFee());
+            row.put("transferFee", s.transferFee());
+            row.put("sellerNet", s.sellerNet());
+            row.put("deliveredOn", delivered);
+            row.put("payableFrom", CommissionPolicy.payableFrom(delivered));
+            rows.add(row);
+
+            net += s.sellerNet();
+            commissionTotal += s.commission();
+            handlingTotal += s.handlingFee();
+            paymentFeesTotal += s.gatewayFee() + s.transferFee();
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("sellerId", sellerId);
+        result.put("period", period);
+        result.put("orders", rows);
+        result.put("totalCommission", round(commissionTotal));
+        result.put("totalHandlingFees", round(handlingTotal));
+        result.put("totalPaymentFees", round(paymentFeesTotal));
+        result.put("totalSellerNet", round(net));
+        result.put("note", "Before tax collected at source and refunds. An order with no payable-from "
+                + "date has not been delivered yet.");
+        return result;
     }
 
     /** Commission follows a sale that stood - not one cancelled or sent back. */
