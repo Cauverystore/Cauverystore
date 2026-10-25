@@ -12,6 +12,15 @@ const SellerPayouts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [payoutDelayDays, setPayoutDelayDays] = useState(null);
+  const [balance, setBalance] = useState(null);
+  const [statement, setStatement] = useState([]);
+
+  // Balance and statement come from the settlement ledger. If it is not switched on yet, or this
+  // team member cannot see payouts, the cards simply do not appear.
+  useEffect(() => {
+    api.get("/api/seller/finance/balance").then((r) => setBalance(r.data)).catch(() => {});
+    api.get("/api/seller/finance/statement").then((r) => setStatement(Array.isArray(r.data?.lines) ? r.data.lines : [])).catch(() => {});
+  }, []);
 
   // The payout delay lives on the server so this page never states a number the policy has changed.
   // Team members without product permission cannot read it, so a failure just hides the number.
@@ -48,6 +57,23 @@ const SellerPayouts = () => {
             <div style={{ fontSize: "0.8rem", color: "var(--sn-text-secondary)" }}>Total paid to you</div>
             <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>{rupees(totalPaid)}</div>
           </div>
+
+          {balance && balance.tracked && (
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: "1.5rem" }}>
+              {[
+                ["Ready to be paid", balance.payableNow, "Return window closed. Included in the next payout run."],
+                ["Waiting for return window", balance.pending, "Paid after the return window closes."],
+                ...(balance.reserveHeld > 0 ? [["Held in reserve", balance.reserveHeld, `${balance.reservePercent}% of each payout is held against returns.`]] : []),
+                ...(balance.owedToUs > 0 ? [["To be recovered", balance.owedToUs, "Returns and refunds beyond your balance come off your next payout."]] : []),
+              ].map(([label, value, hint]) => (
+                <div key={label} style={{ background: "#fff", border: "1px solid var(--sn-border, #e5e7eb)", borderRadius: 10, padding: "1rem 1.25rem", minWidth: 200, maxWidth: 260 }}>
+                  <div style={{ fontSize: "0.8rem", color: "var(--sn-text-secondary)" }}>{label}</div>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 700 }}>{rupees(value)}</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--sn-text-secondary)", marginTop: 2 }}>{hint}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div style={{ background: "#f8fafc", border: "1px solid var(--sn-border, #e5e7eb)", borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.5rem", fontSize: "0.85rem", color: "#374151", maxWidth: 720 }}>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>How you are paid</div>
@@ -94,6 +120,30 @@ const SellerPayouts = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {statement.length > 0 && (
+            <div style={{ marginTop: "2rem" }}>
+              <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "0.25rem" }}>Statement</h2>
+              <p style={{ color: "var(--sn-text-secondary)", fontSize: "0.85rem", margin: "0 0 0.75rem" }}>Every sale, fee, tax and refund that makes up your balance. Money in is green, money out is red.</p>
+              <div style={{ overflowX: "auto" }}>
+                <table className="sn-data-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead><tr style={{ background: "#f8f8f8" }}>
+                    <th style={cell}>Order</th><th style={cell}>What</th><th style={cell}>Amount</th><th style={cell}>Payable from</th>
+                  </tr></thead>
+                  <tbody>
+                    {statement.map((l) => (
+                      <tr key={l.id} style={{ borderBottom: "1px solid var(--sn-border)" }}>
+                        <td style={cell}>{l.orderId ? `#${l.orderId}` : "—"}</td>
+                        <td style={cell}>{l.description}</td>
+                        <td style={{ ...cell, fontWeight: 600, color: l.amount < 0 ? "#b91c1c" : "#15803d" }}>{rupees(l.amount)}</td>
+                        <td style={cell}>{dateText(l.availableOn)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
