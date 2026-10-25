@@ -1,5 +1,6 @@
 package com.cauverystore.controller;
 
+import com.cauverystore.entities.CommissionRate;
 import com.cauverystore.entities.SellerPayout;
 import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.repository.GstConfigurationRepository;
@@ -7,12 +8,14 @@ import com.cauverystore.repository.SellerGstinRepository;
 import com.cauverystore.repository.SellerPayoutRepository;
 import com.cauverystore.repository.SellerRegistrationRepository;
 import com.cauverystore.repository.UserRepository;
+import com.cauverystore.service.CommissionInvoiceService;
 import com.cauverystore.service.ProductService;
 import com.cauverystore.service.SellerAccessService;
 import com.cauverystore.service.SellerBrandService;
 import com.cauverystore.service.SellerLicenceService;
 import com.cauverystore.service.SellerPermissions;
 import com.cauverystore.service.SellerService;
+import com.cauverystore.util.CommissionPolicy;
 import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.service.ShippingLabelService;
 import org.springframework.http.HttpHeaders;
@@ -23,9 +26,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/seller")
@@ -43,6 +48,7 @@ public class SellerController {
     private final SellerGstinRepository sellerGstinRepo;
     private final SellerAccessService access;
     private final SellerBrandService brandService;
+    private final CommissionInvoiceService commissionService;
 
     public SellerController(SellerService sellerService, ProductService productService, UserRepository userRepo,
                             GstConfigurationRepository gstConfigRepo,
@@ -52,7 +58,8 @@ public class SellerController {
                             SellerLicenceService licenceService,
                             SellerGstinRepository sellerGstinRepo,
                             SellerAccessService access,
-                            SellerBrandService brandService) {
+                            SellerBrandService brandService,
+                            CommissionInvoiceService commissionService) {
         this.sellerService = sellerService;
         this.productService = productService;
         this.userRepo = userRepo;
@@ -64,6 +71,7 @@ public class SellerController {
         this.sellerGstinRepo = sellerGstinRepo;
         this.access = access;
         this.brandService = brandService;
+        this.commissionService = commissionService;
     }
 
     /**
@@ -107,7 +115,7 @@ public class SellerController {
                 .orElse(false);
         if (!hasGstConfig && !hasRegGstin) {
             return ResponseEntity.badRequest().body(Map.of("error",
-                    "Cannot list products. Please configure your GSTIN first in GST Settings."));
+                    "Cannot list products yet. Add your GSTIN on your Dashboard, under GST Information, first."));
         }
         product.setSellerId(sellerId);
         product.setActive(true);
@@ -115,6 +123,41 @@ public class SellerController {
         product.setApprovalStatus("pending");
         if (product.getProductStatus() == null) product.setProductStatus("published");
         return ResponseEntity.ok(productService.addProduct(product));
+    }
+
+    /**
+     * What this seller would be charged on one item, and what they would receive, using the same
+     * rate lookup and settlement arithmetic as the monthly commission invoice. Shown on the Add
+     * Product form so the fee is never a surprise. An estimate for a single-item order: the
+     * handling fee is charged once per order, and Razorpay's fees depend on the final amount.
+     */
+    @GetMapping("/commission-preview")
+    public ResponseEntity<?> commissionPreview(@RequestParam(required = false) Long categoryId,
+                                               @RequestParam(defaultValue = "0") double price) {
+        access.require(SellerPermissions.PRODUCTS_MANAGE);
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("payoutDelayDays", CommissionPolicy.PAYOUT_DELAY_DAYS);
+        Optional<CommissionRate> rate = commissionService.resolveRate(sellerId, categoryId, LocalDate.now());
+        if (rate.isEmpty() || price <= 0) {
+            out.put("available", false);
+            return ResponseEntity.ok(out);
+        }
+        double percent = rate.get().percentFor(price);
+        double handling = rate.get().getFixedFee() == null ? 0.0 : rate.get().getFixedFee();
+        double commission = CommissionPolicy.round(price * percent / 100.0);
+        CommissionPolicy.Settlement s = CommissionPolicy.settle(price, commission, handling);
+        out.put("available", true);
+        out.put("price", s.orderValue());
+        out.put("commissionPercent", percent);
+        out.put("commission", s.commission());
+        out.put("handlingFee", s.handlingFee());
+        out.put("paymentFees", CommissionPolicy.round(s.gatewayFee() + s.transferFee()));
+        out.put("sellerNet", s.sellerNet());
+        out.put("launchOffer", rate.get().getNotes() != null
+                && rate.get().getNotes().contains(CommissionPolicy.LAUNCH_OFFER_NOTE));
+        return ResponseEntity.ok(out);
     }
 
     @PutMapping("/products/{id}")

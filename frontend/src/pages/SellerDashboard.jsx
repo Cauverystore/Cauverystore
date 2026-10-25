@@ -76,16 +76,20 @@ const SellerDashboard = () => {
   const [gstForm, setGstForm] = useState({ gstin: "", panNumber: "", businessName: "", businessAddress: "", licenses: "" });
   const [gstSaving, setGstSaving] = useState(false);
   const [gstSaveMsg, setGstSaveMsg] = useState("");
+  const [store, setStore] = useState(null);
 
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       setError("");
       try {
-        const [dashRes, notifRes] = await Promise.all([
+        const [dashRes, notifRes, storeRes] = await Promise.all([
           api.get("/api/seller/dashboard"),
           api.get("/api/seller/notifications"),
+          // Only used for the setup checklist, so a failure here must not break the dashboard.
+          api.get("/api/seller/store").catch(() => ({ data: null })),
         ]);
+        setStore(storeRes.data);
         const dashData = dashRes.data;
         setData(dashData);
         setNotifications(notifRes.data.alerts || []);
@@ -170,6 +174,15 @@ const SellerDashboard = () => {
     { label: "Replacements", value: data.replacements, icon: "🔄", bg: "#fffbeb", color: "#d97706" },
   ];
 
+  const storeFilled = !!(store?.storeName && store?.address && (store?.contactPhone || store?.contactEmail));
+  // Listing a product needs a GSTIN, so that step comes before the first product.
+  const setupSteps = [
+    { label: "Complete your store profile", help: "Store name, address and a contact number.", done: storeFilled, cta: "Open", action: () => navigate("/seller/store") },
+    { label: "Add your GSTIN", help: "Required before you can list products.", done: !!gstInfo?.gstin, cta: "Add GSTIN", action: () => { setGstEditing(true); setGstForm({ ...gstInfo }); } },
+    { label: "Add your first product", help: "Save it as a draft if you are not ready to publish.", done: (data.totalProducts || 0) > 0, cta: "Add product", action: () => navigate("/seller/products/add") },
+    { label: "Store approved", help: "An admin reviews new stores. We will notify you.", done: store?.status === "ACTIVE" },
+  ];
+
   const renderBadge = (status) => {
     const color = statusBadgeColors[status] || "#6b7280";
     return (
@@ -197,6 +210,35 @@ const SellerDashboard = () => {
           Welcome, {data.sellerName || data.sellerName || "Seller"}
         </p>
       </div>
+
+      {store?.status === "PENDING" && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", borderRadius: 12, padding: "0.9rem 1.25rem", marginBottom: "1.25rem", fontSize: "0.9rem" }}>
+          <strong>Your store is waiting for approval.</strong> You can set up your store and add products now. Products go on sale once an admin approves your store.
+        </div>
+      )}
+
+      {setupSteps.some((st) => !st.done) && (
+        <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: "1.5rem", overflow: "hidden" }}>
+          <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>Finish setting up your store</h3>
+            <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>{setupSteps.filter((st) => st.done).length} of {setupSteps.length} done</span>
+          </div>
+          <div style={{ padding: "0.5rem 1.5rem 1rem" }}>
+            {setupSteps.map((st, i) => (
+              <div key={st.label} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.65rem 0", borderBottom: i < setupSteps.length - 1 ? "1px solid #f3f4f6" : "none" }}>
+                <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, background: st.done ? "#22c55e" : "#e5e7eb", color: st.done ? "#fff" : "#6b7280" }}>{st.done ? "\u2713" : i + 1}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "0.9rem", fontWeight: 600, color: st.done ? "#6b7280" : "#111827", textDecoration: st.done ? "line-through" : "none" }}>{st.label}</div>
+                  {!st.done && st.help && <div style={{ fontSize: "0.78rem", color: "#6b7280" }}>{st.help}</div>}
+                </div>
+                {!st.done && st.action && (
+                  <button style={{ ...btnBase, background: "#0E5C5C", color: "#fff", padding: "0.4rem 1rem", fontSize: "0.8rem" }} onClick={st.action}>{st.cta}</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         {statCards.map((c) => (

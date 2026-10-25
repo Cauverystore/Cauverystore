@@ -11,6 +11,15 @@ const SellerPayouts = () => {
   const [totalPaid, setTotalPaid] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [payoutDelayDays, setPayoutDelayDays] = useState(null);
+
+  // The payout delay lives on the server so this page never states a number the policy has changed.
+  // Team members without product permission cannot read it, so a failure just hides the number.
+  useEffect(() => {
+    api.get("/api/seller/commission-preview", { params: { price: 0 } })
+      .then((r) => setPayoutDelayDays(r.data?.payoutDelayDays ?? null))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.get("/api/seller/payouts")
@@ -38,6 +47,20 @@ const SellerPayouts = () => {
           <div style={{ display: "inline-block", background: "#fff", border: "1px solid var(--sn-border, #e5e7eb)", borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
             <div style={{ fontSize: "0.8rem", color: "var(--sn-text-secondary)" }}>Total paid to you</div>
             <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>{rupees(totalPaid)}</div>
+          </div>
+
+          <div style={{ background: "#f8fafc", border: "1px solid var(--sn-border, #e5e7eb)", borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.5rem", fontSize: "0.85rem", color: "#374151", maxWidth: 720 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>How you are paid</div>
+            <ul style={{ margin: 0, paddingLeft: "1.1rem", lineHeight: 1.6 }}>
+              <li>
+                {payoutDelayDays
+                  ? `We pay ${payoutDelayDays} days after an order is delivered, once the return window has closed.`
+                  : "We pay after an order is delivered and its return window has closed."}
+              </li>
+              <li>From each order we deduct our commission (set by category), a flat handling fee per order, and the payment gateway fees.</li>
+              <li>You can see the commission and what you will receive for any product while you add it.</li>
+              <li>Payments go to the bank account you gave when you registered. To change it, write to support@cauverystore.in.</li>
+            </ul>
           </div>
 
           {payouts.length === 0 ? (
