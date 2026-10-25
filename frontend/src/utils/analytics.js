@@ -76,6 +76,14 @@ export function trackSignUp(method = "email") {
   trackEvent("sign_up", { method });
 }
 
+export function trackSignUpStarted(method = "email") {
+  trackEvent("sign_up_started", { method });
+}
+
+export function trackSignUpFailed(method = "email", reason = "error") {
+  trackEvent("sign_up_failed", { method, reason });
+}
+
 export function trackLogin(method = "email") {
   trackEvent("login", { method });
 }
