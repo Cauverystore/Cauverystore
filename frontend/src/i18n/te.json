@@ -1273,7 +1273,11 @@
     "creatingAccount": "ఖాతా సృష్టిస్తోంది...",
     "orContinueWith": "లేదా దీనితో కొనసాగండి",
     "signUpWithGoogle": "Googleతో సైన్ అప్ చేయండి",
-    "alreadyHaveAnAccount": "ఇప్పటికే ఖాతా ఉందా?"
+    "alreadyHaveAnAccount": "ఇప్పటికే ఖాతా ఉందా?",
+    "orSignUpWithEmail": "లేదా ఇమెయిల్‌తో సైన్ అప్ చేయండి",
+    "didYouMean": "మీరు ఉద్దేశించినది",
+    "emailAlreadyRegistered": "ఈ ఇమెయిల్‌కు ఇప్పటికే ఖాతా ఉంది.",
+    "forgotYourPassword": "పాస్‌వర్డ్ మర్చిపోయారా?"
   },
   "resetPasswordLink": {
     "thisResetLinkIsInvalid": "ఈ రీసెట్ లింక్ చెల్లదు. దయచేసి కొత్తది అభ్యర్థించండి.",

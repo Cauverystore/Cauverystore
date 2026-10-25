@@ -1273,7 +1273,11 @@
     "creatingAccount": "അക്കൗണ്ട് സൃഷ്ടിക്കുന്നു...",
     "orContinueWith": "അല്ലെങ്കിൽ ഇതിലൂടെ തുടരുക",
     "signUpWithGoogle": "Google ഉപയോഗിച്ച് സൈൻ അപ്പ് ചെയ്യുക",
-    "alreadyHaveAnAccount": "ഇതിനകം അക്കൗണ്ട് ഉണ്ടോ?"
+    "alreadyHaveAnAccount": "ഇതിനകം അക്കൗണ്ട് ഉണ്ടോ?",
+    "orSignUpWithEmail": "അല്ലെങ്കിൽ ഇമെയിൽ ഉപയോഗിച്ച് സൈൻ അപ്പ് ചെയ്യുക",
+    "didYouMean": "നിങ്ങൾ ഉദ്ദേശിച്ചത്",
+    "emailAlreadyRegistered": "ഈ ഇമെയിലിന് ഇതിനകം ഒരു അക്കൗണ്ട് ഉണ്ട്.",
+    "forgotYourPassword": "പാസ്‌വേഡ് മറന്നോ?"
   },
   "resetPasswordLink": {
     "thisResetLinkIsInvalid": "ഈ റീസെറ്റ് ലിങ്ക് അസാധുവാണ്. ദയവായി പുതിയത് അഭ്യർത്ഥിക്കുക.",
