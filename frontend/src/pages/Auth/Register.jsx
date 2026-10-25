@@ -157,7 +157,8 @@ const Register = () => {
   const strength = getPasswordStrength(form.password);
   const allRequirementsMet = PASSWORD_REQUIREMENTS.every((r) => r.test(form.password));
   const emailValid = form.email === '' || isValidEmail(form.email);
-  const emailSuggestion = emailValid ? suggestEmail(form.email.trim()) : null;
+  // Only after the field loses focus, so a correct address typed letter by letter never flashes a suggestion.
+  const emailSuggestion = emailValid && touched.email ? suggestEmail(form.email.trim()) : null;
   const phoneValid = form.phone.length === 10;
 
   const update = (field, value) => {
@@ -318,15 +319,17 @@ const Register = () => {
               )}
               {emailSuggestion && (
                 <span className="auth-field-error" style={{ color: 'inherit' }}>
-                  {t("register.didYouMean")}{' '}
-                  <button
-                    type="button"
-                    className="auth-link"
-                    style={{ background: 'none', border: 0, padding: 0, font: 'inherit' }}
-                    onClick={() => update('email', emailSuggestion)}
-                  >
-                    {emailSuggestion}
-                  </button>?
+                  <span>
+                    {t("register.didYouMean")}{' '}
+                    <button
+                      type="button"
+                      className="auth-link"
+                      style={{ background: 'none', border: 0, padding: 0, font: 'inherit' }}
+                      onClick={() => update('email', emailSuggestion)}
+                    >
+                      {emailSuggestion}
+                    </button>?
+                  </span>
                 </span>
               )}
             </div>
