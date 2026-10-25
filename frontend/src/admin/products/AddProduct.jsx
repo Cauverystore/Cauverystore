@@ -297,9 +297,9 @@ const AddProduct = () => {
             <div>Commission ({commission.commissionPercent}%): {"\u2212\u20B9"}{commission.commission.toFixed(2)}</div>
             <div>Handling fee per order: {"\u2212\u20B9"}{commission.handlingFee.toFixed(2)}</div>
             <div>Payment gateway fees (incl. GST): {"\u2212\u20B9"}{commission.paymentFees.toFixed(2)}</div>
-            <div style={{ fontWeight: 700, marginTop: 4 }}>You receive about {"\u20B9"}{commission.sellerNet.toFixed(2)}</div>
+            <div style={{ fontWeight: 700, marginTop: 4 }}>You receive about {"\u20B9"}{commission.sellerNet.toFixed(2)} before taxes on fees</div>
             <div style={{ color: "#64748B", fontSize: "0.75rem", marginTop: 4 }}>
-              An estimate. Paid {commission.payoutDelayDays} days after delivery. Final amounts appear on your commission invoice.
+              An estimate before GST on our fees and tax collected at source, which are shown on your commission invoice and tax statements. Paid {commission.payoutDelayDays} days after delivery.
             </div>
           </div>
         )}
