@@ -346,7 +346,6 @@
 
 .auth-forgot-link {
   text-align: right;
-  margin-top: -var(--spacing-3);
   margin-bottom: var(--spacing-1);
 }
 

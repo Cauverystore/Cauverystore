@@ -1273,7 +1273,11 @@
     "creatingAccount": "ಖಾತೆ ರಚಿಸಲಾಗುತ್ತಿದೆ...",
     "orContinueWith": "ಅಥವಾ ಇದರೊಂದಿಗೆ ಮುಂದುವರಿಸಿ",
     "signUpWithGoogle": "Google ಮೂಲಕ ಸೈನ್ ಅಪ್ ಮಾಡಿ",
-    "alreadyHaveAnAccount": "ಈಗಾಗಲೇ ಖಾತೆ ಇದೆಯೇ?"
+    "alreadyHaveAnAccount": "ಈಗಾಗಲೇ ಖಾತೆ ಇದೆಯೇ?",
+    "orSignUpWithEmail": "ಅಥವಾ ಇಮೇಲ್‌ನೊಂದಿಗೆ ಸೈನ್ ಅಪ್ ಮಾಡಿ",
+    "didYouMean": "ನೀವು ಹೇಳಿದ್ದು",
+    "emailAlreadyRegistered": "ಈ ಇಮೇಲ್‌ಗೆ ಈಗಾಗಲೇ ಖಾತೆ ಇದೆ.",
+    "forgotYourPassword": "ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿರಾ?"
   },
   "resetPasswordLink": {
     "thisResetLinkIsInvalid": "ಈ ರೀಸೆಟ್ ಲಿಂಕ್ ಅಮಾನ್ಯವಾಗಿದೆ. ದಯವಿಟ್ಟು ಹೊಸದನ್ನು ವಿನಂತಿಸಿ.",

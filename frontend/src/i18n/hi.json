@@ -1273,7 +1273,11 @@
     "creatingAccount": "खाता बन रहा है...",
     "orContinueWith": "या इसके साथ जारी रखें",
     "signUpWithGoogle": "Google से साइन अप करें",
-    "alreadyHaveAnAccount": "पहले से खाता है?"
+    "alreadyHaveAnAccount": "पहले से खाता है?",
+    "orSignUpWithEmail": "या ईमेल से साइन अप करें",
+    "didYouMean": "क्या आपका मतलब है",
+    "emailAlreadyRegistered": "इस ईमेल से पहले से एक खाता मौजूद है।",
+    "forgotYourPassword": "पासवर्ड भूल गए?"
   },
   "resetPasswordLink": {
     "thisResetLinkIsInvalid": "यह रीसेट लिंक अमान्य है। कृपया नया अनुरोध करें।",
