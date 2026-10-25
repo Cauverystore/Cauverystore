@@ -225,6 +225,12 @@ public class PaymentService {
         String razorpayPaymentId = body.get("razorpay_payment_id");
         String signature = body.get("razorpay_signature");
 
+        // Cash on delivery chosen inside Razorpay's checkout: no money moves, so Razorpay sends no
+        // signature. It is confirmed by asking Razorpay itself, never by trusting the browser.
+        if (signature == null || signature.isBlank()) {
+            return verifyCodPayment(razorpayOrderId, razorpayPaymentId);
+        }
+
         if (!verifySignature(razorpayOrderId, razorpayPaymentId, signature)) {
             throw new RuntimeException("Payment verification failed");
         }
@@ -292,6 +298,53 @@ public class PaymentService {
         return paymentRepo.save(payment);
     }
 
+    /**
+     * Confirms a cash-on-delivery choice made in Razorpay's checkout.
+     *
+     * The payment must exist at Razorpay, belong to this Razorpay order, be of method "cod" and be
+     * pending. It is stored as COD_PENDING with no paid time, so the unclaimed-payment refund job
+     * (which only looks at taken money) leaves it alone, and the order stays unpaid until
+     * OrderService records the cash at delivery.
+     */
+    @Transactional
+    public Payment verifyCodPayment(String razorpayOrderId, String razorpayPaymentId) {
+        if (razorpayOrderId == null || razorpayOrderId.isBlank()
+                || razorpayPaymentId == null || razorpayPaymentId.isBlank()) {
+            throw new RuntimeException("Payment verification failed");
+        }
+        double amountRupees;
+        try {
+            RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
+            com.razorpay.Payment rp = razorpay.payments.fetch(razorpayPaymentId);
+            String method = rp.get("method");
+            String status = rp.get("status");
+            if (!"cod".equals(method) || !"pending".equals(status)) {
+                throw new RuntimeException("Payment verification failed");
+            }
+            if (!razorpayOrderId.equals(rp.get("order_id"))) {
+                throw new RuntimeException("Payment does not belong to the given order");
+            }
+            int amountPaise = rp.get("amount");
+            amountRupees = amountPaise / 100.0;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to fetch COD payment {} from Razorpay: {}", razorpayPaymentId, e.getMessage(), e);
+            throw new RuntimeException("Unable to verify payment with Razorpay");
+        }
+        Payment payment = paymentRepo.findByRazorpayPaymentId(razorpayPaymentId).orElseGet(Payment::new);
+        payment.setRazorpayOrderId(razorpayOrderId);
+        payment.setRazorpayPaymentId(razorpayPaymentId);
+        payment.setAmount(amountRupees);
+        payment.setCurrency("INR");
+        if (payment.getStatus() == null) payment.setStatus("COD_PENDING");
+        return paymentRepo.save(payment);
+    }
+
+    private static boolean isCodPayment(Payment p) {
+        return p.getStatus() != null && p.getStatus().startsWith("COD");
+    }
+
     // Creates the Refund bookkeeping record AND actually moves the money back via Razorpay's
     // refund API when the order was paid online. Never throws - a gateway failure marks the
     // record FAILED instead of blocking whatever order-lifecycle transaction called this
@@ -336,7 +389,8 @@ public class PaymentService {
         refund.setReason(reason);
 
         Optional<Payment> paymentOpt = paymentRepo.findByOrderId(orderId);
-        if (paymentOpt.isEmpty() || paymentOpt.get().getRazorpayPaymentId() == null) {
+        if (paymentOpt.isEmpty() || paymentOpt.get().getRazorpayPaymentId() == null
+                || isCodPayment(paymentOpt.get())) {
             // Cash on delivery, or a linkage that has broken. Either way there is nothing to
             // reverse, and saying so is the only honest outcome - somebody has to pay this by
             // hand, and the queue is how they find out.
@@ -400,6 +454,13 @@ public class PaymentService {
         refund.setReason(reason);
 
         Optional<Payment> paymentOpt = paymentRepo.findByOrderId(orderId);
+        if (paymentOpt.isPresent() && isCodPayment(paymentOpt.get())) {
+            // Cash was collected at the door: nothing to reverse at Razorpay, so it is paid back by hand.
+            refund.setStatus("AWAITING_MANUAL_TRANSFER");
+            refund.setRefundMethod("MANUAL_BANK_TRANSFER");
+            refund.setExpectedCredit("Awaiting manual bank transfer - cash on delivery has no online payment to reverse");
+            return refundRepo.save(refund);
+        }
         if (paymentOpt.isEmpty() || paymentOpt.get().getRazorpayPaymentId() == null) {
             // A paid order should always have a Razorpay payment linked to it (placeOrder links the
             // captured payment to the order). Every caller only invokes this after order.isPaid(),
