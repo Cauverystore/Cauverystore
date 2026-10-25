@@ -11,6 +11,8 @@ import i18n from "../i18n";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
 // Shown on the review step, so the customer reads "Cash on Delivery" rather than "COD".
+// Orders above this are prepaid only. Keep in step with cod.max-order-value on the server (default 10000).
+const COD_MAX_ORDER_VALUE = 10000;
 const PAYMENT_LABELS = { get COD() { return i18n.t("msgs.payCod"); }, get CARD() { return i18n.t("msgs.payCard"); }, UPI: "UPI", get NET_BANKING() { return i18n.t("msgs.payNetBanking"); }, get WALLET() { return i18n.t("msgs.payWallet"); } };
 
 const Checkout = () => {
@@ -181,7 +183,13 @@ const Checkout = () => {
     }
   };
 
+  const codAllowed = total <= COD_MAX_ORDER_VALUE;
+
   const handlePlaceOrder = async () => {
+    if (paymentMethod === "COD" && !codAllowed) {
+      setError(tr("checkout.codNotAvailableAbove", { max: COD_MAX_ORDER_VALUE.toLocaleString("en-IN") }));
+      return;
+    }
     // The server refuses to invoice goods it cannot tax, so taking payment for them would only
     // produce a payment with no lawful invoice behind it and a refund to arrange afterwards.
     if (bill && bill.canProceed === false) {
@@ -217,11 +225,10 @@ const Checkout = () => {
     setError("");
 
     try {
-      if (paymentMethod === "COD") {
-        const res = await api.post("/api/orders/place", payload);
-        const orderId = res.data?.id || res.data?._id || res.data?.orderId;
-        navigate(`/order-success?id=${orderId}`);
-      } else {
+      // Every method, including Cash on Delivery, goes through Razorpay's checkout. For COD the
+      // customer confirms the order there and pays the cash at the door; the server confirms it
+      // with Razorpay and records the cash when the order is delivered.
+      {
         let rzp;
         try {
           await loadRazorpay();
@@ -252,15 +259,21 @@ const Checkout = () => {
           description: tr("checkout.orderPayment"),
           order_id: paymentData.razorpayOrderId || paymentData.orderId,
           prefill: { name: shipping.fullName, contact: shipping.phone },
+          // Razorpay offers COD on every checkout once it is active, so hide it on large orders.
+          ...(codAllowed ? {} : { config: { display: { hide: [{ method: "cod" }] } } }),
           handler: async function (response) {
             try {
-              await api.post("/api/payment/verify", {
+              const verifyRes = await api.post("/api/payment/verify", {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature
               });
+              // Razorpay's checkout lets the customer pick any method, so what they actually chose
+              // there decides how the order is recorded, not the option clicked on our page.
+              const viaCod = verifyRes.data?.method === "cod";
               const orderRes = await api.post("/api/orders/place", {
                 ...payload,
+                paymentMethod: viaCod ? "COD" : (paymentMethod === "COD" ? "ONLINE" : paymentMethod),
                 paymentId: response.razorpay_payment_id,
                 razorpayOrderId: response.razorpay_order_id
               });
@@ -469,6 +482,7 @@ const Checkout = () => {
                 { value: "UPI", label: "UPI", desc: tr("checkout.googlePayPhonepePaytmOr") },
                 { value: "NET_BANKING", label: tr("footer.netBanking"), desc: tr("checkout.allMajorBanks") },
                 { value: "WALLET", label: tr("checkout.wallet"), desc: tr("checkout.paytmAmazonPayMobikwik") },
+                ...(codAllowed ? [{ value: "COD", label: tr("msgs.payCod"), desc: tr("checkout.payCashWhenDelivered") }] : []),
               ].map((opt) => (
                 <label key={opt.value} onClick={() => setPaymentMethod(opt.value)} style={{
                   display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem",

@@ -389,9 +389,11 @@ const OrderDetail = () => {
           <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.paymentStatus")}</span>
           <span style={{
             fontWeight: 600,
-            color: order?.paymentStatus === "PAID" || order?.paymentStatus === "COMPLETED" ? "#0E5C5C" : "#f59e0b"
+            color: ["PAID", "COMPLETED", "COD_COLLECTED"].includes(order?.paymentStatus) ? "#0E5C5C" : "#f59e0b"
           }}>
-            {order?.paymentStatus || "PENDING"}
+            {order?.paymentStatus === "COD_PENDING" ? t("orderDetail.codPending")
+              : order?.paymentStatus === "COD_COLLECTED" ? t("orderDetail.codCollected")
+              : (order?.paymentStatus || "PENDING")}
           </span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem", fontSize: "0.9rem" }}>

@@ -7,6 +7,7 @@ import com.cauverystore.entities.Refund;
 import com.resend.Resend;
 import com.resend.services.emails.model.CreateEmailOptions;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class EmailService {
@@ -28,6 +32,35 @@ public class EmailService {
 
     private Resend resend;
     private boolean configured = false;
+
+    /**
+     * Sends run here rather than on the request thread.
+     *
+     * The HTML is still built by the caller (so lazily-loaded order and address data is read
+     * inside the caller's transaction); only the network call to Resend is handed off. Two
+     * threads keep us under Resend's default rate limit, and the bounded queue means a Resend
+     * outage cannot pile up memory - overflow is logged and dropped, which matches how send
+     * failures were already treated: no order should fail because an email did.
+     */
+    private final ThreadPoolExecutor sender = new ThreadPoolExecutor(
+            2, 2, 30, TimeUnit.SECONDS, new ArrayBlockingQueue<>(500),
+            runnable -> {
+                Thread t = new Thread(runnable, "email-sender");
+                t.setDaemon(true);
+                return t;
+            },
+            (runnable, executor) -> log.error("Email queue full, message dropped"));
+
+    @PreDestroy
+    void shutdown() {
+        sender.shutdown();
+        try {
+            // Give queued mail a few seconds to leave before the container stops.
+            sender.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
     @PostConstruct
     void init() {
@@ -100,7 +133,7 @@ public class EmailService {
     public void sendSellerApproved(String to, String businessName) {
         String subject = "Your Seller Account is Approved - Cauvery Store";
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Welcome on board!</h2>"
-                + "<p style='color:#4b5563;font-size:14px;'>Congratulations! Your seller account for <strong>" + (businessName != null ? businessName : "your business")
+                + "<p style='color:#4b5563;font-size:14px;'>Congratulations! Your seller account for <strong>" + escape(businessName != null ? businessName : "your business")
                 + "</strong> has been approved. You can now list products, manage inventory and track your compliance on the seller dashboard.</p>"
                 + "<div style='text-align:center;margin:20px 0;'>"
                 + "<a href='https://cauverystore.in/seller/dashboard' style='background:" + TEAL + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Go to Seller Dashboard</a></div>";
@@ -127,8 +160,8 @@ public class EmailService {
         String subject = "Update on Your Seller Application - Cauvery Store";
         String body = "<h2 style='color:" + RED + ";margin-top:0;'>Application Not Approved</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>Thank you for applying to sell on Cauvery Store. Unfortunately your application for <strong>"
-                + (businessName != null ? businessName : "your business") + "</strong> could not be approved."
-                + (reason != null ? " Reason: <strong>" + reason + "</strong>" : "")
+                + escape(businessName != null ? businessName : "your business") + "</strong> could not be approved."
+                + (reason != null ? " Reason: <strong>" + escape(reason) + "</strong>" : "")
                 + "</p><p style='color:#4b5563;font-size:14px;'>You can update your details and resubmit for review.</p>";
         send(to, subject, wrapBranded(body));
     }
@@ -137,9 +170,9 @@ public class EmailService {
         String subject = "Your Seller Account Has Been Suspended - Cauvery Store";
         String body = "<h2 style='color:" + RED + ";margin-top:0;'>Selling Suspended</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>Selling on <strong>"
-                + (businessName != null ? businessName : "your business")
+                + escape(businessName != null ? businessName : "your business")
                 + "</strong> has been suspended and your listings have been withdrawn from sale."
-                + (reason != null ? " Reason: <strong>" + reason + "</strong>" : "")
+                + (reason != null ? " Reason: <strong>" + escape(reason) + "</strong>" : "")
                 + "</p><p style='color:#4b5563;font-size:14px;'>Your account and registration remain "
                 + "intact. Reply to this email if you believe this is a mistake.</p>";
         send(to, subject, wrapBranded(body));
@@ -149,7 +182,7 @@ public class EmailService {
         String subject = "Your Seller Account Has Been Reinstated - Cauvery Store";
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Selling Reinstated</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>The suspension on <strong>"
-                + (businessName != null ? businessName : "your business")
+                + escape(businessName != null ? businessName : "your business")
                 + "</strong> has been lifted, and the listings it took down are back on sale.</p>"
                 + "<div style='text-align:center;margin:20px 0;'>"
                 + "<a href='https://cauverystore.in/seller/dashboard' style='background:" + TEAL
@@ -160,9 +193,9 @@ public class EmailService {
     public void sendAccountSuspended(String to, String name, String reason) {
         String subject = "Your Cauvery Store Account Has Been Suspended";
         String body = "<h2 style='color:" + RED + ";margin-top:0;'>Account Suspended</h2>"
-                + "<p style='color:#4b5563;font-size:14px;'>Hello " + (name != null ? name : "there")
+                + "<p style='color:#4b5563;font-size:14px;'>Hello " + escape(name != null ? name : "there")
                 + ", your Cauvery Store account has been suspended and you have been signed out."
-                + (reason != null ? " Reason: <strong>" + reason + "</strong>" : "")
+                + (reason != null ? " Reason: <strong>" + escape(reason) + "</strong>" : "")
                 + "</p><p style='color:#4b5563;font-size:14px;'>Orders you have already placed are "
                 + "not affected. Reply to this email if you believe this is a mistake.</p>";
         send(to, subject, wrapBranded(body));
@@ -171,7 +204,7 @@ public class EmailService {
     public void sendAccountReinstated(String to, String name) {
         String subject = "Your Cauvery Store Account Has Been Restored";
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Account Restored</h2>"
-                + "<p style='color:#4b5563;font-size:14px;'>Hello " + (name != null ? name : "there")
+                + "<p style='color:#4b5563;font-size:14px;'>Hello " + escape(name != null ? name : "there")
                 + ", the suspension on your Cauvery Store account has been lifted. You can sign in "
                 + "again as usual.</p>";
         send(to, subject, wrapBranded(body));
@@ -186,9 +219,9 @@ public class EmailService {
      */
     public void sendReturnStageUpdate(String to, String returnId, String heading, String body) {
         String subject = heading + " - Return " + returnId + " - Cauvery Store";
-        String html = "<h2 style='color:" + TEAL + ";margin-top:0;'>" + heading + "</h2>"
-                + "<p style='color:#4b5563;font-size:14px;'>Return <strong>" + returnId + "</strong></p>"
-                + "<p style='color:#4b5563;font-size:14px;'>" + body + "</p>"
+        String html = "<h2 style='color:" + TEAL + ";margin-top:0;'>" + escape(heading) + "</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>Return <strong>" + escape(returnId) + "</strong></p>"
+                + "<p style='color:#4b5563;font-size:14px;'>" + escape(body) + "</p>"
                 + "<div style='text-align:center;margin:20px 0;'>"
                 + "<a href='https://cauverystore.in/orders' style='background:" + TEAL
                 + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Track this return</a></div>";
@@ -207,7 +240,7 @@ public class EmailService {
 
     public void sendWelcomeEmail(String to, String name) {
         String subject = "Welcome to Cauvery Store!";
-        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Welcome, " + name + "!</h2>"
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Welcome, " + escape(name) + "!</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>Thank you for joining Cauvery Store. Start exploring our wide range of products!</p>"
                 + "<div style='text-align:center;margin:20px 0;'>"
                 + "<a href='https://cauverystore.in' style='background:" + TEAL + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Browse Products</a></div>";
@@ -230,7 +263,7 @@ public class EmailService {
     public void sendOrderConfirmation(Order order, double discount) {
         if (order.getUser() == null || order.getUser().getEmail() == null) return;
         String to = order.getUser().getEmail();
-        String customerName = order.getUser().getFullName() != null ? order.getUser().getFullName() : "there";
+        String customerName = escape(order.getUser().getFullName() != null ? order.getUser().getFullName() : "there");
         String orderId = String.valueOf(order.getId());
         String orderDate = order.getCreatedAt() != null ? order.getCreatedAt().format(EMAIL_DATE_FORMAT) : "-";
 
@@ -320,7 +353,6 @@ public class EmailService {
         body.append("<div style='background:").append(BEIGE).append(";padding:14px;border-radius:6px;margin-top:16px;font-size:12px;color:#4b5563;'>")
                 .append("<strong>Need help?</strong><br/>")
                 .append("Email: <a href='mailto:support@cauverystore.in'>support@cauverystore.in</a><br/>")
-                .append("Phone: <a href='tel:+919876543210'>+91 98765 43210</a><br/>")
                 .append("<a href='https://cauverystore.in/refund-policy'>Returns &amp; Refund Policy</a> &middot; "
                         + "<a href='https://cauverystore.in/help'>Help Center</a>")
                 .append("</div>")
@@ -348,25 +380,25 @@ public class EmailService {
     private static String formatAddress(Address addr) {
         if (addr == null) return "-";
         java.util.List<String> parts = new java.util.ArrayList<>();
-        if (addr.getLine1() != null && !addr.getLine1().isBlank()) parts.add(addr.getLine1().trim());
-        else if (addr.getStreet() != null && !addr.getStreet().isBlank()) parts.add(addr.getStreet().trim());
-        if (addr.getLine2() != null && !addr.getLine2().isBlank()) parts.add(addr.getLine2().trim());
-        if (addr.getCity() != null && !addr.getCity().isBlank()) parts.add(addr.getCity().trim());
+        if (addr.getLine1() != null && !addr.getLine1().isBlank()) parts.add(escape(addr.getLine1().trim()));
+        else if (addr.getStreet() != null && !addr.getStreet().isBlank()) parts.add(escape(addr.getStreet().trim()));
+        if (addr.getLine2() != null && !addr.getLine2().isBlank()) parts.add(escape(addr.getLine2().trim()));
+        if (addr.getCity() != null && !addr.getCity().isBlank()) parts.add(escape(addr.getCity().trim()));
         parts.add(safe(addr.getState()) + " - " + safe(addr.getPincode()));
         if (addr.getCountry() != null && !addr.getCountry().isBlank()
                 && !"India".equalsIgnoreCase(addr.getCountry().trim())) {
-            parts.add(addr.getCountry().trim());
+            parts.add(escape(addr.getCountry().trim()));
         }
         return String.join(", ", parts);
     }
 
     private static String safe(String s) {
-        return s != null && !s.isBlank() ? s : "-";
+        return s != null && !s.isBlank() ? escape(s) : "-";
     }
 
     public void sendOrderShipped(String to, Map<String, Object> orderData) {
         String subject = "Order Shipped - Cauvery Store";
-        String orderId = orderData.getOrDefault("orderId", "").toString();
+        String orderId = escape(orderData.getOrDefault("orderId", "").toString());
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Your Order Has Been Shipped!</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>Order <strong>#" + orderId + "</strong> is on its way.</p>";
         send(to, subject, wrapBranded(body));
@@ -374,7 +406,7 @@ public class EmailService {
 
     public void sendOrderDelivered(String to, Map<String, Object> orderData) {
         String subject = "Order Delivered - Cauvery Store";
-        String orderId = orderData.getOrDefault("orderId", "").toString();
+        String orderId = escape(orderData.getOrDefault("orderId", "").toString());
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Order Delivered!</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>Order <strong>#" + orderId + "</strong> has been delivered. Enjoy your purchase!</p>";
         send(to, subject, wrapBranded(body));
@@ -382,7 +414,7 @@ public class EmailService {
 
     public void sendPaymentReceived(String to, Map<String, Object> orderData) {
         String subject = "Payment Received - Cauvery Store";
-        String orderId = orderData.getOrDefault("orderId", "").toString();
+        String orderId = escape(orderData.getOrDefault("orderId", "").toString());
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Payment Received</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>We've received your payment for order <strong>#" + orderId + "</strong>.</p>"
                 + "<p style='color:#4b5563;font-size:14px;'>Thank you for shopping with Cauvery Store.</p>";
@@ -393,7 +425,7 @@ public class EmailService {
     public void sendCancellation(Order order, String reason, Refund refund) {
         if (order.getUser() == null || order.getUser().getEmail() == null) return;
         String to = order.getUser().getEmail();
-        String customerName = order.getUser().getFullName() != null ? order.getUser().getFullName() : "there";
+        String customerName = escape(order.getUser().getFullName() != null ? order.getUser().getFullName() : "there");
         String orderId = String.valueOf(order.getId());
         String orderDate = order.getCreatedAt() != null ? order.getCreatedAt().format(EMAIL_DATE_FORMAT) : "-";
         boolean hadReason = reason != null && !reason.isBlank();
@@ -459,7 +491,6 @@ public class EmailService {
         body.append("<div style='background:").append(BEIGE).append(";padding:14px;border-radius:6px;margin-top:16px;font-size:12px;color:#4b5563;'>")
                 .append("<strong>Need help?</strong><br/>")
                 .append("Email: <a href='mailto:support@cauverystore.in'>support@cauverystore.in</a><br/>")
-                .append("Phone: <a href='tel:+919876543210'>+91 98765 43210</a><br/>")
                 .append("<a href='https://cauverystore.in/refund-policy'>Returns &amp; Refund Policy</a>")
                 .append("</div>")
                 .append("<p style='color:#9ca3af;font-size:12px;margin-top:16px;'>We hope to serve you again soon.</p>");
@@ -479,7 +510,7 @@ public class EmailService {
 
     public void sendRefundConfirmation(String to, Map<String, Object> refundData) {
         String subject = "Refund Processed - Cauvery Store";
-        String amount = refundData.getOrDefault("amount", "0").toString();
+        String amount = escape(refundData.getOrDefault("amount", "0").toString());
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>Refund Processed</h2>"
                 + "<p style='color:#4b5563;font-size:14px;'>A refund of <strong>\u20B9" + amount + "</strong> has been processed.</p>";
         send(to, subject, wrapBranded(body));
@@ -523,6 +554,10 @@ public class EmailService {
             log.warn("Email not configured. Would have sent to {} with subject: {}", to, subject);
             return;
         }
+        sender.execute(() -> deliver(to, subject, html));
+    }
+
+    private void deliver(String to, String subject, String html) {
         try {
             CreateEmailOptions request = CreateEmailOptions.builder()
                     .from(fromEmail)
