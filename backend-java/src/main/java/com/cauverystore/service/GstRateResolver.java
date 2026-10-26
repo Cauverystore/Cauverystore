@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -113,17 +115,30 @@ public class GstRateResolver {
          * to the paisa.
          */
         public Split splitInclusive(double grossAmount) {
-            double base = grossAmount / (1 + (totalRate + cessRate) / 100.0);
-            double cgst = round(base * cgstRate / 100.0);
-            double sgst = round(base * sgstRate / 100.0);
-            double igst = round(base * igstRate / 100.0);
-            double cess = round(base * cessRate / 100.0);
-            double taxable = round(grossAmount - cgst - sgst - igst - cess);
-            return new Split(taxable, cgst, sgst, igst, cess);
+            // Exact decimal arithmetic: binary doubles cannot hold most paise values, and a
+            // half-paisa tie such as 0.285 can round the wrong way once it has been through one.
+            BigDecimal gross = BigDecimal.valueOf(grossAmount);
+            BigDecimal divisor = BigDecimal.ONE.add(
+                    BigDecimal.valueOf(totalRate + cessRate).divide(HUNDRED, 10, RoundingMode.HALF_UP));
+            BigDecimal base = gross.divide(divisor, 10, RoundingMode.HALF_UP);
+            BigDecimal cgst = part(base, cgstRate);
+            BigDecimal sgst = part(base, sgstRate);
+            BigDecimal igst = part(base, igstRate);
+            BigDecimal cess = part(base, cessRate);
+            BigDecimal taxable = gross.subtract(cgst).subtract(sgst).subtract(igst).subtract(cess)
+                    .setScale(2, RoundingMode.HALF_UP);
+            return new Split(taxable.doubleValue(), cgst.doubleValue(), sgst.doubleValue(),
+                    igst.doubleValue(), cess.doubleValue());
         }
 
         private static double round(double v) {
             return Math.round(v * 100.0) / 100.0;
+        }
+
+        private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+
+        private static BigDecimal part(BigDecimal base, double rate) {
+            return base.multiply(BigDecimal.valueOf(rate)).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         }
     }
 
