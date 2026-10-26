@@ -237,6 +237,25 @@ public class CommissionInvoiceService {
         return lines;
     }
 
+    /** What an order is charged: the blended percentage, the flat fee and the commission in rupees (fee included). */
+    public record OrderCommission(double percent, double fixedFee, double commission) { }
+
+    /**
+     * The commission for one order, worked out the same way a commission invoice does it, so the
+     * settlement ledger and the monthly invoice cannot disagree. Empty when no rate applies:
+     * the caller must leave the order unposted rather than charge it at zero.
+     */
+    public Optional<OrderCommission> quote(Order order) {
+        if (order.getSellerId() == null || order.getCreatedAt() == null) return Optional.empty();
+        LocalDate placed = order.getCreatedAt().toLocalDate();
+        Optional<CommissionRate> rate = resolveRate(order.getSellerId(), categoryOf(order), placed);
+        if (rate.isEmpty()) return Optional.empty();
+        double percent = blendedPercentFor(order, order.getSellerId(), placed, rate.get());
+        double fixed = nz(rate.get().getFixedFee());
+        double commission = round(nz(order.getTotalAmount()) * percent / 100.0 + fixed);
+        return Optional.of(new OrderCommission(percent, fixed, commission));
+    }
+
     /**
      * The percentage for an order: each item at the rate for its own category and price,
      * weighted by what the item contributes. Falls back to the order's resolved rate for an

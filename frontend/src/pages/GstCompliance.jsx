@@ -366,10 +366,11 @@ const GstCompliance = () => {
 
         {activeTab === "dashboard" && (
           <>
-            {gstnStatus && (
-              <div className={`gst-alert ${gstnStatus.simulated ? "gst-alert-info" : "gst-alert-ok"}`}>
+            {/* Sellers get a plain-language notice, not the adapter name or configuration keys. */}
+            {gstnStatus?.simulated && (
+              <div className="gst-alert gst-alert-info">
                 <SyncIcon size={15} />
-                <span><strong>GSTN Adapter:</strong> {gstnStatus.adapter} — {gstnStatus.message}</span>
+                <span>Automatic sync with the GST portal is not switched on yet. The figures here are for reference. File your returns and e-invoices on the GST portal.</span>
               </div>
             )}
             {loading ? (
@@ -382,7 +383,7 @@ const GstCompliance = () => {
                   <div className="gst-stat-card"><p className="gst-stat-label">Filed</p><p className="gst-stat-value" style={{ color: "#16a34a" }}>{dashboard?.deadlineSummary?.filed || 0}</p></div>
                   <div className="gst-stat-card"><p className="gst-stat-label">Overdue</p><p className="gst-stat-value" style={{ color: "#dc2626" }}>{dashboard?.deadlineSummary?.overdue || 0}</p></div>
                   <div className="gst-stat-card"><p className="gst-stat-label">Due in 7 Days</p><p className="gst-stat-value" style={{ color: "#d97706" }}>{dashboard?.deadlineSummary?.dueSoon || 0}</p></div>
-                  <div className="gst-stat-card"><p className="gst-stat-label">2B Recon</p><p className="gst-stat-value" style={{ color: dashboard?.reconciliationStatus === "OPEN" ? "#d97706" : "#16a34a" }}>{dashboard?.reconciliationStatus || "NOT_STARTED"}</p></div>
+                  <div className="gst-stat-card"><p className="gst-stat-label">2B Recon</p><p className="gst-stat-value" style={{ color: dashboard?.reconciliationStatus === "OPEN" ? "#d97706" : "#16a34a" }}>{(dashboard?.reconciliationStatus || "NOT_STARTED").toLowerCase().replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase())}</p></div>
                 </div>
 
                 {(dashboard?.alerts || []).map((a, i) => (
@@ -694,7 +695,7 @@ const GstCompliance = () => {
               <div className="gst-form" style={{ maxWidth: "100%", marginBottom: "1.5rem" }}>
                 <h3>Reconciliation Detail — {reconDetail.reconciliation?.period}</h3>
                 {reconDetail.gstr2b && (
-                  <div className="gst-alert gst-alert-info"><AlertTriangle size={15} /> <span>GSTR-2B data is simulated ({reconDetail.gstr2b.totalDocuments || 0} documents, &#8377;{(reconDetail.gstr2b.totalItcAvailable || 0).toFixed(2)} ITC available). Configure live GSTN credentials for real data.</span></div>
+                  <div className="gst-alert gst-alert-info"><AlertTriangle size={15} /> <span>GSTR-2B data is sample data for now ({reconDetail.gstr2b.totalDocuments || 0} documents, &#8377;{(reconDetail.gstr2b.totalItcAvailable || 0).toFixed(2)} ITC available). Check the GST portal for your real figures.</span></div>
                 )}
                 <div className="gst-summary-grid">
                   <div className="gst-summary-item"><div className="gst-summary-label">ITC Available (GSTR-2B)</div><div className="gst-summary-value">&#8377;{(reconDetail.reconciliation?.totalItcAvailable || 0).toFixed(2)}</div></div>
@@ -769,7 +770,7 @@ const GstCompliance = () => {
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={handleFetchSettlements} disabled={mpLoading}><Download size={14} /> Settlements</button>
             </div>
             <p style={{ fontSize: "0.82rem", color: "#64748b", marginBottom: "1.5rem" }}>
-              Marketplace adapters are simulated. Supported channels: {CHANNELS.join(", ")}. Configure real credentials for live order/inventory sync.
+              Marketplace sync is not switched on yet. Supported channels: {CHANNELS.join(", ")}.
             </p>
 
             {mpOrders && (
