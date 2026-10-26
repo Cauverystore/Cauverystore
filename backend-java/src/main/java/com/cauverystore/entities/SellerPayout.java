@@ -54,6 +54,19 @@ public class SellerPayout {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
+    /** Set when this payment was matched to a line on the bank statement. */
+    @Column(name = "reconciled_at")
+    private LocalDateTime reconciledAt;
+
+    /** The settlement run line this payment settled, when it came from a run. */
+    @Column(name = "settlement_item_id")
+    private Long settlementItemId;
+
+    public LocalDateTime getReconciledAt() { return reconciledAt; }
+    public void setReconciledAt(LocalDateTime reconciledAt) { this.reconciledAt = reconciledAt; }
+    public Long getSettlementItemId() { return settlementItemId; }
+    public void setSettlementItemId(Long settlementItemId) { this.settlementItemId = settlementItemId; }
+
     @Column(name = "recorded_by")
     private String recordedBy;
 
