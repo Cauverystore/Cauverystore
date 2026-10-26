@@ -27,6 +27,10 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  // true only when the product could not be loaded because of a server/network problem (not "no such product")
+  const [loadError, setLoadError] = useState(false);
+  // true once a published translation of this product has been received for the current language
+  const [translated, setTranslated] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -38,13 +42,34 @@ const ProductDetails = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       setSeller(null);
+      setLoadError(false);
+      setTranslated(false);
+      // 404 (or 400 for a malformed id) is a real "no such product". Anything else (timeout, 5xx, backend
+      // waking up) is retried once, and if it still fails the page says so instead of claiming the product
+      // is gone - that claim goes to search engines as noindex + 404.
+      let res = null;
+      for (let attempt = 0; attempt < 2 && !res; attempt++) {
+        try {
+          res = await getProductById(id);
+        } catch (err) {
+          const status = err?.response?.status;
+          if (status === 404 || status === 400) break;
+          if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 1500));
+          else setLoadError(true);
+        }
+      }
+      if (!res) {
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
       try {
-        const res = await getProductById(id);
         setProduct(res.data);
         // Show the published translation when there is one; any failure leaves the original text in place.
         if (lang !== "en") {
           getLocalizedProduct(id, lang).then((r) => {
             const l = r.data || {};
+            setTranslated(Boolean(l.name));
             setProduct((p) => (p && String(p.id) === String(id) ? {
               ...p,
               name: l.name || p.name,
@@ -123,6 +148,18 @@ const ProductDetails = () => {
   const safeJsonLd = (obj) => JSON.stringify(obj, null, 2).replace(/</g, "\\u003c");
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>{tr("cartDrawer.loading")}</div>;
+  if (!product && loadError) return (
+    <div style={{ textAlign: "center", padding: "3rem" }}>
+      {/* Deliberately NO noindex and NO 404 hint: this is a temporary fault, not a missing product. */}
+      <Helmet>
+        <title>{tr("productDetails.couldNotLoadCauveryStore", "Could not load this product - Cauvery Store")}</title>
+      </Helmet>
+      <p>{tr("productDetails.couldNotLoad", "We could not load this product right now. Please try again.")}</p>
+      <button type="button" onClick={() => window.location.reload()} style={{ marginTop: "1rem", padding: "0.6rem 1.2rem", borderRadius: 999, border: "none", background: "#0E5C5C", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
+        {tr("productDetails.tryAgain", "Try again")}
+      </button>
+    </div>
+  );
   if (!product) return (
     <div style={{ textAlign: "center", padding: "3rem" }}>
       {/* Tells Prerender.io to return a real 404 to crawlers instead of a 200 "soft 404". */}
@@ -133,7 +170,9 @@ const ProductDetails = () => {
       </Helmet>{tr("productDetails.productNotFound")}</div>
   );
 
-  const canonicalUrl = canonicalFor(`/product/${id}`);
+  // A /ta/... URL only counts as its own page once the Tamil text exists. Until then it shows English
+  // product text, so it names the English page as canonical instead of competing with it.
+  const canonicalUrl = canonicalFor(`/product/${id}`, lang !== "en" && !translated ? "en" : undefined);
   // The seller's own return period; 7 days is the marketplace default. "No Returns" on the
   // product overrides it, the same way the order system decides.
   const returnDays = /no return/i.test(product.returnPolicy || "") ? 0 : (product.returnWindow ?? 7);

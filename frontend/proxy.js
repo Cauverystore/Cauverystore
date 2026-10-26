@@ -94,9 +94,15 @@ export default async function proxy(request) {
     try {
       const sitemap = await fetch(BACKEND_URL + "/api/sitemap.xml");
       if (sitemap.ok) {
+        // fetch() has already decoded a gzip body, but the original Content-Encoding and
+        // Content-Length headers would still describe the compressed bytes. Strict parsers
+        // (Googlebot's sitemap fetcher included) can fail on that mismatch, so drop both.
+        const headers = new Headers(sitemap.headers);
+        headers.delete("content-encoding");
+        headers.delete("content-length");
         return new Response(sitemap.body, {
           status: sitemap.status,
-          headers: sitemap.headers,
+          headers,
         });
       }
     } catch (err) {

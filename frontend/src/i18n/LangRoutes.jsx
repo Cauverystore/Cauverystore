@@ -6,7 +6,10 @@ import { DEFAULT_LANG, SUPPORTED, getStoredLang, isUnprefixed, splitLang, storeL
 
 const SITE = "https://cauverystore.in";
 // Pages that should be offered to Google in every language (hreflang). Private/transactional pages are left out.
-const ALTERNATE_OK = /^\/($|products$|product\/[^/]+$|category\/[^/]+$|offers|about$|help$|policies$|contact$|privacy-policy$|terms-and-conditions$|shipping-policy$|refund-policy$)/;
+// Kept in step with SitemapService: /faq (not /help, whose canonical is /faq) and no /offers while it is empty.
+// Product pages are left out on purpose: the sitemap lists a product only in the languages that have a
+// published translation, and it carries those hreflang links, so the page must not claim more than that.
+const ALTERNATE_OK = /^\/($|products$|category\/[^/]+$|about$|faq$|policies$|contact$|privacy-policy$|terms-and-conditions$|shipping-policy$|refund-policy$)/;
 
 /**
  * Wrap your existing <Routes> with this. It works out the language from the URL, tells i18next,
