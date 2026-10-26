@@ -12,8 +12,10 @@ import { DEFAULT_LANG, isSupported, withLang } from "./langUtils";
 
 export const SITE_URL = "https://cauverystore.in";
 
-export function canonicalFor(path = "/") {
-  const code = String(i18n.language || DEFAULT_LANG).split("-")[0];
+// forceLang: pass "en" for a translated URL whose content is not really translated yet (it then
+// names the English page as canonical, so Google does not treat it as a duplicate).
+export function canonicalFor(path = "/", forceLang) {
+  const code = String(forceLang || i18n.language || DEFAULT_LANG).split("-")[0];
   const lang = isSupported(code) ? code : DEFAULT_LANG;
   return SITE_URL + withLang(path, lang);
 }

@@ -10,7 +10,7 @@
   "proxy": {
     "entrypoint": "proxy.js",
     "matcher": [
-      "/((?!api|static|favicon.ico|manifest.json|robots.txt|service-worker.js|.*\\.(?:png|jpg|jpeg|svg|ico|css|js|map|json|webp|woff2?)).*)"
+      "/((?!api|static|favicon.ico|manifest.json|robots.txt|llms.txt|service-worker.js|.*\\.(?:png|jpg|jpeg|svg|ico|css|js|map|json|webp|woff2?)).*)"
     ]
   }
 }
