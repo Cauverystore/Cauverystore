@@ -1348,6 +1348,7 @@
     "pincodeRequired": "Valid pincode is required",
     "gstin15": "GSTIN must be exactly 15 characters",
     "gstinInvalid": "Invalid GSTIN format",
+    "gstinChecksum": "This GSTIN has a mistyped character - please check it against the registration certificate",
     "legalNameRequired": "Registered legal name is required for a GST invoice",
     "consigneeRequired": "Tell us who is receiving the goods - the invoice has to name the consignee",
     "thirdPartyNeedsGstin": "Delivery to a third party needs your GSTIN. Tick 'Buying for a business' first.",
