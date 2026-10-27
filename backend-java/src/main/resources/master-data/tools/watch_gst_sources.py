@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+"""
+Watches the OPEN official GST sources for new notifications / circulars / corrigenda and
+downloads the PDFs, so a human can review them against gst_rate_seed.json.
+
+What it does
+  * For every source in gst_sources.json: checks robots.txt, fetches the listing page(s),
+    finds PDF links, and compares them with cbic-source/manifest.json.
+  * New PDFs whose URL/title matches `download_if_matches` (default: 2025 onwards) are
+    downloaded into cbic-source/incoming/<source id>/ with a SHA-256 and a manifest entry.
+    Older new links are only recorded (so the first run does not pull the whole 2017 archive).
+  * Writes report.md / report.json: new files, sources it could not check (health), and
+    sources that are manual-only.
+
+What it deliberately does NOT do
+  * It never edits gst_rate_seed.json. A new file is a prompt for review, not a rate change.
+  * It never fetches a site whose robots.txt disallows it, never follows PDF links to hosts
+    outside the source's allowed_hosts, and never logs in to anything.
+  * It never treats "no new files" as "nothing changed": a source that is unreachable,
+    disallowed, or suddenly returns zero PDF links is reported as a health problem.
+
+Python standard library only.
+"""
+import argparse
+import datetime as dt
+import hashlib
+import json
+import re
+import sys
+import time
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib import error, request, robotparser
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
+
+UA = "CauveryStoreGSTWatch/1.0 (+https://cauverystore.in; compliance monitor)"
+MAX_BYTES = 25 * 1024 * 1024
+TIMEOUT = 30
+
+
+class _Links(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links, self._href, self._text = [], None, []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href, self._text = dict(attrs).get("href"), []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append((self._href, " ".join("".join(self._text).split())))
+            self._href = None
+
+
+def _get(url, limit=MAX_BYTES):
+    req = request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
+    with request.urlopen(req, timeout=TIMEOUT) as r:
+        data = r.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError("response larger than %d bytes" % limit)
+    return data
+
+
+class Robots:
+    """robots.txt per host. Anything other than a clean answer means 'do not fetch'."""
+
+    def __init__(self):
+        self._cache = {}
+
+    def allowed(self, url):
+        p = urlparse(url)
+        host = "%s://%s" % (p.scheme, p.netloc)
+        if host not in self._cache:
+            rp = robotparser.RobotFileParser()
+            try:
+                rp.parse(_get(host + "/robots.txt", 1024 * 1024).decode("utf-8", "replace").splitlines())
+                self._cache[host] = rp
+            except error.HTTPError as e:
+                # 404 = no robots file = no restrictions. 401/403/5xx = do not fetch.
+                self._cache[host] = True if e.code == 404 else False
+            except Exception:
+                self._cache[host] = False
+        rp = self._cache[host]
+        if rp is True or rp is False:
+            return rp
+        return rp.can_fetch(UA, url)
+
+
+def _page_urls(src):
+    base, pages = src["url"], int(src.get("pages", 1))
+    if pages <= 1:
+        return [base]
+    p = urlparse(base)
+    out = []
+    for n in range(pages):
+        q = dict(parse_qsl(p.query))
+        q["page"] = str(n)
+        out.append(urlunparse(p._replace(query=urlencode(q))))
+    return out
+
+
+def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
+    rep = {"checked": [], "new": [], "recorded_only": [], "health": [], "manual": []}
+    robots = Robots()
+    today = dt.date.today().isoformat()
+    pattern = re.compile(cfg.get("download_if_matches", r"20(25|26|27|28)"))
+    budget = int(cfg.get("max_downloads_per_run", 40))
+
+    def fetchable(url):
+        scheme = urlparse(url).scheme
+        host = urlparse(url).hostname
+        if scheme != "https" and not (allow_local and host in ("127.0.0.1", "localhost")):
+            return False
+        return robots.allowed(url)
+
+    for src in cfg["sources"]:
+        if src.get("manual_only"):
+            rep["manual"].append({"id": src["id"], "label": src["label"], "url": src["url"],
+                                  "reason": src.get("reason", "")})
+            continue
+        hosts = set(src["allowed_hosts"])
+        found = {}
+        for page in _page_urls(src):
+            if not fetchable(page):
+                rep["health"].append("%s: not fetched (robots.txt disallows it, or could not be read): %s"
+                                     % (src["id"], page))
+                continue
+            time.sleep(delay)
+            try:
+                parser = _Links()
+                parser.feed(_get(page).decode("utf-8", "replace"))
+            except Exception as e:
+                rep["health"].append("%s: could not read %s (%s)" % (src["id"], page, e))
+                continue
+            for href, text in parser.links:
+                if not href:
+                    continue
+                url = urljoin(page, href).split("#")[0]
+                u = urlparse(url)
+                if u.path.lower().endswith(".pdf") and u.hostname in hosts:
+                    found.setdefault(url, text or Path(u.path).name)
+        rep["checked"].append({"id": src["id"], "label": src["label"], "pdf_links": len(found)})
+        if not found:
+            rep["health"].append("%s: found 0 PDF links - the page layout may have changed or the "
+                                 "site is down; this source is NOT being checked" % src["id"])
+            continue
+        for url, title in found.items():
+            if url in manifest:
+                continue
+            entry = {"source": src["id"], "title": title, "first_seen": today}
+            if not pattern.search(url + " " + title):
+                entry["downloaded"] = False
+                manifest[url] = entry
+                rep["recorded_only"].append(url)
+                continue
+            if budget <= 0:
+                continue  # stays unrecorded, picked up on the next run
+            if not fetchable(url):
+                rep["health"].append("%s: PDF not fetched (robots.txt): %s" % (src["id"], url))
+                continue
+            time.sleep(delay)
+            try:
+                data = _get(url)
+            except Exception as e:
+                rep["health"].append("%s: download failed %s (%s)" % (src["id"], url, e))
+                continue
+            if not data.startswith(b"%PDF"):
+                rep["health"].append("%s: not a PDF (skipped): %s" % (src["id"], url))
+                continue
+            digest = hashlib.sha256(data).hexdigest()
+            name = re.sub(r"[^A-Za-z0-9._-]", "_", Path(urlparse(url).path).name) or "file.pdf"
+            dest = out_dir / src["id"] / name
+            if dest.exists():
+                dest = dest.with_name(digest[:8] + "_" + name)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+            entry.update({"downloaded": True, "sha256": digest, "file": str(dest.as_posix()),
+                          "bytes": len(data)})
+            manifest[url] = entry
+            budget -= 1
+            rep["new"].append({"source": src["id"], "title": title, "url": url,
+                               "file": entry["file"], "sha256": digest})
+    return rep
+
+
+def to_markdown(rep):
+    L = ["# GST source watch - %s" % dt.date.today().isoformat(), ""]
+    L.append("## New files (%d)" % len(rep["new"]))
+    for n in rep["new"]:
+        L.append("- **%s** - [%s](%s)  \n  saved as `%s`  \n  sha256 `%s`"
+                 % (n["source"], n["title"], n["url"], n["file"], n["sha256"][:16]))
+    if not rep["new"]:
+        L.append("None.")
+    L += ["", "**Next step for each file:** read it, decide whether it changes a rate, exemption, "
+          "classification or a return/TCS rule, then diff against `gst_rate_seed.json` and apply "
+          "through the normal parser + review. Do not edit the seed from this report alone.", ""]
+    L.append("## Sources that could NOT be checked (%d)" % len(rep["health"]))
+    L += ["- " + h for h in rep["health"]] or ["None."]
+    L += ["", "## Manual-only sources - check these yourself this month"]
+    for m in rep["manual"]:
+        L.append("- [%s](%s) - %s" % (m["label"], m["url"], m["reason"]))
+    L += ["", "## Checked"]
+    for c in rep["checked"]:
+        L.append("- %s: %d PDF link(s) seen" % (c["label"], c["pdf_links"]))
+    L.append("- Older links recorded without download this run: %d" % len(rep["recorded_only"]))
+    L += ["", "_This tool finds documents on open official sites. It cannot prove nothing else was "
+          "published elsewhere. A CA should review the compliance register._"]
+    return "\n".join(L) + "\n"
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    here = Path(__file__).resolve().parent
+    ap.add_argument("--config", default=str(here / "gst_sources.json"))
+    ap.add_argument("--source-dir", default=str(here.parent / "cbic-source"))
+    ap.add_argument("--report-dir", default=".")
+    ap.add_argument("--delay", type=float, default=3.0, help="seconds between requests")
+    ap.add_argument("--allow-local", action="store_true", help="tests only: permit http://localhost")
+    a = ap.parse_args(argv)
+
+    cfg = json.loads(Path(a.config).read_text(encoding="utf-8"))
+    src_dir = Path(a.source_dir)
+    mpath = src_dir / "manifest.json"
+    manifest = json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else {}
+
+    rep = run(cfg, manifest, src_dir / "incoming", a.allow_local, a.delay)
+
+    src_dir.mkdir(parents=True, exist_ok=True)
+    mpath.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    rdir = Path(a.report_dir)
+    rdir.mkdir(parents=True, exist_ok=True)
+    (rdir / "report.md").write_text(to_markdown(rep), encoding="utf-8")
+    (rdir / "report.json").write_text(json.dumps(
+        {"new": len(rep["new"]), "health": len(rep["health"])}) + "\n", encoding="utf-8")
+    print("new=%d health_problems=%d" % (len(rep["new"]), len(rep["health"])))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

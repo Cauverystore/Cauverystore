@@ -60,6 +60,17 @@ public class GstRateFreshnessService {
     @Value("${gst.rate-verification.overdue-after-days:60}")
     private int overdueAfterDays;
 
+    /**
+     * Where a human checks for newer notifications, as "label|url" pairs separated by ';'.
+     * Defaults to the CBIC tax information portal, which lists GST notifications, circulars and
+     * corrigenda. Links only - nothing here fetches or scrapes them (see the class comment).
+     */
+    @Value("${gst.rate-verification.watch-sources:"
+            + "Central Tax (Rate) notifications|https://taxinformation.cbic.gov.in;"
+            + "Integrated Tax (Rate) notifications|https://taxinformation.cbic.gov.in;"
+            + "GST circulars and corrigenda|https://taxinformation.cbic.gov.in}")
+    private String watchSources;
+
     private final GstRateSourceRepository sourceRepo;
     private final AuditService auditService;
 
@@ -155,7 +166,32 @@ public class GstRateFreshnessService {
         out.put("newestEffectiveFrom", newest.map(GstRateSource::getEffectiveFrom).orElse(null));
         out.put("message", message(status, daysSince, newest));
         out.put("checkAt", "https://taxinformation.cbic.gov.in — GST, Notifications, Central Tax (Rate)");
+        out.put("watchSources", watchSourceList());
+        out.put("checklist", List.of(
+                "Central Tax (Rate): anything issued after "
+                        + newest.map(GstRateSource::getNotificationNumber).orElse("the seed") + "?",
+                "Integrated Tax (Rate): the IGST twin of each Central Tax (Rate) notification.",
+                "Corrigenda to notifications already applied (they can change the entry itself).",
+                "Circulars on classification, e-commerce operators (section 52 TCS) and GSTR-8.",
+                "Anything found: record it as pending here, then regenerate the seed."));
         out.put("sources", new ArrayList<>(sourceRepo.findAll()));
+        return out;
+    }
+
+    /** Parses {@code gst.rate-verification.watch-sources}; a malformed entry is skipped, not fatal. */
+    List<Map<String, String>> watchSourceList() {
+        List<Map<String, String>> out = new ArrayList<>();
+        if (watchSources == null) return out;
+        for (String entry : watchSources.split(";")) {
+            int bar = entry.indexOf('|');
+            if (bar <= 0 || bar == entry.length() - 1) continue;
+            String url = entry.substring(bar + 1).trim();
+            if (!url.startsWith("https://")) continue;
+            Map<String, String> m = new LinkedHashMap<>();
+            m.put("label", entry.substring(0, bar).trim());
+            m.put("url", url);
+            out.add(m);
+        }
         return out;
     }
 
