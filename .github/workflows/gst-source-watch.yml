@@ -1,0 +1,73 @@
+name: GST source watch
+
+# Daily at 07:00 IST (01:30 UTC). Finds new GST notifications/circulars on the OPEN official
+# sources, downloads the PDFs into a pull request for human review, and opens an issue when a
+# source could not be checked. It never changes gst_rate_seed.json.
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TOOLS: backend-java/src/main/resources/master-data/tools
+      SRC: backend-java/src/main/resources/master-data/cbic-source
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run watcher
+        run: python -I "$TOOLS/watch_gst_sources.py" --report-dir "$RUNNER_TEMP/gstwatch"
+
+      - name: Show report
+        run: cat "$RUNNER_TEMP/gstwatch/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open a pull request with new files
+        run: |
+          NEW=$(python3 -c "import json,os;print(json.load(open(os.environ['RUNNER_TEMP']+'/gstwatch/report.json'))['new'])")
+          if [ "$NEW" -gt 0 ]; then
+            BR="gst-watch/$(date -u +%Y-%m-%d-%H%M)"
+            git config user.name "gst-source-watch"
+            git config user.email "gst-source-watch@users.noreply.github.com"
+            git checkout -b "$BR"
+            git add "$SRC"
+            git commit -m "GST source watch: $NEW new document(s) to review"
+            git push origin "$BR"
+            gh pr create --title "GST source watch: $NEW new document(s) to review" \
+              --body-file "$RUNNER_TEMP/gstwatch/report.md" --head "$BR"
+          else
+            # keep the manifest current (older links recorded) without a PR
+            if ! git diff --quiet -- "$SRC/manifest.json"; then
+              git config user.name "gst-source-watch"
+              git config user.email "gst-source-watch@users.noreply.github.com"
+              git add "$SRC/manifest.json"
+              git commit -m "GST source watch: update manifest"
+              git push
+            fi
+          fi
+
+      - name: Open an issue if a source could not be checked
+        run: |
+          H=$(python3 -c "import json,os;print(json.load(open(os.environ['RUNNER_TEMP']+'/gstwatch/report.json'))['health'])")
+          T="GST source watch: a source could not be checked"
+          if [ "$H" -gt 0 ] && [ -z "$(gh issue list --state open --search "$T in:title" --json number --jq '.[0].number')" ]; then
+            gh issue create --title "$T" --body-file "$RUNNER_TEMP/gstwatch/report.md"
+          fi
+
+      - name: Monthly reminder for the manual-only portal
+        run: |
+          if [ "$(date -u +%d)" = "01" ]; then
+            gh issue create --title "Monthly GST check: CBIC tax information portal" \
+              --body "Open https://taxinformation.cbic.gov.in (GST search), look for any Central Tax (Rate), Integrated Tax (Rate), corrigendum or circular newer than the newest file in cbic-source/. Download by hand into cbic-source/incoming/, then record the verification in the admin GST screen. This site disallows automated access, so the daily job cannot check it."
+          fi

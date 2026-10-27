@@ -1,0 +1,44 @@
+{
+  "_note": "Only list sources whose robots.txt permits automated reading. 'verified': false means the URL has not yet been seen working by a person - the first run's report will say so by listing it under 'could not be checked' if it fails.",
+  "download_if_matches": "20(25|26|27|28)",
+  "max_downloads_per_run": 40,
+  "sources": [
+    {
+      "id": "gstcouncil-cgst-rate",
+      "label": "GST Council - CGST rate notifications",
+      "url": "https://gstcouncil.gov.in/cgst-rate-notification",
+      "pages": 2,
+      "allowed_hosts": ["gstcouncil.gov.in", "www.gstcouncil.gov.in"],
+      "verified": true
+    },
+    {
+      "id": "gstcouncil-igst-rate",
+      "label": "GST Council - IGST rate notifications",
+      "url": "https://gstcouncil.gov.in/igst-rate-notification",
+      "pages": 2,
+      "allowed_hosts": ["gstcouncil.gov.in", "www.gstcouncil.gov.in"],
+      "verified": false
+    },
+    {
+      "id": "cbic-central-tax-rate",
+      "label": "CBIC GST - Central Tax (Rate) notifications",
+      "url": "https://cbic-gst.gov.in/central-tax-rate.html",
+      "allowed_hosts": ["cbic-gst.gov.in", "www.cbic-gst.gov.in"],
+      "verified": false
+    },
+    {
+      "id": "cbic-integrated-tax-rate",
+      "label": "CBIC GST - Integrated Tax (Rate) notifications",
+      "url": "https://cbic-gst.gov.in/integrated-tax-rate.html",
+      "allowed_hosts": ["cbic-gst.gov.in", "www.cbic-gst.gov.in"],
+      "verified": false
+    },
+    {
+      "id": "cbic-taxinformation-portal",
+      "label": "CBIC tax information portal - GST notifications, circulars, corrigenda",
+      "url": "https://taxinformation.cbic.gov.in/searchPage/search?keyword=GST&taxId=1000001&startIndex=0&paginationFlag=true&rows=10",
+      "manual_only": true,
+      "reason": "robots.txt disallows automated access. Open it yourself, look for anything newer than the newest entry in cbic-source/, download it by hand into cbic-source/incoming/."
+    }
+  ]
+}
