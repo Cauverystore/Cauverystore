@@ -5,6 +5,7 @@ import { compressImages } from "../../utils/compressImage";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
+import useAltText from "../../hooks/useAltText";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -19,6 +20,7 @@ function slugify(text) {
 }
 
 const AddProduct = () => {
+  const altText = useAltText();
   const navigate = useNavigate();
   const isSeller = window.location.pathname.startsWith("/seller");
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
@@ -390,7 +392,7 @@ const AddProduct = () => {
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {images.map((f, i) => (
               <div key={i} style={{ position: "relative", width: "80px", height: "80px", borderRadius: "6px", overflow: "hidden", border: "1px solid #CFE8D6" }}>
-                <img src={URL.createObjectURL(f)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={URL.createObjectURL(f)} alt={altText.uploadPreview(i + 1)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 <button type="button" onClick={() => removeImage(i)}
                   style={{ position: "absolute", top: "2px", right: "2px", width: "20px", height: "20px", borderRadius: "50%", border: "none", background: "rgba(220,38,38,0.8)", color: "#fff", cursor: "pointer", fontSize: "12px", lineHeight: "20px", padding: 0 }}>
                   &times;

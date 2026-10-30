@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/admin.css';
 import '../styles/design-system.css';
 import { ToastProvider } from '../admin/context/ToastContext';
+import useAltText from "../hooks/useAltText";
 
 const menuItems = [
   { to: '/super-admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -21,6 +22,7 @@ const bottomItems = [
 ];
 
 const SuperAdminLayout = () => {
+  const altText = useAltText();
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -97,7 +99,7 @@ const SuperAdminLayout = () => {
           </div>
           {!collapsed && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <img src="/images/logo.jpg" alt="" style={{ height: "0.95rem", width: "auto" }} />
+              <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "0.95rem", width: "auto" }} />
               <div>
                 <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>Cauvery Store</div>
                 <div style={{ fontSize: '0.7rem', color: accentColor, marginTop: '1px' }}>Super Admin</div>

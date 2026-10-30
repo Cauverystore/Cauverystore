@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import '../../styles/auth.css';
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
+import useAltText from "../../hooks/useAltText";
 
 const PASSWORD_REQUIREMENTS = [
   {
@@ -44,6 +45,7 @@ const PASSWORD_REQUIREMENTS = [
 ];
 
 const ResetPasswordLink = () => {
+  const altText = useAltText();
   const { t } = useTranslation();
 
   const navigate = useNavigate();
@@ -84,7 +86,7 @@ const ResetPasswordLink = () => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: '48px', width: 'auto' }} />
+            <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: '48px', width: 'auto' }} />
             <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #0E5C5C)' }}>Cauvery Store</div>
             <h1 className="auth-title">{t("forgotPassword.resetPassword")}</h1>
             <p className="auth-subtitle">{t("resetPasswordLink.chooseANewPasswordFor")}</p>

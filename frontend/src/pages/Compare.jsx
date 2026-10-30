@@ -6,10 +6,12 @@ import { addToCartOrLogin } from "../utils/cartActions";
 import { imgUrl } from "../utils/images";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import useAltText from "../hooks/useAltText";
 
 const PLACEHOLDER = "/images/placeholder.svg";
 
 const Compare = () => {
+  const altText = useAltText();
   const { t } = useTranslation();
 
   const navigate = useNavigate();
@@ -75,7 +77,7 @@ const Compare = () => {
               {products.map((p) => (
                 <div className="cmp-cell cmp-product" key={pidOf(p)}>
                   <button className="cmp-remove" onClick={(e) => handleRemove(e, p)} aria-label={i18n.t("msgs.removeFromCompareAria", { name: nameOf(p) })}><X size={16} /></button>
-                  <img src={imageOf(p)} alt={nameOf(p)} width="120" height="120" loading="lazy" className="cmp-img" onClick={() => navigate(`/product/${pidOf(p)}`)} />
+                  <img src={imageOf(p)} alt={altText.product(nameOf(p))} width="120" height="120" loading="lazy" className="cmp-img" onClick={() => navigate(`/product/${pidOf(p)}`)} />
                   <div className="cmp-name" onClick={() => navigate(`/product/${pidOf(p)}`)}>{nameOf(p)}</div>
                 </div>
               ))}

@@ -6,6 +6,7 @@ import GoogleAuthNative from '../../utils/googleAuthNative';
 import '../../styles/auth.css';
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
+import useAltText from "../../hooks/useAltText";
 
 const isNativeApp = Capacitor.isNativePlatform();
 
@@ -108,6 +109,7 @@ const navigateForRole = (navigate, role) => {
 };
 
 const Login = () => {
+  const altText = useAltText();
   const { t } = useTranslation();
 
   const navigate = useNavigate();
@@ -259,7 +261,7 @@ const Login = () => {
         <div className="auth-container">
           <div className="auth-card">
             <div className="auth-header">
-              <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
+              <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: "48px", width: "auto" }} />
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
               <h1 className="auth-title">{t("login.twoFactorAuthentication")}</h1>
               <p className="auth-subtitle">{t("login.enterThe6DigitCode")}{" "}{email}.</p>
@@ -313,7 +315,7 @@ const Login = () => {
         <div className="auth-container">
           <div className="auth-card">
             <div className="auth-header">
-              <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
+              <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: "48px", width: "auto" }} />
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
               <h1 className="auth-title">{t("login.setANewPassword")}</h1>
               <p className="auth-subtitle">{t("login.yourPasswordWasResetBy")}</p>
@@ -390,7 +392,7 @@ const Login = () => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: "48px", width: "auto" }} />
+            <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: "48px", width: "auto" }} />
             <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
             <h1 className="auth-title">{t("login.welcomeBack")}</h1>
             <p className="auth-subtitle">{t("login.signInToYourAccount")}</p>

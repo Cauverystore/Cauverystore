@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer, Download, Loader } from "lucide-react";
 import api from "../api/axios";
+import useAltText from "../hooks/useAltText";
 
 const GST_INVOICE_STYLES = `
   .giv-page { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
@@ -116,6 +117,7 @@ const numberToWords = (num) => {
 };
 
 const CustomerInvoice = () => {
+  const altText = useAltText();
   const { orderId } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
@@ -215,7 +217,7 @@ const CustomerInvoice = () => {
         <div className="giv-invoice" id="gst-invoice-print">
           <div className="giv-header">
             <div className="giv-header-left">
-              <img src="/images/logo.jpg" alt="Cauvery Store" />
+              <img src="/images/logo.jpg" alt={altText.logo()} />
               <div>
                 <div className="giv-brand-name">Cauvery Store</div>
                 <div className="giv-brand-tagline">Everyday Essentials, Delivered</div>

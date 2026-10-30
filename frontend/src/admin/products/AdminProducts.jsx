@@ -4,8 +4,10 @@ import api from "../../api/axios";
 import Pagination from "../../components/Pagination";
 import "../../styles/adminProducts.css";
 import { showMessage } from "../../components/ConfirmDialog";
+import useAltText from "../../hooks/useAltText";
 
 const AdminProducts = () => {
+  const altText = useAltText();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -94,7 +96,7 @@ const AdminProducts = () => {
               {products.map((p) => (
                 <tr key={p.id || p._id}>
                   <td><input type="checkbox" checked={selected.includes(p.id || p._id)} onChange={() => toggleSelect(p.id || p._id)} /></td>
-                  <td><img src={p.image || p.images?.[0] || "/images/placeholder.svg"} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4 }} /></td>
+                  <td><img src={p.image || p.images?.[0] || "/images/placeholder.svg"} alt={altText.product(p.name)} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4 }} /></td>
                   <td>{p.name}</td><td>{p.category?.name || p.category || ""}</td><td>&#8377;{(p.price || p.dealPrice || 0).toFixed(2)}</td><td>{p.stock ?? 0}</td>
                   <td className="table-actions">
                     <button className="btn-edit" onClick={() => navigate(`/admin/products/edit/${p.id || p._id}`)}>Edit</button>

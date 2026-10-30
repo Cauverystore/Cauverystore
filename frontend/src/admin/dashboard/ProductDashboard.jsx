@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { imgUrl } from "../../utils/images";
 import "../../styles/admin.css";
+import useAltText from "../../hooks/useAltText";
 
 const ProductDashboard = () => {
+  const altText = useAltText();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [products, setProducts] = useState([]);
@@ -124,7 +126,7 @@ const ProductDashboard = () => {
                 <tr key={p.id} style={{ borderBottom: "1px solid var(--sn-border)" }}>
                   <td style={{ padding: "8px" }}>
                     <div style={{ width: "36px", height: "36px", borderRadius: "4px", background: "#f1f5f9", overflow: "hidden" }}>
-                      {(() => { const url = p.images?.find((i) => i.main)?.url || p.images?.[0]?.url; const full = imgUrl(url); return full ? <img src={full} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.target.style.display = "none" }} /> : null; })()}
+                      {(() => { const url = p.images?.find((i) => i.main)?.url || p.images?.[0]?.url; const full = imgUrl(url); return full ? <img src={full} alt={altText.product(p.name)} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.target.style.display = "none" }} /> : null; })()}
                     </div>
                   </td>
                   <td style={{ padding: "8px", fontWeight: 500 }}>{p.name}</td>

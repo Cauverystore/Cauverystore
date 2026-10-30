@@ -6,6 +6,7 @@ import api from "../api/axios";
 import { trackSellerRegisterStarted, trackSellerRegisterCompleted } from "../utils/analytics";
 import { useAuth } from "../context/AuthContext";
 import "../styles/sellerRegistration.css";
+import useAltText from "../hooks/useAltText";
 
 const STEPS = [
   { id: 1, label: "Business", icon: Building2 },
@@ -45,6 +46,7 @@ const AGREEMENTS = [
 ];
 
 const SellerRegistration = () => {
+  const altText = useAltText();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [step, setStep] = useState(0);
@@ -433,7 +435,7 @@ const SellerRegistration = () => {
                 </p>
                 {form.signatureImageUrl ? (
                   <div className="reg-signature-preview">
-                    <img src={form.signatureImageUrl} alt="Signature" />
+                    <img src={form.signatureImageUrl} alt={altText.sellerSignature()} />
                     <button type="button" onClick={() => setForm((f) => ({ ...f, signatureImageUrl: "" }))}>
                       Replace
                     </button>
