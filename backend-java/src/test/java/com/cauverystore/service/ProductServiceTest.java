@@ -643,6 +643,106 @@ class ProductServiceTest {
         assertTrue(rowErrors.get(0).contains("Yes or No"), "should explain the bad value");
     }
 
+    /** One data row: name, category and price as given (null leaves the cell empty). */
+    private MultipartFile sheetRow(String name, String category, Object price) throws Exception {
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet();
+            sheet.createRow(0).createCell(0).setCellValue("header");
+            org.apache.poi.ss.usermodel.Row row = sheet.createRow(1);
+            if (name != null) row.createCell(1).setCellValue(name);
+            if (category != null) row.createCell(3).setCellValue(category);
+            if (price instanceof Double d) row.createCell(4).setCellValue(d);
+            else if (price != null) row.createCell(4).setCellValue(price.toString());
+            row.createCell(5).setCellValue("5");
+            row.createCell(10).setCellValue("1006");
+            wb.write(out);
+            return new org.springframework.mock.web.MockMultipartFile(
+                    "file", "products.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private String onlyRowError(Map<String, Object> result) {
+        assertEquals(0, result.get("total"));
+        List<String> rowErrors = (List<String>) result.get("rowErrors");
+        assertNotNull(rowErrors);
+        assertEquals(1, rowErrors.size());
+        return rowErrors.get(0);
+    }
+
+    @Test
+    void bulkUpload_shouldRejectAnUnknownCategoryAndListTheRealOnes() throws Exception {
+        // It used to save the product with no category, so it never appeared in the shop.
+        com.cauverystore.entities.Category electronics = new com.cauverystore.entities.Category();
+        electronics.setName("Electronics");
+        when(catRepo.findByName("Toys & Games")).thenReturn(java.util.Optional.empty());
+        when(catRepo.findAll()).thenReturn(List.of(electronics));
+
+        String error = onlyRowError(productService.bulkUpload(sheetRow("Robot", "Toys & Games", "100"), 1L));
+
+        assertTrue(error.contains("Toys & Games"), error);
+        assertTrue(error.contains("Electronics"), "should list the categories that exist: " + error);
+        verify(productRepo, never()).save(any());
+    }
+
+    @Test
+    void bulkUpload_shouldMatchACategoryWhateverItsCapitals() throws Exception {
+        com.cauverystore.entities.Category electronics = new com.cauverystore.entities.Category();
+        electronics.setName("Electronics");
+        when(catRepo.findByName("electronics")).thenReturn(java.util.Optional.empty());
+        when(catRepo.findAll()).thenReturn(List.of(electronics));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetRow("TV", "electronics", "100"), 1L);
+
+        assertEquals(1, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertSame(electronics, captor.getValue().getCategory());
+    }
+
+    @Test
+    void bulkUpload_shouldExplainAPriceThatIsNotANumber() throws Exception {
+        String error = onlyRowError(productService.bulkUpload(sheetRow("TV", null, "abc"), 1L));
+
+        assertTrue(error.contains("Price must be a number"), error);
+        assertTrue(error.contains("abc"), error);
+    }
+
+    @Test
+    void bulkUpload_shouldAskForTheNameInsteadOfShowingADatabaseError() throws Exception {
+        String error = onlyRowError(productService.bulkUpload(sheetRow(null, null, "100"), 1L));
+
+        assertTrue(error.contains("Product Name is required"), error);
+        verify(productRepo, never()).save(any());
+    }
+
+    @Test
+    void bulkUpload_shouldHideDatabaseDetailsFromTheRowError() throws Exception {
+        when(productRepo.save(any())).thenThrow(new org.springframework.dao.DataIntegrityViolationException(
+                "could not execute statement [ERROR: null value in column \"x\" of relation \"products\"]"));
+
+        String error = onlyRowError(productService.bulkUpload(sheetRow("TV", null, "100"), 1L));
+
+        assertFalse(error.contains("relation"), "no SQL in a seller-facing message: " + error);
+        assertTrue(error.contains("required column"), error);
+    }
+
+    @Test
+    void bulkUpload_shouldKeepThePaiseInAPriceTypedAsANumber() throws Exception {
+        // Numeric cells were cut to whole numbers, so 499.50 was saved as 499.
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        productService.bulkUpload(sheetRow("TV", null, 499.5), 1L);
+
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertEquals(499.5, captor.getValue().getPrice(), 0.0001);
+    }
+
     @Test
     void updatingAnUntaxableProduct_shouldTakeItOffSaleRatherThanRefuseTheEdit() {
         // The trap: assertSellable threw on every save, so a seller could not correct the
