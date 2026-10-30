@@ -516,6 +516,64 @@ class ProductServiceTest {
         assertEquals(Boolean.FALSE, captor.getValue().getPrePackagedAndLabelled());
     }
 
+    /** A sheet laid out like the current template: headings, three photo columns, then packaging. */
+    private MultipartFile currentTemplateSheet(String name, String packaged, String... imageUrls) throws Exception {
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet();
+            org.apache.poi.ss.usermodel.Row header = sheet.createRow(0);
+            header.createCell(1).setCellValue("Product Name");
+            header.createCell(25).setCellValue("Image 1 URL");
+            header.createCell(26).setCellValue("Image 2 URL");
+            header.createCell(27).setCellValue("Image 3 URL");
+            header.createCell(28).setCellValue("Pre-Packaged and Labelled");
+            header.createCell(29).setCellValue("GST Rate Line ID");
+            org.apache.poi.ss.usermodel.Row row = sheet.createRow(1);
+            row.createCell(1).setCellValue(name);
+            row.createCell(4).setCellValue("100");
+            row.createCell(5).setCellValue("5");
+            row.createCell(10).setCellValue("1006");
+            for (int i = 0; i < imageUrls.length; i++) row.createCell(25 + i).setCellValue(imageUrls[i]);
+            row.createCell(28).setCellValue(packaged);
+            wb.write(out);
+            return new org.springframework.mock.web.MockMultipartFile(
+                    "file", "products.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
+    }
+
+    @Test
+    void bulkUpload_shouldReadPackagingFromItsHeadingInTheThreePhotoTemplate() throws Exception {
+        // The photo columns grew from two to three, which moved packaging one column right.
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(currentTemplateSheet("Rice", "No"), 1L);
+
+        assertEquals(1, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertEquals(Boolean.FALSE, captor.getValue().getPrePackagedAndLabelled());
+    }
+
+    @Test
+    void bulkUpload_shouldTryEveryOneOfTheThreePhotoColumns() throws Exception {
+        // Links that cannot be fetched are reported per photo, so a failure in each column
+        // proves each column was read. The product itself is still saved.
+        when(productRepo.save(any())).thenAnswer(i -> { Product p = i.getArgument(0); p.setId(5L); return p; });
+
+        Map<String, Object> result = productService.bulkUpload(
+                currentTemplateSheet("Rice", "Yes", "not-a-link-1", "not-a-link-2", "not-a-link-3"), 1L);
+
+        assertEquals(1, result.get("total"));
+        @SuppressWarnings("unchecked")
+        List<String> imageErrors = (List<String>) result.get("imageErrors");
+        assertNotNull(imageErrors);
+        assertEquals(3, imageErrors.size());
+        assertTrue(imageErrors.get(0).contains("not-a-link-1"));
+        assertTrue(imageErrors.get(2).contains("not-a-link-3"));
+    }
+
     @Test
     void bulkUpload_shouldRejectAPrePackagedColumnThatIsNotYesOrNo() throws Exception {
         Map<String, Object> result = productService.bulkUpload(sheetWithPackaging("Rice", "1006", "Maybe"), 1L);
