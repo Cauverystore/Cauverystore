@@ -8,6 +8,7 @@ import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
 import "../../styles/admin.css";
 import { confirmAction } from "../../components/ConfirmDialog";
+import ProductImagePicker, { uploadProductImages } from "./ProductImagePicker";
 import useAltText from "../../hooks/useAltText";
 
 const CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"];
@@ -42,6 +43,7 @@ const ProductManagement = () => {
   const [tab, setTab] = useState("add");
   const [form, setForm] = useState({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",billDescription:"",cessRate:"",uom:"NOS",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
   const [submitting, setSubmitting] = useState(false);
+  const [newImages, setNewImages] = useState([]);
   const [msg, setMsg] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -95,8 +97,12 @@ const ProductManagement = () => {
     try {
       const ep = isSeller?"/api/seller/products":"/api/admin/products/add";
       const data = { name:form.name,brand:form.brand,price:parseFloat(form.price),stock:parseInt(form.stock),sku:form.sku,description:form.description,manufacturer:form.manufacturer,modelNumber:form.modelNumber,barcode:form.barcode,hsnCode:form.hsnCode,prePackagedAndLabelled:form.prePackagedAndLabelled,gstRateSelectionId:form.gstRateSelectionId??null,countryOfOrigin:form.countryOfOrigin,shortDescription:form.shortDescription,technicalSpecs:form.technicalSpecs,warranty:form.warranty,returnPolicy:form.returnPolicy,metaTitle:form.metaTitle,metaDescription:form.metaDescription,metaKeywords:form.keywords,billDescription:form.billDescription.trim()||null,cessRate:form.cessRate!==""?parseFloat(form.cessRate):null,uom:form.uom||"NOS",slug:form.slug||slugify(form.name),weight:form.weight?parseFloat(form.weight):null,dimensions:form.dimensions,shippingClass:form.shippingClass,deliveryDays:form.deliveryDays?parseInt(form.deliveryDays):null,badges:form.badges!=="None"?[form.badges]:[] };
-      await api.post(ep, data);
-      setMsg({type:"success",text:"Product created!"}); loadProducts();
+      const res = await api.post(ep, data);
+      const failed = newImages.length>0 ? await uploadProductImages(res.data?.id, newImages) : [];
+      setMsg(failed.length>0
+        ? {type:"error",text:`Product created, but ${failed.length} image(s) could not be uploaded (${failed.join(", ")}). Add them with the Images button in the Products tab.`}
+        : {type:"success",text:newImages.length>0?"Product created with images!":"Product created!"});
+      setNewImages([]); loadProducts();
       setForm({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",billDescription:"",cessRate:"",uom:"NOS",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
     } catch (err) { setMsg({type:"error",text:err.response?.data?.error||"Failed"}); }
     setSubmitting(false);
@@ -275,6 +281,7 @@ const ProductManagement = () => {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.75rem"}}>{fld("Weight (kg)","weight","number",null,"e.g. 0.25")}{fld("Dimensions","dimensions",null,null,"LxWxH in cm")}{fld("Delivery Days","deliveryDays","number")}</div>
           {fld("Shipping Class","shippingClass",null,SHIPPING_CLASS)}
         </div>
+        <ProductImagePicker images={newImages} onChange={setNewImages} sectionStyle={S.section} titleStyle={S.sTitle} />
         <div style={{display:"flex",justifyContent:"flex-end",gap:"10px",marginTop:"0.25rem"}}>
           <button onClick={handleAdd} disabled={submitting} style={{padding:"10px 32px",background:submitting?"#94a3b8":"#2E9B57",color:"#fff",border:"none",borderRadius:"6px",cursor:submitting?"not-allowed":"pointer",fontWeight:600,fontSize:"0.9rem"}}>{submitting?"Creating...":"Create Product"}</button>
         </div>
