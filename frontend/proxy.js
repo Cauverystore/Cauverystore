@@ -25,6 +25,11 @@
 //      for the Production environment, then redeploy.
 //   4. In Prerender.io's dashboard, add cauverystore.in as a recognized domain.
 //
+// Our own service (replaces Prerender.io): deploy prerender-service/ on Railway, then in
+// Vercel set PRERENDER_SERVICE_URL = that service's https address and PRERENDER_TOKEN =
+// the same secret as the Railway service's PRERENDER_TOKEN, and redeploy.
+// See prerender-service/README.md.
+//
 // Without PRERENDER_TOKEN set, this does nothing (calls next() immediately) so
 // the site keeps working exactly as it does today until the token is added.
 //
@@ -120,7 +125,10 @@ export default async function proxy(request) {
     return next();
   }
 
-  const prerenderUrl = "https://service.prerender.io/" + url.toString();
+  // PRERENDER_SERVICE_URL points at our own Prerender service on Railway
+  // (prerender-service/ in this repo). Unset, it uses Prerender.io as before.
+  const service = (process.env.PRERENDER_SERVICE_URL || "https://service.prerender.io").replace(/\/+$/, "");
+  const prerenderUrl = service + "/" + url.toString();
 
   try {
     const prerendered = await fetch(prerenderUrl, {
@@ -128,6 +136,8 @@ export default async function proxy(request) {
         "X-Prerender-Token": token,
         "User-Agent": userAgent,
       },
+      // A stuck render must not hang the crawler: after 25s serve the normal page instead.
+      signal: AbortSignal.timeout(25000),
     });
 
     // A 404 is a real answer too (a page that set prerender-status-code=404): pass it

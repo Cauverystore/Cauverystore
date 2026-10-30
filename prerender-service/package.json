@@ -1,0 +1,16 @@
+{
+  "name": "prerender-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted Prerender: renders cauverystore.in pages in headless Chromium for crawlers.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "prerender": "5.21.6"
+  }
+}
