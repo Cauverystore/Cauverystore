@@ -250,15 +250,23 @@ public class ProductService {
                 if (row == null) continue;
                 try {
                     Product p = new Product();
-                    p.setName(getCell(row, 1));
+                    String productName = getCell(row, 1);
+                    if (productName == null || productName.isBlank()) {
+                        throw new RuntimeException("Product Name is required");
+                    }
+                    p.setName(productName);
                     p.setBrand(getCell(row, 2));
                     String catName = getCell(row, 3);
                     if (catName != null && !catName.isEmpty()) {
-                        Optional<Category> catOpt = catRepo.findByName(catName);
-                        catOpt.ifPresent(p::setCategory);
+                        // A misspelt category used to save the product with no category at all,
+                        // so it never showed up in the shop's category pages.
+                        p.setCategory(findCategory(catName).orElseThrow(() -> new RuntimeException(
+                                "Category '" + catName + "' does not exist. Use one of: " + categoryNames())));
                     }
-                    String priceStr = getCell(row, 4); if (priceStr != null) p.setPrice(Double.parseDouble(priceStr.replace(",","")));
-                    String stockStr = getCell(row, 5); if (stockStr != null) p.setStock(Integer.parseInt(stockStr));
+                    String priceStr = getCell(row, 4);
+                    if (priceStr != null) p.setPrice(parseNumber(priceStr.replace(",", ""), "Price"));
+                    String stockStr = getCell(row, 5);
+                    if (stockStr != null) p.setStock(parseWholeNumber(stockStr, "Stock"));
                     p.setDescription(getCell(row, 6)); p.setManufacturer(getCell(row, 7));
                     p.setModelNumber(getCell(row, 8)); p.setBarcode(getCell(row, 9));
                     p.setHsnCode(getCell(row, 10)); p.setCountryOfOrigin(getCell(row, 11));
@@ -294,9 +302,9 @@ public class ProductService {
                     } else if (name != null && !name.isEmpty()) {
                         p.setSlug(slugify(name));
                     }
-                    String weightStr = getCell(row, 20); if (weightStr != null) p.setWeight(Double.parseDouble(weightStr));
+                    String weightStr = getCell(row, 20); if (weightStr != null) p.setWeight(parseNumber(weightStr, "Weight"));
                     p.setDimensions(getCell(row, 21)); p.setShippingClass(getCell(row, 22));
-                    String delDays = getCell(row, 23); if (delDays != null) p.setDeliveryDays(Integer.parseInt(delDays));
+                    String delDays = getCell(row, 23); if (delDays != null) p.setDeliveryDays(parseWholeNumber(delDays, "Delivery Days"));
                     String badgeStr = getCell(row, 24);
                     if (badgeStr != null && !badgeStr.isEmpty() && !"None".equalsIgnoreCase(badgeStr)) {
                         p.setBadges(new ArrayList<>(List.of(badgeStr)));
@@ -332,8 +340,12 @@ public class ProductService {
                 } catch (Exception e) {
                     errors++;
                     String label = getCell(row, 1);
+                    // Database errors carry SQL and table names that mean nothing to a seller.
+                    String reason = e instanceof org.springframework.dao.DataAccessException
+                            ? "could not be saved - check that every required column is filled in"
+                            : (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
                     rowErrors.add("Row " + (r + 1) + (label != null && !label.isBlank() ? " (" + label + ")" : "")
-                            + ": " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+                            + ": " + reason);
                 }
             }
             wb.close();
@@ -353,6 +365,38 @@ public class ProductService {
         return slug.substring(0, Math.min(slug.length(), 80));
     }
 
+    private Optional<Category> findCategory(String name) {
+        Optional<Category> exact = catRepo.findByName(name);
+        if (exact.isPresent()) return exact;
+        return catRepo.findAll().stream()
+                .filter(c -> c.getName() != null && c.getName().trim().equalsIgnoreCase(name.trim()))
+                .findFirst();
+    }
+
+    private String categoryNames() {
+        List<String> names = catRepo.findAll().stream().map(Category::getName)
+                .filter(n -> n != null && !n.isBlank()).sorted().toList();
+        if (names.isEmpty()) return "(no categories set up yet - ask the store admin)";
+        return String.join(", ", names.subList(0, Math.min(names.size(), 25)))
+                + (names.size() > 25 ? " and " + (names.size() - 25) + " more" : "");
+    }
+
+    private double parseNumber(String value, String column) {
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException e) {
+            throw new RuntimeException(column + " must be a number, got '" + value + "'");
+        }
+    }
+
+    private int parseWholeNumber(String value, String column) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            throw new RuntimeException(column + " must be a whole number, got '" + value + "'");
+        }
+    }
+
     /** Heading text (lower case, trimmed) to column index, from the sheet's first row. */
     private Map<String, Integer> headerColumns(org.apache.poi.ss.usermodel.Row header) {
         Map<String, Integer> cols = new java.util.HashMap<>();
@@ -370,7 +414,9 @@ public class ProductService {
         try {
             return switch (c.getCellType()) {
                 case STRING -> c.getStringCellValue().trim();
-                case NUMERIC -> String.valueOf((long) c.getNumericCellValue());
+                // Keep decimals: a price of 499.50 typed as a number used to arrive as 499.
+                case NUMERIC -> java.math.BigDecimal.valueOf(c.getNumericCellValue())
+                        .stripTrailingZeros().toPlainString();
                 default -> c.toString().trim();
             };
         } catch (Exception e) { return c.toString().trim(); }
