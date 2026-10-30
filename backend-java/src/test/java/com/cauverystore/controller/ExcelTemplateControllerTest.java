@@ -33,6 +33,10 @@ class ExcelTemplateControllerTest {
             for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                 assertEquals("Yes", sheet.getRow(r).getCell(28).getStringCellValue(), "row " + (r + 1));
             }
+            assertEquals("Product Code (leave empty)", header.getCell(0).getStringCellValue());
+            for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+                assertEquals("", sheet.getRow(r).getCell(0).getStringCellValue(), "sample row " + (r + 1) + " must not carry a code");
+            }
             assertEquals("https://picsum.photos/seed/s24ultra3/400/400",
                     sheet.getRow(1).getCell(27).getStringCellValue());
         }

@@ -76,7 +76,9 @@ public class AdminProductController {
     public ResponseEntity<Map<String, Object>> bulkUpload(@RequestParam("file") MultipartFile file) {
         sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         Long sellerId = isSeller() ? getCurrentUserId() : null;
-        return ResponseEntity.ok(productService.bulkUpload(file, sellerId));
+        Map<String, Object> result = productService.bulkUpload(file, sellerId);
+        if (result.containsKey("error")) return ResponseEntity.badRequest().body(result);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping

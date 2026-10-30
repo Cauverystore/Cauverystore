@@ -27,7 +27,7 @@ public class ExcelTemplateController {
     private static final String[] BADGES = {"None","New Arrival","Best Seller","Limited Offer","Discount"};
     private static final String[] PRE_PACKAGED = {"Yes","No"};
     private static final String[] HEADERS = {
-        "Product Code", "Product Name", "Brand", "Category", "Price (₹)", "Stock Quantity",
+        "Product Code (leave empty)", "Product Name", "Brand", "Category", "Price (₹)", "Stock Quantity",
         "Description", "Manufacturer", "Model Number", "Barcode/UPC", "HSN Code",
         "Country of Origin", "Short Description", "Technical Specifications",
         "Warranty", "Return Policy", "Meta Title", "Meta Description",
@@ -66,7 +66,7 @@ public class ExcelTemplateController {
 
         // Sample data rows
         String[][] samples = {
-            {"SNG-S24-001","Samsung Galaxy S24 Ultra","Samsung","Electronics","129999","50",
+            {"","Samsung Galaxy S24 Ultra","Samsung","Electronics","129999","50",
              "Samsung Galaxy S24 Ultra 5G smartphone with 200MP camera, S Pen, Titanium frame",
              "Samsung Electronics","SM-S928B","8806095432100","85171200","South Korea",
              "Flagship smartphone with AI features","Display: 6.8\" QHD+; Processor: Snapdragon 8 Gen 3; RAM: 12GB; Storage: 512GB; Camera: 200MP; Battery: 5000mAh",
@@ -76,7 +76,7 @@ public class ExcelTemplateController {
              "https://picsum.photos/seed/s24ultra/400/400","https://picsum.photos/seed/s24ultra2/400/400","https://picsum.photos/seed/s24ultra3/400/400",
              "Yes",""},
 
-            {"XIA-14-002","Xiaomi 14 Pro","Xiaomi","Electronics","69999","30",
+            {"","Xiaomi 14 Pro","Xiaomi","Electronics","69999","30",
              "Xiaomi 14 Pro with Leica optics, Snapdragon 8 Gen 3, 120W charging",
              "Xiaomi Inc.","2311DRK48G","6934177756230","85171200","China",
              "Leica-powered flagship with hypercharge","Display: 6.73\" LTPO AMOLED; Processor: Snapdragon 8 Gen 3; RAM: 12GB; Camera: 50MP Leica; Battery: 4880mAh; Charging: 120W",
@@ -86,7 +86,7 @@ public class ExcelTemplateController {
              "https://picsum.photos/seed/xiaomi14/400/400","https://picsum.photos/seed/xiaomi14a/400/400","",
              "Yes",""},
 
-            {"SNY-WH5-003","Sony WH-1000XM5 Headphones","Sony","Electronics","29990","60",
+            {"","Sony WH-1000XM5 Headphones","Sony","Electronics","29990","60",
              "Industry-leading noise cancellation with Auto NC Optimizer, crystal clear hands-free calling",
              "Sony Corporation","WH1000XM5","0272429261751","85183000","Japan",
              "Premium wireless noise-cancelling headphones","Driver: 30mm; Frequency: 4Hz-40kHz; ANC: Auto NC Optimizer; Battery: 30hrs; Charging: USB-C; Codec: LDAC, AAC",
@@ -96,7 +96,7 @@ public class ExcelTemplateController {
              "https://picsum.photos/seed/sonywh5/400/400", "", "",
              "Yes",""},
 
-            {"LG-OLED-004","LG C4 65-inch OLED TV","LG","Electronics","164990","12",
+            {"","LG C4 65-inch OLED TV","LG","Electronics","164990","12",
              "LG C4 OLED evo 4K Smart TV with α9 AI Processor, Dolby Vision, Dolby Atmos",
              "LG Electronics","OLED65C4PUA","8806091234567","85287200","South Korea",
              "65-inch OLED 4K Smart TV with AI processor","Display: 65\" OLED evo; Resolution: 4K; Processor: α9 Gen6 AI; HDMI: 4x; OS: webOS; Audio: 40W Dolby Atmos",
@@ -106,7 +106,7 @@ public class ExcelTemplateController {
              "https://picsum.photos/seed/lgc4/400/400", "", "",
              "Yes",""},
 
-            {"PHL-TRIM-005","Philips OneBlade Trimmer","Philips","Electronics","5499","100",
+            {"","Philips OneBlade Trimmer","Philips","Electronics","5499","100",
              "Philips OneBlade Hybrid trimmer and shaver, 45 min battery, washable",
              "Philips India","QP6530/15","8710103123456","85101000","India",
              "Hybrid electric trimmer and shaver","Blade: OneBlade dual-sided; Battery: 45min; Charging: 8hrs; Waterproof: Yes; Attachment: 3 combs",
@@ -155,7 +155,7 @@ public class ExcelTemplateController {
         String[] instructionsText = {
             "",
             "1. Do NOT modify or remove the header row (Row 1). Upload will fail if headers are changed.",
-            "2. Product Code is required — use a unique code per product (e.g., BRAND-MODEL-001).",
+            "2. Product Code must be left EMPTY - the store creates a unique code for every product automatically. If any row has a Product Code, the whole file is refused and nothing is uploaded.",
             "3. Category, Country of Origin, Warranty, Return Policy, Shipping Class, and Badges have dropdown validation.",
             "4. Price must be in Indian Rupees (₹). Do not include the ₹ symbol in the cell — it's formatted automatically.",
             "5. Stock Quantity must be a whole number (integer).",

@@ -574,6 +574,63 @@ class ProductServiceTest {
         assertTrue(imageErrors.get(2).contains("not-a-link-3"));
     }
 
+    private MultipartFile sheetWithCodes(String... codes) throws Exception {
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet();
+            sheet.createRow(0).createCell(0).setCellValue("Product Code (leave empty)");
+            for (int i = 0; i < codes.length; i++) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(i + 1);
+                if (codes[i] != null) row.createCell(0).setCellValue(codes[i]);
+                row.createCell(1).setCellValue("Rice " + i);
+                row.createCell(4).setCellValue("100");
+                row.createCell(5).setCellValue("5");
+                row.createCell(10).setCellValue("1006");
+            }
+            wb.write(out);
+            return new org.springframework.mock.web.MockMultipartFile(
+                    "file", "products.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
+    }
+
+    @Test
+    void bulkUpload_shouldRefuseTheWholeFileWhenAnyRowHasAProductCode() throws Exception {
+        // Codes are always generated; one typed-in code blocks the file and nothing is saved.
+        Map<String, Object> result = productService.bulkUpload(sheetWithCodes(null, "MY-CODE-1", null, "X2"), 1L);
+
+        assertNotNull(result.get("error"));
+        assertTrue(((String) result.get("error")).contains("rows 3, 5"), "should name the rows to clear");
+        assertEquals(List.of(3, 5), result.get("rowsWithProductCode"));
+        verify(productRepo, never()).save(any());
+    }
+
+    @Test
+    void bulkUpload_shouldAcceptRowsWithAnEmptyProductCode() throws Exception {
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetWithCodes(null, null), 1L);
+
+        assertNull(result.get("error"));
+        assertEquals(2, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo, times(2)).save(captor.capture());
+        captor.getAllValues().forEach(p -> assertNull(p.getProductCode(), "the store fills the code in on save"));
+    }
+
+    @Test
+    void addProduct_shouldIgnoreAProductCodeSentWithTheRequest() {
+        when(productRepo.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        Product product = new Product();
+        product.setName("Rice");
+        product.setProductCode("TYPED-IN");
+
+        Product saved = productService.addProduct(product);
+
+        assertNull(saved.getProductCode(), "left for Product#generateCode to fill");
+    }
+
     @Test
     void bulkUpload_shouldRejectAPrePackagedColumnThatIsNotYesOrNo() throws Exception {
         Map<String, Object> result = productService.bulkUpload(sheetWithPackaging("Rice", "1006", "Maybe"), 1L);
