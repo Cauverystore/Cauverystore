@@ -32,11 +32,15 @@ const BulkUpload = () => {
       const errors = data.errors || 0;
       const imgErrors = data.imageErrors || [];
       const rowErrors = data.rowErrors || [];
+      const categoryNotes = data.categoryNotes || [];
       let msg = `Uploaded ${total} product${total !== 1 ? "s" : ""}.`;
       // Rejected rows are not a warning to bury next to the image notices - those rows are
       // simply not in the catalogue, and the seller has to fix and re-upload them.
       if (errors > 0) {
         msg += ` ${errors} row${errors !== 1 ? "s were" : " was"} rejected and not imported.`;
+      }
+      if (categoryNotes.length > 0) {
+        msg += ` ${categoryNotes.length} went to the Others category.`;
       }
       if (imgErrors.length > 0) {
         msg += ` (${imgErrors.length} image warning${imgErrors.length !== 1 ? "s" : ""})`;
@@ -47,6 +51,7 @@ const BulkUpload = () => {
         total,
         errors,
         rowErrors,
+        categoryNotes,
         imageErrors: imgErrors,
       });
     } catch (err) {
@@ -150,6 +155,12 @@ const BulkUpload = () => {
                 <div style={{ marginTop: "8px", fontSize: "0.8rem" }}>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>Rows not imported:</div>
                   {result.rowErrors.map((e, i) => <div key={i}>{e}</div>)}
+                </div>
+              )}
+              {result.categoryNotes && result.categoryNotes.length > 0 && (
+                <div style={{ marginTop: "8px", fontSize: "0.8rem" }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Put in Others (edit the product to choose its category):</div>
+                  {result.categoryNotes.map((e, i) => <div key={i}>{e}</div>)}
                 </div>
               )}
               {result.imageErrors && result.imageErrors.length > 0 && (
