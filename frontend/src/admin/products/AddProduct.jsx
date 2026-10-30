@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
-import { compressImages } from "../../utils/compressImage";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
-import useAltText from "../../hooks/useAltText";
+import ProductImagePicker, { uploadProductImages } from "./ProductImagePicker";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -20,7 +19,6 @@ function slugify(text) {
 }
 
 const AddProduct = () => {
-  const altText = useAltText();
   const navigate = useNavigate();
   const isSeller = window.location.pathname.startsWith("/seller");
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
@@ -40,8 +38,6 @@ const AddProduct = () => {
   const [msg, setMsg] = useState(null);
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
   const [images, setImages] = useState([]);
-  const [imageErrors, setImageErrors] = useState([]);
-  const fileRef = useRef();
 
   const set = (k, v) => {
     const updated = { ...form, [k]: v };
@@ -67,30 +63,6 @@ const AddProduct = () => {
     window.addEventListener("category-changed", handler);
     return () => window.removeEventListener("category-changed", handler);
   }, []);
-
-  const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-  const MAX_FILE_SIZE = 2 * 1024 * 1024;
-  const MAX_IMAGES = 5;
-
-  const handleFiles = (files) => {
-    const fileArr = Array.from(files);
-    const newErrors = [];
-    const valid = fileArr.filter((f) => {
-      if (!ACCEPTED_TYPES.includes(f.type)) { newErrors.push(`${f.name}: Invalid format. Use JPG, PNG, or WebP.`); return false; }
-      if (f.size > MAX_FILE_SIZE) { newErrors.push(`${f.name}: Exceeds 2MB limit.`); return false; }
-      return true;
-    });
-    const combined = [...images, ...valid].slice(0, MAX_IMAGES);
-    if (valid.length + images.length > MAX_IMAGES) {
-      newErrors.push(`Maximum ${MAX_IMAGES} images allowed.`);
-    }
-    setImages(combined);
-    setImageErrors(newErrors);
-  };
-
-  const removeImage = (idx) => {
-    setImages((prev) => prev.filter((_, i) => i !== idx));
-  };
 
   const validate = () => {
     const e = {};
@@ -135,27 +107,16 @@ const AddProduct = () => {
       const endpoint = isSeller ? "/api/seller/products" : "/api/admin/products/add";
       const res = await api.post(endpoint, data);
       const productId = res.data?.id;
+      let failed = [];
       if (productId && images.length > 0) {
-        setMsg({ type: "info", text: "Compressing images..." });
-        const compressed = await compressImages(images);
-        for (const file of compressed) {
-          const fd = new FormData();
-          fd.append("image", file);
-          fd.append("product_id", String(productId));
-          try {
-            // Process via the image pipeline (Java passthrough -> Node multer/sharp),
-            // then link the processed WebP sizes to the new product.
-            const up = await api.post("/api/uploads/upload-image", fd);
-            await api.post(`/api/admin/products/${productId}/images/url`, {
-              thumbnail_url: up.data.thumbnail_url,
-              preview_url: up.data.preview_url,
-              zoom_url: up.data.zoom_url,
-              original_url: up.data.original_url,
-            });
-          } catch (imgErr) {
-            setImageErrors((prev) => [...prev, `Failed to upload ${file.name}`]);
-          }
-        }
+        setMsg({ type: "info", text: "Uploading images..." });
+        failed = await uploadProductImages(productId, images);
+      }
+      if (failed.length > 0) {
+        // Stay on the page so the message can be read; the product itself was saved.
+        setMsg({ type: "error", text: `Product saved, but ${failed.length} image(s) could not be uploaded (${failed.join(", ")}). Add them from the product's Images page.` });
+        setSubmitting(false);
+        return;
       }
       // A seller's listing is reviewed by an admin before shoppers can see it.
       setMsg({ type: "success", text: isSeller
@@ -368,51 +329,7 @@ const AddProduct = () => {
         {fld("Shipping Class", "shippingClass", null, SHIPPING_CLASS)}
       </div>
 
-      {/* Product Images */}
-      <div style={S.section}>
-        <h3 style={S.sectionTitle}>Product Images</h3>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-          <input
-            type="file" ref={fileRef} multiple accept=".jpg,.jpeg,.png,.webp"
-            onChange={(e) => handleFiles(e.target.files)}
-            style={{ fontSize: "0.85rem" }}
-          />
-          <span style={{ fontSize: "0.75rem", color: "#64748B" }}>
-            Max {MAX_IMAGES} images, JPG/PNG/WebP, 2MB each
-          </span>
-        </div>
-        {imageErrors.length > 0 && (
-          <div style={{ marginBottom: "0.5rem" }}>
-            {imageErrors.map((err, i) => (
-              <div key={i} style={{ fontSize: "0.75rem", color: "#dc2626" }}>{err}</div>
-            ))}
-          </div>
-        )}
-        {images.length > 0 ? (
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {images.map((f, i) => (
-              <div key={i} style={{ position: "relative", width: "80px", height: "80px", borderRadius: "6px", overflow: "hidden", border: "1px solid #CFE8D6" }}>
-                <img src={URL.createObjectURL(f)} alt={altText.uploadPreview(i + 1)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                <button type="button" onClick={() => removeImage(i)}
-                  style={{ position: "absolute", top: "2px", right: "2px", width: "20px", height: "20px", borderRadius: "50%", border: "none", background: "rgba(220,38,38,0.8)", color: "#fff", cursor: "pointer", fontSize: "12px", lineHeight: "20px", padding: 0 }}>
-                  &times;
-                </button>
-              </div>
-            ))}
-            {images.length < MAX_IMAGES && (
-              <div onClick={() => fileRef.current?.click()}
-                style={{ width: "80px", height: "80px", borderRadius: "6px", border: "2px dashed #CFE8D6", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: "1.5rem" }}>
-                +
-              </div>
-            )}
-          </div>
-        ) : (
-          <div onClick={() => fileRef.current?.click()}
-            style={{ padding: "1.5rem", textAlign: "center", border: "2px dashed #CFE8D6", borderRadius: "6px", cursor: "pointer", color: "#94a3b8", fontSize: "0.85rem" }}>
-            Click to upload product images
-          </div>
-        )}
-      </div>
+      <ProductImagePicker images={images} onChange={setImages} sectionStyle={S.section} titleStyle={S.sectionTitle} />
 
       {/* Actions */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "0.5rem" }}>
