@@ -129,6 +129,26 @@ public class CategoryServiceImpl implements CategoryService {
         categoryRepo.deleteById(id);
     }
 
+    @Override
+    public List<String> addStandardCategories() {
+        // Compare names ignoring capitals and spaces, so "home & kitchen" counts as present.
+        java.util.Set<String> have = new java.util.HashSet<>();
+        for (Category c : categoryRepo.findAll()) {
+            if (c.getName() != null) have.add(c.getName().trim().toLowerCase(java.util.Locale.ROOT));
+        }
+        List<String> added = new java.util.ArrayList<>();
+        for (StandardCategories.Entry e : StandardCategories.ALL) {
+            if (have.contains(e.name().toLowerCase(java.util.Locale.ROOT))) continue;
+            Category c = new Category();
+            c.setName(e.name());
+            c.setDescription(e.description());
+            c.setRequiredLicence(e.requiredLicence());
+            addCategory(c, null);
+            added.add(e.name());
+        }
+        return added;
+    }
+
     /** A licence code a category may require, or null for none. */
     private static String checkedLicence(String code) {
         if (code == null || code.isBlank()) return null;

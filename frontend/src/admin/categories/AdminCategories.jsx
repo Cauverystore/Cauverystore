@@ -23,6 +23,7 @@ const LICENCES = [
   ["LEGAL_METROLOGY", "Legal Metrology"],
   ["IEC", "Import Export Code"],
   ["TRADE", "Trade Licence"],
+  ["OTHER", "Other licence"],
 ];
 const licenceName = (code) => (LICENCES.find(([c]) => c === code) || [, code])[1];
 
@@ -35,6 +36,8 @@ const AdminCategories = () => {
   const [msg, setMsg] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [errors, setErrors] = useState({});
+  const [standard, setStandard] = useState(null); // recommended list, shown before adding
+  const [addingStandard, setAddingStandard] = useState(false);
 
   const fetchCategories = async () => {
     try {
@@ -92,6 +95,25 @@ const AdminCategories = () => {
     } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Update failed" }); }
   };
 
+  const openStandard = async () => {
+    try {
+      const res = await api.get("/api/categories/admin/standard");
+      setStandard(res.data || []);
+    } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Could not load the recommended categories" }); }
+  };
+
+  const addStandard = async () => {
+    setAddingStandard(true);
+    try {
+      const res = await api.post("/api/categories/admin/add-standard");
+      await fetchCategories();
+      const n = res.data?.count || 0;
+      setMsg({ type: "success", text: n > 0 ? `Added ${n} categor${n === 1 ? "y" : "ies"}.` : "All recommended categories are already in the store." });
+      setStandard(null);
+    } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Could not add the categories" }); }
+    setAddingStandard(false);
+  };
+
   const confirmDelete = (cat) => setDeleteTarget(cat);
 
   const handleDelete = async () => {
@@ -140,6 +162,15 @@ const AdminCategories = () => {
           <div style={{ fontSize: "0.7rem", color: "#94a3b8", textAlign: "right" }}>{(newCat.description || "").length}/500</div>
           {errMsg("description")}
         </div>
+      </div>
+
+      {/* Recommended categories */}
+      <div style={S.section}>
+        <h3 style={S.title}>Recommended Categories</h3>
+        <p style={{ color: "#64748B", fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
+          A ready-made list for an Indian marketplace. Goods that need a licence or a quality certificate (FSSAI, drug licence, BIS / ISI, hallmarking, Legal Metrology) get their own category, so only sellers holding it can list there. Existing categories are not changed.
+        </p>
+        <button onClick={openStandard} style={S.btnP}>Review and add recommended categories</button>
       </div>
 
       {/* Category List */}
@@ -200,6 +231,47 @@ const AdminCategories = () => {
           </div>
         )}
       </div>
+
+      {/* Recommended categories review */}
+      {standard && (
+        <div style={S.modalOverlay} onClick={() => setStandard(null)}>
+          <div style={{ ...S.modalBox, maxWidth: "760px", maxHeight: "85vh", display: "flex", flexDirection: "column" }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "0.5rem" }}>Recommended categories</h3>
+            <p style={{ color: "#64748B", fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
+              {standard.filter((s) => !s.exists).length} will be added. Ones you already have are greyed out and left as they are. You can edit or delete any of them afterwards.
+            </p>
+            <div style={{ overflowY: "auto", flex: 1, border: "1px solid #CFE8D6", borderRadius: "6px" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+                <thead>
+                  <tr style={{ background: "#f8f8f8", position: "sticky", top: 0 }}>
+                    <th style={{ padding: "8px", textAlign: "left" }}>Category</th>
+                    <th style={{ padding: "8px", textAlign: "left" }}>Sellers need</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standard.map((s) => (
+                    <tr key={s.name} style={{ borderTop: "1px solid #EAF7EE", opacity: s.exists ? 0.45 : 1 }}>
+                      <td style={{ padding: "8px" }}>
+                        <div style={{ fontWeight: 600 }}>{s.name}{s.exists ? " (already added)" : ""}</div>
+                        <div style={{ color: "#64748B" }}>{s.description}</div>
+                      </td>
+                      <td style={{ padding: "8px", whiteSpace: "nowrap", color: s.requiredLicence ? "#b45309" : "#94a3b8" }}>
+                        {s.requiredLicence ? licenceName(s.requiredLicence) : "Anyone"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "1rem" }}>
+              <button onClick={() => setStandard(null)} style={{ padding: "8px 20px", border: "1px solid #CFE8D6", borderRadius: "6px", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>Cancel</button>
+              <button onClick={addStandard} disabled={addingStandard || standard.every((s) => s.exists)} style={{ ...S.btnP, opacity: addingStandard ? 0.6 : 1 }}>
+                {addingStandard ? "Adding..." : `Add ${standard.filter((s) => !s.exists).length} categories`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (

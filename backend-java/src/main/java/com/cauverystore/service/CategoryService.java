@@ -11,4 +11,6 @@ public interface CategoryService {
     Category addCategory(Category category, String authHeader);
     Category updateCategory(Long id, Category category, String authHeader);
     void deleteCategory(Long id, String authHeader);
+    /** Adds the StandardCategories the store does not have yet; returns the names added. */
+    List<String> addStandardCategories();
 }
