@@ -208,6 +208,20 @@ public class ProductService {
         try {
             org.apache.poi.ss.usermodel.Workbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook(file.getInputStream());
             org.apache.poi.ss.usermodel.Sheet sheet = wb.getSheetAt(0);
+            // Find columns by their heading, so both the current template (Image 1/2/3 URL) and
+            // older downloads (Primary Image URL + Additional Images) keep working. Files without
+            // recognisable headings fall back to the original column positions.
+            Map<String, Integer> cols = headerColumns(sheet.getRow(0));
+            int packagedCol = cols.getOrDefault("pre-packaged and labelled", 27);
+            int rateLineCol = cols.getOrDefault("gst rate line id", 28);
+            List<Integer> imageCols = new ArrayList<>();
+            for (String h : List.of("image 1 url", "image 2 url", "image 3 url")) {
+                if (cols.containsKey(h)) imageCols.add(cols.get(h));
+            }
+            if (imageCols.isEmpty()) {
+                imageCols.add(cols.getOrDefault("primary image url", 25));
+                imageCols.add(cols.getOrDefault("additional images", 26));
+            }
             for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                 org.apache.poi.ss.usermodel.Row row = sheet.getRow(r);
                 if (row == null) continue;
@@ -230,7 +244,7 @@ public class ProductService {
                     // Packaging decides the GST rate for staples (rice 5% pre-packaged, nil loose),
                     // so the spreadsheet lets the seller answer it instead of leaving the product
                     // unresolved at sale time.
-                    String packagedStr = getCell(row, 27);
+                    String packagedStr = getCell(row, packagedCol);
                     if (packagedStr != null && !packagedStr.isBlank()) {
                         if ("yes".equalsIgnoreCase(packagedStr)) p.setPrePackagedAndLabelled(Boolean.TRUE);
                         else if ("no".equalsIgnoreCase(packagedStr)) p.setPrePackagedAndLabelled(Boolean.FALSE);
@@ -239,7 +253,7 @@ public class ProductService {
                     }
                     // Optional: the id of the specific published rate line the seller picked for an
                     // HSN taxed at more than one rate (same id the GST rate picker on the product form saves).
-                    String rateLineId = getCell(row, 28);
+                    String rateLineId = getCell(row, rateLineCol);
                     if (rateLineId != null && !rateLineId.isBlank()) {
                         try {
                             p.setGstRateSelectionId(Long.parseLong(rateLineId.trim()));
@@ -275,29 +289,20 @@ public class ProductService {
                     Product saved = productRepo.save(p);
                     hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
 
-                    // Handle image URLs from columns 25 (PrimaryImageURL) and 26 (AdditionalImages)
+                    // Photo links: one per column, though a cell may also hold several separated
+                    // by commas. The first photo that downloads becomes the main one.
                     boolean firstImage = true;
-                    String primaryUrl = getCell(row, 25);
-                    if (primaryUrl != null && !primaryUrl.isEmpty()) {
-                        try {
-                            downloadAndSaveImage(saved.getId(), primaryUrl, firstImage);
-                            firstImage = false;
-                        } catch (Exception imgEx) {
-                            imageErrors.add("Row " + (r + 1) + " (" + (p.getName() != null ? p.getName() : "unknown") + "): Primary image failed - " + imgEx.getMessage());
-                        }
-                    }
-                    String additionalUrls = getCell(row, 26);
-                    if (additionalUrls != null && !additionalUrls.isEmpty()) {
-                        String[] urls = additionalUrls.split(",");
-                        for (String imgUrl : urls) {
+                    for (int col : imageCols) {
+                        String cell = getCell(row, col);
+                        if (cell == null || cell.isEmpty()) continue;
+                        for (String imgUrl : cell.split(",")) {
                             imgUrl = imgUrl.trim();
-                            if (!imgUrl.isEmpty()) {
-                                try {
-                                    downloadAndSaveImage(saved.getId(), imgUrl, firstImage);
-                                    firstImage = false;
-                                } catch (Exception imgEx) {
-                                    imageErrors.add("Row " + (r + 1) + " (" + (p.getName() != null ? p.getName() : "unknown") + "): Additional image failed - " + imgEx.getMessage());
-                                }
+                            if (imgUrl.isEmpty()) continue;
+                            try {
+                                downloadAndSaveImage(saved.getId(), imgUrl, firstImage);
+                                firstImage = false;
+                            } catch (Exception imgEx) {
+                                imageErrors.add("Row " + (r + 1) + " (" + (p.getName() != null ? p.getName() : "unknown") + "): image " + imgUrl + " failed - " + imgEx.getMessage());
                             }
                         }
                     }
@@ -325,6 +330,17 @@ public class ProductService {
         if (text == null) return null;
         String slug = text.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
         return slug.substring(0, Math.min(slug.length(), 80));
+    }
+
+    /** Heading text (lower case, trimmed) to column index, from the sheet's first row. */
+    private Map<String, Integer> headerColumns(org.apache.poi.ss.usermodel.Row header) {
+        Map<String, Integer> cols = new java.util.HashMap<>();
+        if (header == null) return cols;
+        for (int c = 0; c < header.getLastCellNum(); c++) {
+            String h = getCell(header, c);
+            if (h != null && !h.isBlank()) cols.putIfAbsent(h.trim().toLowerCase(java.util.Locale.ROOT), c);
+        }
+        return cols;
     }
 
     private String getCell(org.apache.poi.ss.usermodel.Row row, int col) {
