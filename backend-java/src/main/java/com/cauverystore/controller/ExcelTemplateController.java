@@ -135,7 +135,7 @@ public class ExcelTemplateController {
         // Validations
         DataValidationHelper dv = sheet.getDataValidationHelper();
 
-        addDropdown(sheet, dv, catNames, 1, 1000, 3, 3, "Select a category");
+        addCategoryDropdown(wb, sheet, dv, catNames);
         addDropdown(sheet, dv, COUNTRIES, 1, 1000, 11, 11, "Select country");
         addDropdown(sheet, dv, WARRANTY, 1, 1000, 14, 14, "Select warranty");
         addDropdown(sheet, dv, RETURN_POLICY, 1, 1000, 15, 15, "Select return policy");
@@ -156,7 +156,7 @@ public class ExcelTemplateController {
             "",
             "1. Do NOT modify or remove the header row (Row 1). Upload will fail if headers are changed.",
             "2. Product Code must be left EMPTY - the store creates a unique code for every product automatically. If any row has a Product Code, the whole file is refused and nothing is uploaded.",
-            "3. Category, Country of Origin, Warranty, Return Policy, Shipping Class, and Badges have dropdown validation.",
+            "3. Category, Country of Origin, Warranty, Return Policy, Shipping Class, and Badges have dropdown validation. Pick the Category from the dropdown - it lists the store's categories. If the store has an 'Others' category, a row with an empty or unknown category is put there (change it later by editing the product); otherwise that row is refused.",
             "4. Price must be in Indian Rupees (₹). Do not include the ₹ symbol in the cell — it's formatted automatically.",
             "5. Stock Quantity must be a whole number (integer).",
             "6. Short Description is limited to 150 characters.",
@@ -187,6 +187,28 @@ public class ExcelTemplateController {
             .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
             .body(bos.toByteArray());
     }
+
+    /**
+     * Category names live on a hidden sheet and the dropdown points at that range. A list typed
+     * straight into the dropdown is limited by Excel to 255 characters, which a growing store
+     * passes at around 20 categories - after that Excel reports the file as damaged.
+     */
+    private void addCategoryDropdown(Workbook wb, Sheet sheet, DataValidationHelper dv, String[] catNames) {
+        String[] names = java.util.Arrays.stream(catNames)
+                .filter(n -> n != null && !n.isBlank()).sorted().toArray(String[]::new);
+        if (names.length == 0) return;
+        Sheet list = wb.createSheet(CATEGORY_LIST_SHEET);
+        for (int i = 0; i < names.length; i++) list.createRow(i).createCell(0).setCellValue(names[i]);
+        wb.setSheetHidden(wb.getSheetIndex(list), true);
+        DataValidationConstraint c = dv.createFormulaListConstraint(
+                "'" + CATEGORY_LIST_SHEET + "'!$A$1:$A$" + names.length);
+        DataValidation v = dv.createValidation(c, new CellRangeAddressList(1, 1000, 3, 3));
+        v.setShowErrorBox(true);
+        v.createErrorBox("Select a category", "Please select a category from the dropdown.");
+        sheet.addValidationData(v);
+    }
+
+    static final String CATEGORY_LIST_SHEET = "Category List";
 
     private void addDropdown(Sheet sheet, DataValidationHelper dv, String[] options, int firstRow, int lastRow, int firstCol, int lastCol, String title) {
         DataValidationConstraint c = dv.createExplicitListConstraint(options);

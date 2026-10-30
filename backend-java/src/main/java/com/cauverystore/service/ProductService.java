@@ -205,6 +205,8 @@ public class ProductService {
         // Why each row failed, not just how many did. A bare count leaves a seller with a
         // spreadsheet they cannot correct.
         List<String> rowErrors = new ArrayList<>();
+        // Rows whose category was empty or not found, and so went to "Others".
+        List<String> categoryNotes = new ArrayList<>();
         try {
             org.apache.poi.ss.usermodel.Workbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook(file.getInputStream());
             org.apache.poi.ss.usermodel.Sheet sheet = wb.getSheetAt(0);
@@ -256,12 +258,24 @@ public class ProductService {
                     }
                     p.setName(productName);
                     p.setBrand(getCell(row, 2));
+                    // A missing or misspelt category used to save the product with no category at
+                    // all, so it never showed up in the shop's category pages. It now goes to the
+                    // store's "Others" category. The store never creates that category itself:
+                    // without it the row is refused.
                     String catName = getCell(row, 3);
-                    if (catName != null && !catName.isEmpty()) {
-                        // A misspelt category used to save the product with no category at all,
-                        // so it never showed up in the shop's category pages.
-                        p.setCategory(findCategory(catName).orElseThrow(() -> new RuntimeException(
-                                "Category '" + catName + "' does not exist. Use one of: " + categoryNames())));
+                    boolean noCategory = catName == null || catName.isBlank();
+                    Optional<Category> category = noCategory ? Optional.empty() : findCategory(catName);
+                    String othersNote = null;
+                    if (category.isPresent()) {
+                        p.setCategory(category.get());
+                    } else {
+                        String problem = noCategory ? "no category given" : "category '" + catName + "' does not exist";
+                        Category others = findCategory(OTHERS_CATEGORY).orElseThrow(() -> new RuntimeException(
+                                problem + ". Use one of: " + categoryNames() + " (or create a category called '"
+                                        + OTHERS_CATEGORY + "' to collect these)"));
+                        p.setCategory(others);
+                        othersNote = "Row " + (r + 1) + " (" + productName + "): " + problem
+                                + ", put in " + OTHERS_CATEGORY;
                     }
                     String priceStr = getCell(row, 4);
                     if (priceStr != null) p.setPrice(parseNumber(priceStr.replace(",", ""), "Price"));
@@ -336,6 +350,7 @@ public class ProductService {
                         }
                     }
 
+                    if (othersNote != null) categoryNotes.add(othersNote);
                     loaded++;
                 } catch (Exception e) {
                     errors++;
@@ -352,7 +367,10 @@ public class ProductService {
         } catch (Exception e) { result.put("error", "Invalid file format. Download the template."); return result; }
         result.put("total", loaded); result.put("errors", errors);
         if (!rowErrors.isEmpty()) result.put("rowErrors", rowErrors);
-        result.put("message", "Uploaded " + loaded + " products" + (errors > 0 ? " (" + errors + " errors)" : ""));
+        if (!categoryNotes.isEmpty()) result.put("categoryNotes", categoryNotes);
+        result.put("message", "Uploaded " + loaded + " products"
+                + (categoryNotes.isEmpty() ? "" : " (" + categoryNotes.size() + " put in " + OTHERS_CATEGORY + ")")
+                + (errors > 0 ? " (" + errors + " errors)" : ""));
         if (!imageErrors.isEmpty()) {
             result.put("imageErrors", imageErrors);
         }
@@ -372,6 +390,8 @@ public class ProductService {
                 .filter(c -> c.getName() != null && c.getName().trim().equalsIgnoreCase(name.trim()))
                 .findFirst();
     }
+
+    static final String OTHERS_CATEGORY = "Others";
 
     private String categoryNames() {
         List<String> names = catRepo.findAll().stream().map(Category::getName)

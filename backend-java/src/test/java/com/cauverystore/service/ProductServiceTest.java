@@ -46,6 +46,10 @@ class ProductServiceTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
+        // Most bulk-upload sheets here leave Category empty; the store has an Others category for them.
+        com.cauverystore.entities.Category others = new com.cauverystore.entities.Category();
+        others.setName("Others");
+        lenient().when(catRepo.findByName("Others")).thenReturn(java.util.Optional.of(others));
         product = new Product();
         product.setId(1L);
         product.setName("Test Product");
@@ -674,17 +678,56 @@ class ProductServiceTest {
     }
 
     @Test
-    void bulkUpload_shouldRejectAnUnknownCategoryAndListTheRealOnes() throws Exception {
+    void bulkUpload_shouldPutAnUnknownCategoryInOthersAndSaySo() throws Exception {
         // It used to save the product with no category, so it never appeared in the shop.
+        com.cauverystore.entities.Category others = new com.cauverystore.entities.Category();
+        others.setName("Others");
+        when(catRepo.findByName("Toys & Games")).thenReturn(java.util.Optional.empty());
+        when(catRepo.findByName("Others")).thenReturn(java.util.Optional.of(others));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetRow("Robot", "Toys & Games", "100"), 1L);
+
+        assertEquals(1, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertSame(others, captor.getValue().getCategory());
+        @SuppressWarnings("unchecked")
+        List<String> notes = (List<String>) result.get("categoryNotes");
+        assertNotNull(notes);
+        assertTrue(notes.get(0).contains("Toys & Games") && notes.get(0).contains("Others"), notes.get(0));
+        assertTrue(((String) result.get("message")).contains("1 put in Others"));
+    }
+
+    @Test
+    void bulkUpload_shouldPutAnEmptyCategoryInOthers() throws Exception {
+        com.cauverystore.entities.Category others = new com.cauverystore.entities.Category();
+        others.setName("Others");
+        when(catRepo.findByName("Others")).thenReturn(java.util.Optional.of(others));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetRow("Robot", null, "100"), 1L);
+
+        assertEquals(1, result.get("total"));
+        @SuppressWarnings("unchecked")
+        List<String> notes = (List<String>) result.get("categoryNotes");
+        assertTrue(notes.get(0).contains("no category given"), notes.get(0));
+    }
+
+    @Test
+    void bulkUpload_shouldNeverCreateOthersItself() throws Exception {
+        // Without an Others category the row is refused and the message says how to fix it.
         com.cauverystore.entities.Category electronics = new com.cauverystore.entities.Category();
         electronics.setName("Electronics");
-        when(catRepo.findByName("Toys & Games")).thenReturn(java.util.Optional.empty());
+        when(catRepo.findByName(any())).thenReturn(java.util.Optional.empty());
         when(catRepo.findAll()).thenReturn(List.of(electronics));
 
         String error = onlyRowError(productService.bulkUpload(sheetRow("Robot", "Toys & Games", "100"), 1L));
 
         assertTrue(error.contains("Toys & Games"), error);
         assertTrue(error.contains("Electronics"), "should list the categories that exist: " + error);
+        assertTrue(error.contains("Others"), "should say how to collect these: " + error);
+        verify(catRepo, never()).save(any());
         verify(productRepo, never()).save(any());
     }
 

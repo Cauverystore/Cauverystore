@@ -41,4 +41,31 @@ class ExcelTemplateControllerTest {
                     sheet.getRow(1).getCell(27).getStringCellValue());
         }
     }
+
+    @Test
+    void template_shouldOfferEveryCategoryHoweverManyThereAre() throws Exception {
+        // 40 categories is far past the 255 characters Excel allows in a typed-in dropdown list.
+        List<com.cauverystore.entities.Category> cats = new java.util.ArrayList<>();
+        for (int i = 1; i <= 40; i++) {
+            com.cauverystore.entities.Category c = new com.cauverystore.entities.Category();
+            c.setName("Category number " + i);
+            cats.add(c);
+        }
+        CategoryRepository repo = mock(CategoryRepository.class);
+        when(repo.findAll()).thenReturn(cats);
+
+        byte[] file = new ExcelTemplateController(repo).downloadTemplate().getBody();
+
+        try (XSSFWorkbook wb = new XSSFWorkbook(new ByteArrayInputStream(file))) {
+            Sheet list = wb.getSheet(ExcelTemplateController.CATEGORY_LIST_SHEET);
+            assertNotNull(list);
+            assertTrue(wb.isSheetHidden(wb.getSheetIndex(list)));
+            assertEquals(40, list.getLastRowNum() + 1);
+            var validations = ((org.apache.poi.xssf.usermodel.XSSFSheet) wb.getSheetAt(0)).getDataValidations();
+            assertTrue(validations.stream().anyMatch(v ->
+                    v.getRegions().getCellRangeAddress(0).getFirstColumn() == 3
+                            && v.getValidationConstraint().getFormula1().contains("$A$40")),
+                    "the Category column should point at the full list");
+        }
+    }
 }

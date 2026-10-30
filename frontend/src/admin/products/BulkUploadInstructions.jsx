@@ -6,7 +6,7 @@ const STEPS = [
   "Download a fresh template. Delete the 5 sample rows, but keep row 1 (the headings) exactly as it is.",
   <><strong>Leave Product Code (column A) empty.</strong> The store creates a unique code for every product. If any row has a code, the whole file is refused and nothing is uploaded.</>,
   "Fill in Product Name, Price (numbers only, no ₹) and Stock Quantity (whole number) for every product.",
-  "Use the dropdowns for Category, Country, Warranty, Return Policy, Shipping Class and Badges.",
+  "Use the dropdowns for Category, Country, Warranty, Return Policy, Shipping Class and Badges. If the store has an 'Others' category, a row with an empty or unknown category goes there; otherwise that row is refused.",
   "Enter a valid HSN Code, and answer Yes or No in Pre-Packaged and Labelled (column AC).",
   "Photos are optional: paste one direct picture link (ending in .jpg, .png or .webp) in each of Image 1, 2 and 3 URL (columns Z, AA, AB). Image 1 is the main photo. Or leave them empty and add photos later with the Images button.",
   "Save as .xlsx and upload. Up to 1000 products per file. Any row that is rejected is listed with the reason, so you can fix just that row.",
