@@ -10,9 +10,8 @@ const BulkUpload = () => {
   const [result, setResult] = useState(null);
   const fileRef = useRef();
 
-  const templateUrl = isSeller
-    ? "/api/seller/template.xlsx"
-    : "/api/admin/template.xlsx";
+  // The template comes from the backend, not the website, so use the API address.
+  const templateUrl = `${api.defaults.baseURL}/api/${isSeller ? "seller" : "admin"}/template.xlsx`;
 
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
 
