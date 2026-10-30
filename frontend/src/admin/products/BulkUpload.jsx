@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
+import BulkUploadInstructions from "./BulkUploadInstructions";
 
 const BulkUpload = () => {
   const navigate = useNavigate();
@@ -91,6 +92,8 @@ const BulkUpload = () => {
             Includes sample data, dropdowns, and instructions sheet.
           </p>
         </div>
+
+        <BulkUploadInstructions />
 
         <div style={{ marginBottom: "1.5rem" }}>
           <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem", color: "#1F2937" }}>
