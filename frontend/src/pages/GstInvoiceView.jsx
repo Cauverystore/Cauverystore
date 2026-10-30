@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer, Download, Loader } from "lucide-react";
 import api from "../api/axios";
+import useAltText from "../hooks/useAltText";
 
 const GST_INVOICE_STYLES = `
   .giv-page { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
@@ -116,6 +117,7 @@ const numberToWords = (num) => {
 };
 
 const GstInvoiceView = () => {
+  const altText = useAltText();
   const { id } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
@@ -188,7 +190,7 @@ const GstInvoiceView = () => {
         <div className="giv-invoice" id="gst-invoice-print">
           <div className="giv-header">
             <div className="giv-header-left">
-              <img src="/images/logo.jpg" alt="Cauvery Store" />
+              <img src="/images/logo.jpg" alt={altText.logo()} />
               <div>
                 <div className="giv-brand-name">Cauvery Store</div>
                 <div className="giv-brand-tagline">Everyday Essentials, Delivered</div>
@@ -372,7 +374,7 @@ const GstInvoiceView = () => {
               <div className="giv-qr-section">
                 <div className="giv-qr-placeholder">
                   {invoice.qrCode ? (
-                    <img src={invoice.qrCode} alt="QR Code" style={{ width: 120, height: 120 }} />
+                    <img src={invoice.qrCode} alt={altText.invoiceQr()} style={{ width: 120, height: 120 }} />
                   ) : (
                     <span>QR Code<br />not available</span>
                   )}
@@ -430,7 +432,7 @@ const GstInvoiceView = () => {
                   {invoice.supplierSignatureImageUrl ? (
                     <img
                       src={invoice.supplierSignatureImageUrl}
-                      alt={`Signature of ${invoice.signedBy || "authorised signatory"}`}
+                      alt={altText.signature(invoice.signedBy)}
                       style={{ maxHeight: "56px", maxWidth: "180px", display: "block", marginLeft: "auto", marginBottom: "0.35rem" }}
                     />
                   ) : (

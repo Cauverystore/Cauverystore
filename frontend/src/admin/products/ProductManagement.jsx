@@ -8,6 +8,7 @@ import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
 import "../../styles/admin.css";
 import { confirmAction } from "../../components/ConfirmDialog";
+import useAltText from "../../hooks/useAltText";
 
 const CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"];
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -30,6 +31,7 @@ const S = {
 };
 
 const ProductManagement = () => {
+  const altText = useAltText();
   const navigate = useNavigate();
   const isSeller = window.location.pathname.startsWith("/seller");
   const role = localStorage.getItem("role") || "";
@@ -339,7 +341,7 @@ const ProductManagement = () => {
                     {(() => {
                       const url = p.images?.find(i=>i.main)?.url || p.images?.[0]?.url;
                       const full = imgUrl(url);
-                      return full ? <img src={full} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",borderRadius:"4px",objectFit:"cover",border:"1px solid #e2e8f0",display:"block"}} onError={e=>e.target.remove()} /> : null;
+                      return full ? <img src={full} alt={altText.product(p.name)} style={{position:"absolute",inset:0,width:"100%",height:"100%",borderRadius:"4px",objectFit:"cover",border:"1px solid #e2e8f0",display:"block"}} onError={e=>e.target.remove()} /> : null;
                     })()}
                   </div>
                 </td>

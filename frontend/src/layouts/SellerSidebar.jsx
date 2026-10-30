@@ -5,6 +5,7 @@ import {
   BarChart3, Wallet, FileText, ShieldCheck, Store, ArrowLeft, Users,
 } from "lucide-react";
 import { useSellerStore } from "../context/SellerStoreContext";
+import useAltText from "../hooks/useAltText";
 
 // perm: what a team member's role needs to see the item. ownerOnly: GST pages still read the
 // signed-in person's own records, so they are for the account owner until they are moved over.
@@ -46,6 +47,7 @@ const StoreSwitcher = () => {
 };
 
 const SellerSidebar = ({ open, onNavigate }) => {
+  const altText = useAltText();
   const { current, can } = useSellerStore();
   const visible = links.filter((l) => (l.ownerOnly ? !current || current.owner : !l.perm || can(l.perm)));
   return (
@@ -58,7 +60,7 @@ const SellerSidebar = ({ open, onNavigate }) => {
   >
     <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #1e293b" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <img src="/images/logo.jpg" alt="" style={{ height: "1.15rem", width: "auto" }} />
+        <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "1.15rem", width: "auto" }} />
         <div>
           <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
           <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "1px" }}>Seller Centre</div>

@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/auth.css";
+import useAltText from "../hooks/useAltText";
 
 const SellerLogin = () => {
+  const altText = useAltText();
   const navigate = useNavigate();
   const { login, completeMfaLogin, cancelMfaLogin } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -51,7 +53,7 @@ const SellerLogin = () => {
     return (
       <div className="auth-page">
         <div className="auth-card">
-          <div className="auth-header"><img src="/images/logo.jpg" alt="" style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</h1><p>Two-Factor Authentication</p></div>
+          <div className="auth-header"><img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</h1><p>Two-Factor Authentication</p></div>
           <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "0.5rem" }}>Enter the 6-digit code from your authenticator app to continue as {mfaStep.email}.</p>
           {error && <div className="auth-error">{error}</div>}
           <form onSubmit={handleMfaSubmit} className="auth-form">
@@ -67,7 +69,7 @@ const SellerLogin = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-header"><img src="/images/logo.jpg" alt="" style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</h1><p>Seller Portal</p></div>
+        <div className="auth-header"><img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</h1><p>Seller Portal</p></div>
         {error && <div className="auth-error">{error}</div>}
         <form onSubmit={handleLogin} className="auth-form">
           <div className="auth-field"><label>Email</label><input type="text" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="auth-input" required /></div>

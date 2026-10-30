@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "../../styles/auth.css";
+import useAltText from "../../hooks/useAltText";
 
 const AdminLogin = () => {
+  const altText = useAltText();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login } = useAuth();
@@ -32,7 +34,7 @@ const AdminLogin = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-header"><img src="/images/logo.jpg" alt="" style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #16a34a)" }}>Cauvery Store</h1><p>Admin Portal</p></div>
+        <div className="auth-header"><img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "48px", width: "auto" }} /><h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0.5rem 0 0", color: "var(--color-primary, #16a34a)" }}>Cauvery Store</h1><p>Admin Portal</p></div>
         {error && <div className="auth-error">{error}</div>}
         <form onSubmit={handleLogin} className="auth-form">
           <div className="auth-field"><label>Email</label><input type="text" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="auth-input" required /></div>

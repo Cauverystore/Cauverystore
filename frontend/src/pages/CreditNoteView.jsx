@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer, Download, Loader } from "lucide-react";
 import api from "../api/axios";
+import useAltText from "../hooks/useAltText";
 
 const GST_CREDIT_NOTE_STYLES = `
   .giv-page { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
@@ -95,6 +96,7 @@ const numberToWords = (num) => {
 };
 
 const CreditNoteView = () => {
+  const altText = useAltText();
   const { id } = useParams();
   const navigate = useNavigate();
   const [creditNote, setCreditNote] = useState(null);
@@ -158,7 +160,7 @@ const CreditNoteView = () => {
         <div className="giv-invoice" id="credit-note-print">
           <div className="giv-header">
             <div className="giv-header-left">
-              <img src="/images/logo.jpg" alt="Cauvery Store" />
+              <img src="/images/logo.jpg" alt={altText.logo()} />
               <div>
                 <div className="giv-brand-name">Cauvery Store</div>
                 <div className="giv-brand-tagline">Everyday Essentials, Delivered</div>

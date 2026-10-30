@@ -3,6 +3,7 @@ import api from "../api/axios";
 import Pagination from "../components/Pagination";
 import { useNavigate } from "react-router-dom";
 import { imgUrl } from "../utils/images";
+import useAltText from "../hooks/useAltText";
 
 const btnBase = {
   padding: "0.55rem 1rem",
@@ -58,6 +59,7 @@ const selectStyle = {
 };
 
 const SellerProducts = () => {
+  const altText = useAltText();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -332,7 +334,7 @@ const SellerProducts = () => {
                         />
                       </td>
                       <td style={tdStyle}>
-                        <img src={imgUrl(getImageSrc(p))} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
+                        <img src={imgUrl(getImageSrc(p))} alt={altText.product(p.name)} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
                       </td>
                       <td style={{ ...tdStyle, fontWeight: 500 }}>{p.name}</td>
                       <td style={tdStyle}>{p.category?.name || "-"}</td>

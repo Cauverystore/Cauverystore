@@ -6,8 +6,10 @@ import { useTranslation } from "react-i18next";
 import LanguageSelector from "./LanguageSelector";
 import { getCategoryNames } from "../services/i18nService";
 import i18n from "../i18n";
+import useAltText from "../hooks/useAltText";
 
 const Navbar = () => {
+  const altText = useAltText();
   const { t, i18n } = useTranslation();
   const lang = (i18n.language || "en").slice(0, 2);
   const navigate = useNavigate();
@@ -168,7 +170,7 @@ const Navbar = () => {
 
           {/* Logo */}
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "8px" }}>
-            <img src="/images/logo.jpg" alt="Cauvery Store" style={{ height: "2rem", width: "auto" }} />
+            <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "2rem", width: "auto" }} />
             <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #0E5C5C)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
           </Link>
 

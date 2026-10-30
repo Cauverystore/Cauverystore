@@ -10,6 +10,7 @@ import {
   Image, Mail, Trophy, ArrowUpDown, ShieldCheck, Settings, Shield,
   BookOpen, MapPin, Wallet,
 } from "lucide-react";
+import useAltText from "../hooks/useAltText";
 
 const allLinks = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true, module: null },
@@ -53,6 +54,7 @@ const allLinks = [
 ];
 
 const AdminSidebar = ({ open, onNavigate }) => {
+  const altText = useAltText();
   const { role } = useAuth();
   const links = allLinks.filter(l => !l.module || canAccessModule(role, l.module));
   const labelText = role === "EXECUTIVE" ? "Executive Panel" : role === "SUPER_ADMIN" ? "Super Admin" : "Admin Panel";
@@ -61,7 +63,7 @@ const AdminSidebar = ({ open, onNavigate }) => {
   <aside className={`cd-admin-sidebar${open ? " cd-open" : ""}`} style={{ position: "fixed", top: 0, left: 0, width: "240px", height: "100vh", background: "#0f172a", color: "#fff", display: "flex", flexDirection: "column", zIndex: 100 }}>
     <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #1e293b" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <img src="/images/logo.jpg" alt="" style={{ height: "1.15rem", width: "auto" }} />
+        <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "1.15rem", width: "auto" }} />
         <div>
           <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
           <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "1px" }}>{labelText}</div>

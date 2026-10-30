@@ -10,6 +10,7 @@ import "../styles/profile.css";
 import { useConfirm } from "../components/ConfirmDialog";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import useAltText from "../hooks/useAltText";
 
 const PLACEHOLDER = "/images/placeholder.svg";
 
@@ -81,6 +82,7 @@ const initialAddr = () => ({
 });
 
 const Profile = () => {
+  const altText = useAltText();
   const { t } = useTranslation();
 
   const navigate = useNavigate();
@@ -382,7 +384,7 @@ const Profile = () => {
         {userId && <span className="profile-customer-id">{userLabel}: {userId.toString().slice(-8).toUpperCase()}</span>}
       </div>
       <div className="profile-avatar-section">
-        <img src={profilePic} alt="" width="80" height="80" className="profile-avatar"
+        <img src={profilePic} alt={altText.profilePhoto()} width="80" height="80" className="profile-avatar"
           onError={(e) => { e.target.src = PLACEHOLDER; }} />
         <div>
           <div className="profile-name-display">{profile?.fullName || profile?.name}</div>

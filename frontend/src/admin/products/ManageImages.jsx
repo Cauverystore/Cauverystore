@@ -4,8 +4,10 @@ import api from "../../api/axios";
 import { imgUrl } from "../../utils/images";
 import { compressImages } from "../../utils/compressImage";
 import { confirmAction } from "../../components/ConfirmDialog";
+import useAltText from "../../hooks/useAltText";
 
 const ManageImages = () => {
+  const altText = useAltText();
   const { id } = useParams();
   const navigate = useNavigate();
   const [images, setImages] = useState([]);
@@ -160,7 +162,7 @@ const ManageImages = () => {
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
             {selectedFiles.map((f, i) => (
               <div key={i} style={{ position: "relative", width: "72px", height: "72px", borderRadius: "6px", overflow: "hidden", border: "1px solid #e0d9cc" }}>
-                <img src={URL.createObjectURL(f)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={URL.createObjectURL(f)} alt={altText.uploadPreview(i + 1)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 <button onClick={() => removeSelected(i)}
                   style={{ position: "absolute", top: "2px", right: "2px", width: "20px", height: "20px", borderRadius: "50%", border: "none", background: "rgba(217,58,42,0.8)", color: "#fff", cursor: "pointer", fontSize: "12px", lineHeight: "20px", padding: 0 }}>
                   &times;
@@ -194,7 +196,7 @@ const ManageImages = () => {
                   opacity: dragIdx === idx ? 0.5 : 1,
                   transition: "opacity 0.15s",
                 }}>
-                <img src={imgUrl(img.url)} alt=""
+                <img src={imgUrl(img.url)} alt={altText.product(null, idx + 1, images.length)}
                   style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block" }}
                   onError={(e) => { e.target.style.display = "none"; }} />
                 {img.main && (

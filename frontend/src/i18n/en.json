@@ -1477,5 +1477,16 @@
     "fallbackIntro": "Shop {{category}} at Cauvery Store, with secure payment and free delivery on orders of ₹500 or more.",
     "fallbackMeta": "Shop {{category}} online at Cauvery Store. Secure payment and free delivery on orders of ₹500 or more.",
     "whyShopHere": "Why shop {{category}} here"
+  },
+  "alt": {
+    "logo": "Cauvery Store logo",
+    "productImage": "{{name}} – image {{n}} of {{total}}",
+    "productFallback": "Product photo",
+    "profilePhoto": "Profile photo",
+    "signature": "Signature of {{name}}",
+    "signatureUnknown": "Signature of the authorised signatory",
+    "invoiceQr": "QR code for this invoice",
+    "uploadPreview": "Preview of selected image {{n}}",
+    "sellerSignature": "Your uploaded signature"
   }
 }

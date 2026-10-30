@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { imgUrl } from "../utils/images";
+import useAltText from "../hooks/useAltText";
 
 const toUrl = (img) => typeof img === "object" ? img?.url || "" : img || "";
 const toThumb = (img) => typeof img === "object" && img?.thumbUrl ? img.thumbUrl : "";
 
 const CartItemImage = ({ src, name, width = 60, height = 60, className = "" }) => {
+  const altText = useAltText();
   const [failed, setFailed] = useState(false);
 
   const finalSrc = useMemo(() => {
@@ -23,7 +25,7 @@ const CartItemImage = ({ src, name, width = 60, height = 60, className = "" }) =
         style={{ width, height }}
         title={name}
       >
-        <span className="cart-item-img-placeholder-text">{name || "Product"}</span>
+        <span className="cart-item-img-placeholder-text">{altText.product(name)}</span>
       </div>
     );
   }
@@ -31,7 +33,7 @@ const CartItemImage = ({ src, name, width = 60, height = 60, className = "" }) =
   return (
     <img
       src={finalSrc}
-      alt={name || ""}
+      alt={altText.product(name)}
       width={width}
       height={height}
       className={className}

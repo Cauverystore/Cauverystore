@@ -15,8 +15,10 @@ import ProductTray from "../components/ProductTray";
 import ProductRow from "../components/ProductRow";
 import "../styles/productDetails.css";
 import i18n from "../i18n";
+import useAltText from "../hooks/useAltText";
 
 const ProductDetails = () => {
+  const altText = useAltText();
   const {
     t: tr
   } = useTranslation();
@@ -274,7 +276,7 @@ const ProductDetails = () => {
       ]} />
       <div className="pd-main">
         <div className="product-image-section">
-          <img className="product-main-image" src={mainSrc} srcSet={mainSrcSet} sizes="(min-width: 768px) 400px, 100vw" alt={product.name} width="400" height="400" fetchPriority="high" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
+          <img className="product-main-image" src={mainSrc} srcSet={mainSrcSet} sizes="(min-width: 768px) 400px, 100vw" alt={altText.product(product.name, selectedImage + 1, (product.images || []).length)} width="400" height="400" fetchPriority="high" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
           {(product.images || []).length > 1 && (
             <div className="product-thumbnails">
               {product.images.map((img, i) => (
@@ -287,7 +289,7 @@ const ProductDetails = () => {
                   aria-pressed={i === selectedImage}
                   style={{ border: "none", padding: 0, background: "none", cursor: "pointer" }}
                 >
-                  <img src={typeof img === "object" && img?.thumbUrl ? imgUrl(img.thumbUrl) : fullUrl(img)} alt="" width="60" height="60" loading="lazy" className={i === selectedImage ? "active" : ""} onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
+                  <img src={typeof img === "object" && img?.thumbUrl ? imgUrl(img.thumbUrl) : fullUrl(img)} alt={altText.product(product.name, i + 1, product.images.length)} width="60" height="60" loading="lazy" className={i === selectedImage ? "active" : ""} onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
                 </button>
               ))}
             </div>
