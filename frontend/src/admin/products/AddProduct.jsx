@@ -4,6 +4,7 @@ import api from "../../api/axios";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
+import SellerOrigin from "./SellerOrigin";
 import ProductImagePicker, { uploadProductImages } from "./ProductImagePicker";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
@@ -31,7 +32,8 @@ const AddProduct = () => {
     warranty: "1 Year", returnPolicy: "7 Days",
     billDescription: "", cessRate: "", uom: "NOS",
     metaTitle: "", metaDescription: "", keywords: "", slug: "",
-    weight: "", dimensions: "", shippingClass: "Standard", deliveryDays: "", badges: "None"
+    weight: "", dimensions: "", shippingClass: "Standard", deliveryDays: "", badges: "None",
+    sellerId: null,
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -73,6 +75,8 @@ const AddProduct = () => {
     if (form.metaTitle && form.metaTitle.length > 60) e.metaTitle = "Max 60 chars";
     if (form.metaDescription && form.metaDescription.length > 160) e.metaDescription = "Max 160 chars";
     if (form.barcode && !/^\d{12,13}$/.test(form.barcode)) e.barcode = "12-13 digits required";
+    // Without a seller there is no state of origin, and checkout cannot tax the product.
+    if (!isSeller && !form.sellerId) e.sellerId = "Choose the seller";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -103,6 +107,7 @@ const AddProduct = () => {
         dimensions: form.dimensions, shippingClass: form.shippingClass,
         deliveryDays: form.deliveryDays ? parseInt(form.deliveryDays) : null,
         badges: form.badges !== "None" ? [form.badges] : [],
+        ...(isSeller ? {} : { sellerId: form.sellerId }),
       };
       const endpoint = isSeller ? "/api/seller/products" : "/api/admin/products/add";
       const res = await api.post(endpoint, data);
@@ -216,6 +221,9 @@ const AddProduct = () => {
           </div>
         </div>
         {fld("Description", "description", "textarea")}
+        {!isSeller && (
+          <SellerOrigin value={form.sellerId} onChange={(id) => set("sellerId", id)} error={errors.sellerId} />
+        )}
       </div>
 
       {/* Pricing & Inventory */}

@@ -25,6 +25,9 @@ public class AdminProductController {
     private final AuthService authService;
 
     private final com.cauverystore.service.SellerAccessService sellerAccess;
+    private final com.cauverystore.repository.UserRepository userRepo;
+    private final com.cauverystore.repository.GstConfigurationRepository gstConfigRepo;
+    private final com.cauverystore.repository.SellerRegistrationRepository sellerRegRepo;
 
     /**
      * For a seller (or someone on a seller's team) this is the seller account being worked in,
@@ -103,6 +106,39 @@ public class AdminProductController {
         sellerMay(SellerPermissions.PRODUCTS_VIEW);
         Long sellerId = isSeller() ? getCurrentUserId() : null;
         return ResponseEntity.ok(productService.getAllProducts(sellerId));
+    }
+
+    /**
+     * Sellers a product can be assigned to, with the GSTIN and state that checkout uses to
+     * decide between IGST and CGST+SGST. A product with no seller, or a seller with no GSTIN,
+     * cannot be taxed and so cannot be ordered. The GSTIN is looked up the same way checkout
+     * does: the seller's GST configuration first, then their registration.
+     */
+    @GetMapping("/sellers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EXECUTIVE', 'SUPER_ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> sellers() {
+        List<Map<String, Object>> out = new java.util.ArrayList<>();
+        for (User u : userRepo.findByRole(Role.SELLER)) {
+            java.util.Optional<SellerRegistration> reg = sellerRegRepo.findByUserId(u.getId());
+            String gstin = gstConfigRepo.findBySellerId(u.getId()).map(GstConfiguration::getGstin).orElse(null);
+            if (gstin == null || gstin.length() < 2) gstin = reg.map(SellerRegistration::getGstin).orElse(null);
+            boolean hasGstin = gstin != null && gstin.length() >= 2;
+            String stateCode = hasGstin ? gstin.substring(0, 2) : null;
+            String business = reg.map(SellerRegistration::getBusinessName).orElse(null);
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", u.getId());
+            m.put("name", business != null && !business.isBlank() ? business
+                    : (u.getFullName() != null ? u.getFullName() : u.getEmail()));
+            m.put("email", u.getEmail());
+            m.put("gstin", hasGstin ? gstin : null);
+            m.put("stateCode", stateCode);
+            m.put("state", stateCode != null ? com.cauverystore.util.StateCodeUtil.codeToStateName(stateCode) : null);
+            m.put("city", reg.map(SellerRegistration::getCity).orElse(null));
+            m.put("canBeTaxed", hasGstin);
+            out.add(m);
+        }
+        out.sort(java.util.Comparator.comparing(m -> String.valueOf(m.get("name")).toLowerCase()));
+        return ResponseEntity.ok(out);
     }
 
     @PostMapping("/add")
