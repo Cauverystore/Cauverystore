@@ -59,6 +59,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import android.util.Log
 import com.cauverystore.android.CauveryApp
 import com.cauverystore.android.PaymentOutcome
 import com.cauverystore.android.R
@@ -73,9 +74,13 @@ import com.cauverystore.android.data.OrderLine
 import com.cauverystore.android.data.OrderPayload
 import com.cauverystore.android.data.OrderSummary
 import com.cauverystore.android.data.VerifyRequest
+import com.cauverystore.android.data.NETWORK_ERROR
 import com.cauverystore.android.data.userMessage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -356,25 +361,40 @@ fun CheckoutScreen(app: CauveryApp, nav: NavHostController, startPayment: StartP
                             error = if (outcome.code == 0) msgCancelled else msgPayFailed + (outcome.description?.let { ": $it" } ?: "")
                             paying = false
                         }
-                        is PaymentOutcome.Success -> scope.launch {
-                            try {
-                                val v = app.network.api.verifyPayment(
-                                    VerifyRequest(outcome.paymentId, outcome.orderId.ifBlank { rzpOrder }, outcome.signature)
-                                )
-                                val placed = app.network.api.placeOrder(
+                        // NonCancellable: the customer has paid, so finish confirming even if this
+                        // screen is torn down while Razorpay's window was on top.
+                        is PaymentOutcome.Success -> scope.launch(NonCancellable) {
+                            val rzpId = outcome.orderId.ifBlank { rzpOrder }
+                            val placedId: Long? = try {
+                                val v = app.network.api.verifyPayment(VerifyRequest(outcome.paymentId, rzpId, outcome.signature))
+                                app.network.api.placeOrder(
                                     payload.copy(
                                         paymentMethod = if (v.method == "cod") "COD" else "ONLINE",
                                         paymentId = outcome.paymentId,
-                                        razorpayOrderId = outcome.orderId.ifBlank { rzpOrder },
+                                        razorpayOrderId = rzpId,
                                     )
-                                )
-                                app.cartCount.value = 0
-                                nav.navigate(Routes.orderSuccess(placed.id ?: 0)) {
-                                    popUpTo(Routes.CART) { inclusive = false }
-                                }
+                                ).id ?: 0L
                             } catch (e: Exception) {
-                                error = msgConfirmFailed
-                                paying = false
+                                Log.w("Checkout", "Payment ${outcome.paymentId}: confirm call failed", e)
+                                // The server can place the order and still answer late (it builds the GST
+                                // invoice first), so the call times out here. It empties the cart when the
+                                // order is placed: use that to tell a slow reply from a real failure.
+                                val placedAnyway = runCatching { app.network.api.cart().items.isEmpty() }.getOrDefault(false)
+                                if (placedAnyway) runCatching { app.network.api.orders().firstOrNull()?.id }.getOrNull() ?: 0L
+                                else {
+                                    val reason = e.userMessage("").takeIf { it.isNotBlank() && it != NETWORK_ERROR }
+                                    error = if (reason != null) "$msgConfirmFailed ($reason)" else msgConfirmFailed
+                                    paying = false
+                                    null
+                                }
+                            }
+                            if (placedId != null) {
+                                app.cartCount.value = 0
+                                withContext(Dispatchers.Main) {
+                                    runCatching {
+                                        nav.navigate(Routes.orderSuccess(placedId)) { popUpTo(Routes.CART) { inclusive = false } }
+                                    }.onFailure { Log.w("Checkout", "Order $placedId placed; could not open the success screen", it) }
+                                }
                             }
                         }
                     }
