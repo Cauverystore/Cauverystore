@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Watches CBIC for GST rule changes: the notifications and circulars that are not rate
- * notifications.
+ * Watches for GST rule changes: CBIC's notifications and circulars that are not rate
+ * notifications, and GSTN's advisories on gst.gov.in.
  *
  * CbicNotificationDetector handles rates, because a missed rate is an invoice charged wrongly.
  * A missed rule is just as real - new e-invoicing categories, amended CGST Rules, a duty put on
@@ -67,6 +67,8 @@ public class GstRuleWatchService {
     private final UserRepository userRepo;
     private final EmailService emailService;
     private final RestTemplate restTemplate = CbicTls.restTemplate();
+    /** gst.gov.in serves a complete certificate chain, so it needs none of CbicTls's help. */
+    private final RestTemplate gstnRestTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gst.rule-watch.enabled:true}")
@@ -74,6 +76,10 @@ public class GstRuleWatchService {
 
     @Value("${gst.cbic-detector.base-url:https://taxinformation.cbic.gov.in}")
     private String baseUrl = "https://taxinformation.cbic.gov.in";
+
+    /** GSTN's public site, for its News and Updates advisories. */
+    @Value("${gst.rule-watch.gstn-url:https://www.gst.gov.in}")
+    private String gstnUrl = "https://www.gst.gov.in";
 
     @Value("${gst.rule-watch.lookback-days:90}")
     private int lookbackDays = 90;
@@ -91,7 +97,7 @@ public class GstRuleWatchService {
 
     /** One item from a CBIC list. */
     public record Item(String kind, String category, String number, String title,
-                       LocalDate issuedOn, Long documentId, String documentPath) {}
+                       LocalDate issuedOn, Long documentId, String documentPath, String content) {}
 
     /** Daily, a quarter of an hour after the rate check. Never throws. */
     @Scheduled(cron = "${gst.rule-watch.cron:0 45 7 * * ?}")
@@ -126,6 +132,11 @@ public class GstRuleWatchService {
         } catch (Exception e) {
             problems.add("Circulars: " + e.getMessage());
         }
+        try {
+            seen.addAll(fetchAdvisories(since));
+        } catch (Exception e) {
+            problems.add("GSTN advisories (gst.gov.in): " + e.getMessage());
+        }
 
         List<GstRuleUpdate> recorded = new ArrayList<>();
         Set<String> thisRun = new LinkedHashSet<>();
@@ -141,6 +152,7 @@ public class GstRuleWatchService {
             u.setIssuedOn(item.issuedOn());
             u.setCbicDocumentId(item.documentId());
             u.setDocumentPath(item.documentPath());
+            u.setContent(item.content());
             u.setFirstSeenAt(LocalDateTime.now());
             u.setStatus(GstRuleUpdate.STATUS_NEW);
             recorded.add(repo.save(u));
@@ -148,17 +160,17 @@ public class GstRuleWatchService {
 
         lastRunAt = LocalDateTime.now();
         lastProblems = List.copyOf(problems);
-        int sources = RULE_CATEGORIES.size() + 1;
+        int sources = RULE_CATEGORIES.size() + 2;
         if (problems.size() == sources) {
             // Nothing could be read: "nothing new" would be a guess, so say so loudly.
-            log.error("The GST rule check could not read CBIC at all, so it is not watching for "
+            log.error("The GST rule check could not read CBIC or GSTN at all, so it is not watching for "
                     + "rule changes. {}", problems);
         } else {
             problems.forEach(p -> log.warn("Part of the GST rule check could not run: {}", p));
         }
         if (!recorded.isEmpty()) {
             for (GstRuleUpdate u : recorded) {
-                log.warn("GST RULE CHANGE: CBIC published {} ({}): {}. Read it and record whether "
+                log.warn("GST RULE CHANGE: {} ({}): {}. Read it and record whether "
                         + "the store must act.", u.getNumber(), u.getIssuedOn(), u.getTitle());
             }
             alertAdmins(recorded);
@@ -224,13 +236,102 @@ public class GstRuleWatchService {
                     clean(text(n, circular ? "circularName" : "notificationName")),
                     dated,
                     id == null || id.isNull() ? null : id.asLong(),
-                    text(n, "docFilePath")));
+                    text(n, "docFilePath"), null));
         }
         return out;
     }
 
+    /**
+     * GSTN's News and Updates from {@code since} onwards: the same JSON the page at
+     * gst.gov.in/newsandupdates loads. gst.gov.in has no robots.txt (checked 2026-11-01) and
+     * answers this once-a-day request normally. GSTN announces portal and help-manual changes
+     * here, so this also covers the help modules, which have no dated list of their own.
+     */
+    public List<Item> fetchAdvisories(LocalDate since) {
+        URI url = UriComponentsBuilder.fromHttpUrl(gstnUrl)
+                .pathSegment("fomessage", "newsupdates")
+                .encode().build().toUri();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
+        String body = gstnRestTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class).getBody();
+        return parseAdvisories(body, since);
+    }
+
+    /** Reads GSTN's {"data":[{id, title, module, content, date "dd/MM/yyyy", linkURl}]}. */
+    List<Item> parseAdvisories(String body, LocalDate since) {
+        if (body == null || body.isBlank()) throw new IllegalStateException("GSTN returned nothing.");
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(body);
+        } catch (Exception e) {
+            throw new IllegalStateException("not JSON - the GST portal may have changed", e);
+        }
+        JsonNode data = root.get("data");
+        if (data == null || !data.isArray()) {
+            throw new IllegalStateException("no list of advisories - the GST portal may have changed");
+        }
+        List<Item> out = new ArrayList<>();
+        for (JsonNode n : data) {
+            LocalDate dated = parseDayMonthYear(text(n, "date"));
+            if (dated != null && dated.isBefore(since)) continue;
+            JsonNode id = n.get("id");
+            if (id == null || id.isNull()) continue;
+            String module = clean(text(n, "module"));
+            String html = text(n, "content");
+            String link = clean(text(n, "linkURl"));
+            out.add(new Item(GstRuleUpdate.KIND_ADVISORY,
+                    module == null || module.isBlank() ? "GSTN" : "GSTN - " + module,
+                    "GSTN advisory " + id.asText(),
+                    clean(text(n, "title")),
+                    dated,
+                    id.asLong(),
+                    link != null && !link.isBlank() ? link : firstPdfLink(html),
+                    htmlToText(html)));
+        }
+        return out;
+    }
+
+    /** The first PDF an advisory links to (press releases, FAQs), if any. */
+    static String firstPdfLink(String html) {
+        if (html == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("href=\"(https://[^\"]+?\\.pdf)\"", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(html);
+        return m.find() ? m.group(1) : null;
+    }
+
+    /** Advisory HTML as readable plain text: paragraphs and table rows on their own lines. */
+    static String htmlToText(String html) {
+        if (html == null) return null;
+        String t = html.replaceAll("(?i)<br\\s*/?>|</p>|</tr>|</li>|</h\\d>", "\n")
+                .replaceAll("(?i)</t[dh]>", "  ")
+                .replaceAll("<[^>]+>", "")
+                .replace("&nbsp;", " ").replace("&#8377;", "Rs ").replace("&amp;", "&")
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'");
+        StringBuilder out = new StringBuilder();
+        for (String line : t.split("\n")) {
+            String l = String.join(" ", line.trim().split("\\s+"));
+            if (!l.isEmpty()) out.append(l).append('\n');
+        }
+        String text = out.toString().trim();
+        return text.length() > 20000 ? text.substring(0, 20000) + " ..." : text;
+    }
+
+    private static LocalDate parseDayMonthYear(String raw) {
+        if (raw == null) return null;
+        try {
+            return LocalDate.parse(raw.trim(), java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        } catch (Exception e) {
+            return parseDate(raw);
+        }
+    }
+
     /** The PDF of a recorded item, as CBIC serves it, for a reviewer to read. */
     public byte[] fetchDocument(GstRuleUpdate u) {
+        if (GstRuleUpdate.KIND_ADVISORY.equals(u.getKind())) {
+            throw new IllegalStateException("a GSTN advisory has no CBIC document; its text is on the screen");
+        }
         String resource = GstRuleUpdate.KIND_CIRCULAR.equals(u.getKind())
                 ? "cbic-circular-msts" : "cbic-notification-msts";
         URI url = UriComponentsBuilder.fromHttpUrl(baseUrl)
@@ -288,7 +389,7 @@ public class GstRuleWatchService {
         out.put("lastProblems", lastProblems);
         out.put("lookbackDays", lookbackDays);
         out.put("sources", "taxinformation.cbic.gov.in: " + String.join(", ", RULE_CATEGORIES)
-                + " notifications, and GST circulars");
+                + " notifications, and GST circulars; gst.gov.in: GSTN advisories (News and Updates)");
         return out;
     }
 

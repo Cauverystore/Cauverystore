@@ -22,6 +22,13 @@ public class GstRuleUpdate {
 
     public static final String KIND_NOTIFICATION = "NOTIFICATION";
     public static final String KIND_CIRCULAR = "CIRCULAR";
+    /**
+     * A GSTN advisory from gst.gov.in "News and Updates": portal and procedure changes (new
+     * e-invoice supply types, return forms opening, Council FAQs). Not law, but often the first
+     * notice of a change the store's systems must follow. Its id is GSTN's news id, kept in
+     * cbic_document_id; the kind keeps it apart from CBIC ids.
+     */
+    public static final String KIND_ADVISORY = "ADVISORY";
 
     /** Found, not yet read. */
     public static final String STATUS_NEW = "NEW";
@@ -36,7 +43,7 @@ public class GstRuleUpdate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** NOTIFICATION or CIRCULAR - they are downloaded from different places on the portal. */
+    /** NOTIFICATION, CIRCULAR or ADVISORY - each comes from a different place. */
     @Column(name = "kind", nullable = false, length = 20)
     private String kind;
 
@@ -60,6 +67,10 @@ public class GstRuleUpdate {
 
     @Column(name = "document_path")
     private String documentPath;
+
+    /** Advisories only: the advisory's text, as plain text, so it can be read on the screen. */
+    @Column(name = "content", columnDefinition = "TEXT")
+    private String content;
 
     @Column(name = "first_seen_at", nullable = false)
     private LocalDateTime firstSeenAt;
@@ -92,6 +103,8 @@ public class GstRuleUpdate {
     public void setCbicDocumentId(Long cbicDocumentId) { this.cbicDocumentId = cbicDocumentId; }
     public String getDocumentPath() { return documentPath; }
     public void setDocumentPath(String documentPath) { this.documentPath = documentPath; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
     public LocalDateTime getFirstSeenAt() { return firstSeenAt; }
     public void setFirstSeenAt(LocalDateTime firstSeenAt) { this.firstSeenAt = firstSeenAt; }
     public String getStatus() { return status; }

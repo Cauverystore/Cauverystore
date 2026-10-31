@@ -19,11 +19,13 @@ const FILTERS = [
 ];
 
 /**
- * GST rule changes found at CBIC: notifications that are not rate notifications, and circulars.
- * Each one waits here until a person has read it and recorded whether the store must act.
+ * GST rule changes: CBIC notifications that are not rate notifications, CBIC circulars, and
+ * GSTN advisories from gst.gov.in. Each one waits here until a person has read it and recorded
+ * whether the store must act.
  */
 const GstRuleUpdates = () => {
   const [data, setData] = useState(null);
+  const [openText, setOpenText] = useState(null);
   const [filter, setFilter] = useState("open");
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
@@ -47,11 +49,11 @@ const GstRuleUpdates = () => {
     try {
       const { data: r } = await api.post("/api/admin/gst/rule-updates/check");
       if (!r.reachable) {
-        setError("CBIC could not be read, so nothing was checked. " + (r.problems || []).join(" "));
+        setError("Neither CBIC nor GSTN could be read, so nothing was checked. " + (r.problems || []).join(" "));
       } else {
         setNotice(r.found > 0
           ? `${r.found} new rule change(s) found.`
-          : "Checked CBIC: nothing new." + ((r.problems || []).length ? " Some sources failed: " + r.problems.join(" ") : ""));
+          : "Checked CBIC and GSTN: nothing new." +((r.problems || []).length ? " Some sources failed: " + r.problems.join(" ") : ""));
       }
       await load();
     } catch (e) {
@@ -108,9 +110,11 @@ const GstRuleUpdates = () => {
             GST rule changes
           </h3>
           <p style={{ ...hint, marginTop: 0, maxWidth: 640 }}>
-            New notifications and circulars from CBIC that change rules rather than product rates:
-            returns, invoicing, registration and e-commerce duties. Checked every morning. Read each
-            one and record whether the store needs to act.
+            New notifications and circulars from CBIC that change rules rather than product rates
+            (returns, invoicing, registration and e-commerce duties), and GSTN advisories from
+            gst.gov.in on portal changes. Checked every morning. Read each one and record whether
+            the store needs to act. How-to manuals:{" "}
+            <a href="https://www.gst.gov.in/help/helpmodules/" target="_blank" rel="noopener noreferrer">GST help modules</a>.
           </p>
           {data && (
             <p style={{ ...hint, marginTop: 4 }}>
@@ -121,7 +125,7 @@ const GstRuleUpdates = () => {
         </div>
         <button type="button" onClick={checkNow} disabled={busy === "check"}
                 style={{ ...btn, background: "#0f172a", color: "#fff", whiteSpace: "nowrap" }}>
-          {busy === "check" ? "Checking…" : "Check CBIC now"}
+          {busy === "check" ? "Checking…" : "Check now"}
         </button>
       </div>
 
@@ -145,7 +149,7 @@ const GstRuleUpdates = () => {
       {!data ? (
         <p style={hint}>Loading…</p>
       ) : items.length === 0 ? (
-        <p style={hint}>{filter === "open" ? "Nothing waiting to be read." : "No rule changes recorded yet. Use “Check CBIC now”."}</p>
+        <p style={hint}>{filter === "open" ? "Nothing waiting to be read." : "No rule changes recorded yet. Use “Check now”."}</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {items.map((u) => {
@@ -164,6 +168,13 @@ const GstRuleUpdates = () => {
                   </span>
                 </div>
                 <div style={{ fontSize: "0.85rem", color: "#374151", marginTop: 4 }}>{u.title}</div>
+                {openText === u.id && (
+                  <div style={{ whiteSpace: "pre-wrap", fontSize: "0.8rem", color: "#374151", background: "#f9fafb",
+                                border: "1px solid #e5e7eb", borderRadius: 6, padding: "0.6rem", marginTop: 6,
+                                maxHeight: 360, overflowY: "auto" }}>
+                    {u.content || "GSTN gave no text for this advisory. Open it on gst.gov.in."}
+                  </div>
+                )}
                 {u.reviewNote && (
                   <div style={{ fontSize: "0.8rem", color: "#4b5563", marginTop: 4 }}>
                     <strong>Note:</strong> {u.reviewNote}
@@ -171,10 +182,25 @@ const GstRuleUpdates = () => {
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                  <button type="button" onClick={() => openDocument(u)} disabled={busy === "doc" + u.id}
-                          style={{ ...btn, background: "#e0f2f1", color: "#0E5C5C" }}>
-                    {busy === "doc" + u.id ? "Opening…" : "Read PDF"}
-                  </button>
+                  {u.kind === "ADVISORY" ? (
+                    <>
+                      <button type="button" onClick={() => setOpenText(openText === u.id ? null : u.id)}
+                              style={{ ...btn, background: "#e0f2f1", color: "#0E5C5C" }}>
+                        {openText === u.id ? "Hide advisory" : "Read advisory"}
+                      </button>
+                      <a href={`https://www.gst.gov.in/newsandupdates/read/${u.cbicDocumentId}`} target="_blank" rel="noopener noreferrer"
+                         style={{ ...btn, background: "#f3f4f6", color: "#374151", textDecoration: "none" }}>On gst.gov.in</a>
+                      {/^https:\/\//.test(u.documentPath || "") && (
+                        <a href={u.documentPath} target="_blank" rel="noopener noreferrer"
+                           style={{ ...btn, background: "#f3f4f6", color: "#374151", textDecoration: "none" }}>Attachment</a>
+                      )}
+                    </>
+                  ) : (
+                    <button type="button" onClick={() => openDocument(u)} disabled={busy === "doc" + u.id}
+                            style={{ ...btn, background: "#e0f2f1", color: "#0E5C5C" }}>
+                      {busy === "doc" + u.id ? "Opening…" : "Read PDF"}
+                    </button>
+                  )}
                   {u.status !== "ACTION_NEEDED" && (
                     <button type="button" onClick={() => review(u, "ACTION_NEEDED")} disabled={busy === "rev" + u.id}
                             style={{ ...btn, background: "#fee2e2", color: "#b91c1c" }}>Needs action</button>

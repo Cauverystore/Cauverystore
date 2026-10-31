@@ -558,7 +558,7 @@ public class EmailService {
                 .append(" - ").append(escape(u.getTitle())).append("</li>");
         }
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>New GST rule changes</h2>"
-                + "<p style='color:#4b5563;font-size:14px;'>CBIC has published the following. They change "
+                + "<p style='color:#4b5563;font-size:14px;'>CBIC or GSTN has published the following. They change "
                 + "rules (returns, invoicing, registration, e-commerce duties), not product rates, so "
                 + "nothing in the store has changed. Someone needs to read each one and record whether "
                 + "the store has to act.</p>"

@@ -55,6 +55,18 @@ class GstRuleWatchServiceTest {
             + "\"circularName\":\"Guidelines for the handling of applications for GST registration.\","
             + "\"circularCategory\":\"Circulars CGST\",\"circularDt\":\"2026-10-26T05:30:00+05:30\"}]";
 
+    /** Shaped like gst.gov.in/fomessage/newsupdates on 2026-11-01. */
+    private static final String ADVISORIES = "{\"data\":["
+            + "{\"id\":678,\"title\":\"Introduction of e-Invoicing Facility for RCMDOM and RCMIMP\","
+            + "\"module\":\"e-Invoice\",\"content\":\"<p>Dear Taxpayers,</p>\\n<p> Turnover of &#8377;5 crore"
+            + " and above.</p><table><tr><th>Supply Type</th><th>Description</th></tr>"
+            + "<tr><td><b>RCMDOM</b></td><td>Self-invoices</td></tr></table>\","
+            + "\"date\":\"16/10/2026\",\"IsExternal\":\"N\",\"linkURl\":\"\"},"
+            + "{\"id\":675,\"title\":\"Recommendations of the 57th GST Council Meeting\",\"module\":\"OTHERS \","
+            + "\"content\":\"<p>Click here:<a href=\\\"https://tutorial.gst.gov.in/downloads/news/press_release.pdf\\\""
+            + " target=\\\"blank\\\">link</a></p>\",\"date\":\"13/10/2026\",\"linkURl\":\"\"},"
+            + "{\"id\":500,\"title\":\"Old\",\"module\":\"Returns\",\"content\":\"x\",\"date\":\"01/01/2025\"}]}";
+
     @BeforeEach
     void setUp() {
         service = spy(new GstRuleWatchService(repo, userRepo, emailService));
@@ -74,6 +86,48 @@ class GstRuleWatchServiceTest {
                 argThat(c -> !"Central Tax".equals(c)), any());
         doReturn(service.parseList(GstRuleUpdate.KIND_CIRCULAR, "Circulars", CIRCULARS, SINCE))
                 .when(service).fetchCirculars(any());
+        doReturn(List.of()).when(service).fetchAdvisories(any());
+    }
+
+    @Test
+    void shouldReadGstnAdvisories() {
+        List<GstRuleWatchService.Item> got = service.parseAdvisories(ADVISORIES, SINCE);
+
+        assertEquals(2, got.size(), "the 2025 advisory is outside the window");
+        GstRuleWatchService.Item e = got.get(0);
+        assertEquals(GstRuleUpdate.KIND_ADVISORY, e.kind());
+        assertEquals("GSTN advisory 678", e.number());
+        assertEquals("GSTN - e-Invoice", e.category());
+        assertEquals(LocalDate.of(2026, 10, 16), e.issuedOn());
+        assertEquals(678L, e.documentId());
+        assertTrue(e.content().contains("Rs 5 crore"), e.content());
+        assertTrue(e.content().contains("RCMDOM Self-invoices"), e.content());
+        assertFalse(e.content().contains("<"), "no HTML left");
+        assertNull(e.documentPath());
+        assertEquals("https://tutorial.gst.gov.in/downloads/news/press_release.pdf", got.get(1).documentPath());
+        assertEquals("GSTN - OTHERS", got.get(1).category());
+    }
+
+    @Test
+    void shouldRefuseAnAdvisoryReplyWithoutAList() {
+        assertThrows(IllegalStateException.class, () -> service.parseAdvisories("<html>Request Rejected</html>", SINCE));
+        assertThrows(IllegalStateException.class, () -> service.parseAdvisories("{\"error\":\"x\"}", SINCE));
+    }
+
+    @Test
+    void shouldRecordAnAdvisoryWithItsText() {
+        stubSources();
+        doReturn(service.parseAdvisories(ADVISORIES, SINCE).subList(0, 1)).when(service).fetchAdvisories(any());
+        when(repo.existsByKindAndCbicDocumentId(any(), any())).thenReturn(false);
+
+        service.check();
+
+        ArgumentCaptor<GstRuleUpdate> saved = ArgumentCaptor.forClass(GstRuleUpdate.class);
+        verify(repo, times(3)).save(saved.capture());
+        GstRuleUpdate advisory = saved.getAllValues().stream()
+                .filter(u -> GstRuleUpdate.KIND_ADVISORY.equals(u.getKind())).findFirst().orElseThrow();
+        assertEquals(678L, advisory.getCbicDocumentId());
+        assertTrue(advisory.getContent().startsWith("Dear Taxpayers,"));
     }
 
     @Test
@@ -135,11 +189,12 @@ class GstRuleWatchServiceTest {
     void shouldReportBlindWhenNoSourceCanBeRead() {
         doThrow(new IllegalStateException("moved")).when(service).fetchNotifications(any(), any());
         doThrow(new IllegalStateException("moved")).when(service).fetchCirculars(any());
+        doThrow(new IllegalStateException("Request Rejected")).when(service).fetchAdvisories(any());
 
         Map<String, Object> result = service.check();
 
         assertEquals(false, result.get("reachable"));
-        assertEquals(GstRuleWatchService.RULE_CATEGORIES.size() + 1,
+        assertEquals(GstRuleWatchService.RULE_CATEGORIES.size() + 2,
                 ((List<?>) result.get("problems")).size());
     }
 
@@ -197,6 +252,10 @@ class GstRuleWatchServiceTest {
         assertFalse(notes.isEmpty(), "Central Tax notifications from the last two years");
         assertFalse(circulars.isEmpty(), "GST circulars from the last two years");
         assertTrue(circulars.stream().allMatch(c -> c.documentId() != null && c.number() != null));
+        List<GstRuleWatchService.Item> advisories = real.fetchAdvisories(LocalDate.now().minusYears(2));
+        assertFalse(advisories.isEmpty(), "GSTN advisories from the last two years");
+        assertTrue(advisories.stream().allMatch(a -> a.documentId() != null && a.content() != null));
+        System.out.println("  GSTN advisories, last 2 years: " + advisories.size());
         System.out.println("  CBIC rule items, last 2 years: " + notes.size() + " notifications, "
                 + circulars.size() + " circulars");
     }

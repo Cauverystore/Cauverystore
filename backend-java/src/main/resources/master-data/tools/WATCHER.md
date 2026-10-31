@@ -19,6 +19,12 @@ PDFs for review. Runs daily from `.github/workflows/gst-source-watch.yml`.
   missing 09/2025 and everything after it, and the circulars stopped at 250/07/2025-GST. "Nothing new
   on GST Council" therefore says nothing about whether rates have changed. CBIC is the source.
   (The old `/igst-rate-notification` page is 404 and was dropped.)
+- GSTN advisories on `gst.gov.in` ("News and Updates") are watched by the backend instead
+  (`GstRuleWatchService`, the "GST rule changes" admin panel), through the page's own JSON at
+  `/fomessage/newsupdates`. They are portal and procedure notices, not law, so they need no PDF
+  archive here. gst.gov.in has no robots.txt (checked 2026-11-01). Its help modules
+  (`/help/helpmodules/`) are a fixed index of manuals with no dated list; GSTN announces manual
+  changes as advisories, so the advisory feed covers them.
 - URLs marked `"verified": false` in the config have not been confirmed by a person yet. If one is wrong,
   the daily report lists it under "could not be checked" - fix the URL then.
 - This reduces the chance of missing a change. It does not prove completeness. Have a CA review.
