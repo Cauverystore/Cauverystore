@@ -25,11 +25,21 @@
     },
     {
       "id": "gstcouncil-cgst-rate",
-      "label": "GST Council - CGST rate notifications (second source)",
-      "url": "https://gstcouncil.gov.in/cgst-rate-notification",
+      "label": "GST Council - CGST rate notifications (backup source; lags CBIC)",
+      "url": "https://gstcouncil.gov.in/en/cgst-rate-notification",
       "pages": 2,
       "allowed_hosts": ["gstcouncil.gov.in", "www.gstcouncil.gov.in"],
-      "verified": true
+      "verified": true,
+      "_note": "Checked 2026-11-01: newest entry is 08/2025-Central Tax (Rate) (Jan 2025). It does not list 09/2025, 19/2025 or any 2026 notification, so it cannot be the main source. Kept because a document here that CBIC lacks would be worth knowing about."
+    },
+    {
+      "id": "gstcouncil-cgst-circulars",
+      "label": "GST Council - CGST circulars (backup source; lags CBIC)",
+      "url": "https://gstcouncil.gov.in/en/cgst-circulars",
+      "pages": 2,
+      "allowed_hosts": ["gstcouncil.gov.in", "www.gstcouncil.gov.in"],
+      "verified": true,
+      "_note": "Checked 2026-11-01: newest entry is circular 250/07/2025-GST (Jun 2025); CBIC lists up to 266/12/2026-GST."
     }
   ]
 }
