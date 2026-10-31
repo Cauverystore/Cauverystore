@@ -13,6 +13,7 @@ import { imgUrl } from "../utils/images";
 import Breadcrumb from "../components/Breadcrumb";
 import ProductTray from "../components/ProductTray";
 import ProductRow from "../components/ProductRow";
+import ProductLabelInfo from "../components/ProductLabelInfo";
 import "../styles/productDetails.css";
 import i18n from "../i18n";
 import useAltText from "../hooks/useAltText";
@@ -372,6 +373,8 @@ const ProductDetails = () => {
               : <span><strong>{tr("productDetails.soldByAnApprovedSeller")}</strong>{" "}{tr("productDetails.onCauveryStore")}</span>}
           </li>
         </ul>
+
+        <ProductLabelInfo productId={id} />
 
         {(product.reviews || []).length > 0 && (
           <div className="reviews-section">

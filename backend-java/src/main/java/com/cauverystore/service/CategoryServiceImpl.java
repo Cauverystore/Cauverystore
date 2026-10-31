@@ -63,6 +63,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
         category.setName(name);
         category.setRequiredLicence(checkedLicence(category.getRequiredLicence()));
+        category.setComplianceType(checkedComplianceType(category.getComplianceType()));
         Category saved = categoryRepo.save(category);
         String email = authorizationService.getCurrentUserEmail();
         auditService.log(null, email, "CATEGORY_CREATED", "Category",
@@ -99,6 +100,8 @@ public class CategoryServiceImpl implements CategoryService {
         cat.setName(newName);
         String before = cat.getRequiredLicence();
         cat.setRequiredLicence(checkedLicence(updated.getRequiredLicence()));
+        // Null in the payload means "unchanged", so older screens that do not send it keep the type.
+        if (updated.getComplianceType() != null) cat.setComplianceType(checkedComplianceType(updated.getComplianceType()));
 
         Category saved = categoryRepo.save(cat);
         if (!java.util.Objects.equals(before, saved.getRequiredLicence())) {
@@ -147,6 +150,18 @@ public class CategoryServiceImpl implements CategoryService {
             added.add(e.name());
         }
         return added;
+    }
+
+    /** A compliance type name (FOOD, ELECTRONICS, ...); blank or GENERAL is stored as null. Unknown names are refused. */
+    private static String checkedComplianceType(String type) {
+        if (type == null || type.isBlank() || "GENERAL".equalsIgnoreCase(type.trim())) return null;
+        String t = type.trim().toUpperCase();
+        try {
+            com.cauverystore.entities.ComplianceCategoryType.valueOf(t);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown compliance type: " + type);
+        }
+        return t;
     }
 
     /** A licence code a category may require, or null for none. */

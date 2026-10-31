@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { CATEGORY_TYPES } from "../compliance/complianceFields";
+
+// Which category-specific compliance fields the category's products must carry.
+const ComplianceTypeSelect = ({ value, onChange, style }) => (
+  <select aria-label="Compliance fields" style={style} value={value || "GENERAL"} onChange={(e) => onChange(e.target.value)}>
+    {CATEGORY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.value === "GENERAL" ? "Compliance: common fields" : `Compliance: ${t.label}`}</option>)}
+  </select>
+);
+const typeLabel = (v) => (CATEGORY_TYPES.find((t) => t.value === v) || CATEGORY_TYPES[0]).label;
 
 const S = {
   section: { background: "#fff", borderRadius: "8px", border: "1px solid #CFE8D6", padding: "1.25rem", marginBottom: "1rem" },
@@ -30,9 +39,9 @@ const licenceName = (code) => (LICENCES.find(([c]) => c === code) || [, code])[1
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newCat, setNewCat] = useState({ name: "", description: "", requiredLicence: "" });
+  const [newCat, setNewCat] = useState({ name: "", description: "", requiredLicence: "", complianceType: "GENERAL" });
   const [editing, setEditing] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", requiredLicence: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", requiredLicence: "", complianceType: "GENERAL" });
   const [msg, setMsg] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [errors, setErrors] = useState({});
@@ -68,8 +77,8 @@ const AdminCategories = () => {
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     try {
-      await api.post("/api/categories/admin/add", { name: newCat.name.trim(), description: newCat.description.trim() || null, requiredLicence: newCat.requiredLicence || null });
-      setNewCat({ name: "", description: "", requiredLicence: "" });
+      await api.post("/api/categories/admin/add", { name: newCat.name.trim(), description: newCat.description.trim() || null, requiredLicence: newCat.requiredLicence || null, complianceType: newCat.complianceType || "GENERAL" });
+      setNewCat({ name: "", description: "", requiredLicence: "", complianceType: "GENERAL" });
       await fetchCategories();
       setMsg({ type: "success", text: "Category added!" });
     } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Failed to add category" }); }
@@ -77,18 +86,18 @@ const AdminCategories = () => {
 
   const startEdit = (cat) => {
     setEditing(cat.id);
-    setEditForm({ name: cat.name || "", description: cat.description || "", requiredLicence: cat.requiredLicence || "" });
+    setEditForm({ name: cat.name || "", description: cat.description || "", requiredLicence: cat.requiredLicence || "", complianceType: cat.complianceType || "GENERAL" });
     setErrors({});
   };
 
-  const cancelEdit = () => { setEditing(null); setEditForm({ name: "", description: "", requiredLicence: "" }); setErrors({}); };
+  const cancelEdit = () => { setEditing(null); setEditForm({ name: "", description: "", requiredLicence: "", complianceType: "GENERAL" }); setErrors({}); };
 
   const saveEdit = async (id) => {
     const v = validate(editForm.name, editForm.description);
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     try {
-      await api.put("/api/categories/admin/update/" + id, { name: editForm.name.trim(), description: editForm.description.trim() || null, requiredLicence: editForm.requiredLicence || null });
+      await api.put("/api/categories/admin/update/" + id, { name: editForm.name.trim(), description: editForm.description.trim() || null, requiredLicence: editForm.requiredLicence || null, complianceType: editForm.complianceType || "GENERAL" });
       await fetchCategories();
       setEditing(null);
       setMsg({ type: "success", text: "Category updated!" });
@@ -155,6 +164,7 @@ const AdminCategories = () => {
           <select aria-label="Licence sellers need" style={{ ...S.input, width: "auto", alignSelf: "flex-start" }} value={newCat.requiredLicence} onChange={(e) => setNewCat({ ...newCat, requiredLicence: e.target.value })}>
             {LICENCES.map(([c, l]) => <option key={c} value={c}>{l}</option>)}
           </select>
+          <ComplianceTypeSelect value={newCat.complianceType} onChange={(v) => setNewCat({ ...newCat, complianceType: v })} style={{ ...S.input, width: "auto", alignSelf: "flex-start" }} />
           <button onClick={handleAdd} style={{ ...S.btnP, alignSelf: "flex-start" }}>Add</button>
         </div>
         <div>
@@ -207,6 +217,9 @@ const AdminCategories = () => {
                           <select aria-label="Licence sellers need" style={S.input} value={editForm.requiredLicence} onChange={(e) => setEditForm({ ...editForm, requiredLicence: e.target.value })}>
                             {LICENCES.map(([code, l]) => <option key={code} value={code}>{l}</option>)}
                           </select>
+                          <div style={{ marginTop: 6 }}>
+                            <ComplianceTypeSelect value={editForm.complianceType} onChange={(v) => setEditForm({ ...editForm, complianceType: v })} style={S.input} />
+                          </div>
                         </td>
                         <td style={{ padding: "10px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button onClick={() => saveEdit(c.id)} style={{ ...S.btnS, marginRight: "6px" }}>Save</button>
@@ -217,7 +230,8 @@ const AdminCategories = () => {
                       <>
                         <td style={{ padding: "10px", fontWeight: 500 }}>{c.name}</td>
                         <td style={{ padding: "10px", color: "#64748B" }}>{c.description || <span style={{ fontStyle: "italic", color: "#cbd5e1" }}>No description</span>}</td>
-                        <td style={{ padding: "10px", color: c.requiredLicence ? "#b45309" : "#94a3b8", fontSize: "0.85rem" }}>{c.requiredLicence ? licenceName(c.requiredLicence) : "Anyone"}</td>
+                        <td style={{ padding: "10px", color: c.requiredLicence ? "#b45309" : "#94a3b8", fontSize: "0.85rem" }}>{c.requiredLicence ? licenceName(c.requiredLicence) : "Anyone"}
+                          <div style={{ color: c.complianceType ? "#146C43" : "#94a3b8", fontSize: "0.75rem" }}>Compliance: {typeLabel(c.complianceType)}</div></td>
                         <td style={{ padding: "10px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button onClick={() => startEdit(c)} style={{ ...S.btnS, marginRight: "6px" }}>Edit</button>
                           <button onClick={() => confirmDelete(c)} style={S.btnD}>Delete</button>

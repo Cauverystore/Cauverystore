@@ -4,6 +4,7 @@ import api from "../../api/axios";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
+import SellerOrigin from "./SellerOrigin";
 import ProductImagePicker, { uploadProductImages } from "./ProductImagePicker";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
@@ -24,14 +25,15 @@ const AddProduct = () => {
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
 
   const [form, setForm] = useState({
-    name: "", brand: "", category: "", price: "", stock: "", sku: "",
+    name: "", brand: "", category: "", price: "", mrp: "", stock: "", sku: "",
     description: "", manufacturer: "", modelNumber: "", barcode: "", hsnCode: "",
     prePackagedAndLabelled: true, gstRateSelectionId: undefined,
     countryOfOrigin: "India", shortDescription: "", technicalSpecs: "",
     warranty: "1 Year", returnPolicy: "7 Days",
     billDescription: "", cessRate: "", uom: "NOS",
     metaTitle: "", metaDescription: "", keywords: "", slug: "",
-    weight: "", dimensions: "", shippingClass: "Standard", deliveryDays: "", badges: "None"
+    weight: "", dimensions: "", shippingClass: "Standard", deliveryDays: "", badges: "None",
+    sellerId: null,
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -68,11 +70,15 @@ const AddProduct = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
     if (!form.price || parseFloat(form.price) <= 0) e.price = "Must be > 0";
+    if (form.mrp && parseFloat(form.mrp) <= 0) e.mrp = "Must be > 0";
+    else if (form.mrp && parseFloat(form.price) > parseFloat(form.mrp)) e.price = "Above the MRP";
     if (!form.stock || parseInt(form.stock) < 0) e.stock = "Must be >= 0";
     if (form.shortDescription && form.shortDescription.length > 150) e.shortDescription = "Max 150 chars";
     if (form.metaTitle && form.metaTitle.length > 60) e.metaTitle = "Max 60 chars";
     if (form.metaDescription && form.metaDescription.length > 160) e.metaDescription = "Max 160 chars";
     if (form.barcode && !/^\d{12,13}$/.test(form.barcode)) e.barcode = "12-13 digits required";
+    // Without a seller there is no state of origin, and checkout cannot tax the product.
+    if (!isSeller && !form.sellerId) e.sellerId = "Choose the seller";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -86,6 +92,7 @@ const AddProduct = () => {
         name: form.name, brand: form.brand,
         category: form.category ? { id: form.category } : null,
         price: parseFloat(form.price),
+        mrp: form.mrp ? parseFloat(form.mrp) : null,
         stock: parseInt(form.stock), sku: form.sku, description: form.description,
         manufacturer: form.manufacturer, modelNumber: form.modelNumber,
         barcode: form.barcode, hsnCode: form.hsnCode,
@@ -103,6 +110,7 @@ const AddProduct = () => {
         dimensions: form.dimensions, shippingClass: form.shippingClass,
         deliveryDays: form.deliveryDays ? parseInt(form.deliveryDays) : null,
         badges: form.badges !== "None" ? [form.badges] : [],
+        ...(isSeller ? {} : { sellerId: form.sellerId }),
       };
       const endpoint = isSeller ? "/api/seller/products" : "/api/admin/products/add";
       const res = await api.post(endpoint, data);
@@ -120,9 +128,14 @@ const AddProduct = () => {
       }
       // A seller's listing is reviewed by an admin before shoppers can see it.
       setMsg({ type: "success", text: isSeller
-        ? `Product submitted${images.length > 0 ? " with images" : ""}. It will appear in the store once an admin approves it.`
-        : `Product created${images.length > 0 ? " with images" : ""}.` });
-      setTimeout(() => navigate(redirectPath), isSeller ? 2500 : 1000);
+        ? `Product saved${images.length > 0 ? " with images" : ""}. Next, fill in its compliance details; it goes on sale once they pass and an admin approves it.`
+        : `Product created${images.length > 0 ? " with images" : ""}. Now add its compliance details; it stays off sale until they pass.` });
+      // Admins go straight to the compliance details, which decide whether it can go on sale.
+      setTimeout(() => {
+        if (!productId) navigate(redirectPath);
+        else if (isSeller) navigate(`/seller/products/wizard/${productId}`, { state: { step: 2 } });
+        else navigate(`/admin/products/${productId}/compliance`);
+      }, isSeller ? 2000 : 1200);
     } catch (err) {
       setMsg({ type: "error", text: err.response?.data?.error || "Failed to create product." });
     }
@@ -216,12 +229,16 @@ const AddProduct = () => {
           </div>
         </div>
         {fld("Description", "description", "textarea")}
+        {!isSeller && (
+          <SellerOrigin value={form.sellerId} onChange={(id) => set("sellerId", id)} error={errors.sellerId} />
+        )}
       </div>
 
       {/* Pricing & Inventory */}
       <div style={S.section}>
         <h3 style={S.sectionTitle}>Pricing & Inventory</h3>
         <div style={S.grid3}>
+          {fld("MRP (\u20B9)", "mrp", "number")}
           {fld("Price incl. GST (\u20B9) *", "price", "number")}
           {fld("Stock *", "stock", "number")}
           {fld("SKU", "sku")}

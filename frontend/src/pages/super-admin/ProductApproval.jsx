@@ -2,13 +2,23 @@ import React, { useState, useEffect } from "react";
 import { Package } from "lucide-react";
 import api from "../../utils/axios";
 import { useToast } from "../../admin/context/ToastContext";
+import { Link } from "react-router-dom";
+import { ScoreBadge } from "../../admin/compliance/ComplianceEditor";
 
 const ProductApproval = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actioning, setActioning] = useState(null);
+  const [compliance, setCompliance] = useState({});
   const { showToast } = useToast();
+
+  // Approving puts a product on sale, so show each one's compliance score before the click.
+  const fetchCompliance = () => {
+    api.get("/api/compliance/dashboard")
+      .then((r) => setCompliance(Object.fromEntries((r.data?.products || []).map((row) => [row.productId, row]))))
+      .catch(() => setCompliance({}));
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -25,7 +35,7 @@ const ProductApproval = () => {
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchProducts(); fetchCompliance(); }, []);
 
   const handleAction = async (id, status) => {
     setActioning(id);
@@ -33,8 +43,10 @@ const ProductApproval = () => {
       await api.put(`/api/admin/products/${id}/approval`, { approvalStatus: status });
       showToast(`Product ${status === "approved" ? "approved" : "rejected"} successfully`, "success");
       fetchProducts();
+      fetchCompliance();
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to update product status', "error");
+      // A 409 means the compliance check refused it; the message lists what is missing.
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to update product status', "error");
     } finally {
       setActioning(null);
     }
@@ -73,6 +85,7 @@ const ProductApproval = () => {
                 <th>Seller</th>
                 <th>Price</th>
                 <th>Stock</th>
+                <th>Compliance</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -84,6 +97,12 @@ const ProductApproval = () => {
                   <td style={{ color: '#6b7280' }}>{p.sellerName || p.sellerId || 'N/A'}</td>
                   <td>₹{(p.price ?? 0).toLocaleString()}</td>
                   <td>{p.stock ?? 0}</td>
+                  <td>
+                    {compliance[p.id]
+                      ? <ScoreBadge score={compliance[p.id].score} band={compliance[p.id].band} />
+                      : <span style={{ color: '#6b7280' }}>–</span>}
+                    <div><Link to={`/admin/products/${p.id}/compliance`} style={{ fontSize: '0.75rem' }}>Details</Link></div>
+                  </td>
                   <td>
                     <span className="admin-badge pending">{p.approvalStatus || p.productStatus || 'PENDING'}</span>
                   </td>

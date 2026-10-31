@@ -113,6 +113,9 @@ const AdminPurchaseOrders = lazy(() => import("./admin/purchases/AdminPurchaseOr
 const AdminReturns = lazy(() => import("./admin/returns/AdminReturns"));
 const BulkOperations = lazy(() => import("./admin/bulk/BulkOperations"));
 const ProductApproval = lazy(() => import("./pages/super-admin/ProductApproval"));
+const SellerProductWizard = lazy(() => import("./pages/SellerProductWizard"));
+const ComplianceDashboard = lazy(() => import("./admin/compliance/ComplianceDashboard"));
+const ProductCompliancePage = lazy(() => import("./admin/compliance/ProductCompliancePage"));
 const SellerApproval = lazy(() => import("./pages/super-admin/SellerApproval"));
 const SuperAdminDashboard = lazy(() => import("./pages/super-admin/SuperAdminDashboard"));
 const UserManagement = lazy(() => import("./pages/super-admin/UserManagement"));
@@ -252,6 +255,8 @@ function App() {
             <Route path="dashboard" element={<SellerDashboard />} />
             <Route path="products" element={<SellerProducts />} />
             <Route path="products/add" element={<AddProduct />} />
+            <Route path="products/wizard" element={<SellerProductWizard />} />
+            <Route path="products/wizard/:id" element={<SellerProductWizard />} />
             <Route path="products/edit/:id" element={<EditProduct />} />
             <Route path="products/bulk-upload" element={<BulkUpload />} />
             <Route path="inventory" element={<SellerInventory />} />
@@ -280,6 +285,8 @@ function App() {
             <Route path="products/:id/variants" element={<ManageVariants />} />
             <Route path="products/:id/images" element={<ManageImages />} />
             <Route path="products/:id/discounts" element={<ManageDiscounts />} />
+            <Route path="products/:id/compliance" element={<ProductCompliancePage />} />
+            <Route path="product-compliance" element={<ComplianceDashboard />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="refunds" element={<AdminRefunds />} />
             <Route path="seller-payouts" element={<AdminSellerPayouts />} />

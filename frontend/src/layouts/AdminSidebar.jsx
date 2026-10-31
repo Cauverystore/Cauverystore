@@ -19,6 +19,7 @@ const allLinks = [
   { to: "/admin/categories", label: "Categories", icon: Tags, module: "categories" },
   { to: "/admin/brands", label: "Brands", icon: Building2, module: "brands" },
   { to: "/admin/product-dashboard", label: "Product Dashboard", icon: LayoutList, module: "productDashboard" },
+  { to: "/admin/product-compliance", label: "Product Compliance", icon: ShieldCheck, module: "productDashboard" },
   { to: "/admin/inventory-dashboard", label: "Inventory Dashboard", icon: TrendingDown, module: "inventoryDashboard" },
   { to: "/admin/warehouses", label: "Warehouses", icon: Warehouse, module: "warehouses" },
   { to: "/admin/suppliers", label: "Suppliers", icon: Truck, module: "suppliers" },

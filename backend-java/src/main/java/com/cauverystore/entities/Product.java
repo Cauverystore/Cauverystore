@@ -17,6 +17,17 @@ public class Product extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
     private Double price;
+    /**
+     * Maximum retail price printed on the pack, inclusive of all taxes. The selling price may not
+     * exceed it. The shop's product page and admin edit form already read this field; until now
+     * it had no column, so whatever they sent was dropped.
+     */
+    private Double mrp;
+
+    public Double getMrp() { return this.mrp; }
+
+    public void setMrp(final Double mrp) { this.mrp = mrp; }
+
     private Integer stock;
     private boolean active = true;
     private String sku;

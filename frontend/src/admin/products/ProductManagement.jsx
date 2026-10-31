@@ -6,6 +6,7 @@ import { imgUrl } from "../../utils/images";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
+import SellerOrigin from "./SellerOrigin";
 import "../../styles/admin.css";
 import { confirmAction } from "../../components/ConfirmDialog";
 import ProductImagePicker, { uploadProductImages } from "./ProductImagePicker";
@@ -42,7 +43,7 @@ const ProductManagement = () => {
   const canManageCategories = isAdmin || role === "EXECUTIVE" || isSuperAdmin;
 
   const [tab, setTab] = useState("add");
-  const [form, setForm] = useState({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",billDescription:"",cessRate:"",uom:"NOS",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
+  const [form, setForm] = useState({ name:"",brand:"",category:"Electronics",price:"",mrp:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",billDescription:"",cessRate:"",uom:"NOS",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None",sellerId:null });
   const [submitting, setSubmitting] = useState(false);
   const [newImages, setNewImages] = useState([]);
   const [msg, setMsg] = useState(null);
@@ -94,17 +95,20 @@ const ProductManagement = () => {
 
   const handleAdd = async () => {
     if (!form.name||!form.price||!form.stock) { setMsg({type:"error",text:"Name, Price, and Stock are required."}); return; }
+    // Without a seller there is no state of origin, and checkout cannot tax the product.
+    if (!isSeller && !form.sellerId) { setMsg({type:"error",text:"Choose the seller, so the product has a state of origin."}); return; }
     setSubmitting(true); setMsg(null);
     try {
       const ep = isSeller?"/api/seller/products":"/api/admin/products/add";
-      const data = { name:form.name,brand:form.brand,price:parseFloat(form.price),stock:parseInt(form.stock),sku:form.sku,description:form.description,manufacturer:form.manufacturer,modelNumber:form.modelNumber,barcode:form.barcode,hsnCode:form.hsnCode,prePackagedAndLabelled:form.prePackagedAndLabelled,gstRateSelectionId:form.gstRateSelectionId??null,countryOfOrigin:form.countryOfOrigin,shortDescription:form.shortDescription,technicalSpecs:form.technicalSpecs,warranty:form.warranty,returnPolicy:form.returnPolicy,metaTitle:form.metaTitle,metaDescription:form.metaDescription,metaKeywords:form.keywords,billDescription:form.billDescription.trim()||null,cessRate:form.cessRate!==""?parseFloat(form.cessRate):null,uom:form.uom||"NOS",slug:form.slug||slugify(form.name),weight:form.weight?parseFloat(form.weight):null,dimensions:form.dimensions,shippingClass:form.shippingClass,deliveryDays:form.deliveryDays?parseInt(form.deliveryDays):null,badges:form.badges!=="None"?[form.badges]:[] };
+      if (form.mrp && parseFloat(form.price) > parseFloat(form.mrp)) { setMsg({type:"error",text:"The price is above the MRP."}); setSubmitting(false); return; }
+      const data = { name:form.name,brand:form.brand,price:parseFloat(form.price),mrp:form.mrp?parseFloat(form.mrp):null,stock:parseInt(form.stock),sku:form.sku,description:form.description,manufacturer:form.manufacturer,modelNumber:form.modelNumber,barcode:form.barcode,hsnCode:form.hsnCode,prePackagedAndLabelled:form.prePackagedAndLabelled,gstRateSelectionId:form.gstRateSelectionId??null,countryOfOrigin:form.countryOfOrigin,shortDescription:form.shortDescription,technicalSpecs:form.technicalSpecs,warranty:form.warranty,returnPolicy:form.returnPolicy,metaTitle:form.metaTitle,metaDescription:form.metaDescription,metaKeywords:form.keywords,billDescription:form.billDescription.trim()||null,cessRate:form.cessRate!==""?parseFloat(form.cessRate):null,uom:form.uom||"NOS",slug:form.slug||slugify(form.name),weight:form.weight?parseFloat(form.weight):null,dimensions:form.dimensions,shippingClass:form.shippingClass,deliveryDays:form.deliveryDays?parseInt(form.deliveryDays):null,badges:form.badges!=="None"?[form.badges]:[], ...(isSeller?{}:{sellerId:form.sellerId}) };
       const res = await api.post(ep, data);
       const failed = newImages.length>0 ? await uploadProductImages(res.data?.id, newImages) : [];
       setMsg(failed.length>0
         ? {type:"error",text:`Product created, but ${failed.length} image(s) could not be uploaded (${failed.join(", ")}). Add them with the Images button in the Products tab.`}
-        : {type:"success",text:newImages.length>0?"Product created with images!":"Product created!"});
+        : {type:"success",text:(newImages.length>0?"Product created with images!":"Product created!")+(isSeller?"":" Add its compliance details (Compliance button in the Products tab); it stays off sale until they pass.")});
       setNewImages([]); loadProducts();
-      setForm({ name:"",brand:"",category:"Electronics",price:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",billDescription:"",cessRate:"",uom:"NOS",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
+      setForm({ name:"",brand:"",category:"Electronics",price:"",mrp:"",stock:"",sku:"",description:"",manufacturer:"",modelNumber:"",barcode:"",hsnCode:"",prePackagedAndLabelled:true,gstRateSelectionId:undefined,countryOfOrigin:"India",shortDescription:"",technicalSpecs:"",warranty:"1 Year",returnPolicy:"7 Days",billDescription:"",cessRate:"",uom:"NOS",metaTitle:"",metaDescription:"",keywords:"",slug:"",weight:"",dimensions:"",shippingClass:"Standard",deliveryDays:"",badges:"None" });
     } catch (err) { setMsg({type:"error",text:err.response?.data?.error||"Failed"}); }
     setSubmitting(false);
   };
@@ -219,9 +223,10 @@ const ProductManagement = () => {
           {fld("Product Name *", "name")}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>          {fld("Brand","brand")}{fld("Category","category",null,categories.length>0?categories.map(c=>c.name):CATEGORIES)}</div>
           {fld("Description","description","textarea")}
+          {!isSeller && <SellerOrigin value={form.sellerId} onChange={(id)=>setForm(f=>({...f,sellerId:id}))} />}
         </div>
         <div style={S.section}><h3 style={S.sTitle}>Pricing & Inventory</h3>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.75rem"}}>{fld("Price incl. GST (₹) *","price","number")}{fld("Stock *","stock","number")}{fld("SKU","sku")}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"0.75rem"}}>{fld("MRP (₹)","mrp","number",null,"Printed on the pack; price may not exceed it")}{fld("Price incl. GST (₹) *","price","number")}{fld("Stock *","stock","number")}{fld("SKU","sku")}</div>
         </div>
         <div style={S.section}><h3 style={S.sTitle}>Details</h3>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>{fld("Manufacturer","manufacturer")}{fld("Model Number","modelNumber")}{fld("Barcode","barcode",null,null,"12-13 digits")}{fld("Country","countryOfOrigin",null,COUNTRIES)}{fld("Warranty","warranty",null,WARRANTY)}{fld("Return Policy","returnPolicy",null,RETURN_POLICY)}{fld("Badges","badges",null,BADGES)}</div>
@@ -369,7 +374,8 @@ const ProductManagement = () => {
                 </td>
                 <td style={{padding:"10px",display:"flex",gap:"6px",flexWrap:"wrap"}}>
                   <button onClick={()=>navigate(`/admin/products/${p.id}/images`)} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#EAF7EE",color:"#146C43",cursor:"pointer",fontSize:"0.75rem",fontWeight:600}}>Images</button>
-                  <button onClick={()=>{setEditing(p);setEditForm({name:p.name||"",price:p.price||"",stock:p.stock||"",description:p.description||"",brand:p.brand||"",hsnCode:p.hsnCode||"",prePackagedAndLabelled:p.prePackagedAndLabelled!==false,gstRateSelectionId:p.gstRateSelectionId??undefined,billDescription:p.billDescription||"",cessRate:p.cessRate??"",uom:p.uom||"NOS"});switchTab("edit")}} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Edit</button>
+                  {!isSeller && <button onClick={()=>navigate(`/admin/products/${p.id}/compliance`)} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",color:"#146C43",cursor:"pointer",fontSize:"0.75rem",fontWeight:600}}>Compliance</button>}
+                  <button onClick={()=>{setEditing(p);setEditForm({name:p.name||"",price:p.price||"",stock:p.stock||"",description:p.description||"",brand:p.brand||"",hsnCode:p.hsnCode||"",prePackagedAndLabelled:p.prePackagedAndLabelled!==false,gstRateSelectionId:p.gstRateSelectionId??undefined,billDescription:p.billDescription||"",cessRate:p.cessRate??"",uom:p.uom||"NOS",sellerId:p.sellerId??null});switchTab("edit")}} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Edit</button>
                   <button onClick={()=>delProduct(p.id)} style={{padding:"4px 10px",border:"1px solid #fecaca",borderRadius:"4px",background:"#fef2f2",color:"#dc2626",cursor:"pointer",fontSize:"0.8rem"}}>Delete</button>
                 </td>
               </tr>)}</tbody>
@@ -388,6 +394,7 @@ const ProductManagement = () => {
             {fldEdit("Price incl. GST (₹)","price","number")}{fldEdit("Stock","stock","number")}
           </div>
           {fldEdit("Description","description","textarea")}
+          {!isSeller && <SellerOrigin value={editForm.sellerId} onChange={(id)=>setEditForm(f=>({...f,sellerId:id}))} />}
 
           {/*
             The edit form carried no HSN at all, so a product saved with a bad code could not be
