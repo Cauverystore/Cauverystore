@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../../api/axios";
 import { promptText } from "../../components/ConfirmDialog";
+import GstRuleUpdates from "./GstRuleUpdates";
 
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "1.25rem" };
 const inp = { width: "100%", padding: "0.5rem", border: "1px solid #d1d5db", borderRadius: 6, fontSize: "0.85rem" };
@@ -48,8 +49,8 @@ const AdminGstCompliance = () => {
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // CBIC's notification API needs credentials nobody here has, so this cannot be polled. The
-  // honest substitute is a named, dated check - which is what this records.
+  // The server watches CBIC's rate lists every morning, but only a person can say they have
+  // read a notification and that the rates charged match it. This records that named, dated check.
   const confirmRatesCurrent = async () => {
     const note = await promptText(
       "Confirm the GST rates are current.\n\n" +
@@ -190,6 +191,8 @@ const AdminGstCompliance = () => {
           )}
         </div>
       )}
+
+      <GstRuleUpdates />
 
       {identity && (
         <div style={{ ...card, marginBottom: "1.5rem" }}>
