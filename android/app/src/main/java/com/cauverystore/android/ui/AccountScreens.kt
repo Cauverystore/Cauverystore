@@ -116,11 +116,11 @@ fun LoginScreen(app: CauveryApp, nav: NavHostController) {
             Text(stringResource(R.string.welcome_back), style = MaterialTheme.typography.headlineSmall)
             if (mfaEmail == null) {
                 OutlinedTextField(
-                    email, { email = it }, label = { Text(stringResource(R.string.email)) }, singleLine = true,
+                    email, { email = it.cleanEmail() }, label = { Text(stringResource(R.string.email)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
-                    password, { password = it }, label = { Text(stringResource(R.string.password)) }, singleLine = true,
+                    password, { password = it.noLineBreaks() }, label = { Text(stringResource(R.string.password)) }, singleLine = true,
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
@@ -205,7 +205,7 @@ fun RegisterScreen(app: CauveryApp, nav: NavHostController) {
         ) {
             OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.full_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
-                email, { email = it }, label = { Text(stringResource(R.string.email)) }, singleLine = true,
+                email, { email = it.cleanEmail() }, label = { Text(stringResource(R.string.email)) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
@@ -213,7 +213,7 @@ fun RegisterScreen(app: CauveryApp, nav: NavHostController) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                password, { password = it }, label = { Text(stringResource(R.string.password)) }, singleLine = true,
+                password, { password = it.noLineBreaks() }, label = { Text(stringResource(R.string.password)) }, singleLine = true,
                 supportingText = { Text(stringResource(R.string.password_hint)) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(),
@@ -348,3 +348,8 @@ private fun Row_(icon: ImageVector, title: String, subtitle: String? = null, onC
         modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
     )
 }
+
+// Pasted text often carries a line break or spaces that the field doesn't show; an email
+// never contains them and a password never contains line breaks, so drop them as typed.
+private fun String.noLineBreaks(): String = filterNot { it == '\n' || it == '\r' }
+private fun String.cleanEmail(): String = filterNot { it.isWhitespace() }
