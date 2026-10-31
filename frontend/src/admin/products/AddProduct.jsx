@@ -128,10 +128,14 @@ const AddProduct = () => {
       }
       // A seller's listing is reviewed by an admin before shoppers can see it.
       setMsg({ type: "success", text: isSeller
-        ? `Product submitted${images.length > 0 ? " with images" : ""}. It will appear in the store once an admin approves it.`
+        ? `Product saved${images.length > 0 ? " with images" : ""}. Next, fill in its compliance details; it goes on sale once they pass and an admin approves it.`
         : `Product created${images.length > 0 ? " with images" : ""}. Now add its compliance details; it stays off sale until they pass.` });
       // Admins go straight to the compliance details, which decide whether it can go on sale.
-      setTimeout(() => navigate(!isSeller && productId ? `/admin/products/${productId}/compliance` : redirectPath), isSeller ? 2500 : 1200);
+      setTimeout(() => {
+        if (!productId) navigate(redirectPath);
+        else if (isSeller) navigate(`/seller/products/wizard/${productId}`, { state: { step: 2 } });
+        else navigate(`/admin/products/${productId}/compliance`);
+      }, isSeller ? 2000 : 1200);
     } catch (err) {
       setMsg({ type: "error", text: err.response?.data?.error || "Failed to create product." });
     }

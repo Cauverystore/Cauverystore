@@ -24,12 +24,75 @@ const secondary = { ...S.btn, background: "#fff", color: "#146C43", border: "1px
 const danger = { ...S.btn, background: "#fff", color: "#b91c1c", border: "1px solid #fecaca" };
 
 const NUMBER_KEYS = new Set(["netQuantity", "grossQuantity", "minOrderQty", "maxOrderQty"]);
-const ALL_DETAIL_KEYS = [
+export const ALL_DETAIL_KEYS = [...new Set([
   ...SECTIONS.flatMap((s) => s.fields.map((f) => f.key)),
   ...Object.values(CATEGORY_SECTIONS).flatMap((fs) => fs.map((f) => f.key)),
-];
+])];
 
-const errorText = (e, fallback) => e?.response?.data?.error || e?.response?.data?.message || fallback;
+export const errorText = (e, fallback) => e?.response?.data?.error || e?.response?.data?.message || fallback;
+
+/** The form state for a compliance record from the server (or none). */
+export const detailsFromServer = (d) =>
+  Object.fromEntries(ALL_DETAIL_KEYS.map((k) => [k, (d || {})[k] ?? (k === "packerSameAsManufacturer" ? false : "")]));
+
+/** The PUT body: every editable field, blanks as null, numbers and yes/no converted. */
+export const detailsBody = (details) => {
+  const body = {};
+  ALL_DETAIL_KEYS.forEach((k) => {
+    let v = details[k];
+    if (v === "" || v === undefined) v = null;
+    if (v !== null && NUMBER_KEYS.has(k)) v = Number(v);
+    if (k === "prescriptionRequired" && v !== null) v = v === true || v === "true";
+    if (typeof v === "string") v = v.trim();
+    body[k] = v;
+  });
+  return body;
+};
+
+/** Client-side format checks for the given fields; returns {key: message}. */
+export const checkFields = (fields, values) => {
+  const errs = {};
+  fields.forEach((f) => {
+    if (f.check) { const ok = f.check(String(values[f.key] ?? "")); if (ok !== true) errs[f.key] = ok; }
+  });
+  return errs;
+};
+
+/** One input, styled and marked when the last check found it missing. */
+export const ComplianceField = ({ f, value, onChange, missing, error }) => {
+  const style = { ...S.input, ...(missing ? S.missing : {}) };
+  if (f.type === "checkbox") {
+    return (
+      <div>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.85rem" }}>
+          <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} /> {f.label}
+        </label>
+      </div>
+    );
+  }
+  let input;
+  if (f.options) {
+    const opts = f.options.map((o) => (Array.isArray(o) ? o : [o, o]));
+    input = (
+      <select style={style} value={value === null || value === undefined ? "" : String(value)} onChange={(e) => onChange(e.target.value)}>
+        <option value="">Select</option>
+        {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+    );
+  } else if (f.type === "textarea") {
+    input = <textarea style={{ ...style, minHeight: 64, resize: "vertical" }} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />;
+  } else {
+    input = <input style={style} type={f.type || "text"} value={value ?? ""} min={f.type === "number" ? 0 : undefined}
+      step={f.type === "number" ? "any" : undefined} onChange={(e) => onChange(e.target.value)} />;
+  }
+  return (
+    <div>
+      <label style={S.label}>{f.label}{missing ? " *" : ""}</label>
+      {input}
+      {error && <div style={S.err}>{error}</div>}
+    </div>
+  );
+};
 
 export const ScoreBadge = ({ score, band }) => {
   const s = BAND_STYLE[band] || BAND_STYLE.BLOCKED;
@@ -54,8 +117,7 @@ const ComplianceEditor = ({ productId, isAdmin = false, onChanged }) => {
       setData(r.data);
       const p = r.data.product || {};
       setBasics(Object.fromEntries(BASIC_FIELDS.map((f) => [f.key, p[f.key] ?? ""])));
-      const d = r.data.details || {};
-      setDetails(Object.fromEntries(ALL_DETAIL_KEYS.map((k) => [k, d[k] ?? (k === "packerSameAsManufacturer" ? false : "")])));
+      setDetails(detailsFromServer(r.data.details));
     } catch (e) {
       setMsg({ type: "error", text: errorText(e, "Could not load compliance details.") });
     }
@@ -85,24 +147,12 @@ const ComplianceEditor = ({ productId, isAdmin = false, onChanged }) => {
   };
 
   const saveDetails = async () => {
-    const errs = {};
-    sections.forEach((s) => s.fields.forEach((f) => {
-      if (f.check) { const ok = f.check(String(details[f.key] ?? "")); if (ok !== true) errs[f.key] = ok; }
-    }));
+    const errs = checkFields(sections.flatMap((s) => s.fields), details);
     setFieldErrors(errs);
     if (Object.keys(errs).length) { setMsg({ type: "error", text: "Fix the highlighted fields first." }); return; }
     setBusy("details"); setMsg(null);
-    const body = {};
-    ALL_DETAIL_KEYS.forEach((k) => {
-      let v = details[k];
-      if (v === "" || v === undefined) v = null;
-      if (v !== null && NUMBER_KEYS.has(k)) v = Number(v);
-      if (k === "prescriptionRequired" && v !== null) v = v === true || v === "true";
-      if (typeof v === "string") v = v.trim();
-      body[k] = v;
-    });
     try {
-      const r = await api.put(`/api/compliance/products/${productId}`, body);
+      const r = await api.put(`/api/compliance/products/${productId}`, detailsBody(details));
       afterSave(r, "Compliance details saved.");
     } catch (e) {
       setMsg({ type: "error", text: errorText(e, "Could not save the compliance details.") });
@@ -132,40 +182,9 @@ const ComplianceEditor = ({ productId, isAdmin = false, onChanged }) => {
   if (!data) return <div style={S.card}>{msg ? <div style={S.err}>{msg.text}</div> : "Loading compliance details..."}</div>;
 
   const status = data.status;
-  const field = (f, value, onChange) => {
-    const isMissing = missing.has(f.key);
-    const style = { ...S.input, ...(isMissing ? S.missing : {}) };
-    let input;
-    if (f.type === "checkbox") {
-      input = (
-        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.85rem" }}>
-          <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} /> {f.label}
-        </label>
-      );
-      return <div key={f.key}>{input}</div>;
-    }
-    if (f.options) {
-      const opts = f.options.map((o) => (Array.isArray(o) ? o : [o, o]));
-      input = (
-        <select style={style} value={value === null || value === undefined ? "" : String(value)} onChange={(e) => onChange(e.target.value)}>
-          <option value="">Select</option>
-          {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-      );
-    } else if (f.type === "textarea") {
-      input = <textarea style={{ ...style, minHeight: 64, resize: "vertical" }} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />;
-    } else {
-      input = <input style={style} type={f.type || "text"} value={value ?? ""} min={f.type === "number" ? 0 : undefined}
-        step={f.type === "number" ? "any" : undefined} onChange={(e) => onChange(e.target.value)} />;
-    }
-    return (
-      <div key={f.key}>
-        <label style={S.label}>{f.label}{isMissing ? " *" : ""}</label>
-        {input}
-        {fieldErrors[f.key] && <div style={S.err}>{fieldErrors[f.key]}</div>}
-      </div>
-    );
-  };
+  const field = (f, value, onChange) => (
+    <ComplianceField key={f.key} f={f} value={value} onChange={onChange} missing={missing.has(f.key)} error={fieldErrors[f.key]} />
+  );
 
   const critical = (result?.issues || []).filter((i) => i.critical);
   const other = (result?.issues || []).filter((i) => !i.critical);

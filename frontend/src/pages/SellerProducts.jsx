@@ -237,7 +237,8 @@ const SellerProducts = () => {
           >
             Upload Template
           </a>
-          <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/add")}>Add Product</button>
+          <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/wizard")}>Add Product</button>
+          <button style={{ ...btnBase, background: "#f3f4f6", color: "#374151" }} onClick={() => navigate("/seller/products/add")}>Quick add (one page)</button>
         </div>
       </div>
 
@@ -294,7 +295,7 @@ const SellerProducts = () => {
         <div style={{ textAlign: "center", padding: "3rem 1rem", background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
           <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>📦</div>
           <p style={{ color: "#6b7280", marginBottom: "1rem" }}>No products yet. Start by adding your first product.</p>
-          <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/add")}>Add Product</button>
+          <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/wizard")}>Add Product</button>
         </div>
       ) : (
         <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", overflow: "hidden" }}>
@@ -348,6 +349,12 @@ const SellerProducts = () => {
                             onClick={() => navigate(`/seller/products/edit/${pid}`)}
                           >
                             Edit
+                          </button>
+                          <button
+                            style={{ ...btnBase, padding: "0.35rem 0.65rem", fontSize: "0.78rem", background: "#146C43", color: "#fff" }}
+                            onClick={() => navigate(`/seller/products/wizard/${pid}`)}
+                          >
+                            Compliance
                           </button>
                           <button
                             style={{ ...btnBase, padding: "0.35rem 0.65rem", fontSize: "0.78rem", background: "#ef4444", color: "#fff" }}
