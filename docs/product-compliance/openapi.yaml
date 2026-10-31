@@ -1,0 +1,421 @@
+openapi: 3.0.3
+info:
+  title: Cauvery Store - Product Compliance API
+  version: "1.0"
+  description: |
+    Compliance data, scoring, approval workflow and the public product information block.
+    All paths except GET /api/products/{id}/label-info need a signed-in user (Bearer JWT).
+    Sellers reach only their own products, and need the products.manage permission when acting
+    as a team member (X-Seller-Id header).
+servers:
+  - url: https://cauverystore.in
+    description: Production; the shop calls the API on its own origin
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Check
+  - name: Details
+  - name: Workflow
+  - name: Admin
+  - name: Public
+
+paths:
+  /api/compliance/check/{productId}:
+    post:
+      tags: [Check]
+      summary: Run the compliance check and store its result
+      description: Roles ADMIN, SUPER_ADMIN, EXECUTIVE, SELLER (own products).
+      parameters: [{ $ref: "#/components/parameters/productId" }]
+      responses:
+        "200": { description: The result, content: { application/json: { schema: { $ref: "#/components/schemas/ComplianceResult" } } } }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /api/compliance/products/{productId}:
+    get:
+      tags: [Details]
+      summary: Compliance details, a fresh result, product basics and workflow history
+      parameters: [{ $ref: "#/components/parameters/productId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productId: { type: integer, format: int64 }
+                  categoryType: { $ref: "#/components/schemas/CategoryType" }
+                  status: { $ref: "#/components/schemas/WorkflowStatus" }
+                  product: { $ref: "#/components/schemas/ProductBasics" }
+                  details: { $ref: "#/components/schemas/ProductCompliance" }
+                  compliance: { $ref: "#/components/schemas/ComplianceResult" }
+                  history: { type: array, items: { $ref: "#/components/schemas/WorkflowEvent" } }
+    put:
+      tags: [Details]
+      summary: Save the compliance details (bean-validated)
+      description: |
+        Replaces every editable field (send the full object; null clears a field). Identity,
+        workflow state, score and audit columns are ignored if sent. Saving a listing that is
+        in ADMIN_REVIEW or APPROVED sends it back to DRAFT.
+      parameters: [{ $ref: "#/components/parameters/productId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ProductCompliance" } } }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  details: { $ref: "#/components/schemas/ProductCompliance" }
+                  status: { $ref: "#/components/schemas/WorkflowStatus" }
+                  compliance: { $ref: "#/components/schemas/ComplianceResult" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /api/compliance/products/{productId}/basics:
+    put:
+      tags: [Details]
+      summary: Save MRP, country of origin, manufacturer, warranty and return policy
+      description: Goes through the normal product update, so ownership checks and the publish gate apply. A missing key means unchanged.
+      parameters: [{ $ref: "#/components/parameters/productId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mrp: { type: number, nullable: true, minimum: 0, exclusiveMinimum: true }
+                countryOfOrigin: { type: string }
+                manufacturer: { type: string }
+                warranty: { type: string }
+                returnPolicy: { type: string }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product: { $ref: "#/components/schemas/ProductBasics" }
+                  compliance: { $ref: "#/components/schemas/ComplianceResult" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /api/compliance/products/{productId}/workflow/{action}:
+    post:
+      tags: [Workflow]
+      summary: Move the listing through the approval workflow
+      description: |
+        submit  DRAFT -> COMPLIANCE_CHECK -> SELLER_REVIEW (or back to DRAFT with the gaps)
+        confirm SELLER_REVIEW -> ADMIN_REVIEW (or DRAFT if no longer publishable)
+        approve ADMIN_REVIEW -> APPROVED (ADMIN, SUPER_ADMIN; re-checked)
+        reject  SELLER_REVIEW / ADMIN_REVIEW / APPROVED -> DRAFT (note required; sellers only from SELLER_REVIEW)
+        publish APPROVED -> PUBLISHED (ADMIN, SUPER_ADMIN; re-checked; puts it on sale)
+      parameters:
+        - { $ref: "#/components/parameters/productId" }
+        - name: action
+          in: path
+          required: true
+          schema: { type: string, enum: [submit, confirm, approve, reject, publish] }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { note: { type: string } } }
+      responses:
+        "200":
+          description: New state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productId: { type: integer, format: int64 }
+                  status: { $ref: "#/components/schemas/WorkflowStatus" }
+                  statusNote: { type: string, nullable: true }
+                  compliance: { $ref: "#/components/schemas/ComplianceResult" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409":
+          description: Wrong state for this action, or the check blocks it
+          content: { application/json: { schema: { $ref: "#/components/schemas/BlockedError" } } }
+
+  /api/compliance/products/{productId}/history:
+    get:
+      tags: [Workflow]
+      summary: Workflow history, oldest first
+      parameters: [{ $ref: "#/components/parameters/productId" }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/WorkflowEvent" } } } } }
+
+  /api/compliance/dashboard:
+    get:
+      tags: [Admin]
+      summary: Every product checked now, with totals (ADMIN, SUPER_ADMIN, EXECUTIVE)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totals:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      compliant: { type: integer }
+                      nonCompliant: { type: integer }
+                      warning: { type: integer }
+                      blocked: { type: integer }
+                      gstHsnMissing: { type: integer }
+                      fssaiPending: { type: integer }
+                      bisPending: { type: integer }
+                      live: { type: integer }
+                  products: { type: array, items: { $ref: "#/components/schemas/DashboardRow" } }
+                  gateEnabled: { type: boolean }
+                  enforceLive: { type: boolean }
+                  generatedAt: { type: string, format: date-time }
+
+  /api/compliance/requirements:
+    get:
+      tags: [Admin]
+      summary: For each category type, every check it applies
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type: { $ref: "#/components/schemas/CategoryType" }
+                    label: { type: string }
+                    fields: { type: array, items: { $ref: "#/components/schemas/Issue" } }
+
+  /api/compliance/categories/{categoryId}/type:
+    put:
+      tags: [Admin]
+      summary: Set a category's compliance type (ADMIN, SUPER_ADMIN)
+      description: Category add/update (/api/categories/admin/...) also accept complianceType.
+      parameters:
+        - { name: categoryId, in: path, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, properties: { complianceType: { $ref: "#/components/schemas/CategoryType" } } } } }
+      responses:
+        "200": { description: OK }
+
+  /api/products/{id}/label-info:
+    get:
+      tags: [Public]
+      summary: What the product page shows a customer
+      description: No sign-in. Only for products shoppers can see. Never includes the seller's GSTIN or state.
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name: { type: string }
+                  brand: { type: string, nullable: true }
+                  sku: { type: string, nullable: true }
+                  hsnCode: { type: string, nullable: true }
+                  gstRate: { type: number, nullable: true, description: Total GST percent; null when no published rate applies }
+                  mrp: { type: number, nullable: true }
+                  price: { type: number }
+                  netQuantity: { type: number, nullable: true }
+                  quantityUnit: { type: string, nullable: true }
+                  countryOfOrigin: { type: string, nullable: true }
+                  manufacturerName: { type: string, nullable: true }
+                  manufacturerAddress: { type: string, nullable: true }
+                  customerCare:
+                    type: object
+                    properties:
+                      name: { type: string, nullable: true }
+                      phone: { type: string, nullable: true }
+                      email: { type: string, nullable: true }
+                      address: { type: string, nullable: true }
+                  warranty: { type: string, nullable: true }
+                  returnPolicy: { type: string, nullable: true }
+                  returnEligible: { type: boolean, nullable: true }
+                  returnWindow: { type: integer, nullable: true }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /api/admin/products/{productId}/approval:
+    put:
+      tags: [Workflow]
+      summary: Existing approval endpoint, now gated
+      description: Approving a product that would go on sale runs the compliance check first and returns 409 with the gaps.
+      parameters: [{ $ref: "#/components/parameters/productId" }]
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { approvalStatus: { type: string, enum: [approved, rejected, pending] } } } } }
+      responses:
+        "200": { description: Updated product }
+        "409": { description: Blocked by the compliance check, content: { application/json: { schema: { $ref: "#/components/schemas/BlockedError" } } } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    productId:
+      name: productId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { type: object, properties: { error: { type: string } } } } }
+  schemas:
+    CategoryType:
+      type: string
+      enum: [GENERAL, FOOD, ELECTRONICS, COSMETICS, MEDICAL, TOYS, CLOTHING]
+    WorkflowStatus:
+      type: string
+      enum: [DRAFT, COMPLIANCE_CHECK, SELLER_REVIEW, ADMIN_REVIEW, APPROVED, PUBLISHED]
+    Issue:
+      type: object
+      properties:
+        field: { type: string, example: fssaiLicenceNumber }
+        label: { type: string, example: FSSAI licence number }
+        section: { type: string, enum: [basic, pricing, gst, inventory, legalMetrology, parties, origin, customerCare, dates, seller, category] }
+        critical: { type: boolean, description: Blocks publishing whatever the score }
+        problem: { type: string, enum: [MISSING, INVALID] }
+        message: { type: string }
+    ComplianceResult:
+      type: object
+      required: [compliant, score, missingFields]
+      properties:
+        productId: { type: integer, format: int64 }
+        categoryType: { $ref: "#/components/schemas/CategoryType" }
+        compliant: { type: boolean, description: True only at 100 with no issues }
+        score: { type: integer, minimum: 0, maximum: 100, description: Share of applicable checks passed, rounded down }
+        band: { type: string, enum: [PUBLISHABLE, WARNING, BLOCKED], description: "100 / 90-99 with no critical gap / otherwise" }
+        publishable: { type: boolean }
+        missingFields: { type: array, items: { type: string } }
+        issues: { type: array, items: { $ref: "#/components/schemas/Issue" } }
+        totalChecks: { type: integer }
+        checkedAt: { type: string, format: date-time }
+    BlockedError:
+      type: object
+      properties:
+        error: { type: string }
+        compliance: { $ref: "#/components/schemas/ComplianceResult" }
+    ProductBasics:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        sku: { type: string, nullable: true }
+        brand: { type: string, nullable: true }
+        category: { type: string, nullable: true }
+        sellerId: { type: integer, format: int64, nullable: true }
+        price: { type: number, nullable: true }
+        offerPrice: { type: number, nullable: true }
+        mrp: { type: number, nullable: true }
+        hsnCode: { type: string, nullable: true }
+        countryOfOrigin: { type: string, nullable: true }
+        manufacturer: { type: string, nullable: true }
+        warranty: { type: string, nullable: true }
+        returnPolicy: { type: string, nullable: true }
+        live: { type: boolean }
+    ProductCompliance:
+      type: object
+      properties:
+        netQuantity: { type: number, minimum: 0 }
+        grossQuantity: { type: number, minimum: 0 }
+        quantityUnit: { type: string, maxLength: 20 }
+        minOrderQty: { type: integer, minimum: 1 }
+        maxOrderQty: { type: integer, minimum: 1 }
+        manufacturerName: { type: string, maxLength: 255 }
+        manufacturerAddress: { type: string }
+        packerSameAsManufacturer: { type: boolean }
+        packerName: { type: string, maxLength: 255 }
+        packerAddress: { type: string }
+        importerName: { type: string, maxLength: 255 }
+        importerAddress: { type: string }
+        stateOfOrigin: { type: string, maxLength: 100 }
+        customerCareName: { type: string, maxLength: 255 }
+        customerCarePhone: { type: string, pattern: "^$|^[+0-9 ()\\-]{6,20}$" }
+        customerCareEmail: { type: string, format: email }
+        customerCareAddress: { type: string }
+        mfgDate: { type: string, format: date }
+        bestBeforeDate: { type: string, format: date }
+        expiryDate: { type: string, format: date }
+        batchNumber: { type: string, maxLength: 100 }
+        lotNumber: { type: string, maxLength: 100 }
+        serialNumber: { type: string, maxLength: 100 }
+        fssaiLicenceNumber: { type: string, pattern: "^\\d{14}$" }
+        ingredients: { type: string }
+        nutritionInfo: { type: string }
+        allergens: { type: string }
+        foodPreference: { type: string, enum: [VEG, NON_VEG] }
+        storageInstructions: { type: string }
+        serviceCentreDetails: { type: string }
+        bisNumber: { type: string, pattern: "^(R-\\d{8}|CM/L-\\d{7,10})$" }
+        voltage: { type: string, maxLength: 50 }
+        powerRating: { type: string, maxLength: 50 }
+        cosmeticLicenceNumber: { type: string, maxLength: 100 }
+        cdscoRegistrationNumber: { type: string, description: "Format check only: 4-40 letters, digits and / - . space" }
+        prescriptionRequired: { type: boolean }
+        warnings: { type: string }
+        disclaimer: { type: string }
+        ageGroup: { type: string, maxLength: 50 }
+        safetyWarning: { type: string }
+        fabric: { type: string, maxLength: 255 }
+        washCare: { type: string }
+        sizeChart: { type: string }
+        complianceScore: { type: integer, readOnly: true }
+        missingFields: { type: string, readOnly: true, description: Comma-separated keys at the last check }
+        publishable: { type: boolean, readOnly: true }
+        lastCheckedAt: { type: string, format: date-time, readOnly: true }
+        status: { $ref: "#/components/schemas/WorkflowStatus" }
+        statusNote: { type: string, readOnly: true }
+        createdBy: { type: string, readOnly: true }
+        createdDate: { type: string, format: date-time, readOnly: true }
+        updatedBy: { type: string, readOnly: true }
+        updatedDate: { type: string, format: date-time, readOnly: true }
+        version: { type: integer, readOnly: true }
+        deletedFlag: { type: boolean, readOnly: true }
+    WorkflowEvent:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        productId: { type: integer, format: int64 }
+        action: { type: string, example: submit }
+        fromStatus: { $ref: "#/components/schemas/WorkflowStatus" }
+        toStatus: { $ref: "#/components/schemas/WorkflowStatus" }
+        score: { type: integer, nullable: true }
+        note: { type: string, nullable: true }
+        actor: { type: string }
+        createdAt: { type: string, format: date-time }
+    DashboardRow:
+      type: object
+      properties:
+        productId: { type: integer, format: int64 }
+        name: { type: string }
+        sku: { type: string, nullable: true }
+        brand: { type: string, nullable: true }
+        category: { type: string, nullable: true }
+        categoryType: { $ref: "#/components/schemas/CategoryType" }
+        sellerId: { type: integer, format: int64, nullable: true }
+        seller: { type: string, nullable: true }
+        live: { type: boolean }
+        status: { $ref: "#/components/schemas/WorkflowStatus" }
+        score: { type: integer }
+        band: { type: string, enum: [PUBLISHABLE, WARNING, BLOCKED] }
+        publishable: { type: boolean }
+        gstHsnMissing: { type: boolean }
+        fssaiPending: { type: boolean }
+        bisPending: { type: boolean }
+        issues: { type: array, items: { $ref: "#/components/schemas/Issue" } }
