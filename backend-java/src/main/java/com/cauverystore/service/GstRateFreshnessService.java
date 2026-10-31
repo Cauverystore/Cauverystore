@@ -104,7 +104,35 @@ public class GstRateFreshnessService {
                             LocalDate.of(2026, 5, 1),
                             "Beverage headings under 2202 re-cut into eight-digit codes."));
 
-            for (Known k : known) {
+            // The 57th Council set: 02 to 10/2026 in all three rate series, dated 27-10-2026
+            // (CBIC lists them under 28-10), in force 01-11-2026. All read on 2026-11-01. Without
+            // these rows the detector would record each as pending and draft duplicates of
+            // changes the seed already carries. Numbers are copied exactly as CBIC lists them,
+            // stray spaces included, because the detector matches them as text.
+            List<Known> all = new java.util.ArrayList<>(known);
+            LocalDate dated2026 = LocalDate.of(2026, 10, 27);
+            LocalDate nov2026 = LocalDate.of(2026, 11, 1);
+            String[][] series = {
+                    {"Central Tax (Rate)", "Central Tax (Rate)"},
+                    {"Integrated Tax (Rate)", " Integrated Tax (Rate)"},
+                    {"Union Territory Tax (Rate)", "Union Territory Tax (Rate)"}};
+            for (String[] s : series) {
+                for (int n = 2; n <= 10; n++) {
+                    // CBIC prints 02-05 Integrated without the space and 06-10 with it.
+                    String name = n <= 5 ? s[0] : s[1];
+                    String what = switch (n) {
+                        case 2 -> "Amends 09/2025: retreaded tractor tyres (4012) to 5%; 3101 "
+                                + "entry reworded to cover seaweed bio-stimulants. In the seed.";
+                        case 3 -> "Amends 10/2025: psyllium seeds (1211 90 13) exempt. In the seed.";
+                        default -> "No goods rate in the seed changes (services, reverse charge "
+                                + "or procedure). Summarised in master-data/cbic-source/README.md.";
+                    };
+                    all.add(new Known(String.format("%02d/2026-%s", n, name), dated2026,
+                            nov2026, what));
+                }
+            }
+
+            for (Known k : all) {
                 if (sourceRepo.findByNotificationNumber(k.number()).isPresent()) continue;
                 sourceRepo.save(new GstRateSource(k.number(), k.dated(), k.effective(), k.what()));
             }
