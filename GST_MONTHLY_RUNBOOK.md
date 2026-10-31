@@ -1,6 +1,6 @@
 # Cauvery Store: GST runbook
 
-Rates, due dates and thresholds change. Confirm every figure on gst.gov.in or cbic-gst.gov.in before acting. This runbook says what to do and where; the portal says what the numbers are. Not tax advice: have a CA review the first few months.
+Rates, due dates and thresholds change. Confirm every figure on gst.gov.in or taxinformation.cbic.gov.in (CBIC's tax information portal, which replaced cbic-gst.gov.in) before acting. This runbook says what to do and where; the portal says what the numbers are. Not tax advice: have a CA review the first few months.
 
 ## Once, before real sales
 

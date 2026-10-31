@@ -6,6 +6,11 @@ downloads the PDFs, so a human can review them against gst_rate_seed.json.
 What it does
   * For every source in gst_sources.json: checks robots.txt, fetches the listing page(s),
     finds PDF links, and compares them with cbic-source/manifest.json.
+  * Sources with "type": "cbic_api" read CBIC's tax information portal
+    (taxinformation.cbic.gov.in), which replaced cbic-gst.gov.in. That portal builds its pages
+    in JavaScript, so its HTML has no PDF links to find. Instead this reads the same JSON its
+    own pages read: the notification list for one category, and each notification's PDF,
+    which the portal returns base64-encoded inside JSON.
   * New PDFs whose URL/title matches `download_if_matches` (default: 2025 onwards) are
     downloaded into cbic-source/incoming/<source id>/ with a SHA-256 and a manifest entry.
     Older new links are only recorded (so the first run does not pull the whole 2017 archive).
@@ -22,6 +27,7 @@ What it deliberately does NOT do
 Python standard library only.
 """
 import argparse
+import base64
 import datetime as dt
 import hashlib
 import json
@@ -31,7 +37,7 @@ import time
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib import error, request, robotparser
-from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qsl, quote, urlencode, urljoin, urlparse, urlunparse
 
 UA = "CauveryStoreGSTWatch/1.0 (+https://cauverystore.in; compliance monitor)"
 MAX_BYTES = 25 * 1024 * 1024
@@ -104,6 +110,57 @@ def _page_urls(src):
     return out
 
 
+def _html_listing(src, page_data):
+    """PDF links on ordinary HTML listing pages: {url: (title, text to match)}."""
+    found = {}
+    hosts = set(src["allowed_hosts"])
+    for page, html in page_data:
+        parser = _Links()
+        parser.feed(html.decode("utf-8", "replace"))
+        for href, text in parser.links:
+            if not href:
+                continue
+            url = urljoin(page, href).split("#")[0]
+            u = urlparse(url)
+            if u.path.lower().endswith(".pdf") and u.hostname in hosts:
+                title = text or Path(u.path).name
+                found.setdefault(url, (title, url + " " + title))
+    return found
+
+
+def _api_listing_url(src):
+    return "%s/fetchNotificationByCategory/%s/%s" % (
+        src["api_base"].rstrip("/"), src["tax_id"], quote(src["category"], safe=""))
+
+
+def _api_listing(src, data):
+    """
+    One CBIC portal category list: {download url: (title, text to match)}. The download URL is
+    the manifest key, so it is built from the portal's numeric document id, which does not change.
+    """
+    items = json.loads(data.decode("utf-8"))
+    if not isinstance(items, list):
+        raise ValueError("expected a JSON list, got %s" % type(items).__name__)
+    found = {}
+    for n in items:
+        if n.get("id") is None or str(n.get("isActive") or "Y").upper() == "N":
+            continue
+        number = " ".join(str(n.get("notificationNo") or "").split())
+        date = str(n.get("notificationDt") or "")[:10]
+        name = " ".join(str(n.get("notificationName") or "").split())
+        url = "%s/download/%s/ENG" % (src["api_base"].rstrip("/"), n["id"])
+        title = "%s (%s) - %s" % (number, date, name) if date else "%s - %s" % (number, name)
+        # Match on number and date only: names often quote the 2017 notification they amend.
+        found[url] = (title, number + " " + date)
+    return found
+
+
+def _api_document(data):
+    """The portal answers {"fileName": ..., "data": <base64 PDF>}."""
+    root = json.loads(data.decode("utf-8"))
+    return base64.b64decode(root.get("data") or ""), root.get("fileName") or ""
+
+
 def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
     rep = {"checked": [], "new": [], "recorded_only": [], "health": [], "manual": []}
     robots = Robots()
@@ -123,37 +180,38 @@ def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
             rep["manual"].append({"id": src["id"], "label": src["label"], "url": src["url"],
                                   "reason": src.get("reason", "")})
             continue
-        hosts = set(src["allowed_hosts"])
-        found = {}
-        for page in _page_urls(src):
+        is_api = src.get("type") == "cbic_api"
+        pages = [_api_listing_url(src)] if is_api else _page_urls(src)
+        page_data = []
+        for page in pages:
             if not fetchable(page):
                 rep["health"].append("%s: not fetched (robots.txt disallows it, or could not be read): %s"
                                      % (src["id"], page))
                 continue
             time.sleep(delay)
             try:
-                parser = _Links()
-                parser.feed(_get(page).decode("utf-8", "replace"))
+                page_data.append((page, _get(page)))
             except Exception as e:
                 rep["health"].append("%s: could not read %s (%s)" % (src["id"], page, e))
-                continue
-            for href, text in parser.links:
-                if not href:
-                    continue
-                url = urljoin(page, href).split("#")[0]
-                u = urlparse(url)
-                if u.path.lower().endswith(".pdf") and u.hostname in hosts:
-                    found.setdefault(url, text or Path(u.path).name)
+        try:
+            if is_api:
+                found = _api_listing(src, page_data[0][1]) if page_data else {}
+            else:
+                found = _html_listing(src, page_data)
+        except Exception as e:
+            rep["health"].append("%s: could not understand the listing (%s) - the site may have "
+                                 "changed; this source is NOT being checked" % (src["id"], e))
+            continue
         rep["checked"].append({"id": src["id"], "label": src["label"], "pdf_links": len(found)})
         if not found:
-            rep["health"].append("%s: found 0 PDF links - the page layout may have changed or the "
+            rep["health"].append("%s: found 0 documents - the page layout may have changed or the "
                                  "site is down; this source is NOT being checked" % src["id"])
             continue
-        for url, title in found.items():
+        for url, (title, match_text) in found.items():
             if url in manifest:
                 continue
             entry = {"source": src["id"], "title": title, "first_seen": today}
-            if not pattern.search(url + " " + title):
+            if not pattern.search(match_text):
                 entry["downloaded"] = False
                 manifest[url] = entry
                 rep["recorded_only"].append(url)
@@ -165,7 +223,7 @@ def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
                 continue
             time.sleep(delay)
             try:
-                data = _get(url)
+                data, served_name = _api_document(_get(url)) if is_api else (_get(url), "")
             except Exception as e:
                 rep["health"].append("%s: download failed %s (%s)" % (src["id"], url, e))
                 continue
@@ -173,7 +231,10 @@ def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
                 rep["health"].append("%s: not a PDF (skipped): %s" % (src["id"], url))
                 continue
             digest = hashlib.sha256(data).hexdigest()
-            name = re.sub(r"[^A-Za-z0-9._-]", "_", Path(urlparse(url).path).name) or "file.pdf"
+            raw_name = served_name or Path(urlparse(url).path).name
+            if is_api and not raw_name.lower().endswith(".pdf"):
+                raw_name = re.sub(r"[/ ]+", "-", title.split(" (")[0]) + ".pdf"
+            name = re.sub(r"[^A-Za-z0-9._-]", "_", raw_name) or "file.pdf"
             dest = out_dir / src["id"] / name
             if dest.exists():
                 dest = dest.with_name(digest[:8] + "_" + name)
@@ -201,12 +262,13 @@ def to_markdown(rep):
           "through the normal parser + review. Do not edit the seed from this report alone.", ""]
     L.append("## Sources that could NOT be checked (%d)" % len(rep["health"]))
     L += ["- " + h for h in rep["health"]] or ["None."]
-    L += ["", "## Manual-only sources - check these yourself this month"]
-    for m in rep["manual"]:
-        L.append("- [%s](%s) - %s" % (m["label"], m["url"], m["reason"]))
+    if rep["manual"]:
+        L += ["", "## Manual-only sources - check these yourself this month"]
+        for m in rep["manual"]:
+            L.append("- [%s](%s) - %s" % (m["label"], m["url"], m["reason"]))
     L += ["", "## Checked"]
     for c in rep["checked"]:
-        L.append("- %s: %d PDF link(s) seen" % (c["label"], c["pdf_links"]))
+        L.append("- %s: %d document(s) seen" % (c["label"], c["pdf_links"]))
     L.append("- Older links recorded without download this run: %d" % len(rep["recorded_only"]))
     L += ["", "_This tool finds documents on open official sites. It cannot prove nothing else was "
           "published elsewhere. A CA should review the compliance register._"]

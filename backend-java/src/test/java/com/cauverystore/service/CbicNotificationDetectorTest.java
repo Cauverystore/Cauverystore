@@ -40,7 +40,111 @@ class CbicNotificationDetectorTest {
         detector = new CbicNotificationDetector(sourceRepo, freshnessService);
         ReflectionTestUtils.setField(detector, "enabled", true);
         ReflectionTestUtils.setField(detector, "baseUrl", "https://taxinformation.cbic.gov.in");
+        // Unit tests stub the feed; the category lists are switched on only where tested.
+        ReflectionTestUtils.setField(detector, "readCategories", false);
         when(sourceRepo.findByNotificationNumber(any())).thenReturn(Optional.empty());
+    }
+
+    private static final String CATEGORY_LIST = "["
+            + "{\"id\":1010785,\"isActive\":\"Y\",\"notificationNo\":\"08/2026-Central Tax (Rate)\","
+            + "\"notificationName\":\"Seeks to amend\",\"notificationCategory\":\"Central Tax (Rate)\","
+            + "\"notificationDt\":\"2026-10-28T05:30:00+05:30\",\"docFilePath\":\"a.pdf\"},"
+            + "{\"id\":1010645,\"isActive\":\"Y\",\"notificationNo\":\"01/2026-Central Tax (Rate)\","
+            + "\"notificationName\":\"Older\",\"notificationCategory\":\"Central Tax (Rate)\","
+            + "\"notificationDt\":\"2026-04-30T05:30:00+05:30\",\"docFilePath\":\"b.pdf\"},"
+            + "{\"id\":1010799,\"isActive\":\"N\",\"notificationNo\":\"02/2026-Central Tax (Rate)\","
+            + "\"notificationName\":\"Withdrawn entry\",\"notificationCategory\":\"Central Tax (Rate)\","
+            + "\"notificationDt\":\"2026-10-28T05:30:00+05:30\",\"docFilePath\":\"c.pdf\"}]";
+
+    @Test
+    void shouldKeepOnlyRecentActiveNotificationsFromACategoryList() {
+        List<CbicNotificationDetector.Update> got = detector.parseCategoryList(
+                "Central Tax (Rate)", CATEGORY_LIST, LocalDate.of(2026, 8, 1));
+
+        assertEquals(1, got.size(), "older and inactive entries are left out");
+        CbicNotificationDetector.Update u = got.get(0);
+        assertEquals("08/2026-Central Tax (Rate)", u.number());
+        assertEquals(LocalDate.of(2026, 10, 28), u.dated(), "the lists' ISO dates should parse");
+        assertEquals(1010785L, u.documentId());
+        assertTrue(u.changesRates());
+    }
+
+    @Test
+    void shouldRefuseACategoryListThatIsNotAList() {
+        // An HTML shell must not read as "nothing new".
+        assertThrows(IllegalStateException.class, () -> detector.parseCategoryList(
+                "Central Tax (Rate)", "<html></html>", LocalDate.of(2026, 8, 1)));
+    }
+
+    @Test
+    void shouldCatchNotificationsThatFellOffTheFeed() {
+        // 28 Oct 2026: 27 rate notifications in one day, four in the feed. The lists catch the
+        // rest, and one that is in both is recorded once.
+        ReflectionTestUtils.setField(detector, "readCategories", true);
+        CbicNotificationDetector spy = spy(detector);
+        CbicNotificationDetector.Update inFeed = new CbicNotificationDetector.Update(
+                "10/2026-Central Tax (Rate)", "x", LocalDate.of(2026, 10, 28),
+                "Central Tax (Rate)", "Notification", "p.pdf", 1010787L);
+        CbicNotificationDetector.Update onlyInList = new CbicNotificationDetector.Update(
+                "05/2026-Central Tax (Rate)", "y", LocalDate.of(2026, 10, 28),
+                "Central Tax (Rate)", "Notification", "q.pdf", 1010802L);
+        doReturn(List.of(inFeed)).when(spy).fetchLatestUpdates();
+        doReturn(List.of(inFeed, onlyInList)).when(spy).fetchRecentNotifications("Central Tax (Rate)");
+        doReturn(List.of()).when(spy).fetchRecentNotifications("Integrated Tax (Rate)");
+        doReturn(List.of()).when(spy).fetchRecentNotifications("Union Territory Tax (Rate)");
+        doReturn(null).when(spy).fetchDocument(any());
+
+        spy.detect();
+
+        verify(freshnessService, times(1)).recordPendingNotification(
+                eq("10/2026-Central Tax (Rate)"), any(), any(), any());
+        verify(freshnessService, times(1)).recordPendingNotification(
+                eq("05/2026-Central Tax (Rate)"), any(), any(), any());
+    }
+
+    @Test
+    void shouldKeepCheckingWhenOnlyTheFeedFails() {
+        ReflectionTestUtils.setField(detector, "readCategories", true);
+        CbicNotificationDetector spy = spy(detector);
+        doThrow(new IllegalStateException("feed moved")).when(spy).fetchLatestUpdates();
+        doReturn(List.of(update("06/2026-Central Tax (Rate)", "Central Tax (Rate)")))
+                .when(spy).fetchRecentNotifications("Central Tax (Rate)");
+        doReturn(List.of()).when(spy).fetchRecentNotifications("Integrated Tax (Rate)");
+        doReturn(List.of()).when(spy).fetchRecentNotifications("Union Territory Tax (Rate)");
+        doReturn(null).when(spy).fetchDocument(any());
+
+        spy.detect();
+
+        verify(freshnessService).recordPendingNotification(
+                eq("06/2026-Central Tax (Rate)"), any(), any(), any());
+    }
+
+    @Test
+    void shouldReportBlindWhenEverySourceFails() {
+        ReflectionTestUtils.setField(detector, "readCategories", true);
+        CbicNotificationDetector spy = spy(detector);
+        doThrow(new IllegalStateException("feed moved")).when(spy).fetchLatestUpdates();
+        doThrow(new IllegalStateException("list moved")).when(spy).fetchRecentNotifications(anyString());
+
+        assertEquals(false, spy.preview().get("reachable"));
+    }
+
+    @Test
+    @org.junit.jupiter.api.Tag("live")
+    void live_shouldReadTheRealCategoryList() {
+        ReflectionTestUtils.setField(detector, "lookbackDays", 3650);
+        List<CbicNotificationDetector.Update> got;
+        try {
+            got = detector.fetchRecentNotifications("Central Tax (Rate)");
+        } catch (Exception e) {
+            org.junit.jupiter.api.Assumptions.abort("CBIC not reachable from this JVM ("
+                    + e.getClass().getSimpleName() + ": " + e.getMessage() + ")");
+            return;
+        }
+        assertFalse(got.isEmpty(), "the Central Tax (Rate) list should not be empty");
+        assertTrue(got.stream().allMatch(u -> u.documentId() != null), "every entry has an id");
+        assertTrue(got.stream().anyMatch(u -> u.dated() != null), "the ISO dates should parse");
+        System.out.println("  CBIC Central Tax (Rate), last 10 years: " + got.size());
     }
 
     private CbicNotificationDetector.Update update(String number, String category) {

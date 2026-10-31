@@ -65,9 +65,9 @@ jobs:
             gh issue create --title "$T" --body-file "$RUNNER_TEMP/gstwatch/report.md"
           fi
 
-      - name: Monthly reminder for the manual-only portal
+      - name: Monthly reminder to look at circulars and corrigenda
         run: |
           if [ "$(date -u +%d)" = "01" ]; then
             gh issue create --title "Monthly GST check: CBIC tax information portal" \
-              --body "Open https://taxinformation.cbic.gov.in (GST search), look for any Central Tax (Rate), Integrated Tax (Rate), corrigendum or circular newer than the newest file in cbic-source/. Download by hand into cbic-source/incoming/, then record the verification in the admin GST screen. This site disallows automated access, so the daily job cannot check it."
+              --body "The daily job reads Central Tax (Rate) and Integrated Tax (Rate) notifications from https://taxinformation.cbic.gov.in automatically. It does not read circulars or corrigenda. Open the portal (GST > Circulars, and any corrigendum on a recent rate notification), download anything relevant by hand into cbic-source/incoming/, then record the verification in the admin GST screen."
           fi
