@@ -50,6 +50,36 @@ public class ProductService {
     private final HsnClassificationService hsnClassificationService;
     private final ListingEligibilityService listingEligibility;
 
+    // The compliance publish gate. Set by the container; absent in tests that build this by hand.
+    private ProductComplianceService compliance;
+    private ProductComplianceWorkflowService complianceWorkflow;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setCompliance(@org.springframework.context.annotation.Lazy ProductComplianceService compliance,
+                              @org.springframework.context.annotation.Lazy ProductComplianceWorkflowService complianceWorkflow) {
+        this.compliance = compliance;
+        this.complianceWorkflow = complianceWorkflow;
+    }
+
+    /**
+     * Before saving: when a product is about to become visible to shoppers (or, with live
+     * enforcement on, is visible) and fails the compliance check, keep it off sale instead.
+     */
+    private Optional<ProductComplianceService.Result> applyPublishGate(Product product, boolean wasVisible) {
+        if (compliance == null) return Optional.empty();
+        boolean visible = ProductComplianceService.visibleToShoppers(product);
+        if (!visible) return Optional.empty();
+        if (wasVisible && !compliance.enforceLive()) return Optional.empty();
+        return compliance.holdIfNotPublishable(product);
+    }
+
+    /** After saving: record what the gate did in the product's workflow history. */
+    private void recordPublishGate(Product saved, Optional<ProductComplianceService.Result> held, boolean wasVisible) {
+        if (complianceWorkflow == null) return;
+        if (held.isPresent()) complianceWorkflow.markHeld(saved, held.get());
+        else if (!wasVisible && ProductComplianceService.visibleToShoppers(saved)) complianceWorkflow.markPublished(saved, "saved_live");
+    }
+
     public ProductService(ProductRepository productRepo, CategoryRepository catRepo,
                           ProductImageRepository productImageRepo, DiscountRepository discountRepo,
                           ProductVariantRepository variantRepo,
@@ -329,8 +359,12 @@ public class ProductService {
                     // spreadsheet the easiest way to get a bad HSN into the catalogue.
                     hsnClassificationService.validate(p);
                     hsnClassificationService.assertSellable(p);
+                    // The sheet has no compliance columns, so most rows are held for approval
+                    // until their compliance details are filled in.
+                    Optional<ProductComplianceService.Result> held = applyPublishGate(p, false);
                     Product saved = productRepo.save(p);
                     hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
+                    recordPublishGate(saved, held, false);
 
                     // Photo links: one per column, though a cell may also hold several separated
                     // by commas. The first photo that downloads becomes the main one.
@@ -538,8 +572,10 @@ public class ProductService {
         // product would be taxed at the fallback on every sale while its invoice looked normal.
         hsnClassificationService.validate(product);
         hsnClassificationService.assertSellable(product);
+        Optional<ProductComplianceService.Result> held = applyPublishGate(product, false);
         Product saved = productRepo.save(product);
         hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
+        recordPublishGate(saved, held, false);
         return saved;
     }
 
@@ -612,6 +648,7 @@ public class ProductService {
 
     public Product updateProduct(Long productId, Product product) {
         Product existing = getProductById(productId);
+        boolean wasVisible = ProductComplianceService.visibleToShoppers(existing);
         if (authorizationService.hasRole("SELLER")) {
             Long sellerId = currentSellerId();
             verifySellerOwnership(productId, sellerId);
@@ -678,10 +715,18 @@ public class ProductService {
           if (product.getMetaKeywords() != null) {
               existing.setMetaKeywords(product.getMetaKeywords());
           }
+          // Compliance details the shop shows that live on Product. Null means "unchanged".
+          if (product.getMrp() != null) existing.setMrp(product.getMrp());
+          if (product.getCountryOfOrigin() != null) existing.setCountryOfOrigin(product.getCountryOfOrigin());
+          if (product.getManufacturer() != null) existing.setManufacturer(product.getManufacturer());
+          if (product.getWarranty() != null) existing.setWarranty(product.getWarranty());
+          if (product.getReturnPolicy() != null) existing.setReturnPolicy(product.getReturnPolicy());
           hsnClassificationService.validate(existing);
           withdrawFromSaleIfUntaxable(existing);
+          Optional<ProductComplianceService.Result> held = applyPublishGate(existing, wasVisible);
           Product saved = productRepo.save(existing);
           hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
+          recordPublishGate(saved, held, wasVisible);
           return saved;
     }
 

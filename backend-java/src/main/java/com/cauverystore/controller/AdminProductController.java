@@ -28,6 +28,8 @@ public class AdminProductController {
     private final com.cauverystore.repository.UserRepository userRepo;
     private final com.cauverystore.repository.GstConfigurationRepository gstConfigRepo;
     private final com.cauverystore.repository.SellerRegistrationRepository sellerRegRepo;
+    private final ProductComplianceService complianceService;
+    private final ProductComplianceWorkflowService complianceWorkflow;
 
     /**
      * For a seller (or someone on a seller's team) this is the seller account being worked in,
@@ -192,8 +194,15 @@ public class AdminProductController {
     public ResponseEntity<Product> updateApproval(@PathVariable Long productId, @RequestBody Map<String, String> body) {
         sellerMay(SellerPermissions.PRODUCTS_MANAGE);
         Product product = productService.getProductForAdmin(productId);
-        product.setApprovalStatus(body.get("approvalStatus"));
-        return ResponseEntity.ok(productService.updateProduct(productId, product));
+        String requested = body.get("approvalStatus");
+        boolean goingLive = "approved".equalsIgnoreCase(requested) && product.isActive()
+                && !ProductService.isApprovedForShoppers(product);
+        // Approving puts it on sale, so it must pass the compliance check first (409 lists the gaps).
+        if (goingLive) complianceService.assertPublishable(product);
+        product.setApprovalStatus(requested);
+        Product saved = productService.updateProduct(productId, product);
+        if (goingLive && ProductService.isApprovedForShoppers(saved)) complianceWorkflow.markPublished(saved, "approval_screen");
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{productId}/status")
