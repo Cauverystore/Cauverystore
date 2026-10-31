@@ -38,7 +38,8 @@ here so nobody has to re-read them to find that out:
   longer covers goods sold through an e-commerce operator; storage of seeds for sowing added;
   new nil entries for helicopter seat-share flights in the North East, Seamen's Provident Fund,
   toll-collection rights granted by government, and coffee curing.
-- **08/2026** (amends 13/2017, services reverse charge): S.No 15 figure changed from 6 to 9.
+- **08/2026** (amends 13/2017, services reverse charge): S.No 15 rate 6% to 9% CGST, i.e. 12% to
+  18% in total (S.No 17 of 10/2017-Integrated Tax (Rate) goes from 12 to 18).
 - **09/2026** (amends 17/2017, section 9(5)): **the e-commerce operator pays the tax on
   delivery services (other than postal and courier) supplied through it by people who are not
   required to register.** Matters if the store ever lets independent riders deliver through it.
@@ -53,6 +54,11 @@ Not rate notifications; summarised so the "GST rule changes" panel can be cleare
 Read from the CBIC PDFs on 2026-11-01. Have a CA confirm before acting.
 
 - **03/2026-CT**: brings sections 153 to 155 of the Finance Act, 2026 into force on 01-11-2026.
+  Per secondary reporting (Kanakkupillai, 30-10-2026; not checked against the Act itself) these
+  amend CGST sections 15, 34 and 54: a discount given after the sale no longer needs to have been
+  agreed beforehand to reduce the taxable value, provided a credit note is issued and the buyer
+  reverses the input tax credit; and refund changes. Relevant if sellers give post-sale
+  discounts or the store issues credit notes for them.
 - **04/2026-CT** (from 01-01-2027): e-invoicing now also covers reverse-charge purchases from
   unregistered persons and import of services, for businesses that must e-invoice.
 - **05/2026-CT**: CGST (Amendment) Rules, 2026, mostly from 01-11-2026 (some parts from
@@ -68,6 +74,10 @@ Read from the CBIC PDFs on 2026-11-01. Have a CA confirm before acting.
   metal scrap (chapters 72-81) and e-waste (8549) must register whatever their turnover.
 - **07/2026-CT**: a registered buyer of those same scrap goods from a registered seller must
   deduct TDS under section 51.
+
+Rule 14B is **in force from 01-11-2026**: 05/2026-CT inserts it with no date of its own, so the
+rules' general 01-11-2026 date applies. Some articles (e.g. Kanakkupillai, 30-10-2026) still
+describe it as only recommended.
 
 The Taxscan article of 28-10-2026 ("Big GST Changes from Nov 1") covers the same package; its
 headline items (fertilisers, tractor tyres, psyllium, waste, registration, TDS) all trace to the
