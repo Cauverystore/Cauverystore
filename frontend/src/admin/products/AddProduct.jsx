@@ -25,7 +25,7 @@ const AddProduct = () => {
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
 
   const [form, setForm] = useState({
-    name: "", brand: "", category: "", price: "", stock: "", sku: "",
+    name: "", brand: "", category: "", price: "", mrp: "", stock: "", sku: "",
     description: "", manufacturer: "", modelNumber: "", barcode: "", hsnCode: "",
     prePackagedAndLabelled: true, gstRateSelectionId: undefined,
     countryOfOrigin: "India", shortDescription: "", technicalSpecs: "",
@@ -70,6 +70,8 @@ const AddProduct = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
     if (!form.price || parseFloat(form.price) <= 0) e.price = "Must be > 0";
+    if (form.mrp && parseFloat(form.mrp) <= 0) e.mrp = "Must be > 0";
+    else if (form.mrp && parseFloat(form.price) > parseFloat(form.mrp)) e.price = "Above the MRP";
     if (!form.stock || parseInt(form.stock) < 0) e.stock = "Must be >= 0";
     if (form.shortDescription && form.shortDescription.length > 150) e.shortDescription = "Max 150 chars";
     if (form.metaTitle && form.metaTitle.length > 60) e.metaTitle = "Max 60 chars";
@@ -90,6 +92,7 @@ const AddProduct = () => {
         name: form.name, brand: form.brand,
         category: form.category ? { id: form.category } : null,
         price: parseFloat(form.price),
+        mrp: form.mrp ? parseFloat(form.mrp) : null,
         stock: parseInt(form.stock), sku: form.sku, description: form.description,
         manufacturer: form.manufacturer, modelNumber: form.modelNumber,
         barcode: form.barcode, hsnCode: form.hsnCode,
@@ -126,8 +129,9 @@ const AddProduct = () => {
       // A seller's listing is reviewed by an admin before shoppers can see it.
       setMsg({ type: "success", text: isSeller
         ? `Product submitted${images.length > 0 ? " with images" : ""}. It will appear in the store once an admin approves it.`
-        : `Product created${images.length > 0 ? " with images" : ""}.` });
-      setTimeout(() => navigate(redirectPath), isSeller ? 2500 : 1000);
+        : `Product created${images.length > 0 ? " with images" : ""}. Now add its compliance details; it stays off sale until they pass.` });
+      // Admins go straight to the compliance details, which decide whether it can go on sale.
+      setTimeout(() => navigate(!isSeller && productId ? `/admin/products/${productId}/compliance` : redirectPath), isSeller ? 2500 : 1200);
     } catch (err) {
       setMsg({ type: "error", text: err.response?.data?.error || "Failed to create product." });
     }
@@ -230,6 +234,7 @@ const AddProduct = () => {
       <div style={S.section}>
         <h3 style={S.sectionTitle}>Pricing & Inventory</h3>
         <div style={S.grid3}>
+          {fld("MRP (\u20B9)", "mrp", "number")}
           {fld("Price incl. GST (\u20B9) *", "price", "number")}
           {fld("Stock *", "stock", "number")}
           {fld("SKU", "sku")}

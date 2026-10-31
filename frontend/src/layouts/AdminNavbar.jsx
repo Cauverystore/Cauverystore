@@ -29,6 +29,7 @@ const PAGE_TITLES = {
   "/admin/executive-dashboard": "Executive Panel",
   "/admin/settings": "Settings",
   "/admin/product-approvals": "Product Approvals",
+  "/admin/product-compliance": "Product Compliance",
   "/admin/seller-approvals": "Seller Approvals",
 };
 

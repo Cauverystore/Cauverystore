@@ -146,6 +146,11 @@ public class ProductComplianceService {
 
     /** The check without saving anything. Either argument's fields may be blank; a null record counts as empty. */
     public Result evaluate(Product p, ProductCompliance c) {
+        return evaluate(p, c, new HashMap<>());
+    }
+
+    /** As above, looking each seller up once across many products. */
+    public Result evaluate(Product p, ProductCompliance c, Map<Long, SellerIdentity> sellers) {
         if (c == null) c = new ProductCompliance();
         ComplianceCategoryType type = typeOf(p);
         Checks k = new Checks();
@@ -238,7 +243,7 @@ public class ProductComplianceService {
         // Seller
         k.require("sellerId", "Seller", "seller", true, p.getSellerId() != null);
         if (p.getSellerId() != null) {
-            SellerIdentity s = sellerIdentity(p.getSellerId());
+            SellerIdentity s = sellers.computeIfAbsent(p.getSellerId(), this::sellerIdentity);
             k.require("sellerGstin", "Seller GSTIN", "seller", true, has(s.gstin()));
             if (has(s.gstin())) {
                 k.valid("sellerGstin", "Seller GSTIN", "seller", true, ComplianceFormats.isValidGstin(s.gstin()),
@@ -365,6 +370,82 @@ public class ProductComplianceService {
 
     private static String joinAddress(String... parts) {
         return String.join(", ", Arrays.stream(parts).filter(ProductComplianceService::has).map(String::trim).toList());
+    }
+
+    // ------------------------------------------------------------------ dashboard
+
+    private static final Set<String> GST_FIELDS = Set.of("hsnCode", "gstRate");
+
+    /**
+     * Every product checked now, with totals for the admin compliance dashboard. Nothing is
+     * saved. Filtering and search happen on the screen; past a few thousand products this
+     * should page on the server instead (see the scaling notes).
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> dashboard() {
+        List<Product> products = productRepo.findAll();
+        Map<Long, ProductCompliance> records = new HashMap<>();
+        List<Long> ids = products.stream().map(Product::getId).toList();
+        if (!ids.isEmpty()) {
+            for (ProductCompliance r : complianceRepo.findByProductIdInAndDeletedFlagFalse(ids)) records.put(r.getProductId(), r);
+        }
+        Map<Long, SellerIdentity> sellers = new HashMap<>();
+        List<Map<String, Object>> rows = new ArrayList<>();
+        int compliant = 0, warning = 0, blocked = 0, gstHsnMissing = 0, fssaiPending = 0, bisPending = 0, live = 0;
+        for (Product p : products) {
+            ProductCompliance rec = records.get(p.getId());
+            Result r = evaluate(p, rec, sellers);
+            ComplianceCategoryType type = ComplianceCategoryType.valueOf(r.categoryType());
+            boolean gst = r.missingFields().stream().anyMatch(GST_FIELDS::contains);
+            boolean fssai = type == ComplianceCategoryType.FOOD && r.missingFields().contains("fssaiLicenceNumber");
+            boolean bis = (type == ComplianceCategoryType.ELECTRONICS || type == ComplianceCategoryType.TOYS)
+                    && r.missingFields().contains("bisNumber");
+            boolean visible = visibleToShoppers(p);
+            if (r.compliant()) compliant++; else if (r.publishable()) warning++; else blocked++;
+            if (gst) gstHsnMissing++;
+            if (fssai) fssaiPending++;
+            if (bis) bisPending++;
+            if (visible) live++;
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("productId", p.getId());
+            row.put("name", p.getName());
+            row.put("sku", p.getSku());
+            row.put("brand", p.getBrand());
+            row.put("category", p.getCategory() != null ? p.getCategory().getName() : null);
+            row.put("categoryType", r.categoryType());
+            row.put("sellerId", p.getSellerId());
+            row.put("seller", p.getSellerId() == null ? null : sellers.get(p.getSellerId()) != null
+                    ? sellers.get(p.getSellerId()).businessName() : null);
+            row.put("live", visible);
+            row.put("status", rec != null ? rec.getStatus() : (visible ? "PUBLISHED" : "DRAFT"));
+            row.put("score", r.score());
+            row.put("band", r.band());
+            row.put("publishable", r.publishable());
+            row.put("gstHsnMissing", gst);
+            row.put("fssaiPending", fssai);
+            row.put("bisPending", bis);
+            row.put("issues", r.issues());
+            rows.add(row);
+        }
+        rows.sort(Comparator.comparing((Map<String, Object> m) -> (Integer) m.get("score")));
+        Map<String, Object> totals = new LinkedHashMap<>();
+        totals.put("total", products.size());
+        totals.put("compliant", compliant);
+        totals.put("nonCompliant", products.size() - compliant);
+        totals.put("warning", warning);
+        totals.put("blocked", blocked);
+        totals.put("gstHsnMissing", gstHsnMissing);
+        totals.put("fssaiPending", fssaiPending);
+        totals.put("bisPending", bisPending);
+        totals.put("live", live);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("totals", totals);
+        out.put("products", rows);
+        out.put("gateEnabled", gateEnabled());
+        out.put("enforceLive", enforceLive());
+        out.put("generatedAt", LocalDateTime.now());
+        return out;
     }
 
     // ------------------------------------------------------------------ the publish gate
