@@ -11,6 +11,12 @@ const SITE = "https://cauverystore.in";
 // published translation, and it carries those hreflang links, so the page must not claim more than that.
 const ALTERNATE_OK = /^\/($|products$|category\/[^/]+$|about$|faq$|policies$|contact$|privacy-policy$|terms-and-conditions$|shipping-policy$|refund-policy$)/;
 
+// Sign-in, account, cart and dashboard pages: nothing for a search engine to show, and several of them
+// render the homepage's title, so Google reports them as soft 404s or duplicates of the homepage.
+// They are marked noindex here, in one place, for every language. /seller/register is the public
+// "Sell on Cauvery Store" page and stays indexable.
+const NOINDEX = /^\/(login|register|forgot-password|reset-password|logout|unauthorized|otp-verify|complete-profile|executive\/login|seller\/login|seller\/invite|profile|address|wishlist|cart|checkout|orders|order-success|notifications|loyalty|support-tickets|payment-methods|compare|search|admin|super-admin|seller(?!\/register\/?$))(\/|$)/;
+
 /**
  * Wrap your existing <Routes> with this. It works out the language from the URL, tells i18next,
  * and hands <Routes> the URL WITHOUT the "/ta" part, so none of your route definitions change.
@@ -44,6 +50,11 @@ export default function LangRoutes({ children }) {
   const showAlternates = ALTERNATE_OK.test(path);
   return (
     <>
+      {NOINDEX.test(path) && (
+        <Helmet>
+          <meta name="robots" content="noindex, follow" />
+        </Helmet>
+      )}
       {showAlternates && (
         <Helmet>
           {SUPPORTED.map((code) => (
