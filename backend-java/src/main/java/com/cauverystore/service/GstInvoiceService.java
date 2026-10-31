@@ -37,6 +37,7 @@ import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
 import com.lowagie.text.Image;
+import com.lowagie.text.Chunk;
 import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
@@ -1468,7 +1469,10 @@ public class GstInvoiceService {
         inv.setItems(items);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document doc = new Document(PageSize.A4, 36, 36, 36, 36);
+        // A4, one page for an ordinary order. Blank paragraphs between sections each took a
+        // full 9pt line plus leading; small fixed gaps keep the sections apart without pushing
+        // the signatory line onto a second, almost empty page.
+        Document doc = new Document(PageSize.A4, 30, 30, 26, 26);
         PdfWriter.getInstance(doc, baos);
         doc.open();
 
@@ -1484,9 +1488,9 @@ public class GstInvoiceService {
         String stateLabel = utgst ? "UTGST" : "SGST";
 
         // Brand header (logo + "Cauvery Store - Everyday Essentials, Delivered")
-        doc.add(PdfBrandingUtil.buildBrandHeader());
+        doc.add(PdfBrandingUtil.buildBrandHeader(44f, 15f, 8f));
         doc.add(PdfBrandingUtil.buildDivider());
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Header
         PdfPTable headerTable = new PdfPTable(2);
@@ -1505,20 +1509,27 @@ public class GstInvoiceService {
         PdfPCell rightCell = new PdfPCell();
         rightCell.setBorder(Rectangle.NO_BORDER);
         rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        rightCell.addElement(new Paragraph("Invoice No.", small8));
-        rightCell.addElement(new Paragraph(safeStr(inv.getInvoiceNumber()), bold12));
-        rightCell.addElement(new Paragraph("Invoice Date", small8));
-        rightCell.addElement(new Paragraph(inv.getInvoiceDate() != null ? inv.getInvoiceDate().toString() : "", normal9));
+        // Label and value share a line; one line each made this block the tallest on the page.
+        Paragraph invNo = new Paragraph();
+        invNo.add(new Chunk("Invoice No.  ", small8));
+        invNo.add(new Chunk(safeStr(inv.getInvoiceNumber()), bold12));
+        rightCell.addElement(invNo);
+        Paragraph invDate = new Paragraph();
+        invDate.add(new Chunk("Invoice Date  ", small8));
+        invDate.add(new Chunk(inv.getInvoiceDate() != null ? inv.getInvoiceDate().toString() : "", normal9));
+        rightCell.addElement(invDate);
         // The customer knows their purchase by its order number, not the invoice serial, so the
         // order is named here the way the big marketplaces do.
         if (inv.getOrderId() != null) {
-            rightCell.addElement(new Paragraph("Order No.", small8));
             String orderLine = String.valueOf(inv.getOrderId());
             Order order = orderRepo.findById(inv.getOrderId()).orElse(null);
             if (order != null && order.getCreatedAt() != null) {
                 orderLine += "  |  Ordered " + order.getCreatedAt().toLocalDate();
             }
-            rightCell.addElement(new Paragraph(orderLine, normal9));
+            Paragraph orderPara = new Paragraph();
+            orderPara.add(new Chunk("Order No.  ", small8));
+            orderPara.add(new Chunk(orderLine, normal9));
+            rightCell.addElement(orderPara);
         }
         // Workflow states like PENDING_DISPATCH are internal and mean nothing to the buyer. Only
         // a cancellation changes what the document is, so that is the one state printed.
@@ -1529,7 +1540,7 @@ public class GstInvoiceService {
         headerTable.addCell(rightCell);
         doc.add(headerTable);
 
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Seller / Buyer info
         PdfPTable parties = new PdfPTable(2);
@@ -1537,7 +1548,7 @@ public class GstInvoiceService {
         parties.setWidths(new float[]{50, 50});
 
         PdfPCell sellCell = new PdfPCell();
-        sellCell.setPadding(8);
+        sellCell.setPadding(5);
         sellCell.addElement(new Paragraph("Seller (Supplier)", bold10));
         sellCell.addElement(new Paragraph(safeStr(inv.getSellerLegalName()), normal9));
         sellCell.addElement(new Paragraph("GSTIN: " + safeStr(inv.getSellerGstin()), normal9));
@@ -1555,7 +1566,7 @@ public class GstInvoiceService {
         parties.addCell(sellCell);
 
         PdfPCell buyCell = new PdfPCell();
-        buyCell.setPadding(8);
+        buyCell.setPadding(5);
         buyCell.addElement(new Paragraph("Buyer / Recipient", bold10));
         buyCell.addElement(new Paragraph(safeStr(inv.getBuyerName()), normal9));
         buyCell.addElement(new Paragraph("GSTIN: " + (inv.getBuyerGstin() != null ? inv.getBuyerGstin() : "URP")
@@ -1584,7 +1595,7 @@ public class GstInvoiceService {
         parties.addCell(buyCell);
         doc.add(parties);
 
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Identifiers section
         PdfPTable idTable = new PdfPTable(4);
@@ -1601,14 +1612,14 @@ public class GstInvoiceService {
         };
         for (String[] row : idData) {
             PdfPCell c = new PdfPCell();
-            c.setPadding(4);
+            c.setPadding(3);
             c.addElement(new Paragraph(row[0], small8));
             c.addElement(new Paragraph(row[1], bold9));
             idTable.addCell(c);
         }
         doc.add(idTable);
 
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Items table - match web view columns (separate CGST/SGST)
         int numColumns = Boolean.TRUE.equals(inv.getIsInterState()) ? 8 : 9;
@@ -1616,7 +1627,7 @@ public class GstInvoiceService {
         table.setWidthPercentage(100);
         float[] colWidths = Boolean.TRUE.equals(inv.getIsInterState())
             ? new float[]{4, 10, 26, 7, 10, 13, 13, 17}
-            : new float[]{4, 9, 22, 6, 9, 12, 11, 11, 16};
+            : new float[]{4, 10, 21, 6, 9, 12, 11, 11, 16};
         table.setWidths(colWidths);
 
         String[] hdrs;
@@ -1652,12 +1663,11 @@ public class GstInvoiceService {
             table.addCell(new Phrase("Rs. " + String.format("%.2f", item.getTotalAmount() != null ? item.getTotalAmount() : 0), bold9));
         }
         doc.add(table);
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Tax Breakup section
         PdfPTable breakupTable = new PdfPTable(4);
-        breakupTable.setWidthPercentage(65);
-        breakupTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        breakupTable.setWidthPercentage(100);
         float[] bw = {25, 25, 25, 25};
         breakupTable.setWidths(bw);
 
@@ -1676,7 +1686,7 @@ public class GstInvoiceService {
         PdfPCell bh = new PdfPCell(new Phrase("Tax Breakup", bold10));
         bh.setColspan(4);
         bh.setBackgroundColor(PdfBrandingUtil.TEAL);
-        bh.setPadding(6);
+        bh.setPadding(4);
         bh.setHorizontalAlignment(Element.ALIGN_CENTER);
         breakupTable.addCell(bh);
 
@@ -1698,14 +1708,10 @@ public class GstInvoiceService {
         addBreakupCell(breakupTable, "Total Tax", "Rs. " + String.format("%.2f", ttax), normal9);
         // TCS is deliberately not in this breakup. It is not a tax on this supply and the
         // customer does not pay it - printing it beside CGST and SGST read as though they did.
-        doc.add(breakupTable);
-
-        doc.add(new Paragraph(" "));
 
         // Summary table
         PdfPTable sumTable = new PdfPTable(2);
-        sumTable.setWidthPercentage(40);
-        sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        sumTable.setWidthPercentage(100);
 
         // Every row here sums to the Total Amount; see the breakup above for why delivery and
         // discount are not rows of their own.
@@ -1730,9 +1736,24 @@ public class GstInvoiceService {
         totalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         totalVal.setBorder(Rectangle.TOP);
         sumTable.addCell(totalVal);
-        doc.add(sumTable);
 
-        doc.add(new Paragraph(" "));
+        PdfPTable totals = new PdfPTable(3);
+        totals.setWidthPercentage(100);
+        totals.setWidths(new float[]{56, 4, 40});
+        PdfPCell breakupHolder = new PdfPCell(breakupTable);
+        breakupHolder.setBorder(Rectangle.NO_BORDER);
+        breakupHolder.setPadding(0);
+        totals.addCell(breakupHolder);
+        PdfPCell spacer = new PdfPCell();
+        spacer.setBorder(Rectangle.NO_BORDER);
+        totals.addCell(spacer);
+        PdfPCell sumHolder = new PdfPCell(sumTable);
+        sumHolder.setBorder(Rectangle.NO_BORDER);
+        sumHolder.setPadding(0);
+        totals.addCell(sumHolder);
+        doc.add(totals);
+
+        doc.add(gap(5));
         doc.add(new Paragraph("Amount in Words: " + numberToWordsPdf(total), bold9));
         boolean hasDelivery = inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0;
         boolean hasDiscount = inv.getDiscountAmount() != null && inv.getDiscountAmount() > 0;
@@ -1772,7 +1793,7 @@ public class GstInvoiceService {
             if (inv.getAckNo() != null) doc.add(new Paragraph("Ack No: " + inv.getAckNo() + "  Date: " + safeStr(inv.getAckDate()), small8));
         }
 
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
         doc.add(new Paragraph("Declaration (Rule 46 CGST Rules, 2017): We declare that this invoice shows the actual price of the goods/services described and that all particulars are true and correct.", small8));
         doc.add(new Paragraph("- This is a computer-generated " + (inv.getInvoiceCopyType() != null ? inv.getInvoiceCopyType().toLowerCase() : "original") + " invoice for " + (inv.getSupplyType() != null && inv.getSupplyType().equals("GOODS") ? "goods" : "services") + " as per Rule 46.", small8));
         doc.add(new Paragraph("- " + (interState ? "IGST charged (inter-state supply)."
@@ -1801,7 +1822,7 @@ public class GstInvoiceService {
             doc.add(new Paragraph("- Registered on the e-invoice portal (IRN " + inv.getIrn()
                     + "). Digitally signed by the portal; no physical signature is required.", small8));
         } else if (signatureImage != null && !signatureImage.isBlank()) {
-            doc.add(new Paragraph(" "));
+            doc.add(gap(5));
             try {
                 Image signature = Image.getInstance(new java.net.URL(signatureImage));
                 signature.scaleToFit(140f, 55f);
@@ -1825,8 +1846,7 @@ public class GstInvoiceService {
             // logged here; the space above the signatory line is left for a hand signature.
             log.warn("Invoice {} printed without a signature: seller {} has none on file. Rule 46 "
                     + "requires one unless the invoice is e-invoiced.", inv.getInvoiceNumber(), inv.getSellerId());
-            doc.add(new Paragraph(" "));
-            doc.add(new Paragraph(" "));
+            doc.add(gap(28));
             Paragraph signatory = new Paragraph("For " + safeStr(inv.getSignedBy())
                     + ", Authorised Signatory", bold9);
             signatory.setAlignment(Element.ALIGN_RIGHT);
@@ -1860,6 +1880,13 @@ public class GstInvoiceService {
                                 + "profile if it is wrong.");
             }
         });
+    }
+
+    /** A blank vertical gap of the given height in points. */
+    private static Paragraph gap(float points) {
+        Paragraph p = new Paragraph(" ", FontFactory.getFont(FontFactory.HELVETICA, 1));
+        p.setLeading(points);
+        return p;
     }
 
     private void addBreakupCell(PdfPTable table, String label, String value, Font font) {
