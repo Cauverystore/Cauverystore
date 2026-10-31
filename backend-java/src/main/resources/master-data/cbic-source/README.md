@@ -47,6 +47,32 @@ here so nobody has to re-read them to find that out:
 
 The Integrated and Union Territory Tax (Rate) notifications of the same numbers mirror these.
 
+### Central Tax (rule) notifications of 26-28 October 2026
+
+Not rate notifications; summarised so the "GST rule changes" panel can be cleared quickly.
+Read from the CBIC PDFs on 2026-11-01. Have a CA confirm before acting.
+
+- **03/2026-CT**: brings sections 153 to 155 of the Finance Act, 2026 into force on 01-11-2026.
+- **04/2026-CT** (from 01-01-2027): e-invoicing now also covers reverse-charge purchases from
+  unregistered persons and import of services, for businesses that must e-invoice.
+- **05/2026-CT**: CGST (Amendment) Rules, 2026, mostly from 01-11-2026 (some parts from
+  01-12-2026, 01-01-2027 and 01-04-2027). Long; mostly registration forms and procedure, refunds,
+  returns forms and recovery. The part that concerns a marketplace is **new rule 14B**: a seller
+  registered in one State can register in another State using an **e-commerce operator's
+  warehouse** as its principal place of business, if its sales there to registered buyers carry no
+  more than Rs 2.5 lakh of tax a month. The operator is asked to consent on the GST portal and
+  **must answer within seven working days**, or the application lapses; it must appoint an
+  authorised representative in each State, and withdrawing consent can cancel the seller's
+  registration there. This only matters if Cauvery Store operates warehouses that sellers stock.
+- **06/2026-CT**: suppliers of used cooking oil (1518), plastic scrap (3915), tyre scrap (4004),
+  metal scrap (chapters 72-81) and e-waste (8549) must register whatever their turnover.
+- **07/2026-CT**: a registered buyer of those same scrap goods from a registered seller must
+  deduct TDS under section 51.
+
+The Taxscan article of 28-10-2026 ("Big GST Changes from Nov 1") covers the same package; its
+headline items (fertilisers, tractor tyres, psyllium, waste, registration, TDS) all trace to the
+notifications above.
+
 Schedule rates are **CGST halves** — the customer-facing total is double. Schedule I at 2.5%
 is 5% GST.
 
