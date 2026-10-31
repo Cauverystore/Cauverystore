@@ -47,6 +47,34 @@ public class CategoryController {
         }
     }
 
+    /** The recommended list, marked with which ones the store already has. */
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @GetMapping("/admin/standard")
+    public List<Map<String, Object>> standardCategories() {
+        java.util.Set<String> have = new java.util.HashSet<>();
+        for (Category c : categoryService.getAllCategories()) {
+            if (c.getName() != null) have.add(c.getName().trim().toLowerCase(java.util.Locale.ROOT));
+        }
+        List<Map<String, Object>> out = new java.util.ArrayList<>();
+        for (com.cauverystore.service.StandardCategories.Entry e : com.cauverystore.service.StandardCategories.ALL) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("name", e.name());
+            m.put("description", e.description());
+            m.put("requiredLicence", e.requiredLicence());
+            m.put("exists", have.contains(e.name().toLowerCase(java.util.Locale.ROOT)));
+            out.add(m);
+        }
+        return out;
+    }
+
+    /** Adds the recommended categories the store does not have yet. Existing ones are not touched. */
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PostMapping("/admin/add-standard")
+    public ResponseEntity<?> addStandardCategories() {
+        List<String> added = categoryService.addStandardCategories();
+        return ResponseEntity.ok(Map.of("added", added, "count", added.size()));
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PutMapping("/admin/update/{id}")
     public ResponseEntity<?> updateCategory(@PathVariable Long id, @RequestBody Category updated) {
