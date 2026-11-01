@@ -4,7 +4,22 @@ import { config } from '../config.js';
 // When DATABASE_URL is set, image records persist to Postgres. Without it the
 // service still works (files saved, DB write skipped with a warning) so local
 // smoke tests don't need a database.
-const pool = config.databaseUrl ? new pg.Pool({ connectionString: config.databaseUrl }) : null;
+const pool = config.databaseUrl
+  ? new pg.Pool({
+      connectionString: config.databaseUrl,
+      // Close idle connections before the server or the network drops them.
+      idleTimeoutMillis: 10_000,
+      keepAlive: true,
+    })
+  : null;
+
+// Postgres can drop an idle connection at any time (a restart, a redeploy, a network
+// timeout). The pool reports that as an 'error' event; with no listener Node treats it as
+// fatal and the whole service exits. Log it instead: the pool replaces the connection, and
+// the next query simply opens a new one.
+pool?.on('error', (err) => {
+  console.error('[image-service] idle database connection closed:', err.message);
+});
 
 export async function createProductImage({ id, productId, originalUrl, thumbnailUrl, previewUrl, zoomUrl }) {
   if (!pool) {
