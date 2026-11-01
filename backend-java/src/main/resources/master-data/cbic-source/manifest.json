@@ -95,6 +95,42 @@
     "source": "gstcouncil-cgst-rate",
     "title": "\u0926\u0947\u0916\u0947\u0902"
   },
+  "https://gstcouncil.gov.in/sites/default/files/2024-10/cir-cgst-233-2024.pdf": {
+    "downloaded": false,
+    "first_seen": "2026-11-01",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2024-10/cir-cgst-234-2024.pdf": {
+    "downloaded": false,
+    "first_seen": "2026-11-01",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2024-10/cir-cgst-235-2024.pdf": {
+    "downloaded": false,
+    "first_seen": "2026-11-01",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2024-10/cir-cgst-236-2024.pdf": {
+    "downloaded": false,
+    "first_seen": "2026-11-01",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2024-10/circular-no-237-2024.pdf": {
+    "downloaded": false,
+    "first_seen": "2026-11-01",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2024-10/circular-no-238-2024.pdf": {
+    "downloaded": false,
+    "first_seen": "2026-11-01",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
   "https://gstcouncil.gov.in/sites/default/files/2024-10/ctr-05-2024.pdf": {
     "downloaded": false,
     "first_seen": "2026-10-31",
@@ -155,6 +191,12 @@
     "source": "gstcouncil-cgst-rate",
     "title": "\u0926\u0947\u0916\u0947\u0902"
   },
+  "https://gstcouncil.gov.in/sites/default/files/2024-12/cir-cgst-corr-237-2024.pdf": {
+    "downloaded": false,
+    "first_seen": "2026-11-01",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
   "https://gstcouncil.gov.in/sites/default/files/2024-12/corr-ctr09-2024_1.pdf": {
     "downloaded": false,
     "first_seen": "2026-10-31",
@@ -166,6 +208,78 @@
     "first_seen": "2026-10-31",
     "source": "gstcouncil-cgst-rate",
     "title": "\u0926\u0947\u0916\u0947\u0902"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-01/cir-244012025-cgst.pdf": {
+    "bytes": 189568,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/cir-244012025-cgst.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "fd5e0856fc07a00669a17657a8eb0eed3610c8b0356550e1064b3d5144f8a100",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-01/cir-245022025-cgst.pdf": {
+    "bytes": 221244,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/cir-245022025-cgst.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "9863ee4b8dbc942b92f310bebf32c8530c73b5132bdad2454255c2f624b3d108",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-01/cir-cgst-239-2024.pdf": {
+    "bytes": 837871,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/cir-cgst-239-2024.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "65b0fdd1417c1b3389cd55f1f678f27ee612135780fbede46c3bf94b2ae84ac0",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-01/cir-cgst-246-03-2025.pdf": {
+    "bytes": 478387,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/cir-cgst-246-03-2025.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "884bc7ff4dca731a6be11298136ca22920ebd52dec92f3bd0f286153f5afe693",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-01/circular-no-240-2024.pdf": {
+    "bytes": 473811,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-240-2024.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "0229795a0a10b553af09405f3f327cf10b71c92cd4798bece420c6984888c3dc",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-01/circular-no-241-2024.pdf": {
+    "bytes": 515955,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-241-2024.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "b34a1f799371b47caef756d34933d2f848ac058a18a08eadff36b295c42c1989",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-01/circular-no-242-2024.pdf": {
+    "bytes": 764512,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-242-2024.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "66412fad4b80aadce7f8a081b8edd556b283a3f8b2a1256d5e440e7116552083",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-01/circular-no-243-2024.pdf": {
+    "bytes": 724834,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-243-2024.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "4a4cfe38e9b85a457a266d6005cc659bfaae03415d89549eac0a689d3aea3c5a",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
   },
   "https://gstcouncil.gov.in/sites/default/files/2025-01/ctr01-2025.pdf": {
     "bytes": 197899,
@@ -310,5 +424,50 @@
     "sha256": "019957cec935540525da6380190b0e5e5a5d281fcac5cde896d5526608897585",
     "source": "gstcouncil-cgst-rate",
     "title": "\u0926\u0947\u0916\u0947\u0902"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-04/circular-no-10h-2025.pdf": {
+    "bytes": 418080,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-10h-2025.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "14a3b826535fb3cf17dac106b66f28b667a51ea6e756a84cf4dffdf951ac27cd",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-04/circular-no-247-04-2025.pdf": {
+    "bytes": 1067938,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-247-04-2025.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "afa6642cc372c037d206af3fd23ee486861ca05ab613d8d7a4da508376d859ff",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-04/circular-no-248-05-2025.pdf": {
+    "bytes": 207322,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-248-05-2025.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "faef270ceb17f30eb84f6c84937260d4c45e2e86e355a191949135b045e37d9d",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-07/circular-no-249-2025.pdf": {
+    "bytes": 103255,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-249-2025.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "256b577db87bb0109a404d4de192ec1481d175f158e714c4221447d8999cc309",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
+  },
+  "https://gstcouncil.gov.in/sites/default/files/2025-07/circular-no-250-2025_1.pdf": {
+    "bytes": 718544,
+    "downloaded": true,
+    "file": "/home/runner/work/Cauverystore/Cauverystore/backend-java/src/main/resources/master-data/cbic-source/incoming/gstcouncil-cgst-circulars/circular-no-250-2025_1.pdf",
+    "first_seen": "2026-11-01",
+    "sha256": "be6b5574830254e4858de66c152d9a81db6f0856bcc323594e12e5fa94720964",
+    "source": "gstcouncil-cgst-circulars",
+    "title": "View"
   }
 }
