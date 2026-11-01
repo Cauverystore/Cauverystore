@@ -114,7 +114,11 @@ public class GstInvoiceController {
         Double amount = body.get("amount") != null ? ((Number) body.get("amount")).doubleValue() : null;
         String reason = (String) body.get("reason");
         try {
-            return ResponseEntity.ok(creditNoteService.generateManualCreditNote(invoiceId, amount, reason, userId));
+            Map<String, Object> result = creditNoteService.generateManualCreditNote(invoiceId, amount, reason, userId);
+            if (Boolean.TRUE.equals(result.get("timeBarred"))) {
+                return ResponseEntity.badRequest().body(Map.of("error", result.get("message")));
+            }
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -318,7 +322,7 @@ public class GstInvoiceController {
         }
         if (rows == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Unknown GSTR-1 section '"
-                    + section + "'. Use b2b, b2cl, b2cs, cdn, cdnur, hsn_b2b, hsn_b2c or eco."));
+                    + section + "'. Use b2b, b2cl, b2cs, cdn, cdnur, hsn_b2b, hsn_b2c, eco or docs."));
         }
         if ("json".equalsIgnoreCase(format)) return ResponseEntity.ok(rows);
 

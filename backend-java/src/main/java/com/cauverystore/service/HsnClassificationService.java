@@ -283,6 +283,23 @@ public class HsnClassificationService {
     }
 
     /**
+     * True when the rate line picked for this product is lower than another line in force under
+     * the same heading. A seller picking the lowest of several rates is the choice most worth a
+     * second look, so it goes to an admin before the product sells.
+     */
+    public boolean selectionLowersRate(Product product) {
+        if (product == null || product.getGstRateSelectionId() == null) return false;
+        Optional<GstRateMaster> row = rateRepo.findById(product.getGstRateSelectionId());
+        if (row.isEmpty() || row.get().getGstRate() == null) return false;
+        GstRateMaster chosen = row.get();
+        LocalDate today = LocalDate.now();
+        List<GstRateMaster> lines = new ArrayList<>();
+        lines.addAll(rateRepo.findApplicable(chosen.getHsnCode(), GstRateMaster.STATUS_VERIFIED, today));
+        lines.addAll(rateRepo.findApplicable(chosen.getHsnCode(), GstRateMaster.STATUS_UNVERIFIED, today));
+        return lines.stream().anyMatch(r -> r.getGstRate() != null && r.getGstRate() > chosen.getGstRate());
+    }
+
+    /**
      * Remembers that this category was classified under this code, so it leads the suggestions
      * next time. Never allowed to fail a product save - a lost suggestion costs a seller one
      * search, whereas a failed save costs them their work.

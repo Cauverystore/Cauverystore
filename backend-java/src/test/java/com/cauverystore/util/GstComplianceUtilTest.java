@@ -125,4 +125,25 @@ class GstComplianceUtilTest {
         assertFalse(GstComplianceUtil.hasValidCheckDigit("27AAPFU0939F1ZW"));
         assertFalse(GstComplianceUtil.hasValidCheckDigit("33ABCDE1234F1Z5"), "the demo seller's made-up GSTIN");
     }
+
+    @Test
+    void creditNoteDeadlineIsThirtiethNovemberAfterTheFinancialYear() {
+        // FY 2025-26 (Apr 2025 to Mar 2026): deadline 30 Nov 2026.
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.LocalDate.of(2026, 11, 30),
+                GstComplianceUtil.creditNoteDeadline(java.time.LocalDate.of(2025, 4, 1)));
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.LocalDate.of(2026, 11, 30),
+                GstComplianceUtil.creditNoteDeadline(java.time.LocalDate.of(2026, 3, 31)));
+        // April 2026 starts FY 2026-27: deadline 30 Nov 2027.
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.LocalDate.of(2027, 11, 30),
+                GstComplianceUtil.creditNoteDeadline(java.time.LocalDate.of(2026, 4, 1)));
+        assertFalse(GstComplianceUtil.creditNoteTimeBarred(java.time.LocalDate.of(2025, 6, 1), java.time.LocalDate.of(2026, 11, 30)));
+        assertTrue(GstComplianceUtil.creditNoteTimeBarred(java.time.LocalDate.of(2025, 6, 1), java.time.LocalDate.of(2026, 12, 1)));
+    }
+
+    @Test
+    void b2cLargeUsesInvoiceValue() {
+        assertTrue(GstComplianceUtil.isB2cLarge(true, 100_000.01));
+        assertFalse(GstComplianceUtil.isB2cLarge(true, 100_000.0));
+        assertFalse(GstComplianceUtil.isB2cLarge(false, 500_000.0));
+    }
 }

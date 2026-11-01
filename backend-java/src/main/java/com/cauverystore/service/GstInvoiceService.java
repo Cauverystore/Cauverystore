@@ -95,6 +95,12 @@ public class GstInvoiceService {
 
 
     private final GstRateResolver gstRateResolver;
+
+    /** Per-seller numbering (Rule 46 / 53). Absent only in plain unit tests, which use the old scheme. */
+    private DocumentNumberService documentNumbers;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setDocumentNumbers(DocumentNumberService documentNumbers) { this.documentNumbers = documentNumbers; }
     private final Gstr1ExportService gstr1ExportService;
 
     public GstInvoiceService(GstInvoiceRepository invoiceRepo, GstInvoiceItemRepository itemRepo,
@@ -350,7 +356,9 @@ public class GstInvoiceService {
         inv.setUtgstApplied(GstComplianceUtil.isUtgstState(sellerStateCode)
                 && !Boolean.TRUE.equals(inv.getIsInterState()));
 
-        String invoiceNumber = generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS");
+        String invoiceNumber = documentNumbers != null
+                ? documentNumbers.next(gstin, DocumentNumberService.INVOICE, invoiceRepo::findMaxInvoiceNumberByPrefix)
+                : generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS");
         GstComplianceUtil.validateInvoiceNumber(invoiceNumber);
         inv.setInvoiceNumber(invoiceNumber);
         inv.setStatus("PENDING_DISPATCH");
@@ -575,7 +583,6 @@ public class GstInvoiceService {
 
         inv.setItems(items);
         inv.setTaxableAmount(Math.round(taxableAmount * 100.0) / 100.0);
-        inv.setB2cLarge(GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount()));
         inv.setTotalTax(Math.round((totalCgst + totalSgst + totalIgst) * 100.0) / 100.0);
         inv.setTotalCess(Math.round(totalCess * 100.0) / 100.0);
         inv.setCgstAmount(Math.round(totalCgst * 100.0) / 100.0);
@@ -653,6 +660,7 @@ public class GstInvoiceService {
         // the total must include it or the bill and the payment would disagree.
         inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax()
                 + nz(inv.getTotalCess())) * 100.0) / 100.0);
+        inv.setB2cLarge(GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTotalAmount()));
 
         // Supplier signature (Req 11): bind supplier GSTIN + fiscal identity + amounts with a digest
         // so the invoice cannot be altered without invalidating the recorded signature.
@@ -1248,7 +1256,7 @@ public class GstInvoiceService {
         if (ids.isEmpty()) return out;
         for (GstInvoice inv : invoiceRepo.findAllById(ids)) {
             boolean consumer = Gstr1ExportService.unregistered(inv.getBuyerGstin());
-            if (consumer && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) {
+            if (consumer && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTotalAmount())) {
                 out.add(inv.getInvoiceNumber());
             }
         }
@@ -1568,10 +1576,22 @@ public class GstInvoiceService {
         }
         if (isBlank(config.getPan())) config.setPan(config.getGstin().substring(2, 12));
         if (!isBlank(config.getInvoicePrefix())
-                && !config.getInvoicePrefix().trim().matches("[A-Za-z][A-Za-z0-9]{0,8}")) {
-            throw new IllegalArgumentException("The invoice prefix must be 1 to 9 letters or "
+                && !config.getInvoicePrefix().trim().matches("[A-Za-z][A-Za-z0-9]{0,5}")) {
+            throw new IllegalArgumentException("The invoice prefix must be 1 to 6 letters or "
                     + "digits, starting with a letter. GST caps the whole invoice number at 16 "
                     + "characters, and the prefix is followed by the month and a 5-digit number.");
+        }
+        // Each seller GSTIN needs its own invoice series (Rule 46), so a custom prefix can't be
+        // one another seller already uses. "CS" is the default and gets a per-seller code added.
+        if (!isBlank(config.getInvoicePrefix())
+                && !"CS".equalsIgnoreCase(config.getInvoicePrefix().trim())) {
+            String mine = config.getGstin().trim();
+            boolean taken = configRepo.findByInvoicePrefixIgnoreCase(config.getInvoicePrefix().trim()).stream()
+                    .anyMatch(other -> other.getGstin() != null && !other.getGstin().trim().equalsIgnoreCase(mine));
+            if (taken) {
+                throw new IllegalArgumentException("Another seller already uses the invoice prefix "
+                        + config.getInvoicePrefix().trim().toUpperCase() + ". Choose a different one.");
+            }
         }
 
         if (!isBlank(config.getTcsGstin())) {
@@ -1667,8 +1687,8 @@ public class GstInvoiceService {
         String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMM"));
         String safePrefix = prefix != null ? prefix.trim().toUpperCase().replaceAll("[^A-Z0-9]", "") : "CS";
         if (safePrefix.isEmpty()) safePrefix = "CS";
-        // GSTIN invoice numbers must not exceed 16 chars: prefix (<=9) + yyMM (4) + "/" (1) + seq (5) = 16
-        if (safePrefix.length() > 9) safePrefix = safePrefix.substring(0, 9);
+        // GST invoice numbers must not exceed 16 chars: prefix (<=6) + yyMM (4) + "/" (1) + seq (5) = 16
+        if (safePrefix.length() > 6) safePrefix = safePrefix.substring(0, 6);
         String prefixPattern = safePrefix + datePart + "/";
         String maxNum = invoiceRepo.findMaxInvoiceNumberByPrefix(prefixPattern);
         int seq = 1;

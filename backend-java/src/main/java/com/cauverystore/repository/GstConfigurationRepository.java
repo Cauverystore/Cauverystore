@@ -13,4 +13,5 @@ public interface GstConfigurationRepository extends JpaRepository<GstConfigurati
     Optional<GstConfiguration> findBySellerId(Long sellerId);
     List<GstConfiguration> findByIsActiveTrue();
     List<GstConfiguration> findByStateCode(String stateCode);
+    List<GstConfiguration> findByInvoicePrefixIgnoreCase(String invoicePrefix);
 }

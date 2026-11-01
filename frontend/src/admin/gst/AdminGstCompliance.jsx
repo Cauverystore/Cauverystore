@@ -326,8 +326,8 @@ const AdminGstCompliance = () => {
           </div>
           <div>
             <label style={lbl}>Invoice number prefix</label>
-            <input name="invoicePrefix" value={form.invoicePrefix || ""} onChange={change} style={inp} maxLength={9} placeholder="CS" />
-            <span style={hint}>Up to 9 letters or digits. Numbers run as PREFIX + YYMM + /00001, within GST's 16-character limit.</span>
+            <input name="invoicePrefix" value={form.invoicePrefix || ""} onChange={change} style={inp} maxLength={6} placeholder="CS" />
+            <span style={hint}>Up to 6 letters or digits, not used by another seller. Numbers run as PREFIX + YYMM + /00001, within GST's 16-character limit. Left as CS, a code for this seller is added (for example CS1A).</span>
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
             <label style={lbl}>Registered address *</label>

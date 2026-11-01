@@ -61,6 +61,12 @@ public class CreditNoteService {
     private final AuditService auditService;
     private final GstRateResolver gstRateResolver;
 
+    /** Per-seller numbering (Rule 46 / 53). Absent only in plain unit tests, which use the old scheme. */
+    private DocumentNumberService documentNumbers;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setDocumentNumbers(DocumentNumberService documentNumbers) { this.documentNumbers = documentNumbers; }
+
     private static final Map<String, String> STATE_CODES = new LinkedHashMap<>();
     static {
         STATE_CODES.put("35", "Andaman and Nicobar"); STATE_CODES.put("28", "Andhra Pradesh");
@@ -115,6 +121,8 @@ public class CreditNoteService {
             return Map.of("creditNote", existing.get(), "message", "Credit note already exists for this order");
         }
         GstInvoice inv = invoiceRepo.findByOrderId(orderId).orElse(null);
+        Optional<Map<String, Object>> barred = timeBarred(inv);
+        if (barred.isPresent()) return barred.get();
 
         CreditNote cn = new CreditNote();
         cn.setOrderId(orderId);
@@ -171,7 +179,7 @@ public class CreditNoteService {
             cn.setItems(items);
         }
 
-        cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
+        cn.setCreditNoteNumber(nextCreditNoteNumber(cn.getSellerGstin()));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
         if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
@@ -275,6 +283,8 @@ public class CreditNoteService {
         Order order = rr.getOrder();
         if (order == null) throw new RuntimeException("Return request has no linked order");
         GstInvoice inv = invoiceRepo.findByOrderId(order.getId()).orElse(null);
+        Optional<Map<String, Object>> barred = timeBarred(inv);
+        if (barred.isPresent()) return barred.get();
 
         CreditNote cn = new CreditNote();
         cn.setOrderId(order.getId());
@@ -327,7 +337,7 @@ public class CreditNoteService {
         cn.setTotalAmount(round(taxable + cn.getTotalTax()));
         cn.setItems(items);
 
-        cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
+        cn.setCreditNoteNumber(nextCreditNoteNumber(cn.getSellerGstin()));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
         if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
@@ -352,6 +362,8 @@ public class CreditNoteService {
     public Map<String, Object> generateManualCreditNote(Long invoiceId, Double amount, String reason, Long userId) {
         GstInvoice inv = invoiceRepo.findById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
+        Optional<Map<String, Object>> barred = timeBarred(inv);
+        if (barred.isPresent()) return barred.get();
         Optional<CreditNote> existing = creditNoteRepo.findByOrderIdAndNoteType(inv.getOrderId(), "CREDIT");
         if (existing.isPresent()) {
             return Map.of("creditNote", existing.get(), "message", "Credit note already exists for this order");
@@ -401,7 +413,7 @@ public class CreditNoteService {
         cn.setTotalAmount(round(cn.getTaxableAmount() + cn.getTotalTax()));
         cn.setItems(buildItemsFromInvoice(cn, inv, factor));
 
-        cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
+        cn.setCreditNoteNumber(nextCreditNoteNumber(cn.getSellerGstin()));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
         if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
@@ -934,11 +946,40 @@ public class CreditNoteService {
         return (rawSubtotal - coupon) / rawSubtotal;
     }
 
+    /**
+     * Section 34(2): GST can be reduced by a credit note only up to 30 November after the end of
+     * the invoice's financial year. After that no GST credit note is issued. The refund itself
+     * still goes ahead; the seller can give a commercial credit note with no GST on it.
+     * Returned as a result rather than thrown, so a refund running in the same transaction is
+     * not rolled back.
+     */
+    private Optional<Map<String, Object>> timeBarred(GstInvoice inv) {
+        if (inv == null || inv.getInvoiceDate() == null) return Optional.empty();
+        LocalDate today = LocalDate.now();
+        if (!GstComplianceUtil.creditNoteTimeBarred(inv.getInvoiceDate(), today)) return Optional.empty();
+        LocalDate deadline = GstComplianceUtil.creditNoteDeadline(inv.getInvoiceDate());
+        log.warn("No GST credit note for invoice {}: the s.34(2) deadline was {}.", inv.getInvoiceNumber(), deadline);
+        return Optional.of(Map.of(
+                "timeBarred", true,
+                "deadline", deadline.toString(),
+                "message", "A GST credit note can't be issued for invoice " + inv.getInvoiceNumber()
+                        + ". Section 34(2) allows one only up to " + deadline + " (30 November after "
+                        + "the financial year of the sale). Refund the buyer without a GST credit note."));
+    }
+
+    private String nextCreditNoteNumber(String sellerGstin) {
+        if (documentNumbers != null && sellerGstin != null && !sellerGstin.isBlank()) {
+            return documentNumbers.next(sellerGstin, DocumentNumberService.CREDIT_NOTE,
+                    creditNoteRepo::findMaxCreditNoteNumberByPrefix);
+        }
+        return generateCreditNoteNumber("CN");
+    }
+
     private String generateCreditNoteNumber(String prefix) {
         String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMM"));
         String safePrefix = prefix != null ? prefix.trim().toUpperCase().replaceAll("[^A-Z0-9]", "") : "CN";
         if (safePrefix.isEmpty()) safePrefix = "CN";
-        if (safePrefix.length() > 9) safePrefix = safePrefix.substring(0, 9);
+        if (safePrefix.length() > 6) safePrefix = safePrefix.substring(0, 6);
         String prefixPattern = safePrefix + datePart + "/";
         String maxNum = creditNoteRepo.findMaxCreditNoteNumberByPrefix(prefixPattern);
         int seq = 1;
