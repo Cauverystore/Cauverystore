@@ -16,10 +16,12 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Builds GSTR-1 in the shape the GST offline utility actually accepts.
@@ -40,6 +42,7 @@ import java.util.Map;
  *   b2cl  (5A)  inter-state supplies to consumers above the B2C-large threshold
  *   b2cs  (7)   remaining consumer supplies, aggregated by place of supply and rate
  *   cdn   (9B)  credit and debit notes to registered buyers, in the utility's cdnr layout
+ *   cdnur (9B)  credit and debit notes against B2CL invoices
  *   hsn_b2b (12) the HSN-wise summary of supplies to registered buyers
  *   hsn_b2c (12) the HSN-wise summary of supplies to everyone else
  *   hsn   (12)  the single HSN summary, only for return periods before May 2025
@@ -89,11 +92,20 @@ public class Gstr1ExportService {
      *
      * The utility's cdnr layout. Both notes share it, told apart by "Note Type": C for a
      * credit note, D for a debit note. Only notes to a registered recipient (a GSTIN is
-     * present) go here; notes to consumers are netted inside B2CS rather than listed.
+     * present) go here. Notes to consumers go to B2CS (netted) or CDNUR (listed), depending on
+     * whether the original invoice was B2CS or B2CL.
      */
     public static final String[] CDN_HEADERS = {
             "GSTIN/UIN of Recipient", "Receiver Name", "Note Number", "Note Date",
             "Note Type", "Place Of Supply", "Reverse Charge", "Note Supply Type",
+            "Note Value", "Applicable % of Tax Rate", "Rate", "Taxable Value", "Cess Amount"};
+
+    /**
+     * Table 9B, unregistered: notes against a B2CL invoice (or an export). Notes against a
+     * small consumer invoice do not go here; they are netted into B2CS instead.
+     */
+    public static final String[] CDNUR_HEADERS = {
+            "UR Type", "Note Number", "Note Date", "Note Type", "Place Of Supply",
             "Note Value", "Applicable % of Tax Rate", "Rate", "Taxable Value", "Cess Amount"};
 
     /** Rate comes last, and UQC is written as code and name, e.g. "NOS-NUMBERS". */
@@ -261,29 +273,195 @@ public class Gstr1ExportService {
      *                 then Type E with that GSTIN; without one they are OE.
      */
     public List<Map<String, Object>> b2cs(List<GstInvoice> invoices, String ecoGstin) {
+        return b2cs(invoices, ecoGstin, List.of(), Set.of());
+    }
+
+    /**
+     * As above, with the period's consumer notes netted in. A credit note to a consumer is
+     * not listed anywhere else in GSTR-1 unless its invoice was B2CL, so leaving it out of
+     * B2CS would report the returned sale as if it had stood.
+     *
+     * @param b2clOriginals invoice numbers that were reported in B2CL; notes against those
+     *                      go to CDNUR instead
+     */
+    public List<Map<String, Object>> b2cs(List<GstInvoice> invoices, String ecoGstin,
+                                          List<NoteDoc> notes, Set<String> b2clOriginals) {
         String type = ecoGstin == null ? "OE" : "E";
         Map<String, Map<String, Object>> aggregated = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
             if (!isBlank(inv.getBuyerGstin())) continue;
             if (GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) continue;
             for (RateLine line : linesByRate(inv).values()) {
-                String key = inv.getPlaceOfSupply() + "|" + line.rate + "|" + line.cess;
-                Map<String, Object> row = aggregated.computeIfAbsent(key, k -> {
-                    Map<String, Object> fresh = new LinkedHashMap<>();
-                    fresh.put("Type", type);
-                    fresh.put("Place Of Supply", inv.getPlaceOfSupply());
-                    fresh.put("Rate", round(line.rate));
-                    fresh.put("Applicable % of Tax Rate", "");
-                    fresh.put("Taxable Value", 0.0);
-                    fresh.put("Cess Amount", 0.0);
-                    fresh.put("E-Commerce GSTIN", ecoGstin == null ? "" : ecoGstin);
-                    return fresh;
-                });
+                Map<String, Object> row = b2csRow(aggregated, type, ecoGstin,
+                        inv.getPlaceOfSupply(), line.rate, line.cess);
                 row.put("Taxable Value", round((Double) row.get("Taxable Value") + line.taxable));
                 row.put("Cess Amount", round((Double) row.get("Cess Amount") + line.cessAmount));
             }
         }
+        for (NoteDoc note : notes) {
+            if (note.registered() || b2clOriginals.contains(note.original)) continue;
+            for (NoteLine line : note.lines) {
+                Map<String, Object> row = b2csRow(aggregated, type, ecoGstin,
+                        note.placeOfSupply, line.rate, 0.0);
+                row.put("Taxable Value", round((Double) row.get("Taxable Value") + note.sign * line.taxable));
+            }
+        }
         return new ArrayList<>(aggregated.values());
+    }
+
+    private static Map<String, Object> b2csRow(Map<String, Map<String, Object>> aggregated, String type,
+                                               String ecoGstin, String pos, double rate, double cess) {
+        return aggregated.computeIfAbsent(pos + "|" + rate + "|" + cess, k -> {
+            Map<String, Object> fresh = new LinkedHashMap<>();
+            fresh.put("Type", type);
+            fresh.put("Place Of Supply", pos);
+            fresh.put("Rate", round(rate));
+            fresh.put("Applicable % of Tax Rate", "");
+            fresh.put("Taxable Value", 0.0);
+            fresh.put("Cess Amount", 0.0);
+            fresh.put("E-Commerce GSTIN", ecoGstin == null ? "" : ecoGstin);
+            return fresh;
+        });
+    }
+
+    /**
+     * 9B unregistered - notes against invoices that were reported in B2CL. Notes against
+     * small consumer invoices are netted into B2CS instead and do not appear here.
+     */
+    public List<Map<String, Object>> cdnur(List<NoteDoc> notes, Set<String> b2clOriginals) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (NoteDoc note : notes) {
+            if (note.registered() || !b2clOriginals.contains(note.original)) continue;
+            Map<String, Double> taxableByRate = new LinkedHashMap<>();
+            for (NoteLine line : note.lines) taxableByRate.merge(String.valueOf(line.rate), line.taxable, Double::sum);
+            for (Map.Entry<String, Double> e : taxableByRate.entrySet()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("UR Type", "B2CL");
+                row.put("Note Number", note.number);
+                row.put("Note Date", note.date == null ? "" : note.date.format(GST_DATE));
+                row.put("Note Type", note.type);
+                row.put("Place Of Supply", note.placeOfSupply);
+                row.put("Note Value", round(note.value));
+                row.put("Applicable % of Tax Rate", "");
+                row.put("Rate", round(Double.parseDouble(e.getKey())));
+                row.put("Taxable Value", round(e.getValue()));
+                row.put("Cess Amount", 0.0);
+                rows.add(row);
+            }
+        }
+        return rows;
+    }
+
+    /** One line of a credit or debit note, in the shape the summaries need. */
+    public static class NoteLine {
+        String hsn;
+        String description;
+        String uqc;
+        double quantity;
+        double totalValue;
+        double taxable;
+        double igst;
+        double cgst;
+        double sgst;
+        double rate;
+    }
+
+    /**
+     * A credit or debit note seen the same way: sign is -1 for a credit note (it takes value
+     * away from the period) and +1 for a debit note.
+     */
+    public static class NoteDoc {
+        int sign;
+        String type;
+        String buyerGstin;
+        String number;
+        LocalDate date;
+        double value;
+        String placeOfSupply;
+        String original;
+        boolean interState;
+        List<NoteLine> lines = new ArrayList<>();
+
+        boolean registered() {
+            return !isBlank(buyerGstin) && !"URP".equalsIgnoreCase(buyerGstin.trim());
+        }
+    }
+
+    /** Credit and debit notes as NoteDocs, leaving out any that were cancelled. */
+    public static List<NoteDoc> notes(List<CreditNote> creditNotes, List<DebitNote> debitNotes) {
+        List<NoteDoc> out = new ArrayList<>();
+        for (CreditNote cn : creditNotes == null ? List.<CreditNote>of() : creditNotes) {
+            if (cancelled(cn.getStatus())) continue;
+            NoteDoc d = noteDoc(-1, "C", cn.getBuyerGstin(), cn.getCreditNoteNumber(), cn.getCreditNoteDate(),
+                    cn.getTotalAmount(), cn.getPlaceOfSupply(), cn.getOriginalInvoiceNumber());
+            d.interState = Boolean.TRUE.equals(cn.getIsInterState());
+            for (CreditNoteItem it : cn.getItems() == null ? List.<CreditNoteItem>of() : cn.getItems()) {
+                d.lines.add(noteLine(it.getHsnCode(), it.getSacCode(), it.getProductName(), it.getUnitOfMeasure(),
+                        it.getQuantity(), it.getTotalAmount(), it.getTaxableValue(), it.getIgstAmount(),
+                        it.getCgstAmount(), it.getSgstAmount(), it.getIgstRate(), it.getCgstRate(), it.getSgstRate()));
+            }
+            if (d.lines.isEmpty()) d.lines.add(headerLine(cn.getTaxableAmount(), cn.getIgstAmount(),
+                    cn.getCgstAmount(), cn.getSgstAmount(), cn.getIgstRate(), cn.getCgstRate(), cn.getSgstRate(),
+                    cn.getTotalAmount()));
+            out.add(d);
+        }
+        for (DebitNote dn : debitNotes == null ? List.<DebitNote>of() : debitNotes) {
+            if (cancelled(dn.getStatus())) continue;
+            NoteDoc d = noteDoc(1, "D", dn.getBuyerGstin(), dn.getDebitNoteNumber(), dn.getDebitNoteDate(),
+                    dn.getTotalAmount(), dn.getPlaceOfSupply(), dn.getOriginalInvoiceNumber());
+            d.interState = Boolean.TRUE.equals(dn.getIsInterState());
+            for (DebitNoteItem it : dn.getItems() == null ? List.<DebitNoteItem>of() : dn.getItems()) {
+                d.lines.add(noteLine(it.getHsnCode(), it.getSacCode(), it.getProductName(), it.getUnitOfMeasure(),
+                        it.getQuantity(), it.getTotalAmount(), it.getTaxableValue(), it.getIgstAmount(),
+                        it.getCgstAmount(), it.getSgstAmount(), it.getIgstRate(), it.getCgstRate(), it.getSgstRate()));
+            }
+            if (d.lines.isEmpty()) d.lines.add(headerLine(dn.getTaxableAmount(), dn.getIgstAmount(),
+                    dn.getCgstAmount(), dn.getSgstAmount(), dn.getIgstRate(), dn.getCgstRate(), dn.getSgstRate(),
+                    dn.getTotalAmount()));
+            out.add(d);
+        }
+        return out;
+    }
+
+    private static NoteDoc noteDoc(int sign, String type, String gstin, String number, LocalDate date,
+                                   Double value, String pos, String original) {
+        NoteDoc d = new NoteDoc();
+        d.sign = sign;
+        d.type = type;
+        d.buyerGstin = gstin;
+        d.number = number;
+        d.date = date;
+        d.value = nz(value);
+        d.placeOfSupply = pos;
+        d.original = original == null ? "" : original;
+        return d;
+    }
+
+    private static NoteLine noteLine(String hsn, String sac, String name, String unit, Integer qty,
+                                     Double total, Double taxable, Double igst, Double cgst, Double sgst,
+                                     Double igstRate, Double cgstRate, Double sgstRate) {
+        NoteLine l = new NoteLine();
+        l.hsn = !isBlank(hsn) ? hsn : sac;
+        l.description = name;
+        l.uqc = unit;
+        l.quantity = qty == null ? 0 : qty;
+        l.totalValue = nz(total);
+        l.taxable = nz(taxable);
+        l.igst = nz(igst);
+        l.cgst = nz(cgst);
+        l.sgst = nz(sgst);
+        l.rate = nz(igstRate) > 0 ? nz(igstRate) : nz(cgstRate) + nz(sgstRate);
+        return l;
+    }
+
+    /** A note saved without item lines: its header figures, with no HSN to report against. */
+    private static NoteLine headerLine(Double taxable, Double igst, Double cgst, Double sgst,
+                                       Double igstRate, Double cgstRate, Double sgstRate, Double total) {
+        return noteLine(null, null, null, null, 0, total, taxable, igst, cgst, sgst, igstRate, cgstRate, sgstRate);
+    }
+
+    static boolean cancelled(String status) {
+        return status != null && "CANCELLED".equalsIgnoreCase(status.trim());
     }
 
     /**
@@ -308,6 +486,67 @@ public class Gstr1ExportService {
 
     /** @param registered TRUE for buyers with a GSTIN only, FALSE for the rest, null for all */
     private List<Map<String, Object>> hsnSummary(List<GstInvoice> invoices, Boolean registered) {
+        return hsnSummary(invoices, List.of(), registered);
+    }
+
+    /**
+     * Table 12 net of the period's notes: a credit note takes its quantity, value and tax
+     * off the HSN it was raised against, a debit note adds them. Without this a month with
+     * returns reports more sales in Table 12 than in the B2B/B2CS tables, and the portal
+     * flags the mismatch.
+     *
+     * A row that nets to nothing - everything sold was returned - is left out.
+     *
+     * @param registered TRUE for buyers with a GSTIN only, FALSE for the rest, null for all
+     */
+    public List<Map<String, Object>> hsnSummary(List<GstInvoice> invoices, List<NoteDoc> notes,
+                                                Boolean registered) {
+        Map<String, Map<String, Object>> rows = invoiceHsnRows(invoices, registered);
+        for (NoteDoc note : notes) {
+            if (registered != null && registered != note.registered()) continue;
+            for (NoteLine line : note.lines) {
+                if (isBlank(line.hsn)) continue;
+                Map<String, Object> row = hsnRow(rows, line.hsn, line.description, line.uqc, line.rate);
+                add(row, "Total Quantity", note.sign * line.quantity);
+                add(row, "Total Value", note.sign * line.totalValue);
+                add(row, "Taxable Value", note.sign * line.taxable);
+                add(row, "Integrated Tax Amount", note.sign * line.igst);
+                add(row, "Central Tax Amount", note.sign * line.cgst);
+                add(row, "State/UT Tax Amount", note.sign * line.sgst);
+            }
+        }
+        rows.values().removeIf(Gstr1ExportService::allZero);
+        return new ArrayList<>(rows.values());
+    }
+
+    private static boolean allZero(Map<String, Object> row) {
+        for (String k : new String[]{"Total Quantity", "Total Value", "Taxable Value", "Integrated Tax Amount",
+                "Central Tax Amount", "State/UT Tax Amount", "Cess Amount"}) {
+            if (Math.abs((Double) row.get(k)) >= 0.005) return false;
+        }
+        return true;
+    }
+
+    private static Map<String, Object> hsnRow(Map<String, Map<String, Object>> rows, String hsn,
+                                              String description, String unit, double rate) {
+        return rows.computeIfAbsent(hsn + "|" + rate, k -> {
+            Map<String, Object> fresh = new LinkedHashMap<>();
+            fresh.put("HSN", hsn);
+            fresh.put("Description", description);
+            fresh.put("UQC", uqcLabel(unit));
+            fresh.put("Total Quantity", 0.0);
+            fresh.put("Total Value", 0.0);
+            fresh.put("Taxable Value", 0.0);
+            fresh.put("Integrated Tax Amount", 0.0);
+            fresh.put("Central Tax Amount", 0.0);
+            fresh.put("State/UT Tax Amount", 0.0);
+            fresh.put("Cess Amount", 0.0);
+            fresh.put("Rate", round(rate));
+            return fresh;
+        });
+    }
+
+    private Map<String, Map<String, Object>> invoiceHsnRows(List<GstInvoice> invoices, Boolean registered) {
         Map<String, Map<String, Object>> byHsnAndRate = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
             if (registered != null && registered == isBlank(inv.getBuyerGstin())) continue;
@@ -317,23 +556,8 @@ public class Gstr1ExportService {
                         : nz(item.getCgstRate()) + nz(item.getSgstRate());
                 String hsn = item.getHsnCode() != null ? item.getHsnCode() : item.getSacCode();
                 if (isBlank(hsn)) continue;
-                String key = hsn + "|" + rate;
-
-                Map<String, Object> row = byHsnAndRate.computeIfAbsent(key, k -> {
-                    Map<String, Object> fresh = new LinkedHashMap<>();
-                    fresh.put("HSN", hsn);
-                    fresh.put("Description", item.getProductName());
-                    fresh.put("UQC", uqcLabel(item.getUnitOfMeasure()));
-                    fresh.put("Total Quantity", 0.0);
-                    fresh.put("Total Value", 0.0);
-                    fresh.put("Taxable Value", 0.0);
-                    fresh.put("Integrated Tax Amount", 0.0);
-                    fresh.put("Central Tax Amount", 0.0);
-                    fresh.put("State/UT Tax Amount", 0.0);
-                    fresh.put("Cess Amount", 0.0);
-                    fresh.put("Rate", round(rate));
-                    return fresh;
-                });
+                Map<String, Object> row = hsnRow(byHsnAndRate, hsn, item.getProductName(),
+                        item.getUnitOfMeasure(), rate);
                 add(row, "Total Quantity", item.getQuantity() == null ? 0 : item.getQuantity());
                 add(row, "Total Value", nz(item.getTotalAmount()));
                 add(row, "Taxable Value", nz(item.getTaxableValue()));
@@ -343,7 +567,7 @@ public class Gstr1ExportService {
                 add(row, "Cess Amount", nz(item.getCessAmount()));
             }
         }
-        return new ArrayList<>(byHsnAndRate.values());
+        return byHsnAndRate;
     }
 
     /**
@@ -507,17 +731,55 @@ public class Gstr1ExportService {
                                                               List<DebitNote> debitNotes,
                                                               LocalDate periodStart,
                                                               String ecoGstin, String ecoName) {
-        Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
-        out.put("b2b", b2b(invoices, ecoGstin));
-        out.put("b2cl", b2cl(invoices, ecoGstin));
-        out.put("b2cs", b2cs(invoices, ecoGstin));
-        out.put("cdn", cdn(creditNotes, debitNotes));
-        out.put("hsn_b2b", hsnSummaryB2b(invoices));
-        out.put("hsn_b2c", hsnSummaryB2c(invoices));
-        if (periodStart != null && periodStart.isBefore(HSN_SPLIT_FROM)) {
-            out.put("hsn", hsnSummary(invoices));
+        return allSections(invoices, creditNotes, debitNotes, periodStart, ecoGstin, ecoName, Set.of());
+    }
+
+    /**
+     * As above. {@code earlierB2clInvoices} names invoices from earlier periods that were
+     * reported in B2CL, so a note raised against one now goes to CDNUR; B2CL invoices in
+     * this period are recognised without it.
+     *
+     * Cancelled invoices and notes are left out of every table: a cancelled invoice is a
+     * supply that never happened.
+     */
+    public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices,
+                                                              List<CreditNote> creditNotes,
+                                                              List<DebitNote> debitNotes,
+                                                              LocalDate periodStart,
+                                                              String ecoGstin, String ecoName,
+                                                              Set<String> earlierB2clInvoices) {
+        List<GstInvoice> live = new ArrayList<>();
+        for (GstInvoice inv : invoices) if (!cancelled(inv.getStatus())) live.add(inv);
+        List<CreditNote> liveCn = new ArrayList<>();
+        for (CreditNote cn : creditNotes == null ? List.<CreditNote>of() : creditNotes) {
+            if (!cancelled(cn.getStatus())) liveCn.add(cn);
         }
-        out.put("eco", eco(invoices, creditNotes, debitNotes, ecoGstin, ecoName));
+        List<DebitNote> liveDn = new ArrayList<>();
+        for (DebitNote dn : debitNotes == null ? List.<DebitNote>of() : debitNotes) {
+            if (!cancelled(dn.getStatus())) liveDn.add(dn);
+        }
+        List<NoteDoc> notes = notes(liveCn, liveDn);
+
+        Set<String> b2clOriginals = new HashSet<>(earlierB2clInvoices == null ? Set.of() : earlierB2clInvoices);
+        for (GstInvoice inv : live) {
+            if (isBlank(inv.getBuyerGstin())
+                    && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) {
+                b2clOriginals.add(inv.getInvoiceNumber());
+            }
+        }
+
+        Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
+        out.put("b2b", b2b(live, ecoGstin));
+        out.put("b2cl", b2cl(live, ecoGstin));
+        out.put("b2cs", b2cs(live, ecoGstin, notes, b2clOriginals));
+        out.put("cdn", cdn(liveCn, liveDn));
+        out.put("cdnur", cdnur(notes, b2clOriginals));
+        out.put("hsn_b2b", hsnSummary(live, notes, Boolean.TRUE));
+        out.put("hsn_b2c", hsnSummary(live, notes, Boolean.FALSE));
+        if (periodStart != null && periodStart.isBefore(HSN_SPLIT_FROM)) {
+            out.put("hsn", hsnSummary(live, notes, null));
+        }
+        out.put("eco", eco(live, liveCn, liveDn, ecoGstin, ecoName));
         return out;
     }
 
@@ -527,12 +789,13 @@ public class Gstr1ExportService {
             case "b2cl": return B2CL_HEADERS;
             case "b2cs": return B2CS_HEADERS;
             case "cdn": return CDN_HEADERS;
+            case "cdnur": return CDNUR_HEADERS;
             case "hsn":
             case "hsn_b2b":
             case "hsn_b2c": return HSN_HEADERS;
             case "eco": return ECO_HEADERS;
             default: throw new IllegalArgumentException("Unknown GSTR-1 section '" + section
-                    + "'. Use b2b, b2cl, b2cs, cdn, hsn_b2b, hsn_b2c or eco.");
+                    + "'. Use b2b, b2cl, b2cs, cdn, cdnur, hsn_b2b, hsn_b2c or eco.");
         }
     }
 

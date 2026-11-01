@@ -481,17 +481,33 @@ const GstInvoices = () => {
                   <div className="gst-summary-item"><div className="gst-summary-label">IGST</div><div className="gst-summary-value" style={{ color: "#d97706" }}>&#8377;{(gstr3b.table3_1_outwardSupplies?.igst || 0).toFixed(2)}</div></div>
                   <div className="gst-summary-item"><div className="gst-summary-label">Total Tax</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1_outwardSupplies?.totalTax || 0).toFixed(2)}</div></div>
                   <div className="gst-summary-item"><div className="gst-summary-label">Gross Taxable Value</div><div className="gst-summary-value">&#8377;{(gstr3b.grossTaxableValue || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Cess</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1_outwardSupplies?.cess || 0).toFixed(2)}</div></div>
                   <div className="gst-summary-item"><div className="gst-summary-label">Credit Notes (reduction)</div><div className="gst-summary-value" style={{ color: "#dc2626" }}>&#8377;{(gstr3b.grossCreditNotesValue || 0).toFixed(2)}</div></div>
-                  <div className="gst-summary-item"><div className="gst-summary-label">Invoices / Credit Notes</div><div className="gst-summary-value">{gstr3b.invoiceCount || 0} / {gstr3b.creditNoteCount || 0}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Debit Notes (addition)</div><div className="gst-summary-value">&#8377;{(gstr3b.grossDebitNotesValue || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Invoices / Credit / Debit Notes</div><div className="gst-summary-value">{gstr3b.invoiceCount || 0} / {gstr3b.creditNoteCount || 0} / {gstr3b.debitNoteCount || 0}</div></div>
+                  {gstr3b.cancelledInvoiceCount > 0 && (
+                    <div className="gst-summary-item"><div className="gst-summary-label">Cancelled (left out)</div><div className="gst-summary-value">{gstr3b.cancelledInvoiceCount}</div></div>
+                  )}
                   <div className="gst-summary-item"><div className="gst-summary-label">Period</div><div className="gst-summary-value">{gstr3b.periodStart} to {gstr3b.periodEnd}</div></div>
                 </div>
-                <h3 style={{ marginTop: "1.5rem" }}>Table 3.1(b) - ITC Eligible (B2B)</h3>
+                <h3 style={{ marginTop: "1.5rem" }}>Table 3.1(c) - Nil rated and exempted supplies</h3>
                 <div className="gst-summary-grid">
-                  <div className="gst-summary-item"><div className="gst-summary-label">Taxable Value</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1b_itc?.eligibleTaxableValue || 0).toFixed(2)}</div></div>
-                  <div className="gst-summary-item"><div className="gst-summary-label">CGST</div><div className="gst-summary-value" style={{ color: "#2563eb" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleCgst || 0).toFixed(2)}</div></div>
-                  <div className="gst-summary-item"><div className="gst-summary-label">SGST</div><div className="gst-summary-value" style={{ color: "#7c3aed" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleSgst || 0).toFixed(2)}</div></div>
-                  <div className="gst-summary-item"><div className="gst-summary-label">IGST</div><div className="gst-summary-value" style={{ color: "#d97706" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleIgst || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Value</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1c_nilExempt?.taxableValue || 0).toFixed(2)}</div></div>
                 </div>
+                <h3 style={{ marginTop: "1.5rem" }}>Table 3.2 - Inter-state supplies to unregistered persons</h3>
+                {(gstr3b.table3_2_interStateUnregistered || []).length === 0 ? (
+                  <p style={{ color: "#94a3b8" }}>None in this period.</p>
+                ) : (
+                  <table className="gst-table">
+                    <thead><tr><th>Place of supply</th><th>Taxable value</th><th>IGST</th></tr></thead>
+                    <tbody>
+                      {gstr3b.table3_2_interStateUnregistered.map((r) => (
+                        <tr key={r.placeOfSupply}><td>{r.placeOfSupply}</td><td>&#8377;{Number(r.taxableValue || 0).toFixed(2)}</td><td>&#8377;{Number(r.igst || 0).toFixed(2)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {gstr3b.notProduced && <p style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "1rem" }}>{gstr3b.notProduced}</p>}
               </div>
             )}
           </>
@@ -571,6 +587,8 @@ const GstInvoices = () => {
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2b", "gstr1-b2b.csv", "csv")}><FileText size={14} /> 4A B2B</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2cl", "gstr1-b2cl.csv", "csv")}><FileText size={14} /> 5A B2CL</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2cs", "gstr1-b2cs.csv", "csv")}><FileText size={14} /> 7 B2CS</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Credit and debit notes to buyers with a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=cdn", "gstr1-cdnr.csv", "csv")}><FileText size={14} /> 9B CDNR</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Credit and debit notes against B2CL invoices (other consumer notes are netted into B2CS)" onClick={() => downloadExport("/api/gst/gstr1/filing?section=cdnur", "gstr1-cdnur.csv", "csv")}><FileText size={14} /> 9B CDNUR</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" title="HSN summary of supplies to buyers with a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn_b2b", "gstr1-hsn-b2b.csv", "csv")}><FileText size={14} /> 12 HSN B2B</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" title="HSN summary of supplies to buyers without a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn_b2c", "gstr1-hsn-b2c.csv", "csv")}><FileText size={14} /> 12 HSN B2C</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" title="Sales made through the marketplace, which collects TCS on them (empty when none)" onClick={() => downloadExport("/api/gst/gstr1/filing?section=eco", "gstr1-eco.csv", "csv")}><FileText size={14} /> 14 ECO</button>
