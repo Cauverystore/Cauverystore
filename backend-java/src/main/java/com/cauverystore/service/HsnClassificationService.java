@@ -283,6 +283,24 @@ public class HsnClassificationService {
     }
 
     /**
+     * Refuses a price that falls between two value bands (see GstRateResolver#priceGap). The law
+     * gives no consistent rate there: taxed at 5% the value is over ₹2,500, taxed at 18% it is
+     * under. The seller is asked to price inside one band instead.
+     */
+    public void checkPriceGap(Product product) {
+        if (product == null) return;
+        Double price = product.getOfferPrice() != null ? product.getOfferPrice() : product.getPrice();
+        Optional<double[]> gap = rateResolver.priceGap(product.getHsnCode(), LocalDate.now(), price);
+        if (gap.isEmpty()) return;
+        double lowMax = gap.get()[0], highMin = gap.get()[1];
+        throw new UnclassifiedProductException(String.format(java.util.Locale.ROOT,
+                "At ₹%.2f including GST, this item falls between the GST rate bands for HSN %s: "
+                        + "it is too dear for the lower rate and too cheap for the higher one, so no "
+                        + "rate fits. Price it at ₹%.2f or less, or above ₹%.2f.",
+                price, product.getHsnCode(), lowMax, highMin));
+    }
+
+    /**
      * True when the rate line picked for this product is lower than another line in force under
      * the same heading. A seller picking the lowest of several rates is the choice most worth a
      * second look, so it goes to an admin before the product sells.

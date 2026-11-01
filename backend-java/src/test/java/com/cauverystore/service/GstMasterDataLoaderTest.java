@@ -105,6 +105,35 @@ class GstMasterDataLoaderTest {
     }
 
     @Test
+    void shouldVerifyAnExistingRowTheSeedNowSettles() {
+        // 5306 (flax yarn) carries only the 5% line; the seed was corrected to VERIFIED, and a
+        // database loaded earlier must pick that up, not keep asking sellers to choose.
+        GstRateMaster waiting = autoVerified("5306", 5.0);
+        waiting.setStatus(GstRateMaster.STATUS_UNVERIFIED);
+        waiting.setVerifiedBy(null);
+        waiting.setVerifiedAt(null);
+        when(rateRepo.findAll()).thenReturn(List.of(waiting));
+
+        runAndCaptureSaves();
+
+        assertEquals(GstRateMaster.STATUS_VERIFIED, waiting.getStatus());
+        assertEquals("CBIC master data import", waiting.getVerifiedBy());
+    }
+
+    @Test
+    void shouldNotVerifyARowThatStillNeedsAChoice() {
+        // 3002 still carries nil and 5% lines, so neither may be verified automatically.
+        GstRateMaster blood = autoVerified("3002", 0.0);
+        blood.setStatus(GstRateMaster.STATUS_UNVERIFIED);
+        blood.setVerifiedBy(null);
+        when(rateRepo.findAll()).thenReturn(List.of(blood));
+
+        ReflectionTestUtils.invokeMethod(loader, "loadGstRates");
+
+        assertEquals(GstRateMaster.STATUS_UNVERIFIED, blood.getStatus());
+    }
+
+    @Test
     void shouldLeaveHumanVerifiedRatesAlone() {
         // A CA's sign-off outranks the generator's guess and must survive a restart.
         GstRateMaster humanApproved = autoVerified("64", 5.0);
