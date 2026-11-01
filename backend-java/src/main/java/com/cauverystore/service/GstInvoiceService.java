@@ -943,17 +943,31 @@ public class GstInvoiceService {
                                                                    LocalDate endDate) {
         String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
-        LocalDate from = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
-        LocalDate to = endDate != null ? endDate : LocalDate.now();
-        List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, from, to);
-        List<CreditNote> creditNotes = creditNoteRepo
-                .findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to);
-        List<DebitNote> debitNotes = debitNoteRepo
-                .findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to);
+        FilingDocuments docs = filingDocuments(sellerId, startDate, endDate);
+        LocalDate from = docs.from();
+        List<GstInvoice> invoices = docs.invoices();
+        List<CreditNote> creditNotes = docs.creditNotes();
+        List<DebitNote> debitNotes = docs.debitNotes();
         GstConfiguration operator = marketplaceFor(sellerGstin);
         return gstr1ExportService.allSections(invoices, creditNotes, debitNotes, from,
                 operator == null ? null : operator.getTcsGstin(),
                 operator == null ? null : operator.getLegalName());
+    }
+
+    /** A seller's invoices and notes for a period: what GSTR-1 and the Tally export read. */
+    public record FilingDocuments(LocalDate from, LocalDate to, List<GstInvoice> invoices,
+                                  List<CreditNote> creditNotes, List<DebitNote> debitNotes) { }
+
+    /** Defaults to the current month to date when no dates are given. */
+    public FilingDocuments filingDocuments(Long sellerId, LocalDate startDate, LocalDate endDate) {
+        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
+                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
+        LocalDate from = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate to = endDate != null ? endDate : LocalDate.now();
+        return new FilingDocuments(from, to,
+                invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, from, to),
+                creditNoteRepo.findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to),
+                debitNoteRepo.findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to));
     }
 
     /**
