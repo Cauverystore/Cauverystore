@@ -1,7 +1,10 @@
 {
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "Dockerfile",
+    "watchPatterns": [
+      "/prerender-service/**"
+    ]
   },
   "deploy": {
     "startCommand": "node src/server.js",
