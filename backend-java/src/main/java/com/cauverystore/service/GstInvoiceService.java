@@ -2048,8 +2048,11 @@ public class GstInvoiceService {
         buyCell.setPadding(5);
         buyCell.addElement(new Paragraph("Buyer / Recipient", bold10));
         buyCell.addElement(new Paragraph(safeStr(inv.getBuyerName()), normal9));
-        buyCell.addElement(new Paragraph("GSTIN: " + (inv.getBuyerGstin() != null ? inv.getBuyerGstin() : "URP")
-                + (inv.getBuyerGstin() != null && !"URP".equals(inv.getBuyerGstin()) ? " (ITC Eligible: Yes - B2B)" : " (URP)"), normal9));
+        boolean registeredBuyer = inv.getBuyerGstin() != null && !inv.getBuyerGstin().isBlank()
+                && !"URP".equalsIgnoreCase(inv.getBuyerGstin().trim());
+        buyCell.addElement(new Paragraph("GSTIN: " + (registeredBuyer
+                ? inv.getBuyerGstin() + " (ITC Eligible: Yes - B2B)"
+                : "Unregistered (URP)"), normal9));
         buyCell.addElement(new Paragraph("Address: " + safeStr(inv.getBuyerAddress()), small8));
         buyCell.addElement(new Paragraph("State Code: " + safeStr(inv.getBuyerStateCode()), small8));
         if (inv.getDeliveryAddress() != null) {
@@ -2159,9 +2162,6 @@ public class GstInvoiceService {
         double ttax = inv.getTotalTax() != null ? inv.getTotalTax() : 0;
         double cess = inv.getTotalCess() != null ? inv.getTotalCess() : 0;
         double total = inv.getTotalAmount() != null ? inv.getTotalAmount() : 0;
-        double cgstRate = inv.getCgstRate() != null ? inv.getCgstRate() : 0;
-        double sgstRate = inv.getSgstRate() != null ? inv.getSgstRate() : 0;
-        double igstRate = !items.isEmpty() && items.get(0).getIgstRate() != null ? items.get(0).getIgstRate() : 0;
 
         // Header row
         PdfPCell bh = new PdfPCell(new Phrase("Tax Breakup", bold10));
@@ -2171,22 +2171,36 @@ public class GstInvoiceService {
         bh.setHorizontalAlignment(Element.ALIGN_CENTER);
         breakupTable.addCell(bh);
 
-        // The taxable amount already has the coupon discount taken off and the delivery line
-        // added in (delivery is an item above). Listing either again beside it made the rows
-        // add up to more than the Total Amount, so they are stated once, in the note below.
-        addBreakupCell(breakupTable, "Taxable Amount", "Rs. " + String.format("%.2f", tx), normal9);
-        if (interState) {
-            addBreakupCell(breakupTable, "IGST @ " + igstRate + "%", "Rs. " + String.format("%.2f", igst), normal9);
-        } else {
-            addBreakupCell(breakupTable, "CGST @ " + cgstRate + "%", "Rs. " + String.format("%.2f", cgst), normal9);
-            addBreakupCell(breakupTable, stateLabel + " @ " + sgstRate + "%", "Rs. " + String.format("%.2f", sgst), normal9);
+        // One row per GST rate. A bill can mix rates (5% rice, 18% tools), so a single
+        // "CGST @ 2.5%" label next to the whole CGST total gave the wrong rate for the rest.
+        // The taxable amount already has the coupon taken off and includes the delivery line,
+        // so the rows add up to the same Total Tax as the summary beside this box.
+        String taxHead1 = interState ? "IGST" : "CGST";
+        String taxHead2 = interState ? "Total Tax" : stateLabel;
+        for (String h : new String[]{"GST Rate", "Taxable Value", taxHead1, taxHead2}) {
+            addBreakupHead(breakupTable, h);
         }
+        java.util.TreeMap<Double, double[]> byRate = new java.util.TreeMap<>();
+        for (GstInvoiceItem it : items) {
+            double rate = interState ? nz(it.getIgstRate()) : nz(it.getCgstRate()) + nz(it.getSgstRate());
+            double[] row = byRate.computeIfAbsent(Math.round(rate * 100) / 100.0, r -> new double[3]);
+            row[0] += nz(it.getTaxableValue());
+            row[1] += interState ? nz(it.getIgstAmount()) : nz(it.getCgstAmount());
+            row[2] += interState ? nz(it.getIgstAmount()) : nz(it.getSgstAmount());
+        }
+        for (java.util.Map.Entry<Double, double[]> e : byRate.entrySet()) {
+            double[] r = e.getValue();
+            addBreakupRow(breakupTable, normal9, ratePct(e.getKey()), rs(r[0]), rs(r[1]), rs(r[2]));
+        }
+        addBreakupRow(breakupTable, bold9, "Total", rs(tx), rs(interState ? igst : cgst), rs(interState ? igst : sgst));
         // Cess is a charge on the goods like GST but collected separately; a buyer checking the
         // total against the payment needs to see it, and it is not part of the "Total Tax".
         if (cess > 0) {
-            addBreakupCell(breakupTable, "Cess", "Rs. " + String.format("%.2f", cess), normal9);
+            PdfPCell cessCell = new PdfPCell(new Phrase("Cess: " + rs(cess), normal9));
+            cessCell.setColspan(4);
+            cessCell.setPadding(3);
+            breakupTable.addCell(cessCell);
         }
-        addBreakupCell(breakupTable, "Total Tax", "Rs. " + String.format("%.2f", ttax), normal9);
         // TCS is deliberately not in this breakup. It is not a tax on this supply and the
         // customer does not pay it - printing it beside CGST and SGST read as though they did.
 
@@ -2373,13 +2387,29 @@ public class GstInvoiceService {
         return p;
     }
 
-    private void addBreakupCell(PdfPTable table, String label, String value, Font font) {
-        PdfPCell c = new PdfPCell();
-        c.setPadding(4);
+    private void addBreakupHead(PdfPTable table, String text) {
+        PdfPCell c = new PdfPCell(new Phrase(text, new Font(Font.HELVETICA, 8)));
+        c.setPadding(3);
         c.setHorizontalAlignment(Element.ALIGN_CENTER);
-        c.addElement(new Paragraph(label, new Font(Font.HELVETICA, 8)));
-        c.addElement(new Paragraph(value, font));
         table.addCell(c);
+    }
+
+    private void addBreakupRow(PdfPTable table, Font font, String... values) {
+        for (int i = 0; i < values.length; i++) {
+            PdfPCell c = new PdfPCell(new Phrase(values[i], font));
+            c.setPadding(3);
+            c.setHorizontalAlignment(i == 0 ? Element.ALIGN_CENTER : Element.ALIGN_RIGHT);
+            table.addCell(c);
+        }
+    }
+
+    private static String rs(double v) {
+        return "Rs. " + String.format("%.2f", v);
+    }
+
+    /** 5.0 -> "5%", 2.5 -> "2.5%". */
+    static String ratePct(double rate) {
+        return java.math.BigDecimal.valueOf(rate).stripTrailingZeros().toPlainString() + "%";
     }
 
     private String safeStr(String s) {
