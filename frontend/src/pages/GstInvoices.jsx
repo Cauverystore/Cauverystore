@@ -95,7 +95,26 @@ const INDIAN_STATES = [
   { code: "37", name: "Andhra Pradesh" }, { code: "38", name: "Ladakh" },
 ];
 
+/** Returns are filed for the month just ended, so that is the default. */
+const lastMonth = () => {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+/** "2026-10" -> { startDate: "2026-10-01", endDate: "2026-10-31" } */
+const monthRange = (month) => {
+  const [y, m] = month.split("-").map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return { startDate: `${month}-01`, endDate: `${month}-${String(last).padStart(2, "0")}` };
+};
+
+/** Tabs whose figures belong to one return period. */
+const PERIOD_TABS = ["gstr3b", "summary", "gstr1", "tcs"];
+
 const GstInvoices = () => {
+  const [returnMonth, setReturnMonth] = useState(lastMonth());
   const [activeTab, setActiveTab] = useState("dashboard");
   const [invoices, setInvoices] = useState([]);
   const [stats, setStats] = useState(null);
@@ -128,7 +147,7 @@ const GstInvoices = () => {
     else if (activeTab === "summary") fetchSummary();
     else if (activeTab === "gstr1") fetchGstr1();
     else if (activeTab === "tcs") fetchTcs();
-  }, [activeTab, page, cnPage]);
+  }, [activeTab, page, cnPage, returnMonth]);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -156,7 +175,7 @@ const GstInvoices = () => {
   const fetchSummary = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/gst/summary");
+      const res = await api.get("/api/gst/summary", { params: monthRange(returnMonth) });
       setSummary(res.data);
     } catch { setSummary(null); }
     setLoading(false);
@@ -175,7 +194,7 @@ const GstInvoices = () => {
   const fetchGstr3b = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/gst/gstr3b");
+      const res = await api.get("/api/gst/gstr3b", { params: monthRange(returnMonth) });
       setGstr3b(res.data);
     } catch { setGstr3b(null); }
     setLoading(false);
@@ -183,12 +202,13 @@ const GstInvoices = () => {
 
   const downloadExport = async (url, filename, format) => {
     try {
-      const res = await api.get(url, { params: { format }, responseType: "blob" });
+      // Every report download is for the chosen return month, and says so in its name.
+      const res = await api.get(url, { params: { format, ...monthRange(returnMonth) }, responseType: "blob" });
       const blob = new Blob([res.data]);
       const link = document.createElement("a");
       const objectUrl = window.URL.createObjectURL(blob);
       link.href = objectUrl;
-      link.download = filename;
+      link.download = url.includes("/creditnotes/") ? filename : filename.replace(/(\.\w+)$/, `-${returnMonth}$1`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -200,8 +220,8 @@ const GstInvoices = () => {
     setLoading(true);
     try {
       const [flatRes, segRes] = await Promise.allSettled([
-        api.get("/api/gst/gstr1"),
-        api.get("/api/gst/gstr1/segregated"),
+        api.get("/api/gst/gstr1", { params: monthRange(returnMonth) }),
+        api.get("/api/gst/gstr1/segregated", { params: monthRange(returnMonth) }),
       ]);
       if (flatRes.status === "fulfilled") setGstr1(flatRes.value.data || []);
       if (segRes.status === "fulfilled") setGstr1Seg(segRes.value.data);
@@ -212,7 +232,7 @@ const GstInvoices = () => {
   const fetchTcs = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/gst/tcs");
+      const res = await api.get("/api/gst/tcs", { params: monthRange(returnMonth) });
       setTcs(res.data);
     } catch { setTcs(null); }
     setLoading(false);
@@ -266,6 +286,15 @@ const GstInvoices = () => {
             </button>
           ))}
         </div>
+
+        {PERIOD_TABS.includes(activeTab) && (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+            <label style={{ fontSize: "0.88rem", fontWeight: 600 }} htmlFor="gst-return-month">Return month</label>
+            <input id="gst-return-month" type="month" value={returnMonth} max={new Date().toISOString().slice(0, 7)}
+              onChange={(e) => e.target.value && setReturnMonth(e.target.value)} style={{ padding: "0.3rem 0.5rem" }} />
+            <span style={{ fontSize: "0.8rem", color: "#64748b" }}>Figures and downloads on this tab cover {monthRange(returnMonth).startDate} to {monthRange(returnMonth).endDate}.</span>
+          </div>
+        )}
 
         {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "0.6rem 1rem", fontSize: "0.85rem", color: "#991b1b", marginBottom: "1rem" }}>{error}</div>}
 
@@ -463,7 +492,7 @@ const GstInvoices = () => {
         {activeTab === "gstr3b" && (
           <>
             <div className="gst-toolbar">
-              <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>GSTR-3B Table 3.1(a) outward taxable supplies (net of credit notes) and ITC summary for the current month.</p>
+              <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>GSTR-3B outward supplies for the return month: 3.1(a), 3.1(c) and 3.2, net of credit and debit notes. Cancelled invoices are left out.</p>
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr3b/export", "gstr3b.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr3b/export", "gstr3b.json", "json")}><FileJson size={14} /> JSON</button>
             </div>
@@ -575,7 +604,7 @@ const GstInvoices = () => {
           <>
             <div className="gst-toolbar">
               <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>
-                GSTR-1 for {gstr1Seg ? `${gstr1Seg.periodStart} to ${gstr1Seg.periodEnd}` : "the current month"}, segregated by filing table (4A B2B / 6A B2CL / 6B B2CS / 6C nil-rated). Export the flat ledger for filing.
+                GSTR-1 for {gstr1Seg ? `${gstr1Seg.periodStart} to ${gstr1Seg.periodEnd}` : "the return month"}, segregated by filing table (4A B2B / 6A B2CL / 6B B2CS / 6C nil-rated). Export the flat ledger for filing.
               </p>
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.json", "json")}><FileJson size={14} /> JSON</button>
