@@ -299,12 +299,25 @@ public class GstRateResolver {
         // question the rate table cannot: 0901 is 5% roasted and nil green, and only they know
         // which they sell. Their answer wins over the automatic walk below.
         Optional<GstRateMaster> chosen = selectedRateRow(product, onDate);
+        Optional<GstRateMaster> rowOpt = findRateRow(hsn, onDate, unitPrice, prePackaged);
         if (chosen.isPresent()) {
             GstRateMaster row = chosen.get();
+            // A verified line published against a more precise code than the one the seller
+            // picked from says exactly what these goods are, so it wins. Example: 3002 11 00
+            // (malaria diagnostic kits) is 5%, even if the seller picked "human blood" (nil)
+            // from the 3002 heading.
+            if (rowOpt.isPresent() && rowOpt.get().getHsnCode().length() > row.getHsnCode().length()) {
+                GstRateMaster precise = rowOpt.get();
+                if (!java.util.Objects.equals(precise.getGstRate(), row.getGstRate())) {
+                    log.warn("Product '{}' (HSN {}) has a rate choice of {}% under {}, but {} is "
+                                    + "published at {}%. Charging {}%.", product.getName(), hsn,
+                            row.getGstRate(), row.getHsnCode(), precise.getHsnCode(),
+                            precise.getGstRate(), precise.getGstRate());
+                }
+                return new Resolved(precise.getGstRate(), nzCess(precise.getCessRate()), interState, hsn, true);
+            }
             return new Resolved(row.getGstRate(), nzCess(row.getCessRate()), interState, hsn, true);
         }
-
-        Optional<GstRateMaster> rowOpt = findRateRow(hsn, onDate, unitPrice, prePackaged);
 
         if (rowOpt.isPresent()) {
             GstRateMaster row = rowOpt.get();

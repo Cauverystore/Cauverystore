@@ -119,6 +119,10 @@ public class Gstr1ExportService {
             "Nature of Supply", "GSTIN of E-Commerce Operator", "E-Commerce Operator Name",
             "Net value of supplies", "Integrated tax", "Central tax", "State/UT tax", "Cess"};
 
+    /** Table 13: documents issued during the period, one row per numbering series. */
+    public static final String[] DOCS_HEADERS = {
+            "Nature of Document", "Sr. No. From", "Sr. No. To", "Total Number", "Cancelled"};
+
     /** The utility's wording for supplies on which the operator collects TCS. */
     public static final String ECO_TCS = "Liable to collect tax u/s 52(TCS)";
 
@@ -239,7 +243,7 @@ public class Gstr1ExportService {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (GstInvoice inv : invoices) {
             if (!unregistered(inv.getBuyerGstin())) continue;
-            if (!GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) continue;
+            if (!GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTotalAmount())) continue;
             for (RateLine line : linesByRate(inv).values()) {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("Invoice Number", inv.getInvoiceNumber());
@@ -290,7 +294,7 @@ public class Gstr1ExportService {
         Map<String, Map<String, Object>> aggregated = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
             if (!unregistered(inv.getBuyerGstin())) continue;
-            if (GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) continue;
+            if (GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTotalAmount())) continue;
             for (RateLine line : linesByRate(inv).values()) {
                 Map<String, Object> row = b2csRow(aggregated, type, ecoGstin,
                         inv.getPlaceOfSupply(), line.rate, line.cess);
@@ -763,7 +767,7 @@ public class Gstr1ExportService {
         Set<String> b2clOriginals = new HashSet<>(earlierB2clInvoices == null ? Set.of() : earlierB2clInvoices);
         for (GstInvoice inv : live) {
             if (unregistered(inv.getBuyerGstin())
-                    && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) {
+                    && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTotalAmount())) {
                 b2clOriginals.add(inv.getInvoiceNumber());
             }
         }
@@ -780,7 +784,75 @@ public class Gstr1ExportService {
             out.put("hsn", hsnSummary(live, notes, null));
         }
         out.put("eco", eco(live, liveCn, liveDn, ecoGstin, ecoName));
+        // Table 13 counts every document issued, cancelled ones included, so it reads the full lists.
+        out.put("docs", docs(invoices,
+                creditNotes == null ? List.of() : creditNotes,
+                debitNotes == null ? List.of() : debitNotes));
         return out;
+    }
+
+    /**
+     * 13 - documents issued in the period: for each numbering series, the first and last number,
+     * how many numbers that range covers, and how many of them were cancelled.
+     *
+     * A number missing from inside the range (taken but never saved) is counted as cancelled,
+     * so "Total" minus "Cancelled" always equals the documents actually reported.
+     */
+    public List<Map<String, Object>> docs(List<GstInvoice> invoices, List<CreditNote> creditNotes,
+                                          List<DebitNote> debitNotes) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, Boolean> inv = new java.util.TreeMap<>();
+        for (GstInvoice i : invoices) if (i.getInvoiceNumber() != null) inv.put(i.getInvoiceNumber(), cancelled(i.getStatus()));
+        Map<String, Boolean> cn = new java.util.TreeMap<>();
+        for (CreditNote c : creditNotes) if (c.getCreditNoteNumber() != null) cn.put(c.getCreditNoteNumber(), cancelled(c.getStatus()));
+        Map<String, Boolean> dn = new java.util.TreeMap<>();
+        for (DebitNote d : debitNotes) if (d.getDebitNoteNumber() != null) dn.put(d.getDebitNoteNumber(), cancelled(d.getStatus()));
+        docRows(rows, "Invoices for outward supply", inv);
+        docRows(rows, "Credit Note", cn);
+        docRows(rows, "Debit Note", dn);
+        return rows;
+    }
+
+    private static void docRows(List<Map<String, Object>> rows, String nature, Map<String, Boolean> numbers) {
+        // Series = everything before the last "/"; the part after it is the running number.
+        Map<String, List<Map.Entry<String, Boolean>>> bySeries = new LinkedHashMap<>();
+        for (Map.Entry<String, Boolean> e : numbers.entrySet()) {
+            String n = e.getKey();
+            int slash = n.lastIndexOf('/');
+            String series = slash >= 0 && isDigits(n.substring(slash + 1)) ? n.substring(0, slash + 1) : n;
+            bySeries.computeIfAbsent(series, k -> new ArrayList<>()).add(e);
+        }
+        for (Map.Entry<String, List<Map.Entry<String, Boolean>>> s : bySeries.entrySet()) {
+            List<Map.Entry<String, Boolean>> docs = s.getValue();
+            docs.sort(java.util.Comparator.comparingLong(e -> runningNumber(e.getKey())));
+            String first = docs.get(0).getKey();
+            String last = docs.get(docs.size() - 1).getKey();
+            long cancelledCount = docs.stream().filter(Map.Entry::getValue).count();
+            long total = docs.size();
+            long a = runningNumber(first), b = runningNumber(last);
+            if (a >= 0 && b >= a) {
+                long span = b - a + 1;
+                cancelledCount += span - total;   // numbers skipped inside the range
+                total = span;
+            }
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("Nature of Document", nature);
+            row.put("Sr. No. From", first);
+            row.put("Sr. No. To", last);
+            row.put("Total Number", total);
+            row.put("Cancelled", cancelledCount);
+            rows.add(row);
+        }
+    }
+
+    private static long runningNumber(String number) {
+        int slash = number.lastIndexOf('/');
+        String tail = slash >= 0 ? number.substring(slash + 1) : "";
+        return isDigits(tail) ? Long.parseLong(tail) : -1;
+    }
+
+    private static boolean isDigits(String s) {
+        return !s.isEmpty() && s.length() <= 18 && s.chars().allMatch(Character::isDigit);
     }
 
     public String[] headersFor(String section) {
@@ -794,8 +866,9 @@ public class Gstr1ExportService {
             case "hsn_b2b":
             case "hsn_b2c": return HSN_HEADERS;
             case "eco": return ECO_HEADERS;
+            case "docs": return DOCS_HEADERS;
             default: throw new IllegalArgumentException("Unknown GSTR-1 section '" + section
-                    + "'. Use b2b, b2cl, b2cs, cdn, cdnur, hsn_b2b, hsn_b2c or eco.");
+                    + "'. Use b2b, b2cl, b2cs, cdn, cdnur, hsn_b2b, hsn_b2c, eco or docs.");
         }
     }
 

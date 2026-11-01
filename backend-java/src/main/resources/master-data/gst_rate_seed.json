@@ -5435,6 +5435,19 @@
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
   },
   {
+    "hsnCode": "30021100",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Malaria diagnostic kits (modified immunological products of heading 3002)",
+    "source": "Notif. 09/2025-CT(Rate) Schedule I S. No. 231",
+    "notes": "Tariff line 3002 11 00. Only human blood and its components (10/2025 S. No. 114) is nil under 3002; diagnostic kits are not blood components."
+  },
+  {
     "hsnCode": "3003",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",

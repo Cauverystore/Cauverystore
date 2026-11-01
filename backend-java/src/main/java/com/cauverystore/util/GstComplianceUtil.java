@@ -234,13 +234,29 @@ public class GstComplianceUtil {
     }
 
     /**
-     * Classifies an inter-state B2C invoice as B2C LARGE (B2CL) when its taxable value
-     * exceeds ₹1,00,000, or B2C SMALL (B2CS) otherwise. Only meaningful for B2C, inter-state.
+     * Classifies an inter-state B2C invoice as B2C LARGE (B2CL) when its invoice value (tax
+     * included) exceeds ₹1,00,000, or B2C SMALL (B2CS) otherwise. GSTR-1 Table 5 uses the
+     * invoice value, not the taxable value. Only meaningful for B2C, inter-state.
      */
-    public static boolean isB2cLarge(Boolean isInterState, Double taxableAmount) {
+    public static boolean isB2cLarge(Boolean isInterState, Double invoiceValue) {
         return Boolean.TRUE.equals(isInterState)
-                && taxableAmount != null
-                && taxableAmount > B2C_LARGE_THRESHOLD;
+                && invoiceValue != null
+                && invoiceValue > B2C_LARGE_THRESHOLD;
+    }
+
+    /**
+     * Last day a credit note may reduce GST on an invoice: 30 November after the end of the
+     * financial year of the supply (CGST Act s.34(2)). The law also ends it earlier if the
+     * annual return for that year is filed first; the system does not know that date, so the
+     * seller must not rely on this date after filing GSTR-9.
+     */
+    public static java.time.LocalDate creditNoteDeadline(java.time.LocalDate invoiceDate) {
+        int fyEndYear = invoiceDate.getMonthValue() >= 4 ? invoiceDate.getYear() + 1 : invoiceDate.getYear();
+        return java.time.LocalDate.of(fyEndYear, 11, 30);
+    }
+
+    public static boolean creditNoteTimeBarred(java.time.LocalDate invoiceDate, java.time.LocalDate noteDate) {
+        return invoiceDate != null && noteDate != null && noteDate.isAfter(creditNoteDeadline(invoiceDate));
     }
 
     public static double getB2cLargeThreshold() {

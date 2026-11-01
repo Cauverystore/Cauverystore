@@ -641,9 +641,24 @@ public class ProductService {
         hsnClassificationService.validate(existing);
         hsnClassificationService.validateRateSelection(existing);
         hsnClassificationService.assertSellable(existing);
+        holdLowerRateChoiceForReview(existing, gstRateSelectionId);
         Product saved = productRepo.save(existing);
         hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
         return saved;
+    }
+
+    /**
+     * A seller who picks the lower of several published rates for a heading sends the product
+     * back for admin approval, so a wrong pick (nil "human blood" for 5% diagnostic kits) is
+     * caught before anything is invoiced. Staff picks are trusted.
+     */
+    private void holdLowerRateChoiceForReview(Product product, Long selectionId) {
+        if (selectionId == null || !authorizationService.hasRole("SELLER")) return;
+        if (hsnClassificationService.selectionLowersRate(product)) {
+            product.setApprovalStatus("pending");
+            log.info("Product {} held for review: the seller chose a lower GST rate line ({}) "
+                    + "under HSN {}.", product.getId(), selectionId, product.getHsnCode());
+        }
     }
 
     public Product updateProduct(Long productId, Product product) {
@@ -693,7 +708,9 @@ public class ProductService {
               existing.setPrePackagedAndLabelled(product.getPrePackagedAndLabelled());
           }
           if (product.getGstRateSelectionId() != null) {
+              boolean changed = !product.getGstRateSelectionId().equals(existing.getGstRateSelectionId());
               existing.setGstRateSelectionId(product.getGstRateSelectionId());
+              if (changed) holdLowerRateChoiceForReview(existing, product.getGstRateSelectionId());
           }
           // Print details: what appears on the bill, the seller's declared cess rate (which is
           // only ever confirmed against the master, never charged on its say-so), and the unit

@@ -128,6 +128,15 @@ class Gstr1ExportServiceTest {
     }
 
     @Test
+    void shouldUseInvoiceValueNotTaxableValueForB2cl() {
+        // Taxable ₹96,000, invoice value ₹1,00,800 (the helper adds 5%): over ₹1 lakh, so B2CL.
+        GstInvoice inv = invoice("INV-3", null, true, 96000.0,
+                item("1006", 1, 96000.0, 0.0, 0.0, 5.0, 0.0, 0.0, 4800.0));
+        assertEquals(1, service.b2cl(List.of(inv)).size());
+        assertEquals(0, service.b2cs(List.of(inv)).size());
+    }
+
+    @Test
     void shouldAggregateB2csRatherThanListEveryOrder() {
         // Hundreds of small orders must collapse to a few rows keyed on place of supply and
         // rate. Emitting one row per invoice is the usual reason a B2CS import is rejected.
@@ -335,7 +344,7 @@ class Gstr1ExportServiceTest {
         GstInvoice inv = invoice("INV-1", null, false, 100.0,
                 item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
 
-        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "cdnur", "hsn_b2b", "hsn_b2c", "eco"),
+        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "cdnur", "hsn_b2b", "hsn_b2c", "eco", "docs"),
                 List.copyOf(service.allSections(List.of(inv)).keySet()));
     }
 
@@ -371,5 +380,20 @@ class Gstr1ExportServiceTest {
         assertEquals(2.0, b2c.get(0).get("Total Quantity"));
         assertArrayEquals(Gstr1ExportService.HSN_HEADERS, service.headersFor("hsn_b2b"));
         assertArrayEquals(Gstr1ExportService.HSN_HEADERS, service.headersFor("hsn_b2c"));
+    }
+
+    @Test
+    void docsShouldListEachSeriesWithCancelledAndSkippedNumbers() {
+        GstInvoice a = invoice("CS12611/00001", null, false, 100.0, item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
+        GstInvoice b = invoice("CS12611/00002", null, false, 100.0, item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
+        b.setStatus("CANCELLED");
+        GstInvoice c = invoice("CS12611/00004", null, false, 100.0, item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
+        List<Map<String, Object>> rows = service.docs(List.of(c, a, b), List.of(), List.of());
+        assertEquals(1, rows.size());
+        assertEquals("Invoices for outward supply", rows.get(0).get("Nature of Document"));
+        assertEquals("CS12611/00001", rows.get(0).get("Sr. No. From"));
+        assertEquals("CS12611/00004", rows.get(0).get("Sr. No. To"));
+        assertEquals(4L, rows.get(0).get("Total Number"));
+        assertEquals(2L, rows.get(0).get("Cancelled"), "one cancelled, one number skipped");
     }
 }
