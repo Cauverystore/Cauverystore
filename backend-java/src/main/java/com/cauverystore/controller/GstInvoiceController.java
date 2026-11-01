@@ -315,7 +315,7 @@ public class GstInvoiceController {
         }
         if (rows == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Unknown GSTR-1 section '"
-                    + section + "'. Use b2b, b2cl, b2cs, cdn, hsn_b2b or hsn_b2c."));
+                    + section + "'. Use b2b, b2cl, b2cs, cdn, hsn_b2b, hsn_b2c or eco."));
         }
         if ("json".equalsIgnoreCase(format)) return ResponseEntity.ok(rows);
 

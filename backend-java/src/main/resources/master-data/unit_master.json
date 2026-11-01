@@ -92,6 +92,10 @@
     "description": "LITRES"
   },
   {
+    "code": "MLS",
+    "description": "MILLI LITRES"
+  },
+  {
     "code": "MLT",
     "description": "MILILITRE"
   },

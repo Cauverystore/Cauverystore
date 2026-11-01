@@ -433,7 +433,7 @@ public class LiveGstnClient implements GstnClient {
 
     /** The IRP's unit codes (UQC). Anything else is sent as OTH, as the portal asks. */
     private static final java.util.Set<String> UQC = java.util.Set.of(("BAG BAL BDL BKL BOU BOX BTL"
-            + " BUN CAN CBM CCM CMS CTN DOZ DRM GGK GMS GRS GYD KGS KLR KME LTR MLT MTR MTS NOS OTH"
+            + " BUN CAN CBM CCM CMS CTN DOZ DRM GGK GMS GRS GYD KGS KLR KME LTR MLS MLT MTR MTS NOS OTH"
             + " PAC PCS PRS QTL ROL SET SQF SQM SQY TBS TGM THD TON TUB UGS UNT YDS").split(" "));
 
     /** Common ways sellers write a unit, mapped to its UQC. */
@@ -450,7 +450,7 @@ public class LiveGstnClient implements GstnClient {
             Map.entry("DOZEN", "DOZ"), Map.entry("PAIR", "PRS"), Map.entry("PAIRS", "PRS"),
             Map.entry("BOTTLE", "BTL"), Map.entry("BOTTLES", "BTL"), Map.entry("BOXES", "BOX"));
 
-    static String uqc(String unit) {
+    public static String uqc(String unit) {
         if (unit == null || unit.isBlank()) return "NOS";
         String u = unit.trim().toUpperCase().replace(".", "");
         if (UQC.contains(u)) return u;

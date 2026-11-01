@@ -944,7 +944,29 @@ public class GstInvoiceService {
                 .findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to);
         List<DebitNote> debitNotes = debitNoteRepo
                 .findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to);
-        return gstr1ExportService.allSections(invoices, creditNotes, debitNotes, from);
+        GstConfiguration operator = marketplaceFor(sellerGstin);
+        return gstr1ExportService.allSections(invoices, creditNotes, debitNotes, from,
+                operator == null ? null : operator.getTcsGstin(),
+                operator == null ? null : operator.getLegalName());
+    }
+
+    /**
+     * The marketplace configuration whose TCS registration covers this seller, or null.
+     *
+     * Sellers report the operator's TCS GSTIN against sales made through it (B2CS type E and
+     * Table 14), and the portal only accepts one from the seller's own state. When the
+     * marketplace has no TCS registration in that state, or the seller is the marketplace
+     * itself, there is none to report and the sales go out as ordinary (OE) supplies.
+     */
+    private GstConfiguration marketplaceFor(String sellerGstin) {
+        if (sellerGstin == null || sellerGstin.length() < 2) return null;
+        String state = sellerGstin.substring(0, 2);
+        for (GstConfiguration c : configRepo.findByIsActiveTrue()) {
+            java.util.Optional<String> tcs = c.resolveTcsGstin();
+            if (tcs.isEmpty() || sellerGstin.equalsIgnoreCase(c.getGstin())) continue;
+            if (tcs.get().startsWith(state)) return c;
+        }
+        return null;
     }
 
     /**

@@ -94,7 +94,7 @@ class Gstr1ExportServiceTest {
         assertEquals("GSTIN/UIN of Recipient", Gstr1ExportService.B2B_HEADERS[0]);
         assertEquals("Place Of Supply", Gstr1ExportService.B2B_HEADERS[5]);
         assertEquals("HSN", Gstr1ExportService.HSN_HEADERS[0]);
-        assertEquals("Integrated Tax Amount", Gstr1ExportService.HSN_HEADERS[7]);
+        assertEquals("Integrated Tax Amount", Gstr1ExportService.HSN_HEADERS[6]);
 
         GstInvoice inv = invoice("INV-1", "33AABCU9603R1ZM", false, 100.0,
                 item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
@@ -141,7 +141,81 @@ class Gstr1ExportServiceTest {
 
         assertEquals(1, rows.size(), "50 orders at one rate and place of supply is one row");
         assertEquals(5000.0, rows.get(0).get("Taxable Value"));
-        assertEquals("INTRA", rows.get(0).get("Type"));
+        assertEquals("OE", rows.get(0).get("Type"), "the utility takes E or OE, nothing else");
+        assertEquals("", rows.get(0).get("E-Commerce GSTIN"));
+    }
+
+    @Test
+    void b2cs_throughTheMarketplace_shouldBeTypeEWithItsGstin() {
+        GstInvoice inv = invoice("INV-1", null, false, 100.0,
+                item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
+
+        Map<String, Object> row = service.b2cs(List.of(inv), "33AABCC1234D1ZT").get(0);
+
+        assertEquals("E", row.get("Type"));
+        assertEquals("33AABCC1234D1ZT", row.get("E-Commerce GSTIN"));
+        assertEquals("33AABCC1234D1ZT", service.b2b(List.of(
+                invoice("INV-2", "33AAACR5055K1Z5", false, 100.0,
+                        item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0))),
+                "33AABCC1234D1ZT").get(0).get("E-Commerce GSTIN"));
+    }
+
+    @Test
+    void headers_shouldMatchTheOfflineToolTemplatesColumnForColumn() {
+        // Copied from the GST Returns Offline Tool V3.2.4 templates. The utility reads by
+        // position, so order matters as much as spelling.
+        assertEquals("Type,Place Of Supply,Rate,Applicable % of Tax Rate,Taxable Value,"
+                + "Cess Amount,E-Commerce GSTIN", String.join(",", Gstr1ExportService.B2CS_HEADERS));
+        assertEquals("GSTIN/UIN of Recipient,Receiver Name,Note Number,Note Date,Note Type,"
+                + "Place Of Supply,Reverse Charge,Note Supply Type,Note Value,"
+                + "Applicable % of Tax Rate,Rate,Taxable Value,Cess Amount",
+                String.join(",", Gstr1ExportService.CDN_HEADERS));
+        assertEquals("HSN,Description,UQC,Total Quantity,Total Value,Taxable Value,"
+                + "Integrated Tax Amount,Central Tax Amount,State/UT Tax Amount,Cess Amount,Rate",
+                String.join(",", Gstr1ExportService.HSN_HEADERS));
+        assertEquals("Nature of Supply,GSTIN of E-Commerce Operator,E-Commerce Operator Name,"
+                + "Net value of supplies,Integrated tax,Central tax,State/UT tax,Cess",
+                String.join(",", Gstr1ExportService.ECO_HEADERS));
+        assertEquals("GSTIN/UIN of Recipient,Receiver Name,Invoice Number,Invoice date,"
+                + "Invoice Value,Place Of Supply,Reverse Charge,Applicable % of Tax Rate,"
+                + "Invoice Type,E-Commerce GSTIN,Rate,Taxable Value,Cess Amount",
+                String.join(",", Gstr1ExportService.B2B_HEADERS));
+        assertEquals("Invoice Number,Invoice date,Invoice Value,Place Of Supply,"
+                + "Applicable % of Tax Rate,Rate,Taxable Value,Cess Amount,E-Commerce GSTIN",
+                String.join(",", Gstr1ExportService.B2CL_HEADERS));
+    }
+
+    @Test
+    void hsn_shouldWriteTheUnitAsCodeAndName() {
+        assertEquals("NOS-NUMBERS", Gstr1ExportService.uqcLabel(null));
+        assertEquals("NOS-NUMBERS", Gstr1ExportService.uqcLabel("NOS"));
+        assertEquals("KGS-KILOGRAMS", Gstr1ExportService.uqcLabel("kg"));
+        assertEquals("PCS-PIECES", Gstr1ExportService.uqcLabel("pcs"));
+        assertEquals("OTH-OTHERS", Gstr1ExportService.uqcLabel("hours"));
+    }
+
+    @Test
+    void eco_shouldReportNetSuppliesThroughTheMarketplace() {
+        GstInvoice a = invoice("INV-1", null, false, 1000.0,
+                item("1006", 1, 1000.0, 2.5, 2.5, 0.0, 25.0, 25.0, 0.0));
+        a.setCgstAmount(25.0);
+        a.setSgstAmount(25.0);
+        CreditNote cn = new CreditNote();
+        cn.setTaxableAmount(200.0);
+        cn.setCgstAmount(5.0);
+        cn.setSgstAmount(5.0);
+
+        List<Map<String, Object>> rows = service.eco(List.of(a), List.of(cn), List.of(),
+                "33AABCC1234D1ZT", "Cauvery Store");
+
+        assertEquals(1, rows.size());
+        Map<String, Object> row = rows.get(0);
+        assertEquals("Liable to collect tax u/s 52(TCS)", row.get("Nature of Supply"));
+        assertEquals("33AABCC1234D1ZT", row.get("GSTIN of E-Commerce Operator"));
+        assertEquals(800.0, row.get("Net value of supplies"));
+        assertEquals(20.0, row.get("Central tax"));
+        assertEquals(List.of(), service.eco(List.of(a), List.of(), List.of(), null, null),
+                "no operator, no Table 14");
     }
 
     @Test
@@ -216,7 +290,8 @@ class Gstr1ExportServiceTest {
         Map<String, Object> row = rows.get(0);
         assertEquals("33AABCU9603R1ZM", row.get("GSTIN/UIN of Recipient"));
         assertEquals("CN-1", row.get("Note Number"));
-        assertEquals("07-Aug-2026", row.get("Note date"));
+        assertEquals("07-Aug-2026", row.get("Note Date"));
+        assertEquals("Regular B2B", row.get("Note Supply Type"));
         assertEquals("C", row.get("Note Type"));
         assertEquals(100.0, row.get("Taxable Value"));
         assertEquals(5.0, row.get("Rate"));
@@ -260,7 +335,7 @@ class Gstr1ExportServiceTest {
         GstInvoice inv = invoice("INV-1", null, false, 100.0,
                 item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
 
-        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "hsn_b2b", "hsn_b2c"),
+        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "hsn_b2b", "hsn_b2c", "eco"),
                 List.copyOf(service.allSections(List.of(inv)).keySet()));
     }
 
