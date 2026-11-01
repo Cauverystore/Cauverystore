@@ -204,9 +204,9 @@ Product GST rates are **not** hardcoded: they all go through `GstRateResolver` a
 
 No deletion. Close gaps in this order, one reviewable commit each:
 
-1. **Flyway baseline** — generate `V1__baseline.sql` from the live schema (`pg_dump --schema-only`, done by the owner), set `baseline-on-migrate`, then switch `ddl-auto` to `validate`. Rollback: flip `spring.flyway.enabled` back.
-2. **Append-only audit** — new `gst_audit_events` table with a SHA-256 hash chain, written for every invoice/CN/DN/IRN/rate change; DB trigger refusing UPDATE/DELETE.
-3. **Dated tax config** — move TCS rate and fee-GST rate into the rate master with effective dates; remove the hardcoded fallbacks and the dead `determineReverseCharge`.
+1. **Flyway** — DONE (step 1 of 2): `FlywayAfterHibernateConfig` runs Flyway after Hibernate on PostgreSQL, baselined at V6, so V7+ run automatically. Rollback: `app.flyway.enabled=false`. Still to do: a `pg_dump --schema-only` baseline from live (owner) before switching `ddl-auto` to `validate`.
+2. **Append-only audit** — DONE: `gst_audit_events` (V7) with a SHA-256 hash chain and a trigger refusing UPDATE/DELETE/TRUNCATE; written after commit for invoice issued, status change, IRN generated/failed, credit/debit note issued, rate change accepted, registration saved. Admin API: `GET /api/admin/gst/audit-events`, `/history`, `/verify`.
+3. **Dated tax config** — DONE for TCS: `master-data/statutory_rates.json` + `StatutoryRates`, rate taken from the invoice date (1% to 9 Jul 2024, 0.5% from 10 Jul 2024); the configuration row no longer decides it. Left as is: `CommissionPolicy.FEE_GST` (an estimate of GST on Razorpay's fee, not a tax we charge) and the 18% commission fallback (live config may have no commission rate). Dead `determineReverseCharge` removed.
 4. **E-way bill** — EWB generation through the same GstnClient pattern (simulated first), triggered for consignments above ₹50,000.
 5. **E-invoice hardening** — send EcmGstin, test end-to-end on the NIC sandbox.
 6. **Settlement ledger** — one row per order line: sale, commission, GST on commission, TCS, gateway fee, payout; seller statement view.

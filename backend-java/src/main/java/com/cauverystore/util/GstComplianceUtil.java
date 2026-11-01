@@ -293,17 +293,4 @@ public class GstComplianceUtil {
     public static boolean requiresEWayBill(Double invoiceValue) {
         return invoiceValue != null && invoiceValue > E_WAYBILL_THRESHOLD;
     }
-
-    public static String determineReverseCharge(String hsnCode, Double taxableValue) {
-        if (hsnCode != null) {
-            String hsn = hsnCode.trim();
-            if (hsn.startsWith("9961") || hsn.startsWith("9962")) {
-                return "Applicable - Service under RCM";
-            }
-            if ("5001".equals(hsn) || "5002".equals(hsn)) {
-                return "Applicable - Goods under RCM";
-            }
-        }
-        return "Not Applicable";
-    }
 }

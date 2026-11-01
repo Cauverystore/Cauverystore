@@ -364,7 +364,7 @@ const CustomerInvoice = () => {
                   </div>
                 )}
                 <div className="giv-tax-card">
-                  <div className="giv-tax-label">TCS @ {(invoice.tcsRate || 1)}%</div>
+                  <div className="giv-tax-label">TCS @ {(invoice.tcsRate ?? "-")}%</div>
                   <div className="giv-tax-value" style={{ color: "#dc2626" }}>&#8377;{(invoice.tcsAmount || 0).toFixed(2)}</div>
                 </div>
               </div>
@@ -380,7 +380,7 @@ const CustomerInvoice = () => {
                   {invoice.isInterState && <tr><td>IGST</td><td style={{ color: "#d97706" }}>&#8377;{(invoice.igstAmount || 0).toFixed(2)}</td></tr>}
                   <tr><td>Total Tax</td><td>&#8377;{(invoice.totalTax || 0).toFixed(2)}</td></tr>
                   {(invoice.totalCess > 0) && <tr><td>Compensation Cess</td><td style={{ color: "#b45309" }}>&#8377;{(invoice.totalCess || 0).toFixed(2)}</td></tr>}
-                  <tr><td>TCS @ {(invoice.tcsRate || 1)}%</td><td style={{ color: "#dc2626" }}>&#8377;{(invoice.tcsAmount || 0).toFixed(2)}</td></tr>
+                  <tr><td>TCS @ {(invoice.tcsRate ?? "-")}%</td><td style={{ color: "#dc2626" }}>&#8377;{(invoice.tcsAmount || 0).toFixed(2)}</td></tr>
                   <tr className="giv-sum-total"><td>Total Amount</td><td>&#8377;{(invoice.totalAmount || 0).toFixed(2)}</td></tr>
                 </tbody>
               </table>

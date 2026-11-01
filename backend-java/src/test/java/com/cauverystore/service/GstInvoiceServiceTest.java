@@ -224,7 +224,10 @@ class GstInvoiceServiceTest {
         assertEquals(0.0, inv.getIgstAmount(), 0.01);
         assertEquals(127.2, inv.getTotalTax(), 0.01);
         // TCS is recorded because it has to be paid over and declared in GSTR-8...
-        assertEquals(10.4, inv.getTcsAmount(), 0.01);
+        // 0.5% of 1040, even though this configuration still says 1%: the rate is the law's on
+        // the invoice date, not whatever was saved in the configuration row.
+        assertEquals(5.2, inv.getTcsAmount(), 0.01);
+        assertEquals(0.5, inv.getTcsRate(), 0.0001);
         // ...but it is not the customer's to pay. This assertion used to expect 1177.6, which
         // was the taxable value plus GST plus TCS - so the test was pinning an overcharge of 1%
         // of the goods value on every order. The customer owes goods plus GST and nothing else.

@@ -1,0 +1,21 @@
+{
+ "note": "Rates fixed by law rather than by HSN. Add a new row with its effective date when a notification changes one; never edit or remove a past row - invoices already issued were taxed by it.",
+ "lastUpdated": "2026-11-01",
+ "rates": {
+  "TCS_S52": [
+   {
+    "from": "2018-10-01",
+    "to": "2024-07-09",
+    "rate": 1.0,
+    "split": "0.5% CGST + 0.5% SGST/UTGST intra-state, 1% IGST inter-state",
+    "source": "Section 52 CGST Act; Notification 52/2018-Central Tax, 20-09-2018"
+   },
+   {
+    "from": "2024-07-10",
+    "rate": 0.5,
+    "split": "0.25% CGST + 0.25% SGST/UTGST intra-state, 0.5% IGST inter-state",
+    "source": "Notification 15/2024-Central Tax, 10-07-2024"
+   }
+  ]
+ }
+}
