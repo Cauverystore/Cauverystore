@@ -1,0 +1,19 @@
+name: TEMP CBIC reachability test
+on:
+  push:
+    branches: [fix/gst-watch-cbic-reach]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe CBIC and GST Council from a GitHub runner
+        run: |
+          curl -s https://ipinfo.io/json | grep -E '"(country|region|org)"' || true
+          for u in https://taxinformation.cbic.gov.in/robots.txt \
+                   "https://taxinformation.cbic.gov.in/api/cbic-notification-msts/fetchNotificationByCategory/1000001/Central%20Tax%20%28Rate%29" \
+                   https://gstcouncil.gov.in/robots.txt https://www.gst.gov.in/; do
+            echo "== $u"
+            curl -sS -m 40 -o /dev/null -w "http=%{http_code} bytes=%{size_download} time=%{time_total}s\n" "$u" || echo "curl failed (exit $?)"
+          done
