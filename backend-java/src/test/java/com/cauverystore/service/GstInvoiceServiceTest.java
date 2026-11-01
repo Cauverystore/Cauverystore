@@ -137,6 +137,15 @@ class GstInvoiceServiceTest {
     }
 
     @Test
+    void ratePct_printsRatesWithoutTrailingZeros() {
+        // The tax breakup on the bill lists one row per rate, labelled like this.
+        assertEquals("5%", GstInvoiceService.ratePct(5.0));
+        assertEquals("18%", GstInvoiceService.ratePct(18.0));
+        assertEquals("2.5%", GstInvoiceService.ratePct(2.5));
+        assertEquals("0%", GstInvoiceService.ratePct(0.0));
+    }
+
+    @Test
     void generate_taxInclusiveOrder_shouldFootToWhatWasPaid_withDeliveryAtTheGoodsRate() {
         // A GST-inclusive order: 2 x 500 with a 100 coupon and 40 delivery - 940 paid in all.
         stubCommonRepos();
