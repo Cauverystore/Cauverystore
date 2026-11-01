@@ -576,7 +576,9 @@ public class GstInvoiceService {
         inv.setSupplyType(deliveryCharge > 0 && !inclusive ? "GOODS AND SERVICES" : "GOODS");
         inv.setInvoiceCopyType("ORIGINAL");
 
-        boolean einvoicingApplicable = GstComplianceUtil.requiresEInvoice(annualTurnover);
+        // Only supplies to a registered buyer are e-invoiced. The IRP refuses a consumer (B2C)
+        // invoice outright, so sending one would leave it stuck as PENDING_IRN for good.
+        boolean einvoicingApplicable = GstComplianceUtil.requiresEInvoice(annualTurnover) && isB2b;
         inv.setEinvoicingRequired(einvoicingApplicable);
 
         // Generate IRN and QR code if e-invoicing applies (turnover >= 5Cr)

@@ -297,7 +297,9 @@ class GstInvoiceServiceTest {
                 "ackNo", "ACK-20260806-000001",
                 "ackDate", "2026-08-06"));
 
-        Map<String, Object> result = gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN);
+        // A registered buyer: only B2B invoices are e-invoiced.
+        Map<String, Object> result = gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, BUYER_GSTIN_MH, "27");
 
         GstInvoice inv = (GstInvoice) result.get("invoice");
 
@@ -309,6 +311,20 @@ class GstInvoiceServiceTest {
         assertNotNull(inv.getAckNo());
         assertTrue(GstComplianceUtil.requiresEInvoice(config.getAnnualTurnover()));
         verify(gstnClient).generateIrn(inv);
+    }
+
+    @Test
+    void generate_consumerInvoiceAboveFiveCrore_shouldNotBeSentToTheIrp() {
+        // The IRP refuses B2C invoices; sending one would leave it PENDING_IRN for good.
+        stubCommonRepos();
+        config.setAnnualTurnover(8_00_00_000.0);
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        assertFalse(Boolean.TRUE.equals(inv.getEinvoicingRequired()));
+        assertNotEquals("PENDING_IRN", inv.getStatus());
+        verify(gstnClient, never()).generateIrn(any());
     }
 
     @Test
