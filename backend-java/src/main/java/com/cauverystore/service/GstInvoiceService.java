@@ -1247,7 +1247,7 @@ public class GstInvoiceService {
         Set<String> out = new HashSet<>();
         if (ids.isEmpty()) return out;
         for (GstInvoice inv : invoiceRepo.findAllById(ids)) {
-            boolean consumer = inv.getBuyerGstin() == null || inv.getBuyerGstin().isBlank();
+            boolean consumer = Gstr1ExportService.unregistered(inv.getBuyerGstin());
             if (consumer && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) {
                 out.add(inv.getInvoiceNumber());
             }

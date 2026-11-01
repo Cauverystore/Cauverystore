@@ -171,6 +171,26 @@ class GstReportNettingTest {
         assertTrue(out.get("b2cs").isEmpty());
     }
 
+    /**
+     * Consumer invoices are saved with "URP" in the GSTIN field. They were being exported to
+     * 4A B2B with "URP" as the recipient GSTIN, and left out of B2CS and HSN B2C - so October
+     * (two sales, one return) came out as minus one sale.
+     */
+    @Test
+    void urpInvoicesAreConsumerSalesNotB2b() {
+        GstInvoice a = invoice("CS2610/00001", "URP", TN, false, item("9017", 1, 34.74, 18, false));
+        GstInvoice b = invoice("CS2610/00002", "URP", TN, false, item("9017", 1, 34.74, 18, false));
+        CreditNote ret = credit("CN-1", "CS2610/00001", "URP", TN, false, "9017", 1, 34.74, 18);
+
+        var out = gstr1.allSections(List.of(a, b), List.of(ret), List.of(), MAY, null, null, Set.of());
+        assertTrue(out.get("b2b").isEmpty(), "URP is not a GSTIN");
+        assertTrue(out.get("hsn_b2b").isEmpty());
+        assertEquals(34.74, (double) row(out.get("b2cs"), "Place Of Supply", TN).get("Taxable Value"), 0.001);
+        Map<String, Object> hsn = row(out.get("hsn_b2c"), "HSN", "9017");
+        assertEquals(1.0, (double) hsn.get("Total Quantity"), 0.001);
+        assertEquals(34.74, (double) hsn.get("Taxable Value"), 0.001);
+    }
+
     @Test
     void cancelledInvoicesAreLeftOutOfGstr1() {
         GstInvoice sale = invoice("INV-1", "33AAAAA0000A1Z5", TN, false, item("1006", 1, 500, 5, false));

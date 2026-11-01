@@ -208,7 +208,7 @@ public class Gstr1ExportService {
     public List<Map<String, Object>> b2b(List<GstInvoice> invoices, String ecoGstin) {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (GstInvoice inv : invoices) {
-            if (isBlank(inv.getBuyerGstin())) continue;
+            if (unregistered(inv.getBuyerGstin())) continue;
             for (RateLine line : linesByRate(inv).values()) {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("GSTIN/UIN of Recipient", inv.getBuyerGstin());
@@ -238,7 +238,7 @@ public class Gstr1ExportService {
     public List<Map<String, Object>> b2cl(List<GstInvoice> invoices, String ecoGstin) {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (GstInvoice inv : invoices) {
-            if (!isBlank(inv.getBuyerGstin())) continue;
+            if (!unregistered(inv.getBuyerGstin())) continue;
             if (!GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) continue;
             for (RateLine line : linesByRate(inv).values()) {
                 Map<String, Object> row = new LinkedHashMap<>();
@@ -289,7 +289,7 @@ public class Gstr1ExportService {
         String type = ecoGstin == null ? "OE" : "E";
         Map<String, Map<String, Object>> aggregated = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
-            if (!isBlank(inv.getBuyerGstin())) continue;
+            if (!unregistered(inv.getBuyerGstin())) continue;
             if (GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) continue;
             for (RateLine line : linesByRate(inv).values()) {
                 Map<String, Object> row = b2csRow(aggregated, type, ecoGstin,
@@ -383,7 +383,7 @@ public class Gstr1ExportService {
         List<NoteLine> lines = new ArrayList<>();
 
         boolean registered() {
-            return !isBlank(buyerGstin) && !"URP".equalsIgnoreCase(buyerGstin.trim());
+            return !unregistered(buyerGstin);
         }
     }
 
@@ -549,7 +549,7 @@ public class Gstr1ExportService {
     private Map<String, Map<String, Object>> invoiceHsnRows(List<GstInvoice> invoices, Boolean registered) {
         Map<String, Map<String, Object>> byHsnAndRate = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
-            if (registered != null && registered == isBlank(inv.getBuyerGstin())) continue;
+            if (registered != null && registered == unregistered(inv.getBuyerGstin())) continue;
             for (GstInvoiceItem item : inv.getItems()) {
                 double rate = nz(item.getIgstRate()) > 0
                         ? nz(item.getIgstRate())
@@ -762,7 +762,7 @@ public class Gstr1ExportService {
 
         Set<String> b2clOriginals = new HashSet<>(earlierB2clInvoices == null ? Set.of() : earlierB2clInvoices);
         for (GstInvoice inv : live) {
-            if (isBlank(inv.getBuyerGstin())
+            if (unregistered(inv.getBuyerGstin())
                     && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) {
                 b2clOriginals.add(inv.getInvoiceNumber());
             }
@@ -808,6 +808,14 @@ public class Gstr1ExportService {
     }
 
     private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
+
+    /**
+     * True for a buyer without a GSTIN. Consumer invoices are saved with "URP" (unregistered
+     * person) in the GSTIN field, not left empty, so both mean the same thing here.
+     */
+    static boolean unregistered(String gstin) {
+        return isBlank(gstin) || "URP".equalsIgnoreCase(gstin.trim());
+    }
     private static double nz(Double d) { return d == null ? 0.0 : d; }
     private static double round(double v) { return Math.round(v * 100.0) / 100.0; }
 }
