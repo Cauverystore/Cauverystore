@@ -356,6 +356,51 @@ public class GstInvoiceController {
                 .body(xml);
     }
 
+    /** Invoices whose goods need an e-way bill that has not been recorded yet. */
+    @GetMapping("/ewaybill/pending")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> pendingEwayBills() {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(gstService.pendingEwayBills(userId, getCurrentUserRole()));
+    }
+
+    /** Bulk-generation JSON for the e-way bill portal, e.g. ?ids=12,13. */
+    @GetMapping("/ewaybill/bulk-json")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> ewayBillBulkJson(@RequestParam java.util.List<Long> ids) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        try {
+            String json = gstService.ewayBillBulkJson(ids, userId, getCurrentUserRole());
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=ewaybill-bulk-" + LocalDate.now() + ".json")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(json);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Records the number the portal gave: {ewayBillNumber, generatedAt?, validUpto?}. */
+    @PostMapping("/invoices/{id}/ewaybill")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> recordEwayBill(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        try {
+            Object g = body.get("generatedAt"), v = body.get("validUpto");
+            var inv = gstService.recordEwayBill(id, userId, getCurrentUserRole(),
+                    (String) body.get("ewayBillNumber"),
+                    g == null || g.toString().isBlank() ? null : java.time.LocalDateTime.parse(g.toString()),
+                    v == null || v.toString().isBlank() ? null : LocalDate.parse(v.toString()));
+            return ResponseEntity.ok(Map.of("ewayBillNumber", inv.getEwayBillNumber(),
+                    "validUpto", String.valueOf(inv.getEwayBillExpiry()), "status", inv.getEwayBillStatus()));
+        } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     /** GSTR-1 rows narrowed to a trade type and/or category, for compliance segmentation. */
     @GetMapping("/gstr1/by-business")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")

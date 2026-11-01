@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ExternalLink, Eye, FileMinus, BarChart3, FileSpreadsheet, FileJson } from "lucide-react";
+import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ExternalLink, Eye, FileMinus, BarChart3, FileSpreadsheet, FileJson, Truck } from "lucide-react";
 import api from "../api/axios";
 import { promptText } from "../components/ConfirmDialog";
+import EwayBillPanel from "./EwayBillPanel";
 
 const GST_DASHBOARD_STYLES = `
   .gst-page { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
@@ -70,6 +71,7 @@ const TABS = [
   { id: "summary", label: "GST Summary", icon: Filter },
   { id: "gstr1", label: "GSTR-1", icon: Download },
   { id: "tcs", label: "TCS", icon: AlertTriangle },
+  { id: "ewaybill", label: "E-way bills", icon: Truck },
 ];
 
 const INDIAN_STATES = [
@@ -629,11 +631,13 @@ const GstInvoices = () => {
           </>
         )}
 
+        {activeTab === "ewaybill" && <EwayBillPanel />}
+
         {activeTab === "tcs" && (
           <div className="gst-form" style={{ maxWidth: "100%" }}>
             <h3>TCS Summary (GSTR-8)</h3>
             <div className="static-info-box" style={{ marginBottom: "1rem" }}>
-              <strong>1% TCS</strong> is deducted on marketplace sales as per Section 52 of the CGST Act. GSTR-8 must be filed monthly.
+              <strong>TCS at {tcs?.tcsRate || "0.5%"}</strong> (0.5% since 10 July 2024, Notification 15/2024) is collected on marketplace sales under Section 52 of the CGST Act. GSTR-8 must be filed monthly.
             </div>
             {tcs ? (
               <div className="gst-summary-grid">

@@ -279,7 +279,7 @@ const CustomerInvoice = () => {
               <div className="giv-id-item"><div className="giv-id-label">Invoice Type</div><div className="giv-id-value">{invoice.invoiceType || "B2C"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">HSN Digits</div><div className="giv-id-value">{invoice.hsnDigits || 4}-digit HSN</div></div>
               <div className="giv-id-item"><div className="giv-id-label">IRN</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.irn || "Not generated"}</div></div>
-              {invoice.ewayBillNumber && <div className="giv-id-item"><div className="giv-id-label">E-Way Bill</div><div className="giv-id-value">{invoice.ewayBillNumber}{invoice.ewayBillExpiry ? " (exp: " + invoice.ewayBillExpiry + ")" : ""}</div></div>}
+              {/^\d{12}$/.test(invoice.ewayBillNumber || "") && <div className="giv-id-item"><div className="giv-id-label">E-Way Bill</div><div className="giv-id-value">{invoice.ewayBillNumber}{invoice.ewayBillExpiry ? " (exp: " + invoice.ewayBillExpiry + ")" : ""}</div></div>}
             </div>
 
             <div className="giv-items">

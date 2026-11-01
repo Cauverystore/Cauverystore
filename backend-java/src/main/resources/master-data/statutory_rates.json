@@ -16,6 +16,14 @@
     "split": "0.25% CGST + 0.25% SGST/UTGST intra-state, 0.5% IGST inter-state",
     "source": "Notification 15/2024-Central Tax, 10-07-2024"
    }
+  ],
+  "EWB_CONSIGNMENT_THRESHOLD": [
+   {
+    "from": "2018-04-01",
+    "value": 50000,
+    "note": "Rupees. Consignment value = value under s.15 plus tax charged, excluding exempt supplies. Some states set a higher limit for movement within the state; this is the inter-state limit.",
+    "source": "Rule 138(1) CGST Rules; Notification 12/2018-Central Tax"
+   }
   ]
  }
 }

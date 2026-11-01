@@ -161,6 +161,9 @@ public class GstInvoice {
 
     private String ewayBillNumber;
     private LocalDate ewayBillExpiry;
+    /** NOT_REQUIRED, REQUIRED (to be generated before the goods move) or GENERATED. */
+    private String ewayBillStatus;
+    private java.time.LocalDateTime ewayBillGeneratedAt;
 
     private String transporterName;
     private String transporterGstin;
@@ -367,6 +370,10 @@ public class GstInvoice {
     public String getEwayBillNumber() { return ewayBillNumber; }
     public void setEwayBillNumber(String ewayBillNumber) { this.ewayBillNumber = ewayBillNumber; }
     public LocalDate getEwayBillExpiry() { return ewayBillExpiry; }
+    public String getEwayBillStatus() { return ewayBillStatus; }
+    public void setEwayBillStatus(String ewayBillStatus) { this.ewayBillStatus = ewayBillStatus; }
+    public java.time.LocalDateTime getEwayBillGeneratedAt() { return ewayBillGeneratedAt; }
+    public void setEwayBillGeneratedAt(java.time.LocalDateTime t) { this.ewayBillGeneratedAt = t; }
     public void setEwayBillExpiry(LocalDate ewayBillExpiry) { this.ewayBillExpiry = ewayBillExpiry; }
     public String getTransporterName() { return transporterName; }
     public void setTransporterName(String transporterName) { this.transporterName = transporterName; }

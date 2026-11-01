@@ -179,7 +179,7 @@ Product GST rates are **not** hardcoded: they all go through `GstRateResolver` a
 | 4 | Tax engine, no hardcoded rates | GstRateResolver + TaxEngineService | Move 18% fee GST and 0.5% TCS into dated config |
 | 5 | HSN master, versioned | hsn_master, gst_rate_master with effective dates, proposals | Rate rows 3101 and 4012 for 1 Nov 2026 marked UNVERIFIED |
 | 6 | E-invoice adapters | GstnClient, Live + Simulated, NIC schema 1.1, ship-to | Not tested on NIC sandbox; EcmGstin not sent; live creds not set |
-| 7 | E-way bill | — | **Missing** (needed above ₹50,000 consignment value) |
+| 7 | E-way bill | Was present but unsafe (see item 4 below) | Fixed: Rule 138 trigger, validity, portal bulk JSON, record-back. No direct EWB API (needs GSP credentials) |
 | 8 | TCS s.52 | tcs_records, reversals, GSTR-8 export | TCS rate as dated config |
 | 9 | Settlement engine | CommissionPolicy, commission invoices, seller_payouts | No single settlement ledger per order line |
 | 10 | Reporting | GSTR-1 (all tables incl. Table 14), GSTR-8, Tally, readiness dashboard | HSN table does not net CN/DN; no GSTR-3B summary |
@@ -207,7 +207,7 @@ No deletion. Close gaps in this order, one reviewable commit each:
 1. **Flyway** — DONE (step 1 of 2): `FlywayAfterHibernateConfig` runs Flyway after Hibernate on PostgreSQL, baselined at V6, so V7+ run automatically. Rollback: `app.flyway.enabled=false`. Still to do: a `pg_dump --schema-only` baseline from live (owner) before switching `ddl-auto` to `validate`.
 2. **Append-only audit** — DONE: `gst_audit_events` (V7) with a SHA-256 hash chain and a trigger refusing UPDATE/DELETE/TRUNCATE; written after commit for invoice issued, status change, IRN generated/failed, credit/debit note issued, rate change accepted, registration saved. Admin API: `GET /api/admin/gst/audit-events`, `/history`, `/verify`.
 3. **Dated tax config** — DONE for TCS: `master-data/statutory_rates.json` + `StatutoryRates`, rate taken from the invoice date (1% to 9 Jul 2024, 0.5% from 10 Jul 2024); the configuration row no longer decides it. Left as is: `CommissionPolicy.FEE_GST` (an estimate of GST on Razorpay's fee, not a tax we charge) and the 18% commission fallback (live config may have no commission rate). Dead `determineReverseCharge` removed.
-4. **E-way bill** — EWB generation through the same GstnClient pattern (simulated first), triggered for consignments above ₹50,000.
+4. **E-way bill** — DONE. Correction to section 6: it was not missing but unsafe - the trigger used taxable value, the simulator printed made-up "EWB..." numbers on real invoices, and the live client threw on every order over ₹50,000. Now: `EwayBillService` decides by consignment value (value + tax, goods only, exempt left out; threshold dated in `statutory_rates.json`), Rule 138(10) validity, invoice `ewayBillStatus` NOT_REQUIRED/REQUIRED/GENERATED, the portal's bulk-generation JSON (`GET /api/gst/ewaybill/bulk-json`), a pending list and number record-back (`POST /api/gst/invoices/{id}/ewaybill`, audited), and an "E-way bills" tab for sellers. The bulk JSON field names follow the EWB API; check one upload against the portal before relying on it.
 5. **E-invoice hardening** — send EcmGstin, test end-to-end on the NIC sandbox.
 6. **Settlement ledger** — one row per order line: sale, commission, GST on commission, TCS, gateway fee, payout; seller statement view.
 7. **Reports** — net CN/DN in the HSN table; GSTR-3B summary.
