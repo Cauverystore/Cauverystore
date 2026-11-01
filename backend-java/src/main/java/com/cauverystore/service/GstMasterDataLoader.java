@@ -330,23 +330,25 @@ public class GstMasterDataLoader {
 
         int closed = applySeedEndDates(rows, existing);
         int demoted = demoteStaleAutoVerified(existing, seedVerified, seedHeadings);
+        int promoted = promoteSeedVerified(existing, seedVerified);
         int retracted = retractFabricatedCodes(existing);
         int flagged = backfillWholeChapterFlag(rows, existing);
         int cessSynced = syncSeedCess(rows, existing);
         int reworded = syncSeedWording(rows, existing);
 
-        if (inserted > 0 || demoted > 0 || closed > 0 || retracted > 0 || flagged > 0 || cessSynced > 0
+        if (inserted > 0 || demoted > 0 || promoted > 0 || closed > 0 || retracted > 0 || flagged > 0 || cessSynced > 0
                 || reworded > 0) {
             MasterUpdateLog entry = new MasterUpdateLog();
             entry.setFileName("gst_rate_seed.json");
             entry.setVersion(RATE_SOURCE_VERSION);
             entry.setRowsLoaded(rows.size());
             entry.setRowsInserted(inserted);
-            entry.setRowsUpdated(demoted + cessSynced + reworded);
+            entry.setRowsUpdated(demoted + promoted + cessSynced + reworded);
             entry.setStatus("SUCCESS");
             entry.setChangesDetected(inserted + " rate rows inserted; " + ambiguous
                     + " left UNVERIFIED because the heading carries more than one rate; "
                     + demoted + " previously auto-verified rows demoted for review; "
+                    + promoted + " rows verified because the seed now settles them; "
                     + closed + " rows closed off on the date a later notification ended them; "
                     + retracted + " rows retracted as not being real HSN headings; "
                     + flagged + " chapter rows had their whole-chapter flag corrected; "
@@ -418,6 +420,37 @@ public class GstMasterDataLoader {
      * Only rows this loader itself approved are touched. A rate a human verified is never
      * overridden: their sign-off outranks the generator's guess.
      */
+    /**
+     * The opposite of {@link #demoteStaleAutoVerified}: a row already in the database as
+     * UNVERIFIED that the seed now marks VERIFIED (a heading found, on checking the CBIC text, to
+     * carry only one rate) is verified. The load is otherwise insert-only, so without this the
+     * row would stay unverified on any database populated before the seed was corrected.
+     * Rows a person has verified or rejected (verifiedBy set) are left alone.
+     */
+    private int promoteSeedVerified(Map<String, List<GstRateMaster>> existing,
+                                    java.util.Set<String> seedVerified) {
+        List<GstRateMaster> promote = new ArrayList<>();
+        for (List<GstRateMaster> perHsn : existing.values()) {
+            for (GstRateMaster r : perHsn) {
+                if (r.isVerified() || r.getVerifiedBy() != null) continue;
+                if (!GstRateMaster.STATUS_UNVERIFIED.equals(r.getStatus())) continue;
+                String key = rateKey(r.getHsnCode(), r.getGstRate(),
+                        r.getEffectiveFrom() == null ? null : r.getEffectiveFrom().toString(),
+                        r.getConditionType());
+                if (!seedVerified.contains(key)) continue;
+                r.setStatus(GstRateMaster.STATUS_VERIFIED);
+                r.setVerifiedBy(AUTO_VERIFIER);
+                r.setVerifiedAt(LocalDateTime.now());
+                promote.add(r);
+            }
+        }
+        if (!promote.isEmpty()) {
+            rateRepo.saveAll(promote);
+            log.info("Verified {} GST rate rows that the seed now settles on its own.", promote.size());
+        }
+        return promote.size();
+    }
+
     private int demoteStaleAutoVerified(Map<String, List<GstRateMaster>> existing,
                                         java.util.Set<String> seedVerified,
                                         java.util.Set<String> seedHeadings) {

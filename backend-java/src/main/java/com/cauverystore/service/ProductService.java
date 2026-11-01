@@ -359,6 +359,7 @@ public class ProductService {
                     // spreadsheet the easiest way to get a bad HSN into the catalogue.
                     hsnClassificationService.validate(p);
                     hsnClassificationService.assertSellable(p);
+                    hsnClassificationService.checkPriceGap(p);
                     // The sheet has no compliance columns, so most rows are held for approval
                     // until their compliance details are filled in.
                     Optional<ProductComplianceService.Result> held = applyPublishGate(p, false);
@@ -572,6 +573,7 @@ public class ProductService {
         // product would be taxed at the fallback on every sale while its invoice looked normal.
         hsnClassificationService.validate(product);
         hsnClassificationService.assertSellable(product);
+        hsnClassificationService.checkPriceGap(product);
         Optional<ProductComplianceService.Result> held = applyPublishGate(product, false);
         Product saved = productRepo.save(product);
         hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
@@ -678,6 +680,12 @@ public class ProductService {
                 }
             }
         }
+          // Only a changed price, code or offer is checked against the GST band gap, so editing
+          // other details of an existing listing never fails on it.
+          boolean priceOrCodeChanged =
+                  (product.getPrice() != null && !product.getPrice().equals(existing.getPrice()))
+                  || (product.getOfferPrice() != null && !product.getOfferPrice().equals(existing.getOfferPrice()))
+                  || (product.getHsnCode() != null && !product.getHsnCode().equals(existing.getHsnCode()));
           if (product.getName() != null) existing.setName(product.getName());
           if (product.getDescription() != null) existing.setDescription(product.getDescription());
           if (product.getPrice() != null) existing.setPrice(product.getPrice());
@@ -739,6 +747,7 @@ public class ProductService {
           if (product.getWarranty() != null) existing.setWarranty(product.getWarranty());
           if (product.getReturnPolicy() != null) existing.setReturnPolicy(product.getReturnPolicy());
           hsnClassificationService.validate(existing);
+          if (priceOrCodeChanged) hsnClassificationService.checkPriceGap(existing);
           withdrawFromSaleIfUntaxable(existing);
           Optional<ProductComplianceService.Result> held = applyPublishGate(existing, wasVisible);
           Product saved = productRepo.save(existing);

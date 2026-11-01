@@ -223,7 +223,7 @@ public class GstRateResolver {
             // An inclusive price can fall between the bands: ₹2,800 is over ₹2,500 with 5% taken
             // out but under it with 18% taken out, so neither band is consistent. Both bands are
             // published, so the goods are taxable - the higher band is charged, which can never
-            // under-declare the tax. Sellers are told to price outside the gap (see gapFor).
+            // under-declare the tax. Sellers are told to price outside the gap (see priceGap).
             Optional<GstRateMaster> gap = higherBandInGap(hits, unitPrice);
             if (gap.isPresent()) {
                 log.info("Inclusive price {} under HSN {} falls between the value bands - charging "
@@ -254,6 +254,47 @@ public class GstRateResolver {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * The price gap for value-banded goods (apparel, footwear, made-ups): with prices that
+     * include GST, a price above threshold x (1 + lower rate) is too high for the lower band,
+     * yet a price up to threshold x (1 + higher rate) is too low for the higher one. At ₹2,500
+     * with 5% and 18%, that is any price over ₹2,625 and up to ₹2,950.
+     *
+     * @return {lowest band's highest price, higher band's lowest price (exclusive)} when the
+     *         price falls in the gap, otherwise empty
+     */
+    public Optional<double[]> priceGap(String hsnCode, LocalDate onDate, Double inclusivePrice) {
+        if (hsnCode == null || hsnCode.isBlank() || inclusivePrice == null) return Optional.empty();
+        String hsn = hsnCode.replaceAll("\\s", "");
+        LocalDate date = onDate != null ? onDate : LocalDate.now();
+        for (String candidate : List.of(hsn,
+                hsn.length() > 6 ? hsn.substring(0, 6) : hsn,
+                hsn.length() > 4 ? hsn.substring(0, 4) : hsn,
+                hsn.length() > 2 ? hsn.substring(0, 2) : hsn)) {
+            List<GstRateMaster> hits = rateRepo.findApplicable(candidate, GstRateMaster.STATUS_VERIFIED, date);
+            for (GstRateMaster above : hits) {
+                if (!GstRateMaster.CONDITION_VALUE_ABOVE.equals(above.getConditionType())
+                        || above.getThresholdAmount() == null) continue;
+                for (GstRateMaster upto : hits) {
+                    if (!GstRateMaster.CONDITION_VALUE_UPTO.equals(upto.getConditionType())
+                            || !above.getThresholdAmount().equals(upto.getThresholdAmount())) continue;
+                    double t = above.getThresholdAmount();
+                    double lowMax = round2(t * (1 + (upto.getGstRate() + nzCess(upto.getCessRate())) / 100.0));
+                    double highMin = round2(t * (1 + (above.getGstRate() + nzCess(above.getCessRate())) / 100.0));
+                    if (inclusivePrice > lowMax && inclusivePrice <= highMin) {
+                        return Optional.of(new double[] {lowMax, highMin});
+                    }
+                    return Optional.empty();
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static double round2(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 
     /**

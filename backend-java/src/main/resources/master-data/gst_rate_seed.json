@@ -9727,39 +9727,39 @@
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
-    "status": "UNVERIFIED",
+    "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods [other than coconut coir fibre] including yarn of flax, jute, other textile bast fibres, other vegetable textile fibres; paper yarn including coir pith compost pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. | Written from the schedule entry '5305 to 5308', which the extraction had collapsed onto 5305 alone. Without this the heading fell through to its chapter and took a rate published for other goods."
+    "notes": "Only line in force for this heading: 09/2025-CT(Rate) Sch. I S. No. 338 (5305 to 5308) at 5%. The nil entries in 10/2025 cover 5303, 5305 and coir pith compost, not this heading. Verified 2026-11-01."
   },
   {
     "hsnCode": "5307",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
-    "status": "UNVERIFIED",
+    "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods [other than coconut coir fibre] including yarn of flax, jute, other textile bast fibres, other vegetable textile fibres; paper yarn including coir pith compost pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. | Written from the schedule entry '5305 to 5308', which the extraction had collapsed onto 5305 alone. Without this the heading fell through to its chapter and took a rate published for other goods."
+    "notes": "Only line in force for this heading: 09/2025-CT(Rate) Sch. I S. No. 338 (5305 to 5308) at 5%. The nil entries in 10/2025 cover 5303, 5305 and coir pith compost, not this heading. Verified 2026-11-01."
   },
   {
     "hsnCode": "5308",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
-    "status": "UNVERIFIED",
+    "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods [other than coconut coir fibre] including yarn of flax, jute, other textile bast fibres, other vegetable textile fibres; paper yarn including coir pith compost pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. | Written from the schedule entry '5305 to 5308', which the extraction had collapsed onto 5305 alone. Without this the heading fell through to its chapter and took a rate published for other goods."
+    "notes": "Only line in force for this heading: 09/2025-CT(Rate) Sch. I S. No. 338 (5305 to 5308) at 5%. The nil entries in 10/2025 cover 5303, 5305 and coir pith compost, not this heading. Verified 2026-11-01."
   },
   {
     "hsnCode": "5309",
