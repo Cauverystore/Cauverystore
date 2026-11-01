@@ -1,7 +1,7 @@
 {
   "_note": "Only list sources whose robots.txt permits automated reading. 'verified': false means the URL has not yet been seen working by a person - the first run's report will say so by listing it under 'could not be checked' if it fails. CBIC moved GST notifications from cbic-gst.gov.in (now 404) to taxinformation.cbic.gov.in. The 'cbic_api' sources read that portal's public JSON, the same calls its own pages make. Its robots.txt (checked 2026-11-01) blocks only account, admin and api-docs paths.",
-  "download_since": "2026-05-01",
-  "_download_since_note": "Only documents dated on or after this are downloaded for review; older new links are just recorded. The newest notification already applied to gst_rate_seed.json is 01/2026-Central Tax (Rate) dated 30-04-2026. Move this date forward each time the seed catches up.",
+  "download_since": "2026-10-29",
+  "_download_since_note": "Only documents dated on or after this are downloaded for review; older new links are just recorded. Notifications up to 02/2026-10/2026 (dated 27/28-10-2026) were reviewed on 2026-11-01: the goods-rate ones are applied to gst_rate_seed.json and the rest are summarised in cbic-source/README.md. Move this date forward each time the seed catches up.",
   "download_if_matches": "20(25|26|27|28)",
   "max_downloads_per_run": 40,
   "sources": [

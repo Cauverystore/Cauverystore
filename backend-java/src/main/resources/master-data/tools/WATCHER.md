@@ -31,7 +31,7 @@ PDFs for review. Runs daily from `.github/workflows/gst-source-watch.yml`.
   the report opens with a warning, the "could not be checked" issue gets a comment every day, and the
   workflow run fails so GitHub emails the owner. Silence is never "no change".
 - **What gets downloaded.** Only documents dated on or after `download_since` in `gst_sources.json`
-  (the date of the newest notification already applied to `gst_rate_seed.json`). Older new links are
+  (the day after the newest notification already reviewed and applied to `gst_rate_seed.json`). Older new links are
   recorded but not downloaded. Move the date forward whenever the seed catches up.
 - **No repeats.** `manifest.json` is committed to main on every run and the review PR holds only the
   PDFs. Closing a review PR without merging it is fine: those documents will not be offered again.
