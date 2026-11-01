@@ -69,6 +69,17 @@ public class CreditNote {
     private Long referenceId;
     private String status = "GENERATED";
 
+    // E-invoice registration (IRN) of this note, when the invoice it adjusts was e-invoiced.
+    @Column(length = 64)
+    private String irn;
+    private String ackNo;
+    private String ackDate;
+    @Column(columnDefinition = "TEXT")
+    private String qrCode;
+    /** NOT_REQUIRED, PENDING, REGISTERED or FAILED. */
+    private String einvoiceStatus;
+    private String einvoiceError;
+
     @OneToMany(mappedBy = "creditNote", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("creditNote")
     private List<CreditNoteItem> items = new ArrayList<>();
@@ -160,6 +171,18 @@ public class CreditNote {
     public void setReferenceId(Long referenceId) { this.referenceId = referenceId; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getIrn() { return irn; }
+    public void setIrn(String irn) { this.irn = irn; }
+    public String getAckNo() { return ackNo; }
+    public void setAckNo(String ackNo) { this.ackNo = ackNo; }
+    public String getAckDate() { return ackDate; }
+    public void setAckDate(String ackDate) { this.ackDate = ackDate; }
+    public String getQrCode() { return qrCode; }
+    public void setQrCode(String qrCode) { this.qrCode = qrCode; }
+    public String getEinvoiceStatus() { return einvoiceStatus; }
+    public void setEinvoiceStatus(String einvoiceStatus) { this.einvoiceStatus = einvoiceStatus; }
+    public String getEinvoiceError() { return einvoiceError; }
+    public void setEinvoiceError(String einvoiceError) { this.einvoiceError = einvoiceError; }
     public List<CreditNoteItem> getItems() { return items; }
     public void setItems(List<CreditNoteItem> items) { this.items = items; }
     public LocalDateTime getCreatedAt() { return createdAt; }

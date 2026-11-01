@@ -19,6 +19,10 @@ import java.util.*;
 public final class StatutoryRates {
 
     public static final String TCS_S52 = "TCS_S52";
+    /** A rupee limit rather than a rate, read the same way. */
+    public static final String EWB_CONSIGNMENT_THRESHOLD = "EWB_CONSIGNMENT_THRESHOLD";
+    /** Turnover at or above which an e-invoice must reach the IRP within 30 days of its date. */
+    public static final String EINVOICE_30_DAY_LIMIT_AATO = "EINVOICE_30_DAY_LIMIT_AATO";
 
     public record Period(LocalDate from, LocalDate to, double rate, String source) {
         boolean covers(LocalDate d) {
@@ -41,7 +45,7 @@ public final class StatutoryRates {
                     periods.add(new Period(
                             LocalDate.parse(p.path("from").asText()),
                             p.hasNonNull("to") ? LocalDate.parse(p.path("to").asText()) : null,
-                            p.path("rate").asDouble(),
+                            p.has("rate") ? p.path("rate").asDouble() : p.path("value").asDouble(),
                             p.path("source").asText(null)));
                 }
                 out.put(entry.getKey(), List.copyOf(periods));

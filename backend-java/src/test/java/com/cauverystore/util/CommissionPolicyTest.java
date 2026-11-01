@@ -77,4 +77,14 @@ class CommissionPolicyTest {
         assertEquals(LocalDate.of(2026, 11, 9), CommissionPolicy.payableFrom(LocalDate.of(2026, 11, 1)));
         assertNull(CommissionPolicy.payableFrom(null));
     }
+
+    @Test
+    void aLedgerLineTakesGstOnFeesAndTcsBeforeThePayout() {
+        CommissionPolicy.LedgerLine l = CommissionPolicy.ledgerLine(10_000.0, 1_000.0, 10.0, 18.0, 50.0);
+        assertEquals(181.80, l.gstOnFees(), 0.001);
+        assertEquals(8_496.36, l.payable(), 0.001);
+        double back = l.payable() + l.commission() + l.handlingFee() + l.gstOnFees()
+                + l.gatewayFee() + l.transferFee() + l.tcs();
+        assertEquals(l.orderValue(), back, 0.011, "every rupee of the sale is accounted for");
+    }
 }

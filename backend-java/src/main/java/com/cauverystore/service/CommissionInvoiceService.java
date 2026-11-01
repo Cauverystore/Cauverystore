@@ -259,59 +259,151 @@ public class CommissionInvoiceService {
         return CommissionPolicy.blendedPercent(values, percents, orderRate.getRatePercent());
     }
 
-    /**
-     * What each billable order in a month comes to for a seller after commission, the handling
-     * fee and Razorpay's payment costs, and the first day they can be paid. A preview for the
-     * person making the payout: it does not create an invoice or a payment, and it is before
-     * tax collected at source and any refunds.
-     */
+    // Optional collaborators, set by Spring; tests that build this service by hand leave them out
+    // and the statement then shows no TCS or payouts rather than failing.
+    private TcsRecordRepository tcsRepo;
+    private SellerPayoutRepository payoutRepo;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSettlementSources(TcsRecordRepository tcsRepo, SellerPayoutRepository payoutRepo) {
+        this.tcsRepo = tcsRepo;
+        this.payoutRepo = payoutRepo;
+    }
+
+    /** Kept for the admin endpoint that already calls it; the statement is a superset. */
     public Map<String, Object> previewSettlement(Long sellerId, String period) {
+        return settlementStatement(sellerId, period, LocalDate.now());
+    }
+
+    /**
+     * A seller's settlement statement for one month: for each billable order, every deduction
+     * between what the customer paid and what the seller receives, and against that, what has
+     * been paid out.
+     *
+     * Worked out from records that are already kept - orders, the commission rate card, TCS
+     * records, payouts - rather than stored again, so it always agrees with the commission
+     * invoice and GSTR-8. The earlier preview left out two deductions: the GST on the
+     * marketplace's fees (billed on the commission invoice) and TCS, so it overstated what was
+     * owed by both.
+     *
+     * Cancelled and returned orders carry no commission and pay nothing, so they are not listed.
+     */
+    public Map<String, Object> settlementStatement(Long sellerId, String period, LocalDate today) {
         YearMonth month = YearMonth.parse(period, PERIOD);
-        List<CommissionInvoiceLine> lines = buildLines(sellerId, month.atDay(1), month.atEndOfMonth());
+        LocalDate from = month.atDay(1);
+        LocalDate to = month.atEndOfMonth();
+        List<CommissionInvoiceLine> lines = buildLines(sellerId, from, to);
+
+        // The same rate the commission invoice for this month charges.
+        double gstRate = configRepo.findAll().stream().findFirst()
+                .map(GstConfiguration::getCommissionGstRate).filter(r -> r != null).orElse(18.0);
 
         List<Map<String, Object>> rows = new ArrayList<>();
-        double net = 0.0;
-        double commissionTotal = 0.0;
-        double handlingTotal = 0.0;
-        double paymentFeesTotal = 0.0;
+        double sale = 0, commissionTotal = 0, handlingTotal = 0, gstTotal = 0, feesTotal = 0,
+                tcsTotal = 0, payableTotal = 0, dueNow = 0, notYetDue = 0;
         for (CommissionInvoiceLine line : lines) {
             double handling = nz(line.getFixedFee());
             double commission = line.getCommissionAmount() - handling;
-            CommissionPolicy.Settlement s =
-                    CommissionPolicy.settle(line.getOrderValue(), commission, handling);
+            double tcs = tcsFor(line.getOrderId());
+            CommissionPolicy.LedgerLine l =
+                    CommissionPolicy.ledgerLine(line.getOrderValue(), commission, handling, gstRate, tcs);
             Order order = orderRepo.findById(line.getOrderId()).orElse(null);
             LocalDate delivered = order != null && order.getDeliveredAt() != null
                     ? order.getDeliveredAt().toLocalDate() : null;
+            LocalDate payableFrom = CommissionPolicy.payableFrom(delivered);
+            boolean due = payableFrom != null && !payableFrom.isAfter(today);
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("orderId", line.getOrderId());
-            row.put("orderValue", s.orderValue());
+            row.put("gstInvoiceId", line.getGstInvoiceId());
+            row.put("orderValue", l.orderValue());
             row.put("commissionPercent", line.getRatePercent());
-            row.put("commission", s.commission());
-            row.put("handlingFee", s.handlingFee());
-            row.put("gatewayFee", s.gatewayFee());
-            row.put("transferFee", s.transferFee());
-            row.put("sellerNet", s.sellerNet());
+            row.put("commission", l.commission());
+            row.put("handlingFee", l.handlingFee());
+            row.put("gstOnFees", l.gstOnFees());
+            row.put("gatewayFee", l.gatewayFee());
+            row.put("transferFee", l.transferFee());
+            row.put("tcs", l.tcs());
+            row.put("payable", l.payable());
+            // Older name for the same figure, for callers of the earlier preview.
+            row.put("sellerNet", l.payable());
             row.put("deliveredOn", delivered);
-            row.put("payableFrom", CommissionPolicy.payableFrom(delivered));
+            row.put("payableFrom", payableFrom);
+            row.put("due", due);
             rows.add(row);
 
-            net += s.sellerNet();
-            commissionTotal += s.commission();
-            handlingTotal += s.handlingFee();
-            paymentFeesTotal += s.gatewayFee() + s.transferFee();
+            sale += l.orderValue();
+            commissionTotal += l.commission();
+            handlingTotal += l.handlingFee();
+            gstTotal += l.gstOnFees();
+            feesTotal += l.gatewayFee() + l.transferFee();
+            tcsTotal += l.tcs();
+            payableTotal += l.payable();
+            if (due) dueNow += l.payable(); else notYetDue += l.payable();
         }
+
+        List<Map<String, Object>> payouts = new ArrayList<>();
+        double paid = 0;
+        if (payoutRepo != null) {
+            for (SellerPayout p : payoutRepo.findBySellerIdOrderByPaidOnDescIdDesc(sellerId)) {
+                if (Boolean.TRUE.equals(p.getVoided()) || !coversMonth(p, from, to)) continue;
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", p.getId());
+                m.put("paidOn", p.getPaidOn());
+                m.put("amount", round(nz(p.getAmount())));
+                m.put("reference", p.getReference());
+                payouts.add(m);
+                paid += nz(p.getAmount());
+            }
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("sellerId", sellerId);
         result.put("period", period);
+        result.put("gstRateOnFees", gstRate);
         result.put("orders", rows);
+        result.put("totalOrderValue", round(sale));
         result.put("totalCommission", round(commissionTotal));
         result.put("totalHandlingFees", round(handlingTotal));
-        result.put("totalPaymentFees", round(paymentFeesTotal));
-        result.put("totalSellerNet", round(net));
-        result.put("note", "Before tax collected at source and refunds. An order with no payable-from "
-                + "date has not been delivered yet.");
+        result.put("totalGstOnFees", round(gstTotal));
+        result.put("totalPaymentFees", round(feesTotal));
+        result.put("totalTcs", round(tcsTotal));
+        result.put("totalPayable", round(payableTotal));
+        result.put("totalSellerNet", round(payableTotal));
+        result.put("payableNow", round(dueNow));
+        result.put("notYetPayable", round(notYetDue));
+        result.put("payouts", payouts);
+        result.put("totalPaid", round(paid));
+        result.put("balanceDue", round(dueNow - paid));
+        result.put("note", "Payable = order value - commission - handling fee - GST on those fees - "
+                + "payment gateway and transfer fees - TCS. An order is payable "
+                + CommissionPolicy.PAYOUT_DELAY_DAYS + " days after delivery. TCS is credited to "
+                + "your GSTIN and appears in your electronic cash ledger once the marketplace files GSTR-8.");
         return result;
+    }
+
+    /** Net TCS on an order: what was collected less any reversal on a return. */
+    private double tcsFor(Long orderId) {
+        if (tcsRepo == null || orderId == null) return 0.0;
+        double t = 0;
+        for (TcsRecord r : tcsRepo.findByOrderId(orderId)) {
+            double amt = nz(r.getTcsAmount());
+            t += TcsRecord.ENTRY_REVERSAL.equals(r.getEntryType()) ? -Math.abs(amt) : amt;
+        }
+        return round(t);
+    }
+
+    /**
+     * Whether a payout belongs to this month: by the sales period it was recorded against, or,
+     * when none was given, by the month it was paid in.
+     */
+    static boolean coversMonth(SellerPayout p, LocalDate from, LocalDate to) {
+        if (p.getPeriodFrom() != null || p.getPeriodTo() != null) {
+            LocalDate a = p.getPeriodFrom() != null ? p.getPeriodFrom() : p.getPeriodTo();
+            LocalDate b = p.getPeriodTo() != null ? p.getPeriodTo() : p.getPeriodFrom();
+            return !a.isAfter(to) && !b.isBefore(from);
+        }
+        return p.getPaidOn() != null && !p.getPaidOn().isBefore(from) && !p.getPaidOn().isAfter(to);
     }
 
     /** Commission follows a sale that stood - not one cancelled or sent back. */

@@ -257,7 +257,7 @@ const GstInvoiceView = () => {
               <div className="giv-id-item"><div className="giv-id-label">Reverse Charge</div><div className="giv-id-value" style={{ color: invoice.reverseCharge ? "#D93A2A" : "#0E5C5C" }}>{invoice.reverseCharge ? "Applicable" : "Not Applicable"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">E-Invoice</div><div className="giv-id-value" style={{ color: invoice.einvoicingRequired ? "#0E5C5C" : "#94a3b8" }}>{invoice.einvoicingRequired ? "Required (turnover > ₹5 Cr)" : "Not required"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">IRN</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.irn || "Not generated"}</div></div>
-              {invoice.ewayBillNumber && <div className="giv-id-item"><div className="giv-id-label">E-Way Bill</div><div className="giv-id-value">{invoice.ewayBillNumber}{invoice.ewayBillExpiry ? " (exp: " + invoice.ewayBillExpiry + ")" : ""}</div></div>}
+              {/^\d{12}$/.test(invoice.ewayBillNumber || "") && <div className="giv-id-item"><div className="giv-id-label">E-Way Bill</div><div className="giv-id-value">{invoice.ewayBillNumber}{invoice.ewayBillExpiry ? " (exp: " + invoice.ewayBillExpiry + ")" : ""}</div></div>}
               <div className="giv-id-item"><div className="giv-id-label">Ack No.</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.ackNo || "-"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">Ack Date</div><div className="giv-id-value">{invoice.ackDate || "-"}</div></div>
             </div>

@@ -16,6 +16,29 @@
     "split": "0.25% CGST + 0.25% SGST/UTGST intra-state, 0.5% IGST inter-state",
     "source": "Notification 15/2024-Central Tax, 10-07-2024"
    }
+  ],
+  "EWB_CONSIGNMENT_THRESHOLD": [
+   {
+    "from": "2018-04-01",
+    "value": 50000,
+    "note": "Rupees. Consignment value = value under s.15 plus tax charged, excluding exempt supplies. Some states set a higher limit for movement within the state; this is the inter-state limit.",
+    "source": "Rule 138(1) CGST Rules; Notification 12/2018-Central Tax"
+   }
+  ],
+  "EINVOICE_30_DAY_LIMIT_AATO": [
+   {
+    "from": "2023-11-01",
+    "to": "2025-03-31",
+    "value": 1000000000,
+    "note": "Rupees of annual aggregate turnover. At or above it, the IRP refuses an invoice or note dated more than 30 days before it is reported.",
+    "source": "GSTN advisory, 13-09-2023 (AATO of Rs 100 crore and above)"
+   },
+   {
+    "from": "2025-04-01",
+    "value": 100000000,
+    "note": "Extended to AATO of Rs 10 crore and above.",
+    "source": "GSTN advisory, 05-11-2024"
+   }
   ]
  }
 }

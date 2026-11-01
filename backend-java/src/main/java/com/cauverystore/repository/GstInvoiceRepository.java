@@ -19,6 +19,7 @@ public interface GstInvoiceRepository extends JpaRepository<GstInvoice, Long> {
     Page<GstInvoice> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
     Page<GstInvoice> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
     List<GstInvoice> findByStatus(String status);
+    List<GstInvoice> findByEwayBillStatusOrderByInvoiceDateAsc(String ewayBillStatus);
     List<GstInvoice> findByStatusIn(List<String> statuses);
     long countByStatus(String status);
 
