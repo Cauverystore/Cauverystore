@@ -569,7 +569,9 @@ const GstInvoices = () => {
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2b", "gstr1-b2b.csv", "csv")}><FileText size={14} /> 4A B2B</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2cl", "gstr1-b2cl.csv", "csv")}><FileText size={14} /> 5A B2CL</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2cs", "gstr1-b2cs.csv", "csv")}><FileText size={14} /> 7 B2CS</button>
-              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn", "gstr1-hsn.csv", "csv")}><FileText size={14} /> 12 HSN</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="HSN summary of supplies to buyers with a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn_b2b", "gstr1-hsn-b2b.csv", "csv")}><FileText size={14} /> 12 HSN B2B</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="HSN summary of supplies to buyers without a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn_b2c", "gstr1-hsn-b2c.csv", "csv")}><FileText size={14} /> 12 HSN B2C</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Sales made through the marketplace, which collects TCS on them (empty when none)" onClick={() => downloadExport("/api/gst/gstr1/filing?section=eco", "gstr1-eco.csv", "csv")}><FileText size={14} /> 14 ECO</button>
             </div>
             {!gstr1Seg || !gstr1Seg["4A"] ? (
               <p style={{ color: "#94a3b8" }}>No invoice data available for GSTR-1.</p>

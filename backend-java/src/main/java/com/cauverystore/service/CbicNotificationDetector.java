@@ -49,11 +49,17 @@ import java.util.Map;
  * an outstanding change and the daily chase logs it as a compliance error until the rates are
  * regenerated.
  *
- * <h2>Why daily rather than weekly</h2>
+ * <h2>Why it also reads the full rate lists</h2>
  *
- * The feed carries only the four most recent updates across all of GST - circulars included -
- * so a busy fortnight can push a rate notification off the end of it. Weekly polling would
- * eventually miss one. Daily costs one request.
+ * The feed carries only the four most recent updates across all of GST - circulars included.
+ * Polling it daily is not enough: on 28 October 2026 CBIC issued 27 rate notifications in one
+ * day (02 to 10/2026 for Central, Integrated and Union Territory tax), and the feed showed four
+ * of them. So the check also reads each rate category's full list from
+ * {@code /api/cbic-notification-msts/fetchNotificationByCategory/1000001/<category>}, the
+ * call the portal's own notification pages make, and keeps the ones dated within the last
+ * {@code gst.cbic-detector.lookback-days}. The window stops the 2017-2024 archive, which the
+ * seed already reflects, from arriving as hundreds of alarms. Each source can fail on its own;
+ * the check only reports itself blind when every source failed.
  */
 @Service
 public class CbicNotificationDetector {
@@ -62,6 +68,10 @@ public class CbicNotificationDetector {
 
     /** The portal's own id for GST. 1000002 is customs; the rest return an empty list. */
     private static final String GST_TAX_ID = "1000001";
+
+    /** The categories that set rates, exactly as the portal names them. */
+    static final List<String> RATE_CATEGORIES = List.of(
+            "Central Tax (Rate)", "Integrated Tax (Rate)", "Union Territory Tax (Rate)");
 
     /** "30-Apr-2026", as the portal formats it. */
     private static final DateTimeFormatter PORTAL_DATE =
@@ -85,6 +95,14 @@ public class CbicNotificationDetector {
 
     @Value("${gst.cbic-detector.base-url:https://taxinformation.cbic.gov.in}")
     private String baseUrl;
+
+    /** Also read each rate category's full list, not just the four-item feed. */
+    @Value("${gst.cbic-detector.read-categories:true}")
+    private boolean readCategories = true;
+
+    /** How far back the category lists are read. Older notifications are in the seed. */
+    @Value("${gst.cbic-detector.lookback-days:90}")
+    private int lookbackDays = 90;
 
     public CbicNotificationDetector(GstRateSourceRepository sourceRepo,
                                     GstRateFreshnessService freshnessService) {
@@ -123,7 +141,7 @@ public class CbicNotificationDetector {
     public void detect() {
         if (!enabled) return;
         try {
-            List<Update> found = fetchLatestUpdates();
+            List<Update> found = collectUpdates();
             List<Update> rateChanges = found.stream().filter(Update::changesRates).toList();
             int recorded = 0;
 
@@ -210,6 +228,107 @@ public class CbicNotificationDetector {
             if (t.getCause() == t) break;
         }
         return false;
+    }
+
+    /**
+     * Everything the check reads: the feed, plus the recent part of each rate category's list,
+     * with each notification once.
+     *
+     * A source that fails is logged and skipped so long as another answered; only when every
+     * source failed is that thrown, because then "nothing new" would be a guess.
+     */
+    List<Update> collectUpdates() {
+        Map<String, Update> merged = new LinkedHashMap<>();
+        List<Exception> failures = new ArrayList<>();
+        int sources = 0;
+
+        sources++;
+        try {
+            fetchLatestUpdates().forEach(u -> merged.putIfAbsent(key(u), u));
+        } catch (Exception e) {
+            failures.add(e);
+        }
+        if (readCategories) {
+            for (String category : RATE_CATEGORIES) {
+                sources++;
+                try {
+                    fetchRecentNotifications(category).forEach(u -> merged.putIfAbsent(key(u), u));
+                } catch (Exception e) {
+                    failures.add(e);
+                }
+            }
+        }
+
+        if (failures.size() == sources) {
+            Exception first = failures.get(0);
+            throw first instanceof RuntimeException re ? re : new IllegalStateException(first);
+        }
+        for (Exception e : failures) {
+            log.warn("Part of the CBIC check could not run: {}. The other sources were read.",
+                    e.getMessage());
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    /** The same notification in the feed and in a list has the same portal id. */
+    private static String key(Update u) {
+        return u.documentId() != null ? "id:" + u.documentId()
+                : "no:" + (u.number() == null ? "" : u.number().replaceAll("\\s+", ""));
+    }
+
+    /**
+     * One rate category's notifications from the last {@code lookbackDays}, from the full list
+     * the portal's notification pages read. Public and unauthenticated, like the feed.
+     */
+    public List<Update> fetchRecentNotifications(String category) {
+        java.net.URI url = org.springframework.web.util.UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .pathSegment("api", "cbic-notification-msts", "fetchNotificationByCategory",
+                        GST_TAX_ID, category)
+                .encode().build().toUri();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set(HttpHeaders.USER_AGENT, "Mozilla/5.0 (compatible; CauveryStore-GST-check/1.0)");
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        return parseCategoryList(category, response.getBody(), LocalDate.now().minusDays(lookbackDays));
+    }
+
+    /** Reads one category list, keeping active notifications dated on or after {@code since}. */
+    List<Update> parseCategoryList(String category, String body, LocalDate since) {
+        if (body == null || body.isBlank()) {
+            throw new IllegalStateException("CBIC returned nothing for " + category + ".");
+        }
+        List<Update> out = new ArrayList<>();
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            if (!root.isArray()) {
+                throw new IllegalStateException("CBIC's " + category + " list is not a list. The "
+                        + "portal may have changed, and this part of the check is not watching.");
+            }
+            for (JsonNode n : root) {
+                if ("N".equalsIgnoreCase(text(n, "isActive"))) continue;
+                LocalDate dated = parsePortalDate(text(n, "notificationDt"));
+                // An undated row is kept: dropping it could hide exactly the notification that
+                // matters, and the repository check stops it repeating.
+                if (dated != null && dated.isBefore(since)) continue;
+                String cat = text(n, "notificationCategory");
+                out.add(new Update(
+                        text(n, "notificationNo"),
+                        text(n, "notificationName"),
+                        dated,
+                        cat == null || cat.isBlank() ? category : cat,
+                        "Notification",
+                        text(n, "docFilePath"),
+                        n.get("id") == null || n.get("id").isNull() ? null : n.get("id").asLong()));
+            }
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("CBIC's " + category + " list could not be read: "
+                    + e.getMessage(), e);
+        }
+        return out;
     }
 
     /**
@@ -307,7 +426,7 @@ public class CbicNotificationDetector {
     public Map<String, Object> preview() {
         Map<String, Object> out = new LinkedHashMap<>();
         try {
-            List<Update> found = fetchLatestUpdates();
+            List<Update> found = collectUpdates();
             List<Map<String, Object>> rows = new ArrayList<>();
             for (Update u : found) {
                 Map<String, Object> row = new LinkedHashMap<>();
@@ -320,7 +439,9 @@ public class CbicNotificationDetector {
                         && sourceRepo.findByNotificationNumber(u.number()).isPresent());
                 rows.add(row);
             }
-            out.put("source", baseUrl + "/api/cbic-notification-msts/fetchUpdatesByTaxId/" + GST_TAX_ID);
+            out.put("source", baseUrl + "/api/cbic-notification-msts/fetchUpdatesByTaxId/" + GST_TAX_ID
+                    + (readCategories ? " and the " + String.join(", ", RATE_CATEGORIES)
+                            + " lists (last " + lookbackDays + " days)" : ""));
             out.put("updates", rows);
             out.put("reachable", true);
         } catch (Exception e) {
@@ -333,7 +454,12 @@ public class CbicNotificationDetector {
     private LocalDate parsePortalDate(String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
-            return LocalDate.parse(raw.trim(), PORTAL_DATE);
+            String t = raw.trim();
+            // The feed says "30-Apr-2026"; the category lists say "2026-04-30T05:30:00+05:30".
+            if (t.length() >= 10 && Character.isDigit(t.charAt(0)) && t.charAt(4) == '-') {
+                return LocalDate.parse(t.substring(0, 10));
+            }
+            return LocalDate.parse(t, PORTAL_DATE);
         } catch (Exception e) {
             return null;   // a date we cannot read is not worth failing the whole check over
         }

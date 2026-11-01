@@ -288,7 +288,8 @@ public class GstInvoiceController {
     /**
      * GSTR-1 in the offline utility's format, ready to upload.
      *
-     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7), cdn (9A/9B) or hsn (12). Omit
+     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7), cdn (9A/9B), or the HSN summary
+     * (12) as hsn_b2b and hsn_b2c (the single "hsn" exists only for periods before May 2025). Omit
      * it to get every section as JSON, which is the quickest way to see what a month actually
      * contains before filing any of it.
      */
@@ -308,9 +309,13 @@ public class GstInvoiceController {
             return ResponseEntity.ok(sections);
         }
         List<Map<String, Object>> rows = sections.get(section.toLowerCase());
+        if (rows == null && "hsn".equalsIgnoreCase(section)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "From the May 2025 return the "
+                    + "GST portal takes the HSN summary as two lists. Download hsn_b2b and hsn_b2c."));
+        }
         if (rows == null) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs, cdn or hsn."));
+            return ResponseEntity.badRequest().body(Map.of("error", "Unknown GSTR-1 section '"
+                    + section + "'. Use b2b, b2cl, b2cs, cdn, hsn_b2b, hsn_b2c or eco."));
         }
         if ("json".equalsIgnoreCase(format)) return ResponseEntity.ok(rows);
 

@@ -545,6 +545,30 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    /** One email per check listing the GST rule notifications and circulars found that day. */
+    public void sendGstRuleUpdatesDigest(String to, java.util.List<com.cauverystore.entities.GstRuleUpdate> found) {
+        if (found == null || found.isEmpty()) return;
+        String subject = found.size() == 1
+                ? "New GST rule change " + found.get(0).getNumber() + " - please read"
+                : found.size() + " new GST rule changes - please read";
+        StringBuilder rows = new StringBuilder();
+        for (com.cauverystore.entities.GstRuleUpdate u : found) {
+            rows.append("<li style='margin-bottom:6px;'><strong>").append(escape(u.getNumber())).append("</strong>")
+                .append(u.getIssuedOn() == null ? "" : " (" + u.getIssuedOn() + ")")
+                .append(" - ").append(escape(u.getTitle())).append("</li>");
+        }
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>New GST rule changes</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>CBIC or GSTN has published the following. They change "
+                + "rules (returns, invoicing, registration, e-commerce duties), not product rates, so "
+                + "nothing in the store has changed. Someone needs to read each one and record whether "
+                + "the store has to act.</p>"
+                + "<ul style='color:#374151;font-size:14px;padding-left:18px;'>" + rows + "</ul>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='https://cauverystore.in/admin/gst-compliance' style='background:" + TEAL
+                + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Review them</a></div>";
+        send(to, subject, wrapBranded(body));
+    }
+
     private static String escape(String s) {
         return s == null ? "" : s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }

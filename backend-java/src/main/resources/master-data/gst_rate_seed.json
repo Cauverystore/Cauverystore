@@ -2362,6 +2362,19 @@
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
   },
   {
+    "hsnCode": "12119013",
+    "gstRate": 0.0,
+    "effectiveFrom": "2026-11-01",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Psyllium seeds (Isobgul/Isobgol)",
+    "source": "CBIC Notif. 03/2026-CT(Rate) eff. 01-11-2026 (amends 10/2025-CT(Rate)); 57th GST Council meeting - exemption S.No 87A inserted",
+    "notes": "Exempt from 01-11-2026; was 5% under 1211 (dried). 03/2026-Integrated Tax (Rate) prints the code as 1211 90; the description limits it to psyllium seeds either way. Psyllium husk is not covered by this entry."
+  },
+  {
     "hsnCode": "1212",
     "gstRate": 0.0,
     "effectiveFrom": "2025-09-22",
@@ -5503,7 +5516,7 @@
     "hsnCode": "3101",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
-    "effectiveTo": null,
+    "effectiveTo": "2026-10-31",
     "status": "UNVERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
@@ -5511,6 +5524,19 @@
     "conditionText": "All goods i.e. animal or vegetable fertilisers or organic fertilisers pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+  },
+  {
+    "hsnCode": "3101",
+    "gstRate": 5.0,
+    "effectiveFrom": "2026-11-01",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "All goods i.e. animal or vegetable fertilisers or organic fertilisers pre-packaged and labelled. Explanation: includes sea-weed extract based bio-stimulants, as registered under Schedule VI to the Fertiliser (Inorganic, Organic or Mixed) (Control) Order, 1985",
+    "source": "CBIC Notif. 02/2026-CT(Rate) eff. 01-11-2026 (amends 09/2025-CT(Rate)); 57th GST Council meeting - Schedule I S.No 237 substituted",
+    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. Rate unchanged at 5%; only the wording changed."
   },
   {
     "hsnCode": "3102",
@@ -7468,7 +7494,7 @@
     "hsnCode": "4012",
     "gstRate": 18.0,
     "effectiveFrom": "2025-09-22",
-    "effectiveTo": null,
+    "effectiveTo": "2026-10-31",
     "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
@@ -7476,6 +7502,32 @@
     "conditionText": "Retreaded or used pneumatic tyres of rubber; solid or cushion tyres, tyre treads and tyre flaps, of rubber",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
     "notes": ""
+  },
+  {
+    "hsnCode": "4012",
+    "gstRate": 18.0,
+    "effectiveFrom": "2026-11-01",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Retreaded or used pneumatic tyres of rubber (other than retreaded tractor tyres); solid or cushion tyres, tyre treads and tyre flaps, of rubber",
+    "source": "CBIC Notif. 02/2026-CT(Rate) eff. 01-11-2026 (amends 09/2025-CT(Rate)); 57th GST Council meeting - Schedule II S.No 138 substituted",
+    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. Retreaded tractor tyres are 5% from 01-11-2026 (Schedule I S.No 272A)."
+  },
+  {
+    "hsnCode": "4012",
+    "gstRate": 5.0,
+    "effectiveFrom": "2026-11-01",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Retreaded tractor tyres",
+    "source": "CBIC Notif. 02/2026-CT(Rate) eff. 01-11-2026 (amends 09/2025-CT(Rate)); 57th GST Council meeting - Schedule I S.No 272A inserted",
+    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. Only retreaded tractor tyres; every other 4012 good stays 18%."
   },
   {
     "hsnCode": "4013",

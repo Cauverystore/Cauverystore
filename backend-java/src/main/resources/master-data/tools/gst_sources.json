@@ -1,44 +1,45 @@
 {
-  "_note": "Only list sources whose robots.txt permits automated reading. 'verified': false means the URL has not yet been seen working by a person - the first run's report will say so by listing it under 'could not be checked' if it fails.",
+  "_note": "Only list sources whose robots.txt permits automated reading. 'verified': false means the URL has not yet been seen working by a person - the first run's report will say so by listing it under 'could not be checked' if it fails. CBIC moved GST notifications from cbic-gst.gov.in (now 404) to taxinformation.cbic.gov.in. The 'cbic_api' sources read that portal's public JSON, the same calls its own pages make. Its robots.txt (checked 2026-11-01) blocks only account, admin and api-docs paths.",
   "download_if_matches": "20(25|26|27|28)",
   "max_downloads_per_run": 40,
   "sources": [
     {
-      "id": "gstcouncil-cgst-rate",
-      "label": "GST Council - CGST rate notifications",
-      "url": "https://gstcouncil.gov.in/cgst-rate-notification",
-      "pages": 2,
-      "allowed_hosts": ["gstcouncil.gov.in", "www.gstcouncil.gov.in"],
+      "id": "cbic-central-tax-rate",
+      "label": "CBIC tax information portal - Central Tax (Rate) notifications",
+      "type": "cbic_api",
+      "api_base": "https://taxinformation.cbic.gov.in/api/cbic-notification-msts",
+      "tax_id": 1000001,
+      "category": "Central Tax (Rate)",
+      "allowed_hosts": ["taxinformation.cbic.gov.in"],
       "verified": true
     },
     {
-      "id": "gstcouncil-igst-rate",
-      "label": "GST Council - IGST rate notifications",
-      "url": "https://gstcouncil.gov.in/igst-rate-notification",
+      "id": "cbic-integrated-tax-rate",
+      "label": "CBIC tax information portal - Integrated Tax (Rate) notifications",
+      "type": "cbic_api",
+      "api_base": "https://taxinformation.cbic.gov.in/api/cbic-notification-msts",
+      "tax_id": 1000001,
+      "category": "Integrated Tax (Rate)",
+      "allowed_hosts": ["taxinformation.cbic.gov.in"],
+      "verified": true
+    },
+    {
+      "id": "gstcouncil-cgst-rate",
+      "label": "GST Council - CGST rate notifications (backup source; lags CBIC)",
+      "url": "https://gstcouncil.gov.in/en/cgst-rate-notification",
       "pages": 2,
       "allowed_hosts": ["gstcouncil.gov.in", "www.gstcouncil.gov.in"],
-      "verified": false
+      "verified": true,
+      "_note": "Checked 2026-11-01: newest entry is 08/2025-Central Tax (Rate) (Jan 2025). It does not list 09/2025, 19/2025 or any 2026 notification, so it cannot be the main source. Kept because a document here that CBIC lacks would be worth knowing about."
     },
     {
-      "id": "cbic-central-tax-rate",
-      "label": "CBIC GST - Central Tax (Rate) notifications",
-      "url": "https://cbic-gst.gov.in/central-tax-rate.html",
-      "allowed_hosts": ["cbic-gst.gov.in", "www.cbic-gst.gov.in"],
-      "verified": false
-    },
-    {
-      "id": "cbic-integrated-tax-rate",
-      "label": "CBIC GST - Integrated Tax (Rate) notifications",
-      "url": "https://cbic-gst.gov.in/integrated-tax-rate.html",
-      "allowed_hosts": ["cbic-gst.gov.in", "www.cbic-gst.gov.in"],
-      "verified": false
-    },
-    {
-      "id": "cbic-taxinformation-portal",
-      "label": "CBIC tax information portal - GST notifications, circulars, corrigenda",
-      "url": "https://taxinformation.cbic.gov.in/searchPage/search?keyword=GST&taxId=1000001&startIndex=0&paginationFlag=true&rows=10",
-      "manual_only": true,
-      "reason": "robots.txt disallows automated access. Open it yourself, look for anything newer than the newest entry in cbic-source/, download it by hand into cbic-source/incoming/."
+      "id": "gstcouncil-cgst-circulars",
+      "label": "GST Council - CGST circulars (backup source; lags CBIC)",
+      "url": "https://gstcouncil.gov.in/en/cgst-circulars",
+      "pages": 2,
+      "allowed_hosts": ["gstcouncil.gov.in", "www.gstcouncil.gov.in"],
+      "verified": true,
+      "_note": "Checked 2026-11-01: newest entry is circular 250/07/2025-GST (Jun 2025); CBIC lists up to 266/12/2026-GST."
     }
   ]
 }

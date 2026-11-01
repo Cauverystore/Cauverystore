@@ -92,7 +92,8 @@ public class GstMasterDataLoader {
 
     /** Bump when the rate seed is regenerated from a newer CBIC notification. */
     private static final String RATE_SOURCE_VERSION =
-            "CBIC Notif. 09/2025-CT(Rate) as amended by 19/2025-CT(Rate) (eff. 01-02-2026) and 01/2026-CT(Rate) (eff. 01-05-2026); "
+            "CBIC Notif. 09/2025-CT(Rate) as amended by 19/2025-CT(Rate) (eff. 01-02-2026), 01/2026-CT(Rate) (eff. 01-05-2026) "
+            + "and 02/2026-CT(Rate) (eff. 01-11-2026); exemptions per 10/2025-CT(Rate) as amended by 03/2026-CT(Rate); "
             + "compensation cess per Notif. 03/2025-Compensation Cess (Rate) eff. 01-02-2026";
 
     private final HsnMasterRepository hsnRepo;

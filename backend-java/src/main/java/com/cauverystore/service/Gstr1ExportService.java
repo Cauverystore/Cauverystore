@@ -6,9 +6,14 @@ import com.cauverystore.entities.DebitNote;
 import com.cauverystore.entities.DebitNoteItem;
 import com.cauverystore.entities.GstInvoice;
 import com.cauverystore.entities.GstInvoiceItem;
+import com.cauverystore.client.LiveGstnClient;
 import com.cauverystore.util.GstComplianceUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
+import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -34,8 +39,19 @@ import java.util.Map;
  *   b2b   (4A)  supplies to a registered buyer, i.e. one with a GSTIN
  *   b2cl  (5A)  inter-state supplies to consumers above the B2C-large threshold
  *   b2cs  (7)   remaining consumer supplies, aggregated by place of supply and rate
- *   cdn   (9A/9B) credit and debit notes issued in the period, one row per note per rate
- *   hsn   (12)  the HSN-wise summary, which is mandatory and was missing entirely
+ *   cdn   (9B)  credit and debit notes to registered buyers, in the utility's cdnr layout
+ *   hsn_b2b (12) the HSN-wise summary of supplies to registered buyers
+ *   hsn_b2c (12) the HSN-wise summary of supplies to everyone else
+ *   hsn   (12)  the single HSN summary, only for return periods before May 2025
+ *   eco   (14)  supplies made through the marketplace, which collects TCS on them (s.52)
+ *
+ * Column order and values follow the templates shipped with the GST Returns Offline Tool
+ * (V3.2.4). The utility reads columns by position, so a correct heading in the wrong place
+ * still fails the import.
+ *
+ * From the May 2025 return period the portal takes Table 12 as two lists, B2B and B2C, and
+ * rejects a file that still sends one. A supply is B2B when the buyer has a GSTIN - the same
+ * test the b2b section uses, so the two tables always agree.
  *
  * Nothing here is filed automatically. It produces files a human uploads and checks, which is
  * the right division of labour for a return someone signs.
@@ -47,6 +63,9 @@ public class Gstr1ExportService {
     private static final DateTimeFormatter GST_DATE =
             DateTimeFormatter.ofPattern("dd-MMM-uuuu", Locale.ENGLISH);
 
+    /** The first return period whose HSN summary is split into B2B and B2C. */
+    public static final LocalDate HSN_SPLIT_FROM = LocalDate.of(2025, 5, 1);
+
     public static final String[] B2B_HEADERS = {
             "GSTIN/UIN of Recipient", "Receiver Name", "Invoice Number", "Invoice date",
             "Invoice Value", "Place Of Supply", "Reverse Charge", "Applicable % of Tax Rate",
@@ -57,27 +76,64 @@ public class Gstr1ExportService {
             "Applicable % of Tax Rate", "Rate", "Taxable Value", "Cess Amount",
             "E-Commerce GSTIN"};
 
+    /**
+     * Type is E for sales made through an e-commerce operator, whose GSTIN then goes in the
+     * last column, and OE for everything else.
+     */
     public static final String[] B2CS_HEADERS = {
-            "Type", "Place Of Supply", "Applicable % of Tax Rate", "Rate", "Taxable Value",
+            "Type", "Place Of Supply", "Rate", "Applicable % of Tax Rate", "Taxable Value",
             "Cess Amount", "E-Commerce GSTIN"};
 
     /**
      * Table 9A/9B - credit and debit notes issued in the period.
      *
-     * Both notes share one shape in the offline utility, distinguished by the "Note Type"
-     * column: C for a credit note, D for a debit note. Only notes issued against a registered
-     * recipient (a GSTIN is present) are reported here; notes to consumers are netted inside
-     * B2CS rather than listed.
+     * The utility's cdnr layout. Both notes share it, told apart by "Note Type": C for a
+     * credit note, D for a debit note. Only notes to a registered recipient (a GSTIN is
+     * present) go here; notes to consumers are netted inside B2CS rather than listed.
      */
     public static final String[] CDN_HEADERS = {
-            "GSTIN/UIN of Recipient", "Receiver Name", "Note Number", "Note date",
-            "Note Value", "Place Of Supply", "Reverse Charge", "Applicable % of Tax Rate",
-            "Note Type", "E-Commerce GSTIN", "Rate", "Taxable Value", "Cess Amount"};
+            "GSTIN/UIN of Recipient", "Receiver Name", "Note Number", "Note Date",
+            "Note Type", "Place Of Supply", "Reverse Charge", "Note Supply Type",
+            "Note Value", "Applicable % of Tax Rate", "Rate", "Taxable Value", "Cess Amount"};
 
+    /** Rate comes last, and UQC is written as code and name, e.g. "NOS-NUMBERS". */
     public static final String[] HSN_HEADERS = {
-            "HSN", "Description", "UQC", "Total Quantity", "Total Value", "Rate",
-            "Taxable Value", "Integrated Tax Amount", "Central Tax Amount",
-            "State/UT Tax Amount", "Cess Amount"};
+            "HSN", "Description", "UQC", "Total Quantity", "Total Value", "Taxable Value",
+            "Integrated Tax Amount", "Central Tax Amount", "State/UT Tax Amount",
+            "Cess Amount", "Rate"};
+
+    /** Table 14: supplies made through an e-commerce operator. */
+    public static final String[] ECO_HEADERS = {
+            "Nature of Supply", "GSTIN of E-Commerce Operator", "E-Commerce Operator Name",
+            "Net value of supplies", "Integrated tax", "Central tax", "State/UT tax", "Cess"};
+
+    /** The utility's wording for supplies on which the operator collects TCS. */
+    public static final String ECO_TCS = "Liable to collect tax u/s 52(TCS)";
+
+    /** Unit names from the GST unit master, by code. */
+    private static final Map<String, String> UNIT_NAMES = loadUnitNames();
+
+    private static Map<String, String> loadUnitNames() {
+        Map<String, String> names = new LinkedHashMap<>();
+        try (InputStream in = Gstr1ExportService.class.getClassLoader()
+                .getResourceAsStream("master-data/unit_master.json")) {
+            if (in != null) {
+                for (JsonNode n : new ObjectMapper().readTree(in)) {
+                    names.put(n.path("code").asText(), n.path("description").asText());
+                }
+            }
+        } catch (java.io.IOException ignored) {
+            // Falls back to the code alone; the import then names the unit it cannot read.
+        }
+        return names;
+    }
+
+    /** A unit as the HSN table wants it: "NOS-NUMBERS", "KGS-KILOGRAMS". */
+    static String uqcLabel(String unit) {
+        String code = LiveGstnClient.uqc(unit);
+        String name = UNIT_NAMES.get(code);
+        return name == null || name.isEmpty() ? code : code + "-" + name;
+    }
 
     /** One invoice line collapsed to the rate it was taxed at. */
     private static class RateLine {
@@ -133,6 +189,11 @@ public class Gstr1ExportService {
 
     /** 4A - supplies to a buyer who has a GSTIN and can claim input credit on them. */
     public List<Map<String, Object>> b2b(List<GstInvoice> invoices) {
+        return b2b(invoices, null);
+    }
+
+    /** @param ecoGstin the marketplace's TCS GSTIN when these sales went through it, else null */
+    public List<Map<String, Object>> b2b(List<GstInvoice> invoices, String ecoGstin) {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (GstInvoice inv : invoices) {
             if (isBlank(inv.getBuyerGstin())) continue;
@@ -147,7 +208,7 @@ public class Gstr1ExportService {
                 row.put("Reverse Charge", "N");
                 row.put("Applicable % of Tax Rate", "");
                 row.put("Invoice Type", "Regular B2B");
-                row.put("E-Commerce GSTIN", "");
+                row.put("E-Commerce GSTIN", ecoGstin == null ? "" : ecoGstin);
                 row.put("Rate", round(line.rate));
                 row.put("Taxable Value", round(line.taxable));
                 row.put("Cess Amount", round(line.cessAmount));
@@ -159,6 +220,10 @@ public class Gstr1ExportService {
 
     /** 5A - inter-state consumer supplies above the B2C-large threshold, reported per invoice. */
     public List<Map<String, Object>> b2cl(List<GstInvoice> invoices) {
+        return b2cl(invoices, null);
+    }
+
+    public List<Map<String, Object>> b2cl(List<GstInvoice> invoices, String ecoGstin) {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (GstInvoice inv : invoices) {
             if (!isBlank(inv.getBuyerGstin())) continue;
@@ -173,7 +238,7 @@ public class Gstr1ExportService {
                 row.put("Rate", round(line.rate));
                 row.put("Taxable Value", round(line.taxable));
                 row.put("Cess Amount", round(line.cessAmount));
-                row.put("E-Commerce GSTIN", "");
+                row.put("E-Commerce GSTIN", ecoGstin == null ? "" : ecoGstin);
                 rows.add(row);
             }
         }
@@ -188,22 +253,30 @@ public class Gstr1ExportService {
      * row per invoice is the usual reason a B2CS import is rejected.
      */
     public List<Map<String, Object>> b2cs(List<GstInvoice> invoices) {
+        return b2cs(invoices, null);
+    }
+
+    /**
+     * @param ecoGstin the marketplace's TCS GSTIN when these sales went through it. Rows are
+     *                 then Type E with that GSTIN; without one they are OE.
+     */
+    public List<Map<String, Object>> b2cs(List<GstInvoice> invoices, String ecoGstin) {
+        String type = ecoGstin == null ? "OE" : "E";
         Map<String, Map<String, Object>> aggregated = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
             if (!isBlank(inv.getBuyerGstin())) continue;
             if (GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) continue;
-            boolean interState = Boolean.TRUE.equals(inv.getIsInterState());
             for (RateLine line : linesByRate(inv).values()) {
-                String key = (interState ? "INTER" : "INTRA") + "|" + inv.getPlaceOfSupply() + "|" + line.rate + "|" + line.cess;
+                String key = inv.getPlaceOfSupply() + "|" + line.rate + "|" + line.cess;
                 Map<String, Object> row = aggregated.computeIfAbsent(key, k -> {
                     Map<String, Object> fresh = new LinkedHashMap<>();
-                    fresh.put("Type", interState ? "INTER" : "INTRA");
+                    fresh.put("Type", type);
                     fresh.put("Place Of Supply", inv.getPlaceOfSupply());
-                    fresh.put("Applicable % of Tax Rate", "");
                     fresh.put("Rate", round(line.rate));
+                    fresh.put("Applicable % of Tax Rate", "");
                     fresh.put("Taxable Value", 0.0);
                     fresh.put("Cess Amount", 0.0);
-                    fresh.put("E-Commerce GSTIN", "");
+                    fresh.put("E-Commerce GSTIN", ecoGstin == null ? "" : ecoGstin);
                     return fresh;
                 });
                 row.put("Taxable Value", round((Double) row.get("Taxable Value") + line.taxable));
@@ -220,8 +293,24 @@ public class Gstr1ExportService {
      * the return being filed from this data.
      */
     public List<Map<String, Object>> hsnSummary(List<GstInvoice> invoices) {
+        return hsnSummary(invoices, null);
+    }
+
+    /** 12, B2B list: supplies to buyers with a GSTIN. */
+    public List<Map<String, Object>> hsnSummaryB2b(List<GstInvoice> invoices) {
+        return hsnSummary(invoices, Boolean.TRUE);
+    }
+
+    /** 12, B2C list: supplies to buyers without a GSTIN. */
+    public List<Map<String, Object>> hsnSummaryB2c(List<GstInvoice> invoices) {
+        return hsnSummary(invoices, Boolean.FALSE);
+    }
+
+    /** @param registered TRUE for buyers with a GSTIN only, FALSE for the rest, null for all */
+    private List<Map<String, Object>> hsnSummary(List<GstInvoice> invoices, Boolean registered) {
         Map<String, Map<String, Object>> byHsnAndRate = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
+            if (registered != null && registered == isBlank(inv.getBuyerGstin())) continue;
             for (GstInvoiceItem item : inv.getItems()) {
                 double rate = nz(item.getIgstRate()) > 0
                         ? nz(item.getIgstRate())
@@ -234,15 +323,15 @@ public class Gstr1ExportService {
                     Map<String, Object> fresh = new LinkedHashMap<>();
                     fresh.put("HSN", hsn);
                     fresh.put("Description", item.getProductName());
-                    fresh.put("UQC", item.getUnitOfMeasure() != null ? item.getUnitOfMeasure() : "NOS");
+                    fresh.put("UQC", uqcLabel(item.getUnitOfMeasure()));
                     fresh.put("Total Quantity", 0.0);
                     fresh.put("Total Value", 0.0);
-                    fresh.put("Rate", round(rate));
                     fresh.put("Taxable Value", 0.0);
                     fresh.put("Integrated Tax Amount", 0.0);
                     fresh.put("Central Tax Amount", 0.0);
                     fresh.put("State/UT Tax Amount", 0.0);
                     fresh.put("Cess Amount", 0.0);
+                    fresh.put("Rate", round(rate));
                     return fresh;
                 });
                 add(row, "Total Quantity", item.getQuantity() == null ? 0 : item.getQuantity());
@@ -328,13 +417,13 @@ public class Gstr1ExportService {
             row.put("GSTIN/UIN of Recipient", buyerGstin.trim());
             row.put("Receiver Name", buyerName);
             row.put("Note Number", noteNumber);
-            row.put("Note date", noteDate == null ? "" : noteDate.format(GST_DATE));
-            row.put("Note Value", round(nz(noteValue)));
+            row.put("Note Date", noteDate == null ? "" : noteDate.format(GST_DATE));
+            row.put("Note Type", noteType);
             row.put("Place Of Supply", placeOfSupply);
             row.put("Reverse Charge", "N");
+            row.put("Note Supply Type", "Regular B2B");
+            row.put("Note Value", round(nz(noteValue)));
             row.put("Applicable % of Tax Rate", "");
-            row.put("Note Type", noteType);
-            row.put("E-Commerce GSTIN", "");
             row.put("Rate", round(Double.parseDouble(e.getKey())));
             row.put("Taxable Value", round(e.getValue()));
             row.put("Cess Amount", 0.0);
@@ -343,21 +432,92 @@ public class Gstr1ExportService {
         return rows;
     }
 
+    /**
+     * 14 - supplies made through the marketplace, on which it collects TCS.
+     *
+     * One row for the period: invoices, less credit notes, plus debit notes, so the figure
+     * matches what the operator reports against this seller in GSTR-8. Empty when the sales
+     * did not go through an operator.
+     */
+    public List<Map<String, Object>> eco(List<GstInvoice> invoices, List<CreditNote> creditNotes,
+                                         List<DebitNote> debitNotes, String ecoGstin, String ecoName) {
+        if (ecoGstin == null || invoices.isEmpty()) return List.of();
+        double value = 0, igst = 0, cgst = 0, sgst = 0, cess = 0;
+        for (GstInvoice inv : invoices) {
+            value += nz(inv.getTaxableAmount());
+            igst += nz(inv.getIgstAmount());
+            cgst += nz(inv.getCgstAmount());
+            sgst += nz(inv.getSgstAmount());
+            cess += nz(inv.getTotalCess());
+        }
+        for (CreditNote cn : creditNotes == null ? List.<CreditNote>of() : creditNotes) {
+            value -= nz(cn.getTaxableAmount());
+            igst -= nz(cn.getIgstAmount());
+            cgst -= nz(cn.getCgstAmount());
+            sgst -= nz(cn.getSgstAmount());
+        }
+        for (DebitNote dn : debitNotes == null ? List.<DebitNote>of() : debitNotes) {
+            value += nz(dn.getTaxableAmount());
+            igst += nz(dn.getIgstAmount());
+            cgst += nz(dn.getCgstAmount());
+            sgst += nz(dn.getSgstAmount());
+        }
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("Nature of Supply", ECO_TCS);
+        row.put("GSTIN of E-Commerce Operator", ecoGstin);
+        row.put("E-Commerce Operator Name", ecoName == null ? "" : ecoName);
+        row.put("Net value of supplies", round(value));
+        row.put("Integrated tax", round(igst));
+        row.put("Central tax", round(cgst));
+        row.put("State/UT tax", round(sgst));
+        row.put("Cess", round(cess));
+        return List.of(row);
+    }
+
     /** Every section, keyed by the name the utility uses for it. */
     public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices) {
         return allSections(invoices, List.of(), List.of());
     }
 
-    /** Every section, including credit and debit notes for the period. */
+    /** Every section, including credit and debit notes, for a return period from May 2025. */
     public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices,
                                                               List<CreditNote> creditNotes,
                                                               List<DebitNote> debitNotes) {
+        return allSections(invoices, creditNotes, debitNotes, null);
+    }
+
+    /**
+     * Every section for the period starting {@code periodStart} (null means a current period).
+     * The HSN summary comes as hsn_b2b and hsn_b2c; the single "hsn" list is added only for
+     * periods before May 2025, when the portal still took one.
+     */
+    public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices,
+                                                              List<CreditNote> creditNotes,
+                                                              List<DebitNote> debitNotes,
+                                                              LocalDate periodStart) {
+        return allSections(invoices, creditNotes, debitNotes, periodStart, null, null);
+    }
+
+    /**
+     * As above, for sales made through the marketplace: {@code ecoGstin} is its TCS GSTIN in
+     * the seller's state and {@code ecoName} its legal name. Pass null for both otherwise.
+     */
+    public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices,
+                                                              List<CreditNote> creditNotes,
+                                                              List<DebitNote> debitNotes,
+                                                              LocalDate periodStart,
+                                                              String ecoGstin, String ecoName) {
         Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
-        out.put("b2b", b2b(invoices));
-        out.put("b2cl", b2cl(invoices));
-        out.put("b2cs", b2cs(invoices));
+        out.put("b2b", b2b(invoices, ecoGstin));
+        out.put("b2cl", b2cl(invoices, ecoGstin));
+        out.put("b2cs", b2cs(invoices, ecoGstin));
         out.put("cdn", cdn(creditNotes, debitNotes));
-        out.put("hsn", hsnSummary(invoices));
+        out.put("hsn_b2b", hsnSummaryB2b(invoices));
+        out.put("hsn_b2c", hsnSummaryB2c(invoices));
+        if (periodStart != null && periodStart.isBefore(HSN_SPLIT_FROM)) {
+            out.put("hsn", hsnSummary(invoices));
+        }
+        out.put("eco", eco(invoices, creditNotes, debitNotes, ecoGstin, ecoName));
         return out;
     }
 
@@ -367,9 +527,12 @@ public class Gstr1ExportService {
             case "b2cl": return B2CL_HEADERS;
             case "b2cs": return B2CS_HEADERS;
             case "cdn": return CDN_HEADERS;
-            case "hsn": return HSN_HEADERS;
-            default: throw new IllegalArgumentException(
-                    "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs, cdn or hsn.");
+            case "hsn":
+            case "hsn_b2b":
+            case "hsn_b2c": return HSN_HEADERS;
+            case "eco": return ECO_HEADERS;
+            default: throw new IllegalArgumentException("Unknown GSTR-1 section '" + section
+                    + "'. Use b2b, b2cl, b2cs, cdn, hsn_b2b, hsn_b2c or eco.");
         }
     }
 

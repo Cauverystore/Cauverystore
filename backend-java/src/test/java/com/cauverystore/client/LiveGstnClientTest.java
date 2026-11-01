@@ -288,27 +288,166 @@ class LiveGstnClientTest {
         assertEquals("29AABCP9603R1ZH", buyer.get("Gstin"));
     }
 
-    @Test
-    void payload_shouldMarkUnregisteredBuyerAsUrpAndB2C() {
-        invoice.setBuyerGstin(null);
-        invoice.setBuyerName("Cash Customer");
-        invoice.setDeliveryStateCode("07");
-        invoice.setTaxableAmount(100.0);
-        invoice.setCgstAmount(20.0);
-        invoice.setSgstAmount(20.0);
-        invoice.setTotalAmount(140.0);
+    /** An invoice the IRP would accept: registered buyer, full addresses, one line. */
+    private GstInvoice completeB2bInvoice() {
+        invoice.setInvoiceNumber("CS2611/00001");
+        invoice.setSellerLegalName("Cauvery Stores Pvt Ltd");
+        invoice.setSellerAddress("12 Main Road, Srirangam, Tiruchirappalli, Tamil Nadu, 620006");
+        invoice.setBuyerGstin("29AABCP9603R1ZH");
+        invoice.setBuyerName("Buyer Co");
+        invoice.setBuyerAddress("4 MG Road, Bengaluru, Karnataka, 560001");
+        invoice.setDeliveryStateCode("29");
+        invoice.setItems(List.of(goodsItem()));
+        return invoice;
+    }
 
-        Map<String, Object> payload = client.buildInvoicePayload(invoice);
+    @Test
+    void shouldRefuseAConsumerInvoice_becauseTheIrpOnlyTakesRegisteredBuyers() {
+        // A B2C invoice sent to the IRP is refused every time; the retry queue would then hold
+        // it as PENDING_IRN for ever. It is refused here instead, before any network call.
+        configure("id", "secret", "user", "pass", "33AABCU9603R1ZM", "key");
+        completeB2bInvoice();
+        invoice.setBuyerGstin("URP");
+
+        LiveGstnClient.IrpException ex = assertThrows(
+                LiveGstnClient.IrpException.class, () -> client.generateIrn(invoice));
+        assertTrue(ex.getMessage().contains("registered buyers"), ex.getMessage());
+        assertFalse(client.problemsWith(invoice).isEmpty());
+    }
+
+    @Test
+    void aCompleteB2bInvoiceShouldHaveNoProblems() {
+        assertEquals(List.of(), client.problemsWith(completeB2bInvoice()));
+    }
+
+    @Test
+    void shouldNameEachMissingPieceTheIrpRequires() {
+        completeB2bInvoice();
+        invoice.setSellerAddress("Trichy");
+        invoice.setBuyerName(" ");
+        invoice.setInvoiceNumber("0123");
+
+        String problems = String.join("; ", client.problemsWith(invoice));
+
+        assertTrue(problems.contains("seller's address has no 6-digit PIN code"), problems);
+        assertTrue(problems.contains("buyer's legal name is missing"), problems);
+        assertTrue(problems.contains("invoice number"), problems);
+    }
+
+    @Test
+    void payload_shouldSplitTheStoresAddressIntoTheIrpFields() {
+        Map<String, Object> payload = client.buildInvoicePayload(completeB2bInvoice());
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> tran = (Map<String, Object>) payload.get("TranDtls");
-        assertEquals("B2C", tran.get("SupTyp"));
+        Map<String, Object> seller = (Map<String, Object>) payload.get("SellerDtls");
+        assertEquals("12 Main Road, Srirangam", seller.get("Addr1"));
+        assertEquals("Tiruchirappalli", seller.get("Loc"));
+        assertEquals(620006, seller.get("Pin"));
         @SuppressWarnings("unchecked")
         Map<String, Object> buyer = (Map<String, Object>) payload.get("BuyerDtls");
-        assertEquals("URP", buyer.get("Gstin"));
-        assertEquals("07", buyer.get("Pos"));
-        assertFalse(buyer.containsKey("Stcd"),
-                "an unregistered buyer has no GSTIN from which to derive a state code");
+        assertEquals("4 MG Road", buyer.get("Addr1"));
+        assertEquals("Bengaluru", buyer.get("Loc"));
+        assertEquals(560001, buyer.get("Pin"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> tran = (Map<String, Object>) payload.get("TranDtls");
+        assertEquals("B2B", tran.get("SupTyp"));
+    }
+
+    @Test
+    void payload_shouldSendShipDtlsOnABillToShipToInvoice() {
+        completeB2bInvoice();
+        invoice.setBillToShipTo(true);
+        invoice.setConsigneeName("Mumbai Client Ltd");
+        invoice.setConsigneeAddress("12 Link Road, Andheri, Mumbai, Maharashtra, 400053");
+        invoice.setConsigneeGstin("URP");
+        invoice.setConsigneeStateCode("27");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> ship = (Map<String, Object>) client.buildInvoicePayload(invoice).get("ShipDtls");
+
+        assertEquals("URP", ship.get("Gstin"), "an unregistered consignee goes as URP");
+        assertEquals("Mumbai Client Ltd", ship.get("LglNm"));
+        assertEquals("Mumbai", ship.get("Loc"));
+        assertEquals(400053, ship.get("Pin"));
+        assertEquals("27", ship.get("Stcd"));
+        assertEquals(List.of(), client.problemsWith(invoice));
+    }
+
+    @Test
+    void payload_shouldLeaveOutShipDtlsWhenTheBuyerReceivesTheGoods() {
+        assertFalse(client.buildInvoicePayload(completeB2bInvoice()).containsKey("ShipDtls"));
+    }
+
+    @Test
+    void shouldNameWhatTheShipToDetailsAreMissing() {
+        completeB2bInvoice();
+        invoice.setBillToShipTo(true);
+        invoice.setConsigneeAddress("Andheri");
+
+        String problems = String.join("; ", client.problemsWith(invoice));
+
+        assertTrue(problems.contains("consignee's name is missing"), problems);
+        assertTrue(problems.contains("consignee's address has no 6-digit PIN code"), problems);
+        assertTrue(problems.contains("consignee's state is unknown"), problems);
+    }
+
+    @Test
+    void address_shouldSplitALongStreetAcrossAddr1AndAddr2() {
+        String street = "Plot 45, Third Cross Street, Industrial Estate Extension Phase Two, "
+                + "Behind the Old Railway Goods Shed, Near Water Tank";
+        LiveGstnClient.Address a = LiveGstnClient.Address.parse(street + ", Coimbatore, Tamil Nadu, 641021");
+
+        assertTrue(a.line1().length() <= 100, a.line1());
+        assertNotNull(a.line2());
+        assertTrue(a.line2().length() <= 100);
+        assertEquals(street, a.line1() + ", " + a.line2());
+        assertEquals("Coimbatore", a.locality());
+        assertEquals(641021, a.pin());
+    }
+
+    @Test
+    void units_shouldBeSentAsUqcCodes() {
+        assertEquals("PCS", LiveGstnClient.uqc("pcs"));
+        assertEquals("PCS", LiveGstnClient.uqc("Piece"));
+        assertEquals("KGS", LiveGstnClient.uqc("kg"));
+        assertEquals("LTR", LiveGstnClient.uqc("Litre"));
+        assertEquals("NOS", LiveGstnClient.uqc(null));
+        assertEquals("OTH", LiveGstnClient.uqc("hours"), "anything else goes as OTH, as the IRP asks");
+    }
+
+    @Test
+    void payload_shouldSendTheTaxableUnitPrice_andDigitsOnlyHsn() {
+        GstInvoiceItem item = goodsItem();
+        item.setHsnCode("2202 10");
+        item.setUnitPrice(70.0); // the GST-inclusive shelf price
+        item.setUnitOfMeasure("bottle");
+        invoice.setItems(List.of(item));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> line = ((List<Map<String, Object>>) client.buildInvoicePayload(invoice)
+                .get("ItemList")).get(0);
+
+        assertEquals("220210", line.get("HsnCd"));
+        assertEquals(50.0, line.get("UnitPrice"), "100 taxable over 2 units, so Qty x UnitPrice = TotAmt");
+        assertEquals(100.0, line.get("TotAmt"));
+        assertEquals("BTL", line.get("Unit"));
+    }
+
+    @Test
+    void payload_shouldCarryRoundingInRndOffAmt() {
+        invoice.setBuyerGstin("29AABCP9603R1ZH");
+        invoice.setTaxableAmount(150.0);
+        invoice.setCgstAmount(0.0);
+        invoice.setSgstAmount(0.0);
+        invoice.setIgstAmount(9.4);
+        invoice.setTotalCess(0.0);
+        invoice.setTotalAmount(159.0);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> val = (Map<String, Object>) client.buildInvoicePayload(invoice).get("ValDtls");
+
+        assertEquals(-0.4, val.get("RndOffAmt"));
+        assertEquals(159.0, val.get("TotInvVal"));
     }
 
     @Test
@@ -326,7 +465,9 @@ class LiveGstnClientTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> val = (Map<String, Object>) payload.get("ValDtls");
         assertEquals(150.0, val.get("AssVal"));
-        assertEquals(0.0, val.get("CessVal"));
+        assertEquals(0.0, val.get("CesVal"), "the schema spells it CesVal");
+        assertFalse(val.containsKey("CessVal"));
+        assertFalse(val.containsKey("RndOffAmt"), "nothing to round off");
         assertEquals(0.0, val.get("StCesVal"), "no state cess exists; the field is sent as zero");
         assertEquals(159.0, val.get("TotInvVal"));
     }

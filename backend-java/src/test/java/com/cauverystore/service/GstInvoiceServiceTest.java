@@ -297,7 +297,9 @@ class GstInvoiceServiceTest {
                 "ackNo", "ACK-20260806-000001",
                 "ackDate", "2026-08-06"));
 
-        Map<String, Object> result = gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN);
+        // A registered buyer: only B2B invoices are e-invoiced.
+        Map<String, Object> result = gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, BUYER_GSTIN_MH, "27");
 
         GstInvoice inv = (GstInvoice) result.get("invoice");
 
@@ -309,6 +311,20 @@ class GstInvoiceServiceTest {
         assertNotNull(inv.getAckNo());
         assertTrue(GstComplianceUtil.requiresEInvoice(config.getAnnualTurnover()));
         verify(gstnClient).generateIrn(inv);
+    }
+
+    @Test
+    void generate_consumerInvoiceAboveFiveCrore_shouldNotBeSentToTheIrp() {
+        // The IRP refuses B2C invoices; sending one would leave it PENDING_IRN for good.
+        stubCommonRepos();
+        config.setAnnualTurnover(8_00_00_000.0);
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        assertFalse(Boolean.TRUE.equals(inv.getEinvoicingRequired()));
+        assertNotEquals("PENDING_IRN", inv.getStatus());
+        verify(gstnClient, never()).generateIrn(any());
     }
 
     @Test
@@ -643,6 +659,41 @@ class GstInvoiceServiceTest {
                 "same state as the seller, so this is intra-state despite the delivery address");
         assertTrue(inv.getCgstAmount() > 0 && inv.getSgstAmount() > 0);
         assertEquals(0.0, inv.getIgstAmount(), 0.01);
+    }
+
+    @Test
+    void billToShipTo_shouldCarryTheConsigneesGstinAndState() {
+        // The IRP wants the ship-to GSTIN from 1 August 2026, "URP" when there is none, and
+        // a state that matches it - the GSTIN's own, or the PIN code's for an unregistered one.
+        stubCommonRepos();
+        order.setBuyerGstin(SELLER_GSTIN_TN);
+        order.setBuyerLegalName("Chennai Traders Pvt Ltd");
+        order.setBillToShipTo(true);
+        order.setConsigneeName("Mumbai Client Ltd");
+        order.setConsigneeAddress("12 Link Road, Andheri, Mumbai, Maharashtra");
+        order.setConsigneeGstin(BUYER_GSTIN_MH);
+
+        GstInvoice registered = (GstInvoice) gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, SELLER_GSTIN_TN, "27").get("invoice");
+
+        assertEquals(BUYER_GSTIN_MH, registered.getConsigneeGstin());
+        assertEquals("27", registered.getConsigneeStateCode());
+    }
+
+    @Test
+    void billToShipTo_anUnregisteredConsigneeIsUrpWithThePinCodesState() {
+        stubCommonRepos();
+        order.setBuyerGstin(SELLER_GSTIN_TN);
+        order.setBuyerLegalName("Chennai Traders Pvt Ltd");
+        order.setBillToShipTo(true);
+        order.setConsigneeName("A Customer");
+        order.setConsigneeAddress("4 Beach Road, Mylapore, Chennai, Tamil Nadu, 600004");
+
+        GstInvoice inv = (GstInvoice) gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, SELLER_GSTIN_TN, "33").get("invoice");
+
+        assertEquals("URP", inv.getConsigneeGstin());
+        assertEquals("33", inv.getConsigneeStateCode(), "600004 is in Tamil Nadu");
     }
 
     @Test
