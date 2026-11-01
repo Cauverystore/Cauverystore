@@ -55,6 +55,16 @@ import java.util.Set;
 @Service
 public class GstRateChangeService {
 
+    // Optional so tests that build this service by hand need not supply it.
+    private GstAuditService gstAudit;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
+
+    private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
+        if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
+    }
+
     private static final Logger log = LoggerFactory.getLogger(GstRateChangeService.class);
 
     private final GstRateProposalRepository proposalRepo;
@@ -291,6 +301,11 @@ public class GstRateChangeService {
         decide(p, GstRateProposal.STATUS_ACCEPTED, acceptedBy,
                 alreadyInForce ? "Already in force at this rate from this date; nothing was changed."
                         + (note == null || note.isBlank() ? "" : " " + note) : note);
+        gstAudit(GstAuditService.RATE_CHANGE_ACCEPTED, "GstRate", p.getHsnCode(), null,
+                GstAuditService.payload("proposalId", p.getId(), "rate", p.getProposedRate(),
+                        "effectiveFrom", String.valueOf(p.getEffectiveFrom()),
+                        "notification", p.getNotificationNumber(), "acceptedBy", acceptedBy,
+                        "alreadyInForce", alreadyInForce));
         log.info("GST rate proposal {} accepted by {}: {} at {}% from {} ({}).", p.getId(), acceptedBy,
                 p.getHsnCode(), p.getProposedRate(), p.getEffectiveFrom(), p.getNotificationNumber());
         return p;

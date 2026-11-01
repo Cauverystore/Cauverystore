@@ -30,6 +30,16 @@ import java.util.*;
 @Service
 public class CreditNoteService {
 
+    // Optional so tests that build this service by hand need not supply it.
+    private GstAuditService gstAudit;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
+
+    private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
+        if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
+    }
+
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(CreditNoteService.class);
 
@@ -158,6 +168,12 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
+                        "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
+                        "taxable", saved.getTaxableAmount(), "cgst", saved.getCgstAmount(),
+                        "sgst", saved.getSgstAmount(), "igst", saved.getIgstAmount(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount()));
         writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(null, actorEmail != null ? actorEmail : "system", "CREDIT_NOTE_GENERATED",
@@ -307,6 +323,12 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
+                        "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
+                        "taxable", saved.getTaxableAmount(), "cgst", saved.getCgstAmount(),
+                        "sgst", saved.getSgstAmount(), "igst", saved.getIgstAmount(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount()));
         writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(null, actorEmail != null ? actorEmail : "system", "CREDIT_NOTE_GENERATED",
@@ -374,6 +396,12 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
+                        "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
+                        "taxable", saved.getTaxableAmount(), "cgst", saved.getCgstAmount(),
+                        "sgst", saved.getSgstAmount(), "igst", saved.getIgstAmount(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount()));
         writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(userId, userId != null ? "seller:" + userId : "system", "CREDIT_NOTE_GENERATED",

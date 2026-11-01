@@ -224,7 +224,10 @@ class GstInvoiceServiceTest {
         assertEquals(0.0, inv.getIgstAmount(), 0.01);
         assertEquals(127.2, inv.getTotalTax(), 0.01);
         // TCS is recorded because it has to be paid over and declared in GSTR-8...
-        assertEquals(10.4, inv.getTcsAmount(), 0.01);
+        // 0.5% of 1040, even though this configuration still says 1%: the rate is the law's on
+        // the invoice date, not whatever was saved in the configuration row.
+        assertEquals(5.2, inv.getTcsAmount(), 0.01);
+        assertEquals(0.5, inv.getTcsRate(), 0.0001);
         // ...but it is not the customer's to pay. This assertion used to expect 1177.6, which
         // was the taxable value plus GST plus TCS - so the test was pinning an overcharge of 1%
         // of the goods value on every order. The customer owes goods plus GST and nothing else.
@@ -694,6 +697,50 @@ class GstInvoiceServiceTest {
 
         assertEquals("URP", inv.getConsigneeGstin());
         assertEquals("33", inv.getConsigneeStateCode(), "600004 is in Tamil Nadu");
+    }
+
+    private GstConfiguration marketplaceConfig() {
+        GstConfiguration c = new GstConfiguration();
+        c.setGstin("33ABCDE1234F1Z7"); // a valid check digit; the save refuses any other
+        c.setLegalName("Cauvery Stores Pvt Ltd");
+        c.setAddress("12 Main Road, Srirangam, Tiruchirappalli, Tamil Nadu, 620006");
+        return c;
+    }
+
+    @Test
+    void saveConfiguration_fillsStateAndPanFromTheGstin() {
+        when(configRepo.save(any(GstConfiguration.class))).thenAnswer(i -> i.getArgument(0));
+        GstConfiguration c = marketplaceConfig();
+
+        gstService.saveConfiguration(c);
+
+        assertEquals("33", c.getStateCode());
+        assertEquals("ABCDE1234F", c.getPan());
+    }
+
+    @Test
+    void saveConfiguration_refusesWhatRule46NeedsOnEveryInvoice() {
+        GstConfiguration noAddress = marketplaceConfig();
+        noAddress.setAddress(" ");
+        assertTrue(assertThrows(IllegalArgumentException.class,
+                () -> gstService.saveConfiguration(noAddress)).getMessage().contains("registered address"));
+
+        GstConfiguration noPin = marketplaceConfig();
+        noPin.setAddress("12 Main Road, Srirangam, Tiruchirappalli");
+        assertTrue(assertThrows(IllegalArgumentException.class,
+                () -> gstService.saveConfiguration(noPin)).getMessage().contains("PIN"));
+
+        GstConfiguration wrongState = marketplaceConfig();
+        wrongState.setStateCode("27");
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(wrongState));
+
+        GstConfiguration badPrefix = marketplaceConfig();
+        badPrefix.setInvoicePrefix("0CS/");
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(badPrefix));
+
+        GstConfiguration negative = marketplaceConfig();
+        negative.setAnnualTurnover(-1.0);
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(negative));
     }
 
     @Test

@@ -25,12 +25,15 @@ public class GstInvoiceController {
 
     private final GstInvoiceService gstService;
     private final Gstr1ExportService gstr1ExportService;
+    private final com.cauverystore.service.TallyExportService tallyExportService;
     private final CreditNoteService creditNoteService;
     private final UserRepository userRepo;
 
     public GstInvoiceController(GstInvoiceService gstService, CreditNoteService creditNoteService, UserRepository userRepo,
-                                Gstr1ExportService gstr1ExportService) {
+                                Gstr1ExportService gstr1ExportService,
+                                com.cauverystore.service.TallyExportService tallyExportService) {
         this.gstr1ExportService = gstr1ExportService;
+        this.tallyExportService = tallyExportService;
         this.gstService = gstService;
         this.creditNoteService = creditNoteService;
         this.userRepo = userRepo;
@@ -325,6 +328,32 @@ public class GstInvoiceController {
                         "attachment; filename=gstr1-" + section.toLowerCase() + ".csv")
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(gstService.exportCsv(headers, rows));
+    }
+
+    /**
+     * Tally Prime import file for the seller's invoices and notes in a period.
+     * kind=ledgers gives the ledgers to import first; kind=vouchers the vouchers themselves.
+     */
+    @GetMapping("/tally/export")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> tallyExport(
+            @RequestParam(defaultValue = "vouchers") String kind,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        if (!"vouchers".equalsIgnoreCase(kind) && !"ledgers".equalsIgnoreCase(kind)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "kind must be ledgers or vouchers"));
+        }
+        var docs = gstService.filingDocuments(userId, startDate, endDate);
+        String xml = "ledgers".equalsIgnoreCase(kind)
+                ? tallyExportService.ledgers(docs.invoices(), docs.creditNotes(), docs.debitNotes())
+                : tallyExportService.vouchers(docs.invoices(), docs.creditNotes(), docs.debitNotes());
+        String name = "tally-" + kind.toLowerCase() + "-" + docs.from() + "-to-" + docs.to() + ".xml";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + name)
+                .contentType(MediaType.APPLICATION_XML)
+                .body(xml);
     }
 
     /** GSTR-1 rows narrowed to a trade type and/or category, for compliance segmentation. */

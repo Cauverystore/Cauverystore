@@ -63,6 +63,16 @@ import java.util.stream.Collectors;
 @Service
 public class GstInvoiceService {
 
+    // Optional so tests that build this service by hand need not supply it.
+    private GstAuditService gstAudit;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
+
+    private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
+        if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
+    }
+
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(GstInvoiceService.class);
 
@@ -617,9 +627,11 @@ public class GstInvoiceService {
             }
         }
 
-        // 0.5% since Notification 15/2024-CT. The fallback matters: it is what applies
-        // when no configuration row exists, and at 1.0% it withheld double from sellers.
-        double tcsRate = config != null && config.getTcsRate() != null ? config.getTcsRate() : 0.5;
+        // The s.52 rate in force on the invoice date, from master-data/statutory_rates.json -
+        // not the configuration row, which held whatever was typed or defaulted when it was saved
+        // (a stale 1.0% there once withheld double from sellers).
+        double tcsRate = com.cauverystore.util.StatutoryRates.tcsRateOn(
+                inv.getInvoiceDate() != null ? inv.getInvoiceDate() : LocalDate.now());
         double tcsAmount = Math.round(taxableAmount * tcsRate / 100 * 100.0) / 100.0;
         inv.setTcsAmount(tcsAmount);
         inv.setTcsRate(tcsRate);
@@ -662,8 +674,16 @@ public class GstInvoiceService {
         });
 
         GstInvoice saved = invoiceRepo.save(inv);
+        gstAudit(GstAuditService.INVOICE_ISSUED, "GstInvoice", saved.getInvoiceNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "orderId", orderId,
+                        "invoiceDate", String.valueOf(saved.getInvoiceDate()),
+                        "sellerGstin", saved.getSellerGstin(), "buyerGstin", saved.getBuyerGstin(),
+                        "placeOfSupply", saved.getPlaceOfSupply(), "taxable", saved.getTaxableAmount(),
+                        "cgst", saved.getCgstAmount(), "sgst", saved.getSgstAmount(),
+                        "igst", saved.getIgstAmount(), "cess", saved.getTotalCess(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount(), "irn", saved.getIrn()));
 
-        // Record TCS for GSTR-8 (1% TCS on taxable value under Section 52)
+        // Record TCS for GSTR-8 (s.52, at the rate on the invoice date)
         if (tcsAmount > 0) {
             TcsRecord tcs = new TcsRecord();
             tcs.setSellerGstin(saved.getSellerGstin());
@@ -825,6 +845,8 @@ public class GstInvoiceService {
         inv.setStatus("SYNCED");
         inv.setLastSyncAttempt(LocalDateTime.now());
         invoiceRepo.save(inv);
+        gstAudit(GstAuditService.IRN_GENERATED, "GstInvoice", inv.getInvoiceNumber(), inv.getSellerId(),
+                GstAuditService.payload("irn", irn, "ackNo", ackNo, "ackDate", ackDate));
 
         List<GstSyncQueue> queueItems = syncRepo.findByInvoiceIdAndSyncType(invoiceId, "GENERATE_EINVOICE");
         for (GstSyncQueue q : queueItems) {
@@ -847,6 +869,8 @@ public class GstInvoiceService {
         inv.setSyncAttempts(inv.getSyncAttempts() != null ? inv.getSyncAttempts() + 1 : 1);
         inv.setLastSyncAttempt(LocalDateTime.now());
         invoiceRepo.save(inv);
+        gstAudit(GstAuditService.IRN_FAILED, "GstInvoice", inv.getInvoiceNumber(), inv.getSellerId(),
+                GstAuditService.payload("error", error, "attempts", inv.getSyncAttempts()));
         return Map.of("invoice", inv, "message", "Sync failed recorded");
     }
 
@@ -943,17 +967,31 @@ public class GstInvoiceService {
                                                                    LocalDate endDate) {
         String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
-        LocalDate from = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
-        LocalDate to = endDate != null ? endDate : LocalDate.now();
-        List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, from, to);
-        List<CreditNote> creditNotes = creditNoteRepo
-                .findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to);
-        List<DebitNote> debitNotes = debitNoteRepo
-                .findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to);
+        FilingDocuments docs = filingDocuments(sellerId, startDate, endDate);
+        LocalDate from = docs.from();
+        List<GstInvoice> invoices = docs.invoices();
+        List<CreditNote> creditNotes = docs.creditNotes();
+        List<DebitNote> debitNotes = docs.debitNotes();
         GstConfiguration operator = marketplaceFor(sellerGstin);
         return gstr1ExportService.allSections(invoices, creditNotes, debitNotes, from,
                 operator == null ? null : operator.getTcsGstin(),
                 operator == null ? null : operator.getLegalName());
+    }
+
+    /** A seller's invoices and notes for a period: what GSTR-1 and the Tally export read. */
+    public record FilingDocuments(LocalDate from, LocalDate to, List<GstInvoice> invoices,
+                                  List<CreditNote> creditNotes, List<DebitNote> debitNotes) { }
+
+    /** Defaults to the current month to date when no dates are given. */
+    public FilingDocuments filingDocuments(Long sellerId, LocalDate startDate, LocalDate endDate) {
+        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
+                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
+        LocalDate from = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate to = endDate != null ? endDate : LocalDate.now();
+        return new FilingDocuments(from, to,
+                invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, from, to),
+                creditNoteRepo.findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to),
+                debitNoteRepo.findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to));
     }
 
     /**
@@ -1160,9 +1198,8 @@ public class GstInvoiceService {
         Map<String, Object> summary = getGstSummary(sellerId, startDate, endDate);
         Map<String, Object> tcs = new LinkedHashMap<>();
         tcs.put("totalTcsCollected", summary.get("totalTcs"));
-        Double configured = configRepo.findBySellerId(sellerId)
-                .map(GstConfiguration::getTcsRate).orElse(null);
-        double tcsRate = configured != null ? configured : 0.5;
+        double tcsRate = com.cauverystore.util.StatutoryRates.tcsRateOn(
+                endDate != null ? endDate : LocalDate.now());
         tcs.put("tcsRate", String.format("%.2f", tcsRate) + "%");
         tcs.put("totalInvoices", summary.get("totalInvoices"));
         tcs.put("totalTaxableAmount", summary.get("totalTaxableAmount"));
@@ -1203,10 +1240,16 @@ public class GstInvoiceService {
      */
     public Map<String, Object> saveConfiguration(GstConfiguration config) {
         validateConfiguration(config);
-        if (config.getTcsRate() == null) config.setTcsRate(0.5);
+        // Kept for display; invoices take the rate from StatutoryRates by their own date.
+        config.setTcsRate(com.cauverystore.util.StatutoryRates.tcsRateOn(LocalDate.now()));
         if (config.getInvoicePrefix() == null) config.setInvoicePrefix("CS");
         config.setIsActive(true);
         GstConfiguration saved = configRepo.save(config);
+        gstAudit(GstAuditService.REGISTRATION_SAVED, "GstConfiguration", String.valueOf(saved.getId()),
+                saved.getSellerId(), GstAuditService.payload("gstin", saved.getGstin(),
+                        "legalName", saved.getLegalName(), "stateCode", saved.getStateCode(),
+                        "tcsGstin", saved.getTcsGstin(), "tcsRate", saved.getTcsRate(),
+                        "annualTurnover", saved.getAnnualTurnover(), "invoicePrefix", saved.getInvoicePrefix()));
         auditService.log(null, "admin", "GST_CONFIG_SAVED", "GstConfiguration", saved.getId(),
                 "GSTIN " + saved.getGstin() + " configured", null);
         return Map.of("configuration", saved, "message", "GST configuration saved");
@@ -1224,6 +1267,36 @@ public class GstInvoiceService {
         }
         config.setGstin(config.getGstin().trim().toUpperCase());
 
+        // Rule 46(a): every tax invoice carries the supplier's name, address and GSTIN. The
+        // e-invoice also needs the address's PIN code, so an address without one is refused.
+        if (isBlank(config.getLegalName())) {
+            throw new IllegalArgumentException("The legal name, exactly as on the GST "
+                    + "registration certificate, is required. It is printed on every invoice.");
+        }
+        if (isBlank(config.getAddress())) {
+            throw new IllegalArgumentException("The registered address is required. Rule 46 "
+                    + "puts it on every invoice the marketplace issues.");
+        }
+        if (!config.getAddress().matches("(?s).*(?<!\\d)[1-9]\\d{5}(?!\\d).*")) {
+            throw new IllegalArgumentException("The registered address has no 6-digit PIN code. "
+                    + "Write it as 'street, city, state, PIN' - the e-invoice portal needs the PIN.");
+        }
+        // The state code and PAN are both inside the GSTIN, so a blank one is filled from it
+        // rather than left for someone to mistype.
+        String fromGstin = config.getGstin().substring(0, 2);
+        if (isBlank(config.getStateCode())) config.setStateCode(fromGstin);
+        if (!config.getStateCode().trim().equals(fromGstin)) {
+            throw new IllegalArgumentException("State code " + config.getStateCode().trim()
+                    + " does not match the GSTIN, which is registered in state " + fromGstin + ".");
+        }
+        if (isBlank(config.getPan())) config.setPan(config.getGstin().substring(2, 12));
+        if (!isBlank(config.getInvoicePrefix())
+                && !config.getInvoicePrefix().trim().matches("[A-Za-z][A-Za-z0-9]{0,8}")) {
+            throw new IllegalArgumentException("The invoice prefix must be 1 to 9 letters or "
+                    + "digits, starting with a letter. GST caps the whole invoice number at 16 "
+                    + "characters, and the prefix is followed by the month and a 5-digit number.");
+        }
+
         if (!isBlank(config.getTcsGstin())) {
             GstComplianceUtil.validateGstin(config.getTcsGstin());
             if (!GstComplianceUtil.hasValidCheckDigit(config.getTcsGstin())) {
@@ -1240,6 +1313,10 @@ public class GstInvoiceService {
             }
         }
 
+        if (config.getAnnualTurnover() != null && config.getAnnualTurnover() < 0) {
+            throw new IllegalArgumentException("Turnover cannot be negative. Leave it blank if it "
+                    + "is not known yet.");
+        }
         if (!isBlank(config.getCin()) && !GstComplianceUtil.isValidCin(config.getCin())) {
             throw new IllegalArgumentException("'" + config.getCin() + "' is not a valid CIN. It is "
                     + "21 characters: L or U, 5-digit industry code, 2-letter state, 4-digit year, "
@@ -1502,6 +1579,9 @@ public class GstInvoiceService {
     @Transactional
     public void updateInvoiceStatusByOrderId(Long orderId, String dispatchStatus) {
         invoiceRepo.findByOrderId(orderId).ifPresent(inv -> {
+            String before = inv.getStatus();
+            gstAudit(GstAuditService.INVOICE_STATUS_CHANGED, "GstInvoice", inv.getInvoiceNumber(), inv.getSellerId(),
+                    GstAuditService.payload("from", before, "to", dispatchStatus));
             inv.setStatus(dispatchStatus);
             if ("DISPATCHED".equals(dispatchStatus) || "DELIVERED".equals(dispatchStatus)) {
                 inv.setInvoiceStatus("FINALIZED");

@@ -334,11 +334,9 @@ public class ComplianceService {
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
     }
 
-    /** The marketplace's configured TCS rate, defaulting to the 0.5% prescribed by s.52. */
+    /** The s.52 TCS rate in force today (see master-data/statutory_rates.json). */
     public double resolveTcsRate(Long sellerId) {
-        Double rate = configRepo.findBySellerId(sellerId)
-                .map(GstConfiguration::getTcsRate).orElse(null);
-        return rate != null ? rate : 0.5;
+        return com.cauverystore.util.StatutoryRates.tcsRateOn(LocalDate.now());
     }
 
     public static String currentPeriod() {

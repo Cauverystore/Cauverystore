@@ -106,4 +106,23 @@ class GstComplianceUtilTest {
         assertFalse(GstComplianceUtil.isGstinChecksumValid("short"));
         assertFalse(GstComplianceUtil.isGstinChecksumValid("27AAPFU0939F1Z*"));
     }
+
+    @Test
+    void formatRupees_groupsInLakhsAndCrores() {
+        org.junit.jupiter.api.Assertions.assertEquals("₹60,00,00,000", GstComplianceUtil.formatRupees(600000000));
+        org.junit.jupiter.api.Assertions.assertEquals("₹5,00,00,000", GstComplianceUtil.formatRupees(5_00_00_000));
+        org.junit.jupiter.api.Assertions.assertEquals("₹1,00,000", GstComplianceUtil.formatRupees(100000));
+        org.junit.jupiter.api.Assertions.assertEquals("₹999", GstComplianceUtil.formatRupees(999));
+        org.junit.jupiter.api.Assertions.assertEquals("₹1,234.50", GstComplianceUtil.formatRupees(1234.5));
+    }
+
+    @Test
+    void hasValidCheckDigit_acceptsGenuineGstins_andAgreesWithValidateGstin() {
+        // GSTN's own published sample. The old check rejected it, so the marketplace
+        // registration form refused real numbers.
+        assertTrue(GstComplianceUtil.hasValidCheckDigit("27AAPFU0939F1ZV"));
+        assertDoesNotThrow(() -> GstComplianceUtil.validateGstin("27AAPFU0939F1ZV"));
+        assertFalse(GstComplianceUtil.hasValidCheckDigit("27AAPFU0939F1ZW"));
+        assertFalse(GstComplianceUtil.hasValidCheckDigit("33ABCDE1234F1Z5"), "the demo seller's made-up GSTIN");
+    }
 }

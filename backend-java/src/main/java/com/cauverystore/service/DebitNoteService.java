@@ -29,6 +29,16 @@ import java.util.*;
 @Service
 public class DebitNoteService {
 
+    // Optional so tests that build this service by hand need not supply it.
+    private GstAuditService gstAudit;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
+
+    private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
+        if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
+    }
+
     private final DebitNoteRepository debitNoteRepo;
     private final DebitNoteItemRepository debitNoteItemRepo;
     private final GstInvoiceRepository invoiceRepo;
@@ -98,6 +108,12 @@ public class DebitNoteService {
         dn.setDebitNoteNumber(generateDebitNoteNumber("DN"));
         dn.setStatus("GENERATED");
         DebitNote saved = debitNoteRepo.save(dn);
+        gstAudit(GstAuditService.DEBIT_NOTE_ISSUED, "DebitNote", saved.getDebitNoteNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
+                        "date", String.valueOf(saved.getDebitNoteDate()), "reason", saved.getReason(),
+                        "taxable", saved.getTaxableAmount(), "cgst", saved.getCgstAmount(),
+                        "sgst", saved.getSgstAmount(), "igst", saved.getIgstAmount(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount()));
 
         auditService.log(userId, userId != null ? "seller:" + userId : "system", "DEBIT_NOTE_GENERATED",
                 "DebitNote", saved.getId(),

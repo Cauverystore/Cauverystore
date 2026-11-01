@@ -573,6 +573,13 @@ const GstInvoices = () => {
               <button className="gst-btn gst-btn-outline gst-btn-sm" title="HSN summary of supplies to buyers without a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn_b2c", "gstr1-hsn-b2c.csv", "csv")}><FileText size={14} /> 12 HSN B2C</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" title="Sales made through the marketplace, which collects TCS on them (empty when none)" onClick={() => downloadExport("/api/gst/gstr1/filing?section=eco", "gstr1-eco.csv", "csv")}><FileText size={14} /> 14 ECO</button>
             </div>
+            <div className="gst-toolbar" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "0.6rem 0.75rem" }}>
+              <p style={{ margin: 0, flex: 1, fontSize: "0.82rem", color: "#475569" }}>
+                <strong>Tally Prime</strong> — this month's invoices, credit notes and debit notes as accounting vouchers. In Tally, import the ledgers file first (Import → Masters), then the vouchers (Import → Transactions).
+              </p>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Sales, GST, round-off and customer ledgers the vouchers post to" onClick={() => downloadExport("/api/gst/tally/export?kind=ledgers", "tally-ledgers.xml", "xml")}><FileText size={14} /> 1. Ledgers</button>
+              <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/tally/export?kind=vouchers", "tally-vouchers.xml", "xml")}><FileText size={14} /> 2. Vouchers</button>
+            </div>
             {!gstr1Seg || !gstr1Seg["4A"] ? (
               <p style={{ color: "#94a3b8" }}>No invoice data available for GSTR-1.</p>
             ) : (
