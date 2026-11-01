@@ -311,6 +311,7 @@ public class LiveGstnClient implements GstnClient {
         if (buyerState == null) buyerState = normalizeStateCode(inv.getBuyerStateCode());
         if (buyerState != null) buyer.put("Stcd", buyerState);
         doc.put("BuyerDtls", buyer);
+        if (inv.isBillToShipTo()) doc.put("ShipDtls", shipDetails(inv));
 
         doc.put("ItemList", buildItemList(inv));
         Map<String, Object> val = new LinkedHashMap<>();
@@ -360,7 +361,37 @@ public class LiveGstnClient implements GstnClient {
         if (isBlank(inv.getBuyerName())) out.add("the buyer's legal name is missing");
         addressProblems(out, "buyer", inv.getBuyerAddress());
         if (inv.getItems() == null || inv.getItems().isEmpty()) out.add("it has no lines");
+        if (inv.isBillToShipTo()) {
+            if (isBlank(inv.getConsigneeName())) out.add("the consignee's name is missing");
+            addressProblems(out, "consignee", shipToAddress(inv));
+            if (normalizeStateCode(inv.getConsigneeStateCode()) == null) {
+                out.add("the consignee's state is unknown; give their GSTIN or a PIN code");
+            }
+        }
         return out;
+    }
+
+    /**
+     * ShipDtls for a bill-to / ship-to supply: who receives the goods and where.
+     *
+     * From 1 August 2026 the IRP requires the ship-to GSTIN here (GSTN advisory, 25 June
+     * 2026), with "URP" for a consignee who is not registered. Sent only on bill-to / ship-to
+     * invoices; otherwise the goods go to the buyer and BuyerDtls already says where.
+     */
+    Map<String, Object> shipDetails(GstInvoice inv) {
+        Map<String, Object> ship = new LinkedHashMap<>();
+        String gstin = inv.getConsigneeGstin();
+        ship.put("Gstin", isBlank(gstin) ? "URP" : gstin.trim().toUpperCase());
+        if (!isBlank(inv.getConsigneeName())) ship.put("LglNm", cut(inv.getConsigneeName(), 100));
+        putAddress(ship, shipToAddress(inv));
+        String state = normalizeStateCode(inv.getConsigneeStateCode());
+        if (state != null) ship.put("Stcd", state);
+        return ship;
+    }
+
+    /** The consignee's own address, or the delivery address when they gave none. */
+    private static String shipToAddress(GstInvoice inv) {
+        return isBlank(inv.getConsigneeAddress()) ? inv.getDeliveryAddress() : inv.getConsigneeAddress();
     }
 
     private static void addressProblems(List<String> out, String who, String address) {

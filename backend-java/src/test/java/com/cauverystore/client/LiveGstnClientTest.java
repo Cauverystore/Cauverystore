@@ -354,6 +354,44 @@ class LiveGstnClientTest {
     }
 
     @Test
+    void payload_shouldSendShipDtlsOnABillToShipToInvoice() {
+        completeB2bInvoice();
+        invoice.setBillToShipTo(true);
+        invoice.setConsigneeName("Mumbai Client Ltd");
+        invoice.setConsigneeAddress("12 Link Road, Andheri, Mumbai, Maharashtra, 400053");
+        invoice.setConsigneeGstin("URP");
+        invoice.setConsigneeStateCode("27");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> ship = (Map<String, Object>) client.buildInvoicePayload(invoice).get("ShipDtls");
+
+        assertEquals("URP", ship.get("Gstin"), "an unregistered consignee goes as URP");
+        assertEquals("Mumbai Client Ltd", ship.get("LglNm"));
+        assertEquals("Mumbai", ship.get("Loc"));
+        assertEquals(400053, ship.get("Pin"));
+        assertEquals("27", ship.get("Stcd"));
+        assertEquals(List.of(), client.problemsWith(invoice));
+    }
+
+    @Test
+    void payload_shouldLeaveOutShipDtlsWhenTheBuyerReceivesTheGoods() {
+        assertFalse(client.buildInvoicePayload(completeB2bInvoice()).containsKey("ShipDtls"));
+    }
+
+    @Test
+    void shouldNameWhatTheShipToDetailsAreMissing() {
+        completeB2bInvoice();
+        invoice.setBillToShipTo(true);
+        invoice.setConsigneeAddress("Andheri");
+
+        String problems = String.join("; ", client.problemsWith(invoice));
+
+        assertTrue(problems.contains("consignee's name is missing"), problems);
+        assertTrue(problems.contains("consignee's address has no 6-digit PIN code"), problems);
+        assertTrue(problems.contains("consignee's state is unknown"), problems);
+    }
+
+    @Test
     void address_shouldSplitALongStreetAcrossAddr1AndAddr2() {
         String street = "Plot 45, Third Cross Street, Industrial Estate Extension Phase Two, "
                 + "Behind the Old Railway Goods Shed, Near Water Tank";

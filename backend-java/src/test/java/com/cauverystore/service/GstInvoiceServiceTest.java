@@ -662,6 +662,41 @@ class GstInvoiceServiceTest {
     }
 
     @Test
+    void billToShipTo_shouldCarryTheConsigneesGstinAndState() {
+        // The IRP wants the ship-to GSTIN from 1 August 2026, "URP" when there is none, and
+        // a state that matches it - the GSTIN's own, or the PIN code's for an unregistered one.
+        stubCommonRepos();
+        order.setBuyerGstin(SELLER_GSTIN_TN);
+        order.setBuyerLegalName("Chennai Traders Pvt Ltd");
+        order.setBillToShipTo(true);
+        order.setConsigneeName("Mumbai Client Ltd");
+        order.setConsigneeAddress("12 Link Road, Andheri, Mumbai, Maharashtra");
+        order.setConsigneeGstin(BUYER_GSTIN_MH);
+
+        GstInvoice registered = (GstInvoice) gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, SELLER_GSTIN_TN, "27").get("invoice");
+
+        assertEquals(BUYER_GSTIN_MH, registered.getConsigneeGstin());
+        assertEquals("27", registered.getConsigneeStateCode());
+    }
+
+    @Test
+    void billToShipTo_anUnregisteredConsigneeIsUrpWithThePinCodesState() {
+        stubCommonRepos();
+        order.setBuyerGstin(SELLER_GSTIN_TN);
+        order.setBuyerLegalName("Chennai Traders Pvt Ltd");
+        order.setBillToShipTo(true);
+        order.setConsigneeName("A Customer");
+        order.setConsigneeAddress("4 Beach Road, Mylapore, Chennai, Tamil Nadu, 600004");
+
+        GstInvoice inv = (GstInvoice) gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, SELLER_GSTIN_TN, "33").get("invoice");
+
+        assertEquals("URP", inv.getConsigneeGstin());
+        assertEquals("33", inv.getConsigneeStateCode(), "600004 is in Tamil Nadu");
+    }
+
+    @Test
     void anOrdinaryB2bDeliveryElsewhereIsStillInterState() {
         // Without the declaration this is 10(1)(a) - place of supply is where the goods stop.
         // The addresses are identical to the case above; only the buyer's declaration differs,

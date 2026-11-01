@@ -305,6 +305,12 @@ public class GstInvoiceService {
                 : buyerStateCode;
         inv.setBuyerStateCode(buyerStateCode);
         inv.setDeliveryStateCode(resolvedDeliveryStateCode);
+        if (inv.isBillToShipTo() && isB2b) {
+            String consigneeGstin = order.getConsigneeGstin();
+            inv.setConsigneeGstin(consigneeGstin == null || consigneeGstin.isBlank()
+                    ? "URP" : consigneeGstin);
+            inv.setConsigneeStateCode(consigneeStateCode(inv));
+        }
 
         // Place of supply is normally the destination - section 10(1)(a), where the movement of
         // goods terminates for delivery.
@@ -1388,6 +1394,24 @@ public class GstInvoiceService {
     }
 
     /**
+     * Where the consignee is: their GSTIN's state when registered, otherwise the state of the
+     * PIN code in the ship-to address (their own address, or the delivery address when they
+     * gave none). Null when neither settles it; the IRP check then names it.
+     */
+    private String consigneeStateCode(GstInvoice inv) {
+        String gstin = inv.getConsigneeGstin();
+        if (gstin != null && gstin.length() == 15) return gstin.substring(0, 2);
+        String address = inv.getConsigneeAddress() != null && !inv.getConsigneeAddress().isBlank()
+                ? inv.getConsigneeAddress() : inv.getDeliveryAddress();
+        if (address == null) return null;
+        java.util.regex.Matcher pin = java.util.regex.Pattern
+                .compile("(?<!\\d)([1-9]\\d{5})(?!\\d)").matcher(address);
+        String last = null;
+        while (pin.find()) last = pin.group(1);
+        return stateCodeFromPincode(last);
+    }
+
+    /**
      * The state a pincode belongs to, or null when it is missing, unrecognised, or shared by
      * more than one state - in which case it settles nothing and should not pretend to.
      */
@@ -1606,6 +1630,8 @@ public class GstInvoiceService {
                     ? "Ship To (Consignee - delivered on the buyer's direction):" : "Ship To (Delivery):", bold10));
             if (inv.isBillToShipTo() && inv.getConsigneeName() != null) {
                 buyCell.addElement(new Paragraph(safeStr(inv.getConsigneeName()), small8));
+                buyCell.addElement(new Paragraph("GSTIN: " + (inv.getConsigneeGstin() == null
+                        ? "URP" : inv.getConsigneeGstin()), small8));
             }
             buyCell.addElement(new Paragraph(safeStr(inv.isBillToShipTo() && inv.getConsigneeAddress() != null
                     ? inv.getConsigneeAddress() : inv.getDeliveryAddress()), small8));

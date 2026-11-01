@@ -797,6 +797,14 @@ public class OrderService {
             throw new RuntimeException("Tell us who is receiving the goods. Rule 46(o) requires "
                     + "the consignee's name and address when they are not the buyer.");
         }
+        // The e-invoice and e-way bill need the consignee's GSTIN on a bill-to / ship-to
+        // supply, or "URP" when they have none. A blank answer means unregistered.
+        String consigneeGstin = (String) body.get("consigneeGstin");
+        consigneeGstin = consigneeGstin == null || consigneeGstin.isBlank()
+                ? "URP" : consigneeGstin.trim().toUpperCase();
+        if (billToShipTo && !"URP".equals(consigneeGstin)) {
+            GstComplianceUtil.validateGstin(consigneeGstin);
+        }
 
         if (wantsB2b) {
             order.setBuyerGstin(buyerGstin.trim().toUpperCase());
@@ -807,6 +815,7 @@ public class OrderService {
             if (billToShipTo) {
                 order.setConsigneeName(consigneeName.trim());
                 order.setConsigneeAddress((String) body.get("consigneeAddress"));
+                order.setConsigneeGstin(consigneeGstin);
             }
             orderRepo.save(order);
         }

@@ -45,6 +45,7 @@ const Checkout = () => {
   const [billToShipTo, setBillToShipTo] = useState(false);
   const [consigneeName, setConsigneeName] = useState("");
   const [consigneeAddress, setConsigneeAddress] = useState("");
+  const [consigneeGstin, setConsigneeGstin] = useState("");
 
   const [shipping, setShipping] = useState({
     fullName: "", phone: "", line1: "", line2: "", street: "", city: "", state: "", pincode: "", country: "India"
@@ -150,6 +151,10 @@ const Checkout = () => {
         if (!buyerLegalName.trim()) return i18n.t("msgs.legalNameRequired");
         // Rule 46(o) requires the consignee on the invoice when they are not the buyer. Caught
         // here rather than at the API, so nobody reaches the payment step and is turned back.
+        if (billToShipTo && consigneeGstin.trim()
+            && !/^[0-9]{2}[A-Z0-9]{13}$/.test(consigneeGstin.trim().toUpperCase())) {
+          return i18n.t("msgs.consigneeGstinInvalid");
+        }
         if (billToShipTo && !consigneeName.trim()) {
           return i18n.t("msgs.consigneeRequired");
         }
@@ -219,7 +224,8 @@ const Checkout = () => {
       ...(b2b && billToShipTo && {
         billToShipTo: true,
         consigneeName: consigneeName.trim(),
-        ...(consigneeAddress.trim() && { consigneeAddress: consigneeAddress.trim() })
+        ...(consigneeAddress.trim() && { consigneeAddress: consigneeAddress.trim() }),
+        ...(consigneeGstin.trim() && { consigneeGstin: consigneeGstin.trim().toUpperCase() })
       })
     };
 
@@ -457,6 +463,13 @@ const Checkout = () => {
                           onChange={(e) => setConsigneeAddress(e.target.value)} rows={2}
                           placeholder={tr("checkout.leaveBlankToUseThe")}
                           style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none", resize: "vertical" }} />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                        <label htmlFor="consignee-gstin" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{tr("checkout.consigneeGstin")}</label>
+                        <input id="consignee-gstin" name="consigneeGstin" value={consigneeGstin}
+                          onChange={(e) => setConsigneeGstin(e.target.value.toUpperCase())} maxLength={15}
+                          placeholder={tr("checkout.consigneeGstinHint")}
+                          style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none" }} />
                       </div>
                       {/*
                         Said plainly, because it is the part that surprises people: the tax
