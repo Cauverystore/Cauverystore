@@ -1238,6 +1238,36 @@ public class GstInvoiceService {
         }
         config.setGstin(config.getGstin().trim().toUpperCase());
 
+        // Rule 46(a): every tax invoice carries the supplier's name, address and GSTIN. The
+        // e-invoice also needs the address's PIN code, so an address without one is refused.
+        if (isBlank(config.getLegalName())) {
+            throw new IllegalArgumentException("The legal name, exactly as on the GST "
+                    + "registration certificate, is required. It is printed on every invoice.");
+        }
+        if (isBlank(config.getAddress())) {
+            throw new IllegalArgumentException("The registered address is required. Rule 46 "
+                    + "puts it on every invoice the marketplace issues.");
+        }
+        if (!config.getAddress().matches("(?s).*(?<!\\d)[1-9]\\d{5}(?!\\d).*")) {
+            throw new IllegalArgumentException("The registered address has no 6-digit PIN code. "
+                    + "Write it as 'street, city, state, PIN' - the e-invoice portal needs the PIN.");
+        }
+        // The state code and PAN are both inside the GSTIN, so a blank one is filled from it
+        // rather than left for someone to mistype.
+        String fromGstin = config.getGstin().substring(0, 2);
+        if (isBlank(config.getStateCode())) config.setStateCode(fromGstin);
+        if (!config.getStateCode().trim().equals(fromGstin)) {
+            throw new IllegalArgumentException("State code " + config.getStateCode().trim()
+                    + " does not match the GSTIN, which is registered in state " + fromGstin + ".");
+        }
+        if (isBlank(config.getPan())) config.setPan(config.getGstin().substring(2, 12));
+        if (!isBlank(config.getInvoicePrefix())
+                && !config.getInvoicePrefix().trim().matches("[A-Za-z][A-Za-z0-9]{0,8}")) {
+            throw new IllegalArgumentException("The invoice prefix must be 1 to 9 letters or "
+                    + "digits, starting with a letter. GST caps the whole invoice number at 16 "
+                    + "characters, and the prefix is followed by the month and a 5-digit number.");
+        }
+
         if (!isBlank(config.getTcsGstin())) {
             GstComplianceUtil.validateGstin(config.getTcsGstin());
             if (!GstComplianceUtil.hasValidCheckDigit(config.getTcsGstin())) {
@@ -1254,6 +1284,10 @@ public class GstInvoiceService {
             }
         }
 
+        if (config.getAnnualTurnover() != null && config.getAnnualTurnover() < 0) {
+            throw new IllegalArgumentException("Turnover cannot be negative. Leave it blank if it "
+                    + "is not known yet.");
+        }
         if (!isBlank(config.getCin()) && !GstComplianceUtil.isValidCin(config.getCin())) {
             throw new IllegalArgumentException("'" + config.getCin() + "' is not a valid CIN. It is "
                     + "21 characters: L or U, 5-digit industry code, 2-letter state, 4-digit year, "

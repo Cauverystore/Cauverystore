@@ -696,6 +696,50 @@ class GstInvoiceServiceTest {
         assertEquals("33", inv.getConsigneeStateCode(), "600004 is in Tamil Nadu");
     }
 
+    private GstConfiguration marketplaceConfig() {
+        GstConfiguration c = new GstConfiguration();
+        c.setGstin("33ABCDE1234F1Z7"); // a valid check digit; the save refuses any other
+        c.setLegalName("Cauvery Stores Pvt Ltd");
+        c.setAddress("12 Main Road, Srirangam, Tiruchirappalli, Tamil Nadu, 620006");
+        return c;
+    }
+
+    @Test
+    void saveConfiguration_fillsStateAndPanFromTheGstin() {
+        when(configRepo.save(any(GstConfiguration.class))).thenAnswer(i -> i.getArgument(0));
+        GstConfiguration c = marketplaceConfig();
+
+        gstService.saveConfiguration(c);
+
+        assertEquals("33", c.getStateCode());
+        assertEquals("ABCDE1234F", c.getPan());
+    }
+
+    @Test
+    void saveConfiguration_refusesWhatRule46NeedsOnEveryInvoice() {
+        GstConfiguration noAddress = marketplaceConfig();
+        noAddress.setAddress(" ");
+        assertTrue(assertThrows(IllegalArgumentException.class,
+                () -> gstService.saveConfiguration(noAddress)).getMessage().contains("registered address"));
+
+        GstConfiguration noPin = marketplaceConfig();
+        noPin.setAddress("12 Main Road, Srirangam, Tiruchirappalli");
+        assertTrue(assertThrows(IllegalArgumentException.class,
+                () -> gstService.saveConfiguration(noPin)).getMessage().contains("PIN"));
+
+        GstConfiguration wrongState = marketplaceConfig();
+        wrongState.setStateCode("27");
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(wrongState));
+
+        GstConfiguration badPrefix = marketplaceConfig();
+        badPrefix.setInvoicePrefix("0CS/");
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(badPrefix));
+
+        GstConfiguration negative = marketplaceConfig();
+        negative.setAnnualTurnover(-1.0);
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(negative));
+    }
+
     @Test
     void anOrdinaryB2bDeliveryElsewhereIsStillInterState() {
         // Without the declaration this is 10(1)(a) - place of supply is where the goods stop.

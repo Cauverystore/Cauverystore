@@ -34,7 +34,6 @@ public class GstComplianceUtil {
     private static final java.util.Set<String> UTGST_STATES =
             java.util.Set.of("04", "26", "31", "35", "38");
 
-    private static final String BASE36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     private static final double E_INVOICE_THRESHOLD = 5_00_00_000;
     // E-way bill threshold (Rule 138 CGST Rules, 2017): single consignment > ₹50,000 (Notification 74/2018 – Central Tax).
@@ -170,32 +169,16 @@ public class GstComplianceUtil {
     }
 
     /**
-     * Verifies the 15th (checksum) character using the standard base-36 GSTIN
-     * check-digit algorithm. Strict mode throws on mismatch; otherwise a boolean
-     * is returned so the compliance report can surface it without blocking.
+     * Structure and check digit, as a yes/no for reports and forms.
+     *
+     * Used to compute its own check digit with powers of two and no carry, which is not GSTN's
+     * algorithm: it rejected genuine GSTINs (GSTN's published sample 27AAPFU0939F1ZV among
+     * them), so the marketplace registration form refused real numbers. It now uses the same
+     * check as validateGstin, so the two can never disagree again.
      */
     public static boolean hasValidCheckDigit(String gstin) {
-        if (gstin == null || !GSTIN_PATTERN.matcher(gstin.trim().toUpperCase()).matches()) {
-            return false;
-        }
-        String upper = gstin.trim().toUpperCase();
-        int sum = 0;
-        for (int i = 0; i < 14; i++) {
-            int value = BASE36.indexOf(upper.charAt(i));
-            if (value < 0) return false;
-            sum += value * modPow2(i + 1);
-        }
-        int rem = sum % 36;
-        int check = (36 - rem) % 36;
-        return BASE36.charAt(check) == upper.charAt(14);
-    }
-
-    private static int modPow2(int exp) {
-        int result = 1;
-        for (int i = 0; i < exp; i++) {
-            result = (result * 2) % 36;
-        }
-        return result;
+        return gstin != null && GSTIN_PATTERN.matcher(gstin.trim().toUpperCase()).matches()
+                && isGstinChecksumValid(gstin);
     }
 
     /** Validates that an invoice number respects the ≤16 character Rule 46 limit. */
@@ -274,6 +257,33 @@ public class GstComplianceUtil {
                 + (sgstAmount != null ? sgstAmount : 0)
                 + (igstAmount != null ? igstAmount : 0);
         return tax <= 0;
+    }
+
+    /**
+     * Rupees the Indian way, grouped in lakhs and crores: 600000000 -> "₹60,00,00,000".
+     * Paise are shown only when there are any.
+     */
+    public static String formatRupees(double amount) {
+        java.math.BigDecimal v = java.math.BigDecimal.valueOf(amount)
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        boolean negative = v.signum() < 0;
+        v = v.abs();
+        String whole = v.toBigInteger().toString();
+        String paise = v.remainder(java.math.BigDecimal.ONE).movePointRight(2).toBigInteger().toString();
+        StringBuilder grouped = new StringBuilder();
+        int n = whole.length();
+        if (n <= 3) {
+            grouped.append(whole);
+        } else {
+            String head = whole.substring(0, n - 3);
+            for (int i = 0; i < head.length(); i++) {
+                if (i > 0 && (head.length() - i) % 2 == 0) grouped.append(',');
+                grouped.append(head.charAt(i));
+            }
+            grouped.append(',').append(whole.substring(n - 3));
+        }
+        return (negative ? "-₹" : "₹") + grouped
+                + ("0".equals(paise) ? "" : "." + (paise.length() == 1 ? "0" + paise : paise));
     }
 
     public static boolean requiresEInvoice(Double annualTurnover) {

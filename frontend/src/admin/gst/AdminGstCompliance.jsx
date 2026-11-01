@@ -77,7 +77,13 @@ const AdminGstCompliance = () => {
     setError("");
     setNotice("");
     try {
-      await api.post("/api/gst/configurations", { ...config, ...form });
+      // A cleared turnover box means "not known", which the server stores as no figure at all.
+      const turnover = form.annualTurnover === "" || form.annualTurnover == null
+        ? null : Number(form.annualTurnover);
+      await api.post("/api/gst/configurations", {
+        ...config, ...form, annualTurnover: turnover,
+        tcsRegistrationDate: form.tcsRegistrationDate || null,
+      });
       setNotice("Saved. Re-checking compliance…");
       await load();
     } catch (err) {
@@ -278,11 +284,11 @@ const AdminGstCompliance = () => {
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: "1rem" }}>
           <div>
-            <label style={lbl}>Legal entity name</label>
+            <label style={lbl}>Legal entity name *</label>
             <input name="legalName" value={form.legalName || ""} onChange={change} style={inp} />
           </div>
           <div>
-            <label style={lbl}>GSTIN</label>
+            <label style={lbl}>GSTIN *</label>
             <input name="gstin" value={form.gstin || ""} onChange={change} style={inp} placeholder="33AABCC1234D1Z5" />
             <span style={hint}>Your regular registration. Checked against its check digit.</span>
           </div>
@@ -301,11 +307,45 @@ const AdminGstCompliance = () => {
           <div>
             <label style={lbl}>PAN</label>
             <input name="pan" value={form.pan || ""} onChange={change} style={inp} />
+            <span style={hint}>Filled from the GSTIN (characters 3-12) if left blank.</span>
           </div>
           <div>
-            <label style={lbl}>State code</label>
+            <label style={lbl}>State code *</label>
             <input name="stateCode" value={form.stateCode || ""} onChange={change} style={inp} placeholder="33" />
             <span style={hint}>Decides CGST+SGST (or UTGST for Union Territories without a legislature) vs IGST on commission invoices.</span>
+          </div>
+          <div>
+            <label style={lbl}>Trade name</label>
+            <input name="tradeName" value={form.tradeName || ""} onChange={change} style={inp} />
+            <span style={hint}>Only if the certificate shows a trade name different from the legal name.</span>
+          </div>
+          <div>
+            <label style={lbl}>TCS registration date</label>
+            <input name="tcsRegistrationDate" type="date" value={form.tcsRegistrationDate || ""} onChange={change} style={inp} />
+            <span style={hint}>From the section 52 certificate. TCS is collected from this date.</span>
+          </div>
+          <div>
+            <label style={lbl}>Invoice number prefix</label>
+            <input name="invoicePrefix" value={form.invoicePrefix || ""} onChange={change} style={inp} maxLength={9} placeholder="CS" />
+            <span style={hint}>Up to 9 letters or digits. Numbers run as PREFIX + YYMM + /00001, within GST's 16-character limit.</span>
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={lbl}>Registered address *</label>
+            <textarea name="address" value={form.address || ""} onChange={change} rows={2}
+              style={{ ...inp, resize: "vertical" }}
+              placeholder="Door no, street, area, city, state, PIN" />
+            <span style={hint}>As on the registration certificate, ending with the 6-digit PIN. Printed on every invoice and sent to the e-invoice portal.</span>
+          </div>
+          <div>
+            <label style={lbl}>Aggregate turnover (₹, last financial year)</label>
+            <input name="annualTurnover" type="number" min="0" step="1"
+              value={form.annualTurnover ?? ""} onChange={change} style={inp} placeholder="e.g. 45000000" />
+            <span style={hint}>
+              {form.annualTurnover !== "" && form.annualTurnover != null && !Number.isNaN(Number(form.annualTurnover))
+                ? `₹${Number(form.annualTurnover).toLocaleString("en-IN")} - `
+                : ""}
+              Above ₹5 crore, e-invoicing is compulsory and HSN codes need 6 digits. Leave blank if not known.
+            </span>
           </div>
         </div>
 
