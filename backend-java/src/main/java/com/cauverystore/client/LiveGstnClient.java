@@ -223,13 +223,22 @@ public class LiveGstnClient implements GstnClient {
                     new HttpEntity<>(body, headers), Map.class);
 
             Map<?, ?> responseBody = response.getBody();
-            if (responseBody == null || !isSuccess(responseBody)) {
+            Map<?, ?> data;
+            if (responseBody != null && !isSuccess(responseBody) && duplicateIrn(responseBody) != null) {
+                // 2150: the IRP already holds this document - typically the earlier attempt
+                // succeeded and its reply was lost. That registration is the real one; fetch it
+                // rather than failing for ever on every retry.
+                String existing = duplicateIrn(responseBody);
+                log.warn("Invoice {} was already registered as IRN {}; fetching it", invoice.getInvoiceNumber(), existing);
+                data = fetchByIrn(existing, headers);
+            } else if (responseBody == null || !isSuccess(responseBody)) {
                 throw new IrpException("The IRP refused invoice " + invoice.getInvoiceNumber()
                         + ": " + describeError(responseBody));
+            } else {
+                byte[] decrypted = aesDecrypt(
+                        Base64.getDecoder().decode(str(responseBody.get("Data"))), sek);
+                data = objectMapper.readValue(decrypted, Map.class);
             }
-            byte[] decrypted = aesDecrypt(
-                    Base64.getDecoder().decode(str(responseBody.get("Data"))), sek);
-            Map<?, ?> data = objectMapper.readValue(decrypted, Map.class);
 
             String irn = str(data.get("Irn"));
             if (isBlank(irn)) {
@@ -281,16 +290,31 @@ public class LiveGstnClient implements GstnClient {
         // B2B is the only supply type the store makes that the IRP takes: consumer invoices are
         // not e-invoiced at all (problemsWith refuses them), and the store has no export or SEZ
         // sales.
-        doc.put("TranDtls", Map.of(
-                "TaxSch", "GST",
-                "SupTyp", "B2B",
-                "RegRev", "N",
-                "IgstOnIntra", "N"));
+        Map<String, Object> tran = new LinkedHashMap<>();
+        tran.put("TaxSch", "GST");
+        tran.put("SupTyp", "B2B");
+        tran.put("RegRev", "N");
+        // The operator the supply went through, when it was sold on the marketplace. Left out
+        // when the seller is the operator itself or there is none.
+        if (!isBlank(inv.getEcoGstin()) && !inv.getEcoGstin().equalsIgnoreCase(inv.getSellerGstin())) {
+            tran.put("EcmGstin", inv.getEcoGstin().trim().toUpperCase());
+        }
+        tran.put("IgstOnIntra", "N");
+        doc.put("TranDtls", tran);
 
         doc.put("DocDtls", Map.of(
-                "Typ", "INV",
+                "Typ", docType(inv),
                 "No", inv.getInvoiceNumber(),
                 "Dt", inv.getInvoiceDate() == null ? "" : inv.getInvoiceDate().format(IRP_DATE)));
+
+        // A credit or debit note names the invoice it adjusts.
+        if (!"INV".equals(docType(inv)) && !isBlank(inv.getPrecedingInvoiceNumber())) {
+            Map<String, Object> prec = new LinkedHashMap<>();
+            prec.put("InvNo", inv.getPrecedingInvoiceNumber());
+            prec.put("InvDt", inv.getPrecedingInvoiceDate() == null ? ""
+                    : inv.getPrecedingInvoiceDate().format(IRP_DATE));
+            doc.put("RefDtls", Map.of("PrecDocDtls", List.of(prec)));
+        }
 
         Map<String, Object> seller = new LinkedHashMap<>();
         seller.put("Gstin", inv.getSellerGstin());
@@ -637,6 +661,41 @@ public class LiveGstnClient implements GstnClient {
     private boolean isSuccess(Map<?, ?> body) {
         Object status = body.get("Status");
         return "1".equals(str(status)) || Boolean.TRUE.equals(status);
+    }
+
+    private static String docType(GstInvoice inv) {
+        String t = inv.getIrpDocType();
+        return "CRN".equals(t) || "DBN".equals(t) ? t : "INV";
+    }
+
+    /**
+     * The IRN of an earlier registration of the same document, if the IRP refused this one as
+     * a duplicate (error 2150). The IRP puts it in InfoDtls as {InfCd: DUPIRN, Desc: {Irn, ...}}.
+     */
+    static String duplicateIrn(Map<?, ?> body) {
+        if (body == null || !String.valueOf(body.get("ErrorDetails")).contains("2150")) return null;
+        Object info = body.get("InfoDtls");
+        if (!(info instanceof List<?> list)) return null;
+        for (Object o : list) {
+            if (o instanceof Map<?, ?> m && "DUPIRN".equals(str(m.get("InfCd")))
+                    && m.get("Desc") instanceof Map<?, ?> desc && !isBlank(str(desc.get("Irn")))) {
+                return str(desc.get("Irn"));
+            }
+        }
+        return null;
+    }
+
+    /** Get e-invoice by IRN: the signed invoice and QR of an existing registration. */
+    private Map<?, ?> fetchByIrn(String irn, HttpHeaders headers) throws Exception {
+        ResponseEntity<Map> response = restTemplate.exchange(
+                baseUrl + "/eicore/v1.03/Invoice/irn/" + irn, HttpMethod.GET,
+                new HttpEntity<>(headers), Map.class);
+        Map<?, ?> body = response.getBody();
+        if (body == null || !isSuccess(body)) {
+            throw new IrpException("The IRP says IRN " + irn + " exists but would not return it: "
+                    + describeError(body));
+        }
+        return objectMapper.readValue(aesDecrypt(Base64.getDecoder().decode(str(body.get("Data"))), sek), Map.class);
     }
 
     private String describeError(Map<?, ?> body) {

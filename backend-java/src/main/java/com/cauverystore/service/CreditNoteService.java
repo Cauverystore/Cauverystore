@@ -36,6 +36,12 @@ public class CreditNoteService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
 
+    // Optional for the same reason as gstAudit: tests build this service by hand.
+    private GstInvoiceService einvoiceQueue;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEinvoiceQueue(@org.springframework.context.annotation.Lazy GstInvoiceService s) { this.einvoiceQueue = s; }
+
     private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
         if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
     }
@@ -168,6 +174,7 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
         gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
                 GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
                         "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
@@ -323,6 +330,7 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
         gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
                 GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
                         "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
@@ -396,6 +404,7 @@ public class CreditNoteService {
         cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
         gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
                 GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
                         "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
@@ -575,6 +584,14 @@ public class CreditNoteService {
         rightCell.addElement(new Paragraph(cn.getCreditNoteDate() != null ? cn.getCreditNoteDate().toString() : "", normal9));
         if (cn.getOriginalInvoiceNumber() != null) {
             rightCell.addElement(new Paragraph("Against Invoice: " + cn.getOriginalInvoiceNumber(), small8));
+        }
+        if (cn.getIrn() != null && !cn.getIrn().isBlank()) {
+            boolean simulated = cn.getIrn().startsWith("SIM");
+            rightCell.addElement(new Paragraph((simulated ? "Reference (SIMULATED - not an IRP registration): "
+                    : "IRN: ") + cn.getIrn(), small8));
+            if (cn.getAckNo() != null) {
+                rightCell.addElement(new Paragraph("Ack No: " + cn.getAckNo() + "  Date: " + safeStr(cn.getAckDate()), small8));
+            }
         }
         headerTable.addCell(leftCell);
         headerTable.addCell(rightCell);

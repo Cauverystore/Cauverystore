@@ -21,6 +21,8 @@ public final class StatutoryRates {
     public static final String TCS_S52 = "TCS_S52";
     /** A rupee limit rather than a rate, read the same way. */
     public static final String EWB_CONSIGNMENT_THRESHOLD = "EWB_CONSIGNMENT_THRESHOLD";
+    /** Turnover at or above which an e-invoice must reach the IRP within 30 days of its date. */
+    public static final String EINVOICE_30_DAY_LIMIT_AATO = "EINVOICE_30_DAY_LIMIT_AATO";
 
     public record Period(LocalDate from, LocalDate to, double rate, String source) {
         boolean covers(LocalDate d) {

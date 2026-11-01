@@ -202,6 +202,18 @@ public class GstInvoice {
     private Double discountAmount;
     private Double deliveryCharge;
     private Boolean einvoicingRequired = false;
+
+    /** GSTIN of the e-commerce operator the supply was made through (s.52), if any. */
+    private String ecoGstin;
+
+    // Set only when a credit or debit note is sent to the IRP in the shape of an invoice:
+    // the document type (INV, CRN, DBN) and the invoice it adjusts. Never stored.
+    @Transient
+    private String irpDocType = "INV";
+    @Transient
+    private String precedingInvoiceNumber;
+    @Transient
+    private LocalDate precedingInvoiceDate;
     @Column(columnDefinition = "TEXT")
     /**
      * The seller's trade type and category as they stood when this invoice was raised.
@@ -432,6 +444,14 @@ public class GstInvoice {
     public Double getDeliveryCharge() { return deliveryCharge; }
     public void setDeliveryCharge(Double deliveryCharge) { this.deliveryCharge = deliveryCharge; }
     public Boolean getEinvoicingRequired() { return einvoicingRequired; }
+    public String getEcoGstin() { return ecoGstin; }
+    public void setEcoGstin(String ecoGstin) { this.ecoGstin = ecoGstin; }
+    public String getIrpDocType() { return irpDocType; }
+    public void setIrpDocType(String irpDocType) { this.irpDocType = irpDocType; }
+    public String getPrecedingInvoiceNumber() { return precedingInvoiceNumber; }
+    public void setPrecedingInvoiceNumber(String n) { this.precedingInvoiceNumber = n; }
+    public LocalDate getPrecedingInvoiceDate() { return precedingInvoiceDate; }
+    public void setPrecedingInvoiceDate(LocalDate d) { this.precedingInvoiceDate = d; }
     public void setEinvoicingRequired(Boolean einvoicingRequired) { this.einvoicingRequired = einvoicingRequired; }
     public String getTaxComplianceStatus() { return taxComplianceStatus; }
     public void setTaxComplianceStatus(String s) { this.taxComplianceStatus = s; }

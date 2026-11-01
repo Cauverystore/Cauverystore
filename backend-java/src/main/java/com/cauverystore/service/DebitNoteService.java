@@ -35,6 +35,12 @@ public class DebitNoteService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
 
+    // Optional for the same reason as gstAudit: tests build this service by hand.
+    private GstInvoiceService einvoiceQueue;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEinvoiceQueue(@org.springframework.context.annotation.Lazy GstInvoiceService s) { this.einvoiceQueue = s; }
+
     private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
         if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
     }
@@ -108,6 +114,7 @@ public class DebitNoteService {
         dn.setDebitNoteNumber(generateDebitNoteNumber("DN"));
         dn.setStatus("GENERATED");
         DebitNote saved = debitNoteRepo.save(dn);
+        if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), false);
         gstAudit(GstAuditService.DEBIT_NOTE_ISSUED, "DebitNote", saved.getDebitNoteNumber(), saved.getSellerId(),
                 GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
                         "date", String.valueOf(saved.getDebitNoteDate()), "reason", saved.getReason(),
@@ -206,6 +213,14 @@ public class DebitNoteService {
         rightCell.addElement(new Paragraph(dn.getDebitNoteDate() != null ? dn.getDebitNoteDate().toString() : "", normal9));
         if (dn.getOriginalInvoiceNumber() != null) {
             rightCell.addElement(new Paragraph("Against Invoice: " + dn.getOriginalInvoiceNumber(), small8));
+        }
+        if (dn.getIrn() != null && !dn.getIrn().isBlank()) {
+            boolean simulated = dn.getIrn().startsWith("SIM");
+            rightCell.addElement(new Paragraph((simulated ? "Reference (SIMULATED - not an IRP registration): "
+                    : "IRN: ") + dn.getIrn(), small8));
+            if (dn.getAckNo() != null) {
+                rightCell.addElement(new Paragraph("Ack No: " + dn.getAckNo() + "  Date: " + safeStr(dn.getAckDate()), small8));
+            }
         }
         headerTable.addCell(leftCell);
         headerTable.addCell(rightCell);
