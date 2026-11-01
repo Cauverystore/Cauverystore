@@ -335,7 +335,7 @@ class Gstr1ExportServiceTest {
         GstInvoice inv = invoice("INV-1", null, false, 100.0,
                 item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
 
-        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "hsn_b2b", "hsn_b2c", "eco"),
+        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "cdnur", "hsn_b2b", "hsn_b2c", "eco"),
                 List.copyOf(service.allSections(List.of(inv)).keySet()));
     }
 

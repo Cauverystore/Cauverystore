@@ -248,7 +248,7 @@ public class GstInvoiceController {
         Long userId = getCurrentUserId();
         if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
         List<Map<String, Object>> rows = creditNoteService.getGstr3bRows(userId, startDate, endDate);
-        String[] headers = {"section", "taxableValue", "cgst", "sgst", "igst"};
+        String[] headers = {"section", "placeOfSupply", "taxableValue", "igst", "cgst", "sgst", "cess"};
         if ("json".equalsIgnoreCase(format)) {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(gstService.exportJson(creditNoteService.getGstr3bData(userId, startDate, endDate)));
         }
@@ -291,7 +291,7 @@ public class GstInvoiceController {
     /**
      * GSTR-1 in the offline utility's format, ready to upload.
      *
-     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7), cdn (9A/9B), or the HSN summary
+     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7), cdn (9B registered), cdnur (9B unregistered), or the HSN summary
      * (12) as hsn_b2b and hsn_b2c (the single "hsn" exists only for periods before May 2025). Omit
      * it to get every section as JSON, which is the quickest way to see what a month actually
      * contains before filing any of it.
@@ -318,7 +318,7 @@ public class GstInvoiceController {
         }
         if (rows == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Unknown GSTR-1 section '"
-                    + section + "'. Use b2b, b2cl, b2cs, cdn, hsn_b2b, hsn_b2c or eco."));
+                    + section + "'. Use b2b, b2cl, b2cs, cdn, cdnur, hsn_b2b, hsn_b2c or eco."));
         }
         if ("json".equalsIgnoreCase(format)) return ResponseEntity.ok(rows);
 

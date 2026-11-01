@@ -458,7 +458,21 @@ public class CreditNoteService {
         throw new RuntimeException("Access denied: you do not have permission to view this credit note");
     }
 
-    /** GSTR-3B Table 3.1(a) outward supplies (net of credit notes) + ITC summary for the period. */
+    private DebitNoteRepository debitNoteRepo;
+    private DebitNoteItemRepository debitNoteItemRepo;
+
+    /** Debit notes count in GSTR-3B; optional so older tests can build the service without them. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setDebitNoteRepositories(DebitNoteRepository debitNoteRepo, DebitNoteItemRepository debitNoteItemRepo) {
+        this.debitNoteRepo = debitNoteRepo;
+        this.debitNoteItemRepo = debitNoteItemRepo;
+    }
+
+    /**
+     * GSTR-3B outward supplies for the period: 3.1(a), 3.1(c) and 3.2, net of credit and debit
+     * notes, leaving out cancelled invoices. See {@link Gstr3bBuilder} for what is and is not
+     * produced.
+     */
     public Map<String, Object> getGstr3bData(Long sellerId, LocalDate startDate, LocalDate endDate) {
         String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
@@ -467,75 +481,53 @@ public class CreditNoteService {
 
         List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, start, end);
         List<CreditNote> creditNotes = creditNoteRepo.findBySellerGstinAndCreditNoteDateBetween(sellerGstin, start, end);
-
-        double taxable = 0, cgst = 0, sgst = 0, igst = 0;
-        double cnTaxable = 0, cnCgst = 0, cnSgst = 0, cnIgst = 0;
-        double itcEligibleTaxable = 0, itcEligibleCgst = 0, itcEligibleSgst = 0, itcEligibleIgst = 0;
-        int invoiceCount = 0, creditNoteCount = 0, b2bCount = 0, b2cCount = 0;
-
-        for (GstInvoice inv : invoices) {
-            taxable += nz(inv.getTaxableAmount());
-            cgst += nz(inv.getCgstAmount());
-            sgst += nz(inv.getSgstAmount());
-            igst += nz(inv.getIgstAmount());
-            invoiceCount++;
-            if (Boolean.TRUE.equals(inv.getItcEligible())) {
-                itcEligibleTaxable += nz(inv.getTaxableAmount());
-                itcEligibleCgst += nz(inv.getCgstAmount());
-                itcEligibleSgst += nz(inv.getSgstAmount());
-                itcEligibleIgst += nz(inv.getIgstAmount());
+        for (CreditNote cn : creditNotes) cn.setItems(creditNoteItemRepo.findByCreditNoteId(cn.getId()));
+        List<DebitNote> debitNotes = new ArrayList<>();
+        if (debitNoteRepo != null) {
+            debitNotes = debitNoteRepo.findBySellerGstinAndDebitNoteDateBetween(sellerGstin, start, end);
+            if (debitNoteItemRepo != null) {
+                for (DebitNote dn : debitNotes) dn.setItems(debitNoteItemRepo.findByDebitNoteId(dn.getId()));
             }
-            if ("B2B".equals(inv.getInvoiceType())) b2bCount++; else b2cCount++;
         }
-        for (CreditNote cn : creditNotes) {
-            cnTaxable += nz(cn.getTaxableAmount());
-            cnCgst += nz(cn.getCgstAmount());
-            cnSgst += nz(cn.getSgstAmount());
-            cnIgst += nz(cn.getIgstAmount());
-            creditNoteCount++;
-        }
-
-        Map<String, Object> table3 = new LinkedHashMap<>();
-        table3.put("taxableValue", round(taxable - cnTaxable));
-        table3.put("cgst", round(cgst - cnCgst));
-        table3.put("sgst", round(sgst - cnSgst));
-        table3.put("igst", round(igst - cnIgst));
-        table3.put("totalTax", round((cgst - cnCgst) + (sgst - cnSgst) + (igst - cnIgst)));
-
-        Map<String, Object> itc = new LinkedHashMap<>();
-        itc.put("eligibleTaxableValue", round(itcEligibleTaxable));
-        itc.put("eligibleCgst", round(itcEligibleCgst));
-        itc.put("eligibleSgst", round(itcEligibleSgst));
-        itc.put("eligibleIgst", round(itcEligibleIgst));
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("gstin", sellerGstin);
-        result.put("periodStart", start.toString());
-        result.put("periodEnd", end.toString());
-        result.put("table3_1_outwardSupplies", table3);
-        result.put("table3_1b_itc", itc);
-        result.put("invoiceCount", invoiceCount);
-        result.put("creditNoteCount", creditNoteCount);
-        result.put("b2bCount", b2bCount);
-        result.put("b2cCount", b2cCount);
-        result.put("grossTaxableValue", round(taxable));
-        result.put("grossCreditNotesValue", round(cnTaxable));
-        return result;
+        return Gstr3bBuilder.build(sellerGstin, start, end, invoices, creditNotes, debitNotes);
     }
 
+    /** The same figures as rows, one per GSTR-3B table line, for the CSV export. */
+    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getGstr3bRows(Long sellerId, LocalDate startDate, LocalDate endDate) {
-        Map<String, Object> summary = getGstr3bData(sellerId, startDate, endDate);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> t3 = (Map<String, Object>) summary.get("table3_1_outwardSupplies");
+        return gstr3bRows(getGstr3bData(sellerId, startDate, endDate));
+    }
+
+    @SuppressWarnings("unchecked")
+    static List<Map<String, Object>> gstr3bRows(Map<String, Object> summary) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("section", "3.1(a) Outward taxable supplies");
-        row.put("taxableValue", t3.get("taxableValue"));
-        row.put("cgst", t3.get("cgst"));
-        row.put("sgst", t3.get("sgst"));
-        row.put("igst", t3.get("igst"));
-        rows.add(row);
+        Map<String, Object> t31a = (Map<String, Object>) summary.get("table3_1_outwardSupplies");
+        rows.add(gstr3bRow("3.1(a) Outward taxable supplies (other than zero rated, nil rated and exempted)", "",
+                t31a.get("taxableValue"), t31a.get("igst"), t31a.get("cgst"), t31a.get("sgst"), t31a.get("cess")));
+        rows.add(gstr3bRow("3.1(b) Outward taxable supplies (zero rated)", "", 0.0, 0.0, 0.0, 0.0, 0.0));
+        Map<String, Object> t31c = (Map<String, Object>) summary.get("table3_1c_nilExempt");
+        rows.add(gstr3bRow("3.1(c) Other outward supplies (nil rated, exempted)", "",
+                t31c.get("taxableValue"), 0.0, 0.0, 0.0, 0.0));
+        rows.add(gstr3bRow("3.1(d) Inward supplies (liable to reverse charge)", "", 0.0, 0.0, 0.0, 0.0, 0.0));
+        rows.add(gstr3bRow("3.1(e) Non-GST outward supplies", "", 0.0, 0.0, 0.0, 0.0, 0.0));
+        for (Map<String, Object> r : (List<Map<String, Object>>) summary.get("table3_2_interStateUnregistered")) {
+            rows.add(gstr3bRow("3.2 Supplies made to unregistered persons", r.get("placeOfSupply"),
+                    r.get("taxableValue"), r.get("igst"), "", "", ""));
+        }
         return rows;
+    }
+
+    private static Map<String, Object> gstr3bRow(String section, Object pos, Object taxable, Object igst,
+                                                 Object cgst, Object sgst, Object cess) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("section", section);
+        row.put("placeOfSupply", pos);
+        row.put("taxableValue", taxable);
+        row.put("igst", igst);
+        row.put("cgst", cgst);
+        row.put("sgst", sgst);
+        row.put("cess", cess);
+        return row;
     }
 
     public byte[] generateCreditNotePdf(Long id) throws DocumentException {

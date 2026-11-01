@@ -1232,7 +1232,27 @@ public class GstInvoiceService {
         GstConfiguration operator = marketplaceFor(sellerGstin);
         return gstr1ExportService.allSections(invoices, creditNotes, debitNotes, from,
                 operator == null ? null : operator.getTcsGstin(),
-                operator == null ? null : operator.getLegalName());
+                operator == null ? null : operator.getLegalName(),
+                earlierB2clInvoices(creditNotes, debitNotes));
+    }
+
+    /**
+     * Invoice numbers, from any period, that went out as B2CL and have a consumer note
+     * against them in this one. Those notes are listed in CDNUR rather than netted into B2CS.
+     */
+    private Set<String> earlierB2clInvoices(List<CreditNote> creditNotes, List<DebitNote> debitNotes) {
+        Set<Long> ids = new HashSet<>();
+        for (CreditNote cn : creditNotes) if (cn.getInvoiceId() != null) ids.add(cn.getInvoiceId());
+        for (DebitNote dn : debitNotes) if (dn.getInvoiceId() != null) ids.add(dn.getInvoiceId());
+        Set<String> out = new HashSet<>();
+        if (ids.isEmpty()) return out;
+        for (GstInvoice inv : invoiceRepo.findAllById(ids)) {
+            boolean consumer = inv.getBuyerGstin() == null || inv.getBuyerGstin().isBlank();
+            if (consumer && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount())) {
+                out.add(inv.getInvoiceNumber());
+            }
+        }
+        return out;
     }
 
     /** A seller's invoices and notes for a period: what GSTR-1 and the Tally export read. */
