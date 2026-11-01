@@ -260,7 +260,41 @@ class Gstr1ExportServiceTest {
         GstInvoice inv = invoice("INV-1", null, false, 100.0,
                 item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
 
-        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "hsn"),
+        assertEquals(List.of("b2b", "b2cl", "b2cs", "cdn", "hsn_b2b", "hsn_b2c"),
                 List.copyOf(service.allSections(List.of(inv)).keySet()));
+    }
+
+    @Test
+    void allSections_shouldKeepTheSingleHsnListOnlyBeforeMay2025() {
+        GstInvoice inv = invoice("INV-1", null, false, 100.0,
+                item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
+
+        assertTrue(service.allSections(List.of(inv), List.of(), List.of(), LocalDate.of(2025, 4, 1))
+                .containsKey("hsn"), "April 2025 return: one list");
+        assertFalse(service.allSections(List.of(inv), List.of(), List.of(), LocalDate.of(2025, 5, 1))
+                .containsKey("hsn"), "May 2025 return: split lists only");
+    }
+
+    @Test
+    void hsnSummary_shouldSplitRegisteredBuyersFromConsumers() {
+        // From May 2025 the portal rejects one combined Table 12. A buyer with a GSTIN is B2B,
+        // exactly as in the b2b section, so the HSN and invoice tables agree.
+        GstInvoice registered = invoice("INV-1", "33AAACR5055K1Z5", false, 400.0,
+                item("1006", 2, 400.0, 2.5, 2.5, 0.0, 10.0, 10.0, 0.0));
+        GstInvoice consumer = invoice("INV-2", null, false, 200.0,
+                item("1006", 1, 200.0, 2.5, 2.5, 0.0, 5.0, 5.0, 0.0));
+        GstInvoice blankGstin = invoice("INV-3", " ", false, 100.0,
+                item("1006", 1, 100.0, 2.5, 2.5, 0.0, 2.5, 2.5, 0.0));
+
+        List<Map<String, Object>> b2b = service.hsnSummaryB2b(List.of(registered, consumer, blankGstin));
+        List<Map<String, Object>> b2c = service.hsnSummaryB2c(List.of(registered, consumer, blankGstin));
+
+        assertEquals(1, b2b.size());
+        assertEquals(400.0, b2b.get(0).get("Taxable Value"));
+        assertEquals(1, b2c.size());
+        assertEquals(300.0, b2c.get(0).get("Taxable Value"), "a blank GSTIN is a consumer");
+        assertEquals(2.0, b2c.get(0).get("Total Quantity"));
+        assertArrayEquals(Gstr1ExportService.HSN_HEADERS, service.headersFor("hsn_b2b"));
+        assertArrayEquals(Gstr1ExportService.HSN_HEADERS, service.headersFor("hsn_b2c"));
     }
 }

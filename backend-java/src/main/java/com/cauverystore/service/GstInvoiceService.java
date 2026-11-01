@@ -942,7 +942,7 @@ public class GstInvoiceService {
                 .findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to);
         List<DebitNote> debitNotes = debitNoteRepo
                 .findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to);
-        return gstr1ExportService.allSections(invoices, creditNotes, debitNotes);
+        return gstr1ExportService.allSections(invoices, creditNotes, debitNotes, from);
     }
 
     /**

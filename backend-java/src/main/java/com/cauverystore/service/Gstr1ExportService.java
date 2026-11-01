@@ -9,6 +9,7 @@ import com.cauverystore.entities.GstInvoiceItem;
 import com.cauverystore.util.GstComplianceUtil;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,7 +36,13 @@ import java.util.Map;
  *   b2cl  (5A)  inter-state supplies to consumers above the B2C-large threshold
  *   b2cs  (7)   remaining consumer supplies, aggregated by place of supply and rate
  *   cdn   (9A/9B) credit and debit notes issued in the period, one row per note per rate
- *   hsn   (12)  the HSN-wise summary, which is mandatory and was missing entirely
+ *   hsn_b2b (12) the HSN-wise summary of supplies to registered buyers
+ *   hsn_b2c (12) the HSN-wise summary of supplies to everyone else
+ *   hsn   (12)  the single HSN summary, only for return periods before May 2025
+ *
+ * From the May 2025 return period the portal takes Table 12 as two lists, B2B and B2C, and
+ * rejects a file that still sends one. A supply is B2B when the buyer has a GSTIN - the same
+ * test the b2b section uses, so the two tables always agree.
  *
  * Nothing here is filed automatically. It produces files a human uploads and checks, which is
  * the right division of labour for a return someone signs.
@@ -46,6 +53,9 @@ public class Gstr1ExportService {
     /** The utility parses dates in this format and rejects ISO ones. */
     private static final DateTimeFormatter GST_DATE =
             DateTimeFormatter.ofPattern("dd-MMM-uuuu", Locale.ENGLISH);
+
+    /** The first return period whose HSN summary is split into B2B and B2C. */
+    public static final LocalDate HSN_SPLIT_FROM = LocalDate.of(2025, 5, 1);
 
     public static final String[] B2B_HEADERS = {
             "GSTIN/UIN of Recipient", "Receiver Name", "Invoice Number", "Invoice date",
@@ -220,8 +230,24 @@ public class Gstr1ExportService {
      * the return being filed from this data.
      */
     public List<Map<String, Object>> hsnSummary(List<GstInvoice> invoices) {
+        return hsnSummary(invoices, null);
+    }
+
+    /** 12, B2B list: supplies to buyers with a GSTIN. */
+    public List<Map<String, Object>> hsnSummaryB2b(List<GstInvoice> invoices) {
+        return hsnSummary(invoices, Boolean.TRUE);
+    }
+
+    /** 12, B2C list: supplies to buyers without a GSTIN. */
+    public List<Map<String, Object>> hsnSummaryB2c(List<GstInvoice> invoices) {
+        return hsnSummary(invoices, Boolean.FALSE);
+    }
+
+    /** @param registered TRUE for buyers with a GSTIN only, FALSE for the rest, null for all */
+    private List<Map<String, Object>> hsnSummary(List<GstInvoice> invoices, Boolean registered) {
         Map<String, Map<String, Object>> byHsnAndRate = new LinkedHashMap<>();
         for (GstInvoice inv : invoices) {
+            if (registered != null && registered == isBlank(inv.getBuyerGstin())) continue;
             for (GstInvoiceItem item : inv.getItems()) {
                 double rate = nz(item.getIgstRate()) > 0
                         ? nz(item.getIgstRate())
@@ -348,16 +374,32 @@ public class Gstr1ExportService {
         return allSections(invoices, List.of(), List.of());
     }
 
-    /** Every section, including credit and debit notes for the period. */
+    /** Every section, including credit and debit notes, for a return period from May 2025. */
     public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices,
                                                               List<CreditNote> creditNotes,
                                                               List<DebitNote> debitNotes) {
+        return allSections(invoices, creditNotes, debitNotes, null);
+    }
+
+    /**
+     * Every section for the period starting {@code periodStart} (null means a current period).
+     * The HSN summary comes as hsn_b2b and hsn_b2c; the single "hsn" list is added only for
+     * periods before May 2025, when the portal still took one.
+     */
+    public Map<String, List<Map<String, Object>>> allSections(List<GstInvoice> invoices,
+                                                              List<CreditNote> creditNotes,
+                                                              List<DebitNote> debitNotes,
+                                                              LocalDate periodStart) {
         Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
         out.put("b2b", b2b(invoices));
         out.put("b2cl", b2cl(invoices));
         out.put("b2cs", b2cs(invoices));
         out.put("cdn", cdn(creditNotes, debitNotes));
-        out.put("hsn", hsnSummary(invoices));
+        out.put("hsn_b2b", hsnSummaryB2b(invoices));
+        out.put("hsn_b2c", hsnSummaryB2c(invoices));
+        if (periodStart != null && periodStart.isBefore(HSN_SPLIT_FROM)) {
+            out.put("hsn", hsnSummary(invoices));
+        }
         return out;
     }
 
@@ -367,9 +409,11 @@ public class Gstr1ExportService {
             case "b2cl": return B2CL_HEADERS;
             case "b2cs": return B2CS_HEADERS;
             case "cdn": return CDN_HEADERS;
-            case "hsn": return HSN_HEADERS;
-            default: throw new IllegalArgumentException(
-                    "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs, cdn or hsn.");
+            case "hsn":
+            case "hsn_b2b":
+            case "hsn_b2c": return HSN_HEADERS;
+            default: throw new IllegalArgumentException("Unknown GSTR-1 section '" + section
+                    + "'. Use b2b, b2cl, b2cs, cdn, hsn_b2b or hsn_b2c.");
         }
     }
 
