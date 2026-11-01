@@ -415,6 +415,32 @@ public class SellerController {
         }
     }
 
+    private com.cauverystore.service.CommissionInvoiceService settlementService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSettlementService(com.cauverystore.service.CommissionInvoiceService s) { this.settlementService = s; }
+
+    /**
+     * This seller's settlement statement for a month (month=2026-10): each order with every
+     * deduction - commission, handling fee, GST on those, payment fees, TCS - what is payable
+     * now, and what has been paid against it.
+     */
+    @GetMapping("/settlement")
+    public ResponseEntity<?> getSettlement(@RequestParam String month) {
+        access.require(SellerPermissions.PAYOUTS_VIEW);
+        Long sellerId = getCurrentSellerId();
+        if (sellerId == null) return ResponseEntity.status(403).body(Map.of("error", "Seller not found"));
+        if (settlementService == null) return ResponseEntity.status(503).body(Map.of("error", "Settlement is unavailable"));
+        java.time.YearMonth ym;
+        try {
+            ym = java.time.YearMonth.parse(month);
+        } catch (java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "month must look like 2026-10"));
+        }
+        String period = ym.format(java.time.format.DateTimeFormatter.ofPattern("MMyyyy"));
+        return ResponseEntity.ok(settlementService.settlementStatement(sellerId, period, java.time.LocalDate.now()));
+    }
+
     /**
      * Payments the marketplace has made to this seller. Voided entries stay in the list, marked,
      * so a figure the seller saw earlier never just disappears; they do not count in the total.

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
+import SettlementStatement from "./SettlementStatement";
 
 const METHOD_LABELS = { BANK_TRANSFER: "Bank transfer", UPI: "UPI", OTHER: "Other" };
 const rupees = (n) => "₹" + Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -31,6 +32,9 @@ const SellerPayouts = () => {
         Payments Cauvery Store has sent to your bank account. Match each one to your bank statement using the reference.
       </p>
 
+      <SettlementStatement />
+
+      <h2 style={{ fontSize: "1.15rem", fontWeight: 700, margin: "0 0 0.75rem" }}>Payments sent</h2>
       {error ? (
         <p style={{ color: "#dc2626" }}>{error}</p>
       ) : (
