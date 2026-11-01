@@ -8,12 +8,15 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe CBIC and GST Council from a GitHub runner
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run the watcher read-only (no commits, PRs or issues)
         run: |
-          curl -s https://ipinfo.io/json | grep -E '"(country|region|org)"' || true
-          for u in https://taxinformation.cbic.gov.in/robots.txt \
-                   "https://taxinformation.cbic.gov.in/api/cbic-notification-msts/fetchNotificationByCategory/1000001/Central%20Tax%20%28Rate%29" \
-                   https://gstcouncil.gov.in/robots.txt https://www.gst.gov.in/; do
-            echo "== $u"
-            curl -sS -m 40 -o /dev/null -w "http=%{http_code} bytes=%{size_download} time=%{time_total}s\n" "$u" || echo "curl failed (exit $?)"
-          done
+          T=backend-java/src/main/resources/master-data/tools
+          mkdir -p "$RUNNER_TEMP/src" && cp backend-java/src/main/resources/master-data/cbic-source/manifest.json "$RUNNER_TEMP/src/"
+          python -I "$T/watch_gst_sources.py" --source-dir "$RUNNER_TEMP/src" --report-dir "$RUNNER_TEMP/rep" --delay 1
+          cat "$RUNNER_TEMP/rep/report.json"
+          grep -A8 "could NOT be checked" "$RUNNER_TEMP/rep/report.md"
+          grep -A6 "^## Checked" "$RUNNER_TEMP/rep/report.md"

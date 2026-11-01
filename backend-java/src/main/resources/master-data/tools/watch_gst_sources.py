@@ -11,9 +11,12 @@ What it does
     in JavaScript, so its HTML has no PDF links to find. Instead this reads the same JSON its
     own pages read: the notification list for one category, and each notification's PDF,
     which the portal returns base64-encoded inside JSON.
-  * New PDFs whose URL/title matches `download_if_matches` (default: 2025 onwards) are
-    downloaded into cbic-source/incoming/<source id>/ with a SHA-256 and a manifest entry.
-    Older new links are only recorded (so the first run does not pull the whole 2017 archive).
+  * New PDFs dated on or after `download_since` are downloaded into
+    cbic-source/incoming/<source id>/ with a SHA-256 and a manifest entry. Undated ones fall back
+    to `download_if_matches`. Older new links are only recorded, so documents already reflected
+    in gst_rate_seed.json are not offered for review again.
+  * Sources marked "primary": true are the ones rate changes appear on first. If one of them
+    could not be read, report.json says so ("primary_unchecked") and the workflow fails loudly.
   * Writes report.md / report.json: new files, sources it could not check (health), and
     sources that are manual-only.
 
@@ -32,6 +35,7 @@ import datetime as dt
 import hashlib
 import json
 import re
+import ssl
 import sys
 import time
 from html.parser import HTMLParser
@@ -42,6 +46,32 @@ from urllib.parse import parse_qsl, quote, urlencode, urljoin, urlparse, urlunpa
 UA = "CauveryStoreGSTWatch/1.0 (+https://cauverystore.in; compliance monitor)"
 MAX_BYTES = 25 * 1024 * 1024
 TIMEOUT = 30
+CERT_DIR = Path(__file__).resolve().parent / "certs"
+_CTX = None
+
+
+def _ssl_context():
+    """
+    The system's trusted roots plus the intermediate certificates in certs/. Some official sites
+    (taxinformation.cbic.gov.in, Nov 2026) send their own certificate without the intermediate that
+    links it to a trusted root. Browsers and Windows fetch the missing piece; Python on Linux does
+    not, so the site looked unreachable from GitHub. Verification stays fully on.
+    """
+    ctx = ssl.create_default_context()
+    for pem in sorted(CERT_DIR.glob("*.pem")):
+        ctx.load_verify_locations(cafile=str(pem))
+    return ctx
+
+
+def _why(e):
+    """A readable reason for a failed request."""
+    reason = getattr(e, "reason", None)
+    if isinstance(e, ssl.SSLCertVerificationError) or isinstance(reason, ssl.SSLCertVerificationError):
+        return ("TLS certificate could not be verified (%s). The site may have changed its certificate "
+                "chain: see 'Certificates' in WATCHER.md" % (getattr(reason, "verify_message", None) or e))
+    if isinstance(e, error.HTTPError):
+        return "HTTP %s" % e.code
+    return str(reason or e)
 
 
 class _Links(HTMLParser):
@@ -64,8 +94,12 @@ class _Links(HTMLParser):
 
 
 def _get(url, limit=MAX_BYTES):
+    global _CTX
+    if _CTX is None:
+        _CTX = _ssl_context()
     req = request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
-    with request.urlopen(req, timeout=TIMEOUT) as r:
+    ctx = _CTX if urlparse(url).scheme == "https" else None
+    with request.urlopen(req, timeout=TIMEOUT, context=ctx) as r:
         data = r.read(limit + 1)
     if len(data) > limit:
         raise ValueError("response larger than %d bytes" % limit)
@@ -77,6 +111,7 @@ class Robots:
 
     def __init__(self):
         self._cache = {}
+        self._failed = {}  # host -> why robots.txt could not be read
 
     def allowed(self, url):
         p = urlparse(url)
@@ -89,12 +124,21 @@ class Robots:
             except error.HTTPError as e:
                 # 404 = no robots file = no restrictions. 401/403/5xx = do not fetch.
                 self._cache[host] = True if e.code == 404 else False
-            except Exception:
+                if e.code != 404:
+                    self._failed[host] = _why(e)
+            except Exception as e:
                 self._cache[host] = False
+                self._failed[host] = _why(e)
         rp = self._cache[host]
         if rp is True or rp is False:
             return rp
         return rp.can_fetch(UA, url)
+
+    def refusal(self, url):
+        """Why allowed() said no: robots.txt unreadable (with the reason) or a real disallow."""
+        p = urlparse(url)
+        why = self._failed.get("%s://%s" % (p.scheme, p.netloc))
+        return "could not read robots.txt: %s" % why if why else "robots.txt disallows it"
 
 
 def _page_urls(src):
@@ -124,7 +168,10 @@ def _html_listing(src, page_data):
             u = urlparse(url)
             if u.path.lower().endswith(".pdf") and u.hostname in hosts:
                 title = text or Path(u.path).name
-                found.setdefault(url, (title, url + " " + title))
+                # Drupal sites file uploads under /files/YYYY-MM/: the best date the page offers.
+                m = re.search(r"/files/(20\d\d)-(\d\d)/", u.path)
+                date = "%s-%s-01" % m.groups() if m else ""
+                found.setdefault(url, (title, url + " " + title, date))
     return found
 
 
@@ -151,8 +198,15 @@ def _api_listing(src, data):
         url = "%s/download/%s/ENG" % (src["api_base"].rstrip("/"), n["id"])
         title = "%s (%s) - %s" % (number, date, name) if date else "%s - %s" % (number, name)
         # Match on number and date only: names often quote the 2017 notification they amend.
-        found[url] = (title, number + " " + date)
+        found[url] = (title, number + " " + date, date)
     return found
+
+
+def _wanted(match_text, date, since, pattern):
+    """Download only documents dated on or after `since`; fall back to the pattern when undated."""
+    if since and re.match(r"\d{4}-\d\d-\d\d$", date or ""):
+        return date >= since
+    return bool(pattern.search(match_text))
 
 
 def _api_document(data):
@@ -162,10 +216,12 @@ def _api_document(data):
 
 
 def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
-    rep = {"checked": [], "new": [], "recorded_only": [], "health": [], "manual": []}
+    rep = {"checked": [], "new": [], "recorded_only": [], "health": [], "manual": [],
+           "primary_unchecked": []}
     robots = Robots()
     today = dt.date.today().isoformat()
     pattern = re.compile(cfg.get("download_if_matches", r"20(25|26|27|28)"))
+    since = cfg.get("download_since", "")
     budget = int(cfg.get("max_downloads_per_run", 40))
 
     def fetchable(url):
@@ -185,14 +241,13 @@ def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
         page_data = []
         for page in pages:
             if not fetchable(page):
-                rep["health"].append("%s: not fetched (robots.txt disallows it, or could not be read): %s"
-                                     % (src["id"], page))
+                rep["health"].append("%s: not fetched (%s): %s" % (src["id"], robots.refusal(page), page))
                 continue
             time.sleep(delay)
             try:
                 page_data.append((page, _get(page)))
             except Exception as e:
-                rep["health"].append("%s: could not read %s (%s)" % (src["id"], page, e))
+                rep["health"].append("%s: could not read %s (%s)" % (src["id"], page, _why(e)))
         try:
             if is_api:
                 found = _api_listing(src, page_data[0][1]) if page_data else {}
@@ -201,17 +256,23 @@ def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
         except Exception as e:
             rep["health"].append("%s: could not understand the listing (%s) - the site may have "
                                  "changed; this source is NOT being checked" % (src["id"], e))
+            if src.get("primary"):
+                rep["primary_unchecked"].append(src["label"])
             continue
-        rep["checked"].append({"id": src["id"], "label": src["label"], "pdf_links": len(found)})
+        if page_data:  # "checked" only when something was actually read
+            rep["checked"].append({"id": src["id"], "label": src["label"], "pdf_links": len(found)})
         if not found:
-            rep["health"].append("%s: found 0 documents - the page layout may have changed or the "
-                                 "site is down; this source is NOT being checked" % src["id"])
+            if page_data:
+                rep["health"].append("%s: found 0 documents - the page layout may have changed or the "
+                                     "site is down; this source is NOT being checked" % src["id"])
+            if src.get("primary"):
+                rep["primary_unchecked"].append(src["label"])
             continue
-        for url, (title, match_text) in found.items():
+        for url, (title, match_text, date) in found.items():
             if url in manifest:
                 continue
             entry = {"source": src["id"], "title": title, "first_seen": today}
-            if not pattern.search(match_text):
+            if not _wanted(match_text, date, since, pattern):
                 entry["downloaded"] = False
                 manifest[url] = entry
                 rep["recorded_only"].append(url)
@@ -225,7 +286,7 @@ def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
             try:
                 data, served_name = _api_document(_get(url)) if is_api else (_get(url), "")
             except Exception as e:
-                rep["health"].append("%s: download failed %s (%s)" % (src["id"], url, e))
+                rep["health"].append("%s: download failed %s (%s)" % (src["id"], url, _why(e)))
                 continue
             if not data.startswith(b"%PDF"):
                 rep["health"].append("%s: not a PDF (skipped): %s" % (src["id"], url))
@@ -251,6 +312,12 @@ def run(cfg, manifest, out_dir, allow_local=False, delay=3.0):
 
 def to_markdown(rep):
     L = ["# GST source watch - %s" % dt.date.today().isoformat(), ""]
+    if rep["primary_unchecked"]:
+        L += ["> [!CAUTION]",
+              "> **The main source was NOT checked today:** %s. Rate changes are published there first, "
+              "so a new GST rate could be missed. Check https://taxinformation.cbic.gov.in by hand "
+              "(GST > Notifications > Central Tax (Rate)) until this is fixed." % "; ".join(rep["primary_unchecked"]),
+              ""]
     L.append("## New files (%d)" % len(rep["new"]))
     for n in rep["new"]:
         L.append("- **%s** - [%s](%s)  \n  saved as `%s`  \n  sha256 `%s`"
@@ -298,8 +365,10 @@ def main(argv=None):
     rdir.mkdir(parents=True, exist_ok=True)
     (rdir / "report.md").write_text(to_markdown(rep), encoding="utf-8")
     (rdir / "report.json").write_text(json.dumps(
-        {"new": len(rep["new"]), "health": len(rep["health"])}) + "\n", encoding="utf-8")
-    print("new=%d health_problems=%d" % (len(rep["new"]), len(rep["health"])))
+        {"new": len(rep["new"]), "health": len(rep["health"]),
+         "primary_unchecked": len(rep["primary_unchecked"])}) + "\n", encoding="utf-8")
+    print("new=%d health_problems=%d primary_unchecked=%d"
+          % (len(rep["new"]), len(rep["health"]), len(rep["primary_unchecked"])))
     return 0
 
 

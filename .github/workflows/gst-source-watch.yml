@@ -3,6 +3,13 @@ name: GST source watch
 # Daily at 07:00 IST (01:30 UTC). Finds new GST notifications/circulars on the OPEN official
 # sources, downloads the PDFs into a pull request for human review, and opens an issue when a
 # source could not be checked. It never changes gst_rate_seed.json.
+#
+# The record of what has been seen (cbic-source/manifest.json) is committed straight to main on
+# every run; only the PDFs go into the review pull request. So closing a review PR without
+# merging it does not make the same documents come back the next day.
+#
+# If a "primary" source (CBIC rate notifications) could not be read, the run fails at the end,
+# so GitHub emails the repository owner, and an issue is opened or commented on.
 on:
   schedule:
     - cron: "30 1 * * *"
@@ -12,6 +19,10 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+
+concurrency:
+  group: gst-source-watch
+  cancel-in-progress: false
 
 jobs:
   watch:
@@ -33,36 +44,47 @@ jobs:
       - name: Show report
         run: cat "$RUNNER_TEMP/gstwatch/report.md" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Open a pull request with new files
+      - name: Record what was seen on main, and put new PDFs in a review pull request
         run: |
-          NEW=$(python3 -c "import json,os;print(json.load(open(os.environ['RUNNER_TEMP']+'/gstwatch/report.json'))['new'])")
+          R="$RUNNER_TEMP/gstwatch/report.json"
+          NEW=$(python3 -c "import json;print(json.load(open('$R'))['new'])")
+          git config user.name "gst-source-watch"
+          git config user.email "gst-source-watch@users.noreply.github.com"
+
+          # 1. The manifest goes to main every run, so nothing is offered for review twice.
+          if ! git diff --quiet -- "$SRC/manifest.json"; then
+            git add "$SRC/manifest.json"
+            git commit -m "GST source watch: record documents seen $(date -u +%Y-%m-%d)"
+            git push origin HEAD:main
+          fi
+
+          # 2. New PDFs go to a review branch made from that commit: the PR holds only PDFs.
           if [ "$NEW" -gt 0 ]; then
             BR="gst-watch/$(date -u +%Y-%m-%d-%H%M)"
-            git config user.name "gst-source-watch"
-            git config user.email "gst-source-watch@users.noreply.github.com"
             git checkout -b "$BR"
-            git add "$SRC"
+            git add "$SRC/incoming"
             git commit -m "GST source watch: $NEW new document(s) to review"
             git push origin "$BR"
             gh pr create --title "GST source watch: $NEW new document(s) to review" \
-              --body-file "$RUNNER_TEMP/gstwatch/report.md" --head "$BR"
-          else
-            # keep the manifest current (older links recorded) without a PR
-            if ! git diff --quiet -- "$SRC/manifest.json"; then
-              git config user.name "gst-source-watch"
-              git config user.email "gst-source-watch@users.noreply.github.com"
-              git add "$SRC/manifest.json"
-              git commit -m "GST source watch: update manifest"
-              git push
-            fi
+              --body-file "$RUNNER_TEMP/gstwatch/report.md" --head "$BR" --base main
           fi
 
-      - name: Open an issue if a source could not be checked
+      - name: Open, update or close the health issue
         run: |
-          H=$(python3 -c "import json,os;print(json.load(open(os.environ['RUNNER_TEMP']+'/gstwatch/report.json'))['health'])")
+          R="$RUNNER_TEMP/gstwatch/report.json"
+          H=$(python3 -c "import json;print(json.load(open('$R'))['health'])")
+          P=$(python3 -c "import json;print(json.load(open('$R')).get('primary_unchecked',0))")
           T="GST source watch: a source could not be checked"
-          if [ "$H" -gt 0 ] && [ -z "$(gh issue list --state open --search "$T in:title" --json number --jq '.[0].number')" ]; then
-            gh issue create --title "$T" --body-file "$RUNNER_TEMP/gstwatch/report.md"
+          OPEN=$(gh issue list --state open --search "\"$T\" in:title" --json number --jq '.[0].number')
+          if [ "$H" -gt 0 ]; then
+            if [ -z "$OPEN" ]; then
+              gh issue create --title "$T" --body-file "$RUNNER_TEMP/gstwatch/report.md"
+            elif [ "$P" -gt 0 ]; then
+              # Main source still down: say so again every day rather than staying silent.
+              gh issue comment "$OPEN" --body-file "$RUNNER_TEMP/gstwatch/report.md"
+            fi
+          elif [ -n "$OPEN" ]; then
+            gh issue close "$OPEN" --comment "All sources were checked on $(date -u +%Y-%m-%d). Closing."
           fi
 
       - name: Monthly reminder to look at circulars and corrigenda
@@ -70,4 +92,12 @@ jobs:
           if [ "$(date -u +%d)" = "01" ]; then
             gh issue create --title "Monthly GST check: CBIC tax information portal" \
               --body "The daily job reads Central Tax (Rate) and Integrated Tax (Rate) notifications from https://taxinformation.cbic.gov.in automatically. It does not read circulars or corrigenda. Open the portal (GST > Circulars, and any corrigendum on a recent rate notification), download anything relevant by hand into cbic-source/incoming/, then record the verification in the admin GST screen."
+          fi
+
+      - name: Fail if the main source was not checked
+        run: |
+          P=$(python3 -c "import json,os;print(json.load(open(os.environ['RUNNER_TEMP']+'/gstwatch/report.json')).get('primary_unchecked',0))")
+          if [ "$P" -gt 0 ]; then
+            echo "::error::CBIC rate notifications (the main source) were NOT checked today. See the run summary."
+            exit 1
           fi
