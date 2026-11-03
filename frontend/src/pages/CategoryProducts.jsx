@@ -123,7 +123,7 @@ const CategoryProducts = () => {
     ],
   };
 
-  // The "Buy X Online in Tamil Nadu" title is English wording, so other languages keep the plain "X | Cauvery Store" form.
+  // The "Buy X Online in India" title is English wording, so other languages keep the plain "X | Cauvery Store" form.
   const isEnglish = String(i18n.language || "en").split("-")[0] === "en";
   const pageTitle = isEnglish
     ? t("categorySeo.pageTitle", { category: catLabel(category) })
