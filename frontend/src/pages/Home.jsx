@@ -189,11 +189,11 @@ const Home = () => {
             {heroImages.length > 0 ? (
               <div className={`sn-hero-mosaic sn-hero-mosaic-${heroImages.length}`}>
                 {heroImages.map((src, i) => (
-                  <div key={src} className="sn-hero-tile"><img src={src} alt="" loading={i === 0 ? "eager" : "lazy"} /></div>
+                  <div key={src} className="sn-hero-tile"><img src={src} alt="" aria-hidden="true" loading={i === 0 ? "eager" : "lazy"} /></div>
                 ))}
               </div>
             ) : !loading && (
-              <div className="sn-hero-logo"><img src="/images/logo.jpg" alt="" /></div>
+              <div className="sn-hero-logo"><img src="/images/logo.jpg" alt="" aria-hidden="true" /></div>
             )}
           </div>
         </div>
