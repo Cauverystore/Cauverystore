@@ -66,7 +66,7 @@ const ProductDashboard = () => {
       <p style={SC.sub}>Key metrics and product overview</p>
 
       <div style={SC.grid}>
-        <StatCard label="Total Products" value={stats.totalProducts} color="#0E5C5C" />
+        <StatCard label="Total Products" value={stats.totalProducts} color="#1F6B45" />
         <StatCard label="Active" value={stats.active} color="#16a34a" />
         <StatCard label="Draft" value={stats.draft} color="#f59e0b" />
         <StatCard label="Out of Stock" value={stats.outOfStock} color="#dc2626" />
@@ -74,7 +74,7 @@ const ProductDashboard = () => {
         <StatCard label="Pending Approval" value={stats.pendingApproval} color="#3b82f6" />
         <StatCard label="Rejected" value={stats.rejected} color="#991b1b" />
         <StatCard label="Recently Added" value={stats.recentlyAdded} color="#8b5cf6" />
-        <StatCard label="Featured" value={stats.featured} color="#0E5C5C" />
+        <StatCard label="Featured" value={stats.featured} color="#1F6B45" />
         <StatCard label="Trending" value={stats.trending} color="#06b6d4" />
         <StatCard label="Best Seller" value={stats.bestSeller} color="#C8A24B" />
         <StatCard label="New Arrival" value={stats.newArrival} color="#ec4899" />

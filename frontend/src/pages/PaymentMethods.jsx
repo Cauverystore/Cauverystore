@@ -24,7 +24,7 @@ const PaymentMethods = () => {
     <div style={{ padding:"1.5rem", maxWidth:"800px", margin:"0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.5rem" }}>
         <h1 style={{ fontSize:"1.5rem", fontWeight:700, margin:0 }}>{t("paymentMethods.paymentMethods")}</h1>
-        <button onClick={() => setShowForm(!showForm)} style={{ padding:"0.5rem 1rem", background:"#0E5C5C", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.85rem" }}>{showForm ? t("addressBook.cancel") : t("paymentMethods.addMethod")}</button>
+        <button onClick={() => setShowForm(!showForm)} style={{ padding:"0.5rem 1rem", background:"#1F6B45", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.85rem" }}>{showForm ? t("addressBook.cancel") : t("paymentMethods.addMethod")}</button>
       </div>
       {showForm && (
         <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, padding:"1.5rem", marginBottom:"1.5rem" }}>
@@ -50,7 +50,7 @@ const PaymentMethods = () => {
               {form.type === "net_banking" && <div><label style={{ fontSize:"0.85rem", fontWeight:500, display:"block", marginBottom:"4px" }}>{t("paymentMethods.bankName")}</label><input value={form.bankName} onChange={e => setForm({...form,bankName:e.target.value})} style={inp} /></div>}
             </div>
             <label style={{ fontSize:"0.85rem", display:"flex", alignItems:"center", gap:"6px" }}><input type="checkbox" checked={form.isDefault} onChange={e => setForm({...form,isDefault:e.target.checked})} />{" "}{t("paymentMethods.setAsDefault")}</label>
-            <button type="submit" style={{ marginTop:"1rem", padding:"0.5rem 1.5rem", background:"#0E5C5C", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.85rem" }}>{t("addressBook.save")}</button>
+            <button type="submit" style={{ marginTop:"1rem", padding:"0.5rem 1.5rem", background:"#1F6B45", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.85rem" }}>{t("addressBook.save")}</button>
           </form>
         </div>
       )}
@@ -61,7 +61,7 @@ const PaymentMethods = () => {
             <div>
               <div style={{ fontWeight:600, fontSize:"0.9rem" }}>
                 {m.type === "upi" ? i18n.t("msgs.upiLabel", { id: m.upiId }) : m.type === "net_banking" ? i18n.t("msgs.netBankingLabel", { bank: m.bankName }) : `${m.cardholderName || i18n.t("msgs.cardWord")} - ${m.maskedNumber || "****"}`}
-                {m.isDefault && <span style={{ marginLeft:"0.5rem", padding:"0.15rem 0.5rem", background:"#edf8f7", color:"#0E5C5C", borderRadius:4, fontSize:"0.7rem", fontWeight:600 }}>{t("addressBook.default")}</span>}
+                {m.isDefault && <span style={{ marginLeft:"0.5rem", padding:"0.15rem 0.5rem", background:"#EEF6F0", color:"#1F6B45", borderRadius:4, fontSize:"0.7rem", fontWeight:600 }}>{t("addressBook.default")}</span>}
               </div>
               {(m.type === "credit_card" || m.type === "debit_card") && <div style={{ fontSize:"0.8rem", color:"#6b7280", marginTop:"0.25rem" }}>{t("paymentMethods.expires")}{" "}{m.expiry || "N/A"}</div>}
             </div>

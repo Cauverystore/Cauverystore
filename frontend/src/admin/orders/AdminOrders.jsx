@@ -164,15 +164,15 @@ const AdminOrders = () => {
                       {shiprocketReady && ["PLACED", "CONFIRMED", "PACKED"].includes(o.status) && !o.trackingNumber && (
                         <button onClick={() => shipWithShiprocket(oid)} disabled={booking === oid} style={{
                           padding: "0.25rem 0.5rem", border: "none", borderRadius: 4, cursor: booking === oid ? "wait" : "pointer",
-                          background: "#0E5C5C", color: "#fff", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                          background: "#1F6B45", color: "#fff", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
                         }}>
                           {booking === oid ? "Booking..." : "Ship with Shiprocket"}
                         </button>
                       )}
                       {o.shippingLabelUrl && (
                         <a href={o.shippingLabelUrl} target="_blank" rel="noopener noreferrer" style={{
-                          padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4,
-                          color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap", textDecoration: "none"
+                          padding: "0.25rem 0.5rem", border: "1px solid #1F6B45", borderRadius: 4,
+                          color: "#1F6B45", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap", textDecoration: "none"
                         }}>
                           Courier label
                         </a>
@@ -189,8 +189,8 @@ const AdminOrders = () => {
                         {[...STATUS_FLOW, CANCELLED].map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                       <button onClick={() => downloadLabel(oid)} style={{
-                        padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
-                        background: "#fff", color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                        padding: "0.25rem 0.5rem", border: "1px solid #1F6B45", borderRadius: 4, cursor: "pointer",
+                        background: "#fff", color: "#1F6B45", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
                       }}>
                         Label
                       </button>

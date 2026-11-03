@@ -58,7 +58,7 @@ const ProductLabelInfo = ({ productId }) => {
         .pd-label-info dl { display: grid; grid-template-columns: minmax(110px, 38%) 1fr; gap: 0.35rem 0.9rem; margin: 0; font-size: 0.86rem; }
         .pd-label-info dt { color: #64748b; }
         .pd-label-info dd { margin: 0; color: #1e293b; overflow-wrap: anywhere; }
-        .pd-label-info a { color: #0E5C5C; }
+        .pd-label-info a { color: #1F6B45; }
       `}</style>
     </section>
   );

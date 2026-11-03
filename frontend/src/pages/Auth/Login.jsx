@@ -262,7 +262,7 @@ const Login = () => {
           <div className="auth-card">
             <div className="auth-header">
               <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: "48px", width: "auto" }} />
-              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #1F6B45)" }}>Cauvery Store</div>
               <h1 className="auth-title">{t("login.twoFactorAuthentication")}</h1>
               <p className="auth-subtitle">{t("login.enterThe6DigitCode")}{" "}{email}.</p>
             </div>
@@ -316,7 +316,7 @@ const Login = () => {
           <div className="auth-card">
             <div className="auth-header">
               <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: "48px", width: "auto" }} />
-              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #1F6B45)" }}>Cauvery Store</div>
               <h1 className="auth-title">{t("login.setANewPassword")}</h1>
               <p className="auth-subtitle">{t("login.yourPasswordWasResetBy")}</p>
             </div>
@@ -393,7 +393,7 @@ const Login = () => {
         <div className="auth-card">
           <div className="auth-header">
             <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: "48px", width: "auto" }} />
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #1F6B45)" }}>Cauvery Store</div>
             <h1 className="auth-title">{t("login.welcomeBack")}</h1>
             <p className="auth-subtitle">{t("login.signInToYourAccount")}</p>
           </div>

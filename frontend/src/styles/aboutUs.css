@@ -1,15 +1,15 @@
 /* ===== About page — editorial layout on the store's cream, teal and gold ===== */
 
 .about-page {
-  --about-bg: #F5F1EA;
-  --about-bg-deep: #ebe6dc;
-  --about-ink: #14302f;
-  --about-text: #48595a;
-  --about-muted: #6d7c7b;
-  --about-teal: #0E5C5C;
+  --about-bg: #F1F7F2;
+  --about-bg-deep: #E6F0E8;
+  --about-ink: #143D2B;
+  --about-text: #4A5B52;
+  --about-muted: #6B7C72;
+  --about-teal: #1F6B45;
   --about-gold: #C8A24B;
   --about-gold-text: #8a6a1f;
-  --about-rule: rgba(14, 92, 92, 0.16);
+  --about-rule: rgba(31, 107, 69, 0.16);
   --about-serif: var(--font-display);
 
   background: var(--about-bg);
@@ -162,7 +162,7 @@
   background: var(--about-bg-deep);
   border-radius: 28px;
   padding: clamp(2rem, 6vw, 4.5rem);
-  box-shadow: inset 0 0 0 1px rgba(14, 92, 92, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(31, 107, 69, 0.08);
 }
 .about-panel h2 {
   max-width: 14ch;
@@ -244,7 +244,7 @@
   border-radius: 14px;
   background: #fff;
   color: var(--about-teal);
-  box-shadow: 0 1px 2px rgba(14, 60, 60, 0.06), 0 8px 20px -12px rgba(14, 60, 60, 0.35);
+  box-shadow: 0 1px 2px rgba(20, 61, 43, 0.06), 0 8px 20px -12px rgba(20, 61, 43, 0.35);
   transition: transform 0.25s ease, background 0.25s ease, color 0.25s ease;
 }
 .about-features li:hover .about-feature-icon {
@@ -398,11 +398,11 @@
   font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 14px 28px -16px rgba(14, 92, 92, 0.7);
+  box-shadow: 0 14px 28px -16px rgba(31, 107, 69, 0.7);
   transition: background 0.2s ease, transform 0.2s ease;
 }
 .about-cta:hover {
-  background: #0a4a4a;
+  background: #17583A;
   color: #fff;
   transform: translateY(-1px);
 }

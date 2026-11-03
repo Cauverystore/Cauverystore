@@ -7,31 +7,31 @@
 
 :root {
   /* --- Brand palette --- */
-  --teal-50: #edf8f7;
-  --teal-100: #d5f2f0;
-  --teal-200: #a8e3e0;
-  --teal-300: #7bcfcc;
-  --teal-400: #4fb7b4;
-  --teal-500: #2d9694;
-  --teal-600: #1a7573;
-  --teal-700: #0e5452;
-  --teal-800: #0b3f3d;
-  --teal-900: #072a29;
-  --teal-950: #031716;
+  --teal-50: #EEF6F0;
+  --teal-100: #DCEEE1;
+  --teal-200: #BBDCC6;
+  --teal-300: #8FC7A6;
+  --teal-400: #62AE84;
+  --teal-500: #3E9466;
+  --teal-600: #2A7D52;
+  --teal-700: #17583A;
+  --teal-800: #143D2B;
+  --teal-900: #0E2A1D;
+  --teal-950: #071A11;
 
   /* --- Primary / Action --- */
-  --color-primary: #0E5C5C;
-  --color-primary-hover: #0a4a4a;
-  --color-primary-active: #073838;
+  --color-primary: #1F6B45;
+  --color-primary-hover: #17583A;
+  --color-primary-active: #124A30;
   --color-primary-light: var(--teal-100);
   --color-primary-lighter: var(--teal-50);
-  --color-primary-dark: #0a4a4a;
+  --color-primary-dark: #17583A;
   --color-primary-text: #ffffff;
 
   /* --- CTA (buttons / interactive) --- */
-  --color-cta: #0E5C5C;
-  --color-cta-hover: #0a4a4a;
-  --color-cta-active: #073838;
+  --color-cta: #1F6B45;
+  --color-cta-hover: #17583A;
+  --color-cta-active: #124A30;
 
   /* --- Accent / Semantic --- */
   --color-accent-gold: #C8A24B;
@@ -40,10 +40,10 @@
   --color-accent-rose: #f43f5e;
   --color-accent-blue: #2563eb;
   --color-accent-indigo: #4f46e5;
-  --color-accent-teal: #0d9488;
+  --color-accent-teal: #2F8A5B;
 
   /* --- Semantic states --- */
-  --color-success: #0E5C5C;
+  --color-success: #1F6B45;
   --color-success-light: var(--teal-100);
   --color-success-bg: var(--teal-50);
   --color-warning: #C8A24B;
@@ -76,8 +76,8 @@
   --black: #000000;
 
   /* --- Surfaces & Text --- */
-  --color-bg-primary: #F5F1EA;
-  --color-bg-secondary: #ebe6dc;
+  --color-bg-primary: #F1F7F2;
+  --color-bg-secondary: #E6F0E8;
   --color-bg-tertiary: var(--white);
   --color-surface: var(--white);
   --color-surface-hover: var(--gray-50);
@@ -97,7 +97,7 @@
   --color-border: var(--gray-200);
   --color-border-light: var(--gray-100);
   --color-border-dark: var(--gray-300);
-  --color-border-focus: #0E5C5C;
+  --color-border-focus: #1F6B45;
   --color-border-error: var(--color-error);
 
   /* --- Shadows --- */
@@ -108,7 +108,7 @@
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.04);
-  --shadow-focus: 0 0 0 3px rgba(14, 92, 92, 0.2);
+  --shadow-focus: 0 0 0 3px rgba(31, 107, 69, 0.2);
   --shadow-focus-error: 0 0 0 3px rgba(200, 162, 75, 0.3);
 
   /* --- Border radius --- */
@@ -123,9 +123,9 @@
   --radius-full: 9999px;
 
   /* --- Typography --- */
-  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-body: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-family: var(--font-body);
   --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
 
@@ -661,7 +661,7 @@ svg.icon {
   font-family: var(--font-display);
   font-weight: var(--font-weight-medium);
   letter-spacing: -0.02em;
-  color: #14302f;
+  color: #143D2B;
 }
 
 #main-content .cart-title,
@@ -671,5 +671,5 @@ svg.icon {
 #main-content h2.section-title {
   font-size: clamp(1.75rem, 3vw, 2.25rem);
   font-weight: var(--font-weight-medium);
-  color: #14302f;
+  color: #143D2B;
 }

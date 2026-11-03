@@ -1,12 +1,12 @@
 /* ===== Contact page ===== */
 
 .contact-page {
-  --contact-ink: #14302f;
-  --contact-text: #48595a;
-  --contact-muted: #6d7c7b;
-  --contact-teal: #0E5C5C;
+  --contact-ink: #143D2B;
+  --contact-text: #4A5B52;
+  --contact-muted: #6B7C72;
+  --contact-teal: #1F6B45;
   --contact-gold: #C8A24B;
-  --contact-rule: rgba(14, 92, 92, 0.16);
+  --contact-rule: rgba(31, 107, 69, 0.16);
   max-width: 1180px;
   margin: 0 auto;
   padding: clamp(2.75rem, 7vw, 5rem) clamp(1.25rem, 5vw, 3rem) clamp(3.5rem, 8vw, 6rem);
@@ -106,10 +106,10 @@
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 14px 28px -16px rgba(14, 92, 92, 0.7);
+  box-shadow: 0 14px 28px -16px rgba(31, 107, 69, 0.7);
   transition: background 0.2s ease, transform 0.2s ease;
 }
-.contact-btn:hover { background: #0a4a4a; transform: translateY(-1px); }
+.contact-btn:hover { background: #17583A; transform: translateY(-1px); }
 .contact-btn:active { transform: translateY(1px); }
 .contact-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
 .contact-spinner { animation: contact-spin 0.9s linear infinite; }
@@ -167,8 +167,8 @@
 .contact-hours {
   padding: 1.75rem;
   border-radius: 20px;
-  background: #ebe6dc;
-  box-shadow: inset 0 0 0 1px rgba(14, 92, 92, 0.08);
+  background: #E6F0E8;
+  box-shadow: inset 0 0 0 1px rgba(31, 107, 69, 0.08);
 }
 .contact-hours h4 { margin-bottom: 0.75rem; }
 .contact-hours p {

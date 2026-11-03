@@ -174,14 +174,14 @@ const SellerOrders = () => {
                                 {o.trackingNumber ? "Edit Courier" : "Assign Courier"}
                               </button>
                               <button onClick={() => downloadLabel(o.id)} title="Download shipping label" style={{
-                                padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
-                                background: "#fff", color: "#0E5C5C", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                                padding: "0.25rem 0.5rem", border: "1px solid #1F6B45", borderRadius: 4, cursor: "pointer",
+                                background: "#fff", color: "#1F6B45", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
                               }}>
                                 Download Label
                               </button>
                               <button onClick={() => printLabel(o.id)} title="Print shipping label" style={{
-                                padding: "0.25rem 0.5rem", border: "1px solid #0E5C5C", borderRadius: 4, cursor: "pointer",
-                                background: "#0E5C5C", color: "#fff", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
+                                padding: "0.25rem 0.5rem", border: "1px solid #1F6B45", borderRadius: 4, cursor: "pointer",
+                                background: "#1F6B45", color: "#fff", fontSize: "0.7rem", fontWeight: 500, whiteSpace: "nowrap"
                               }}>
                                 Print Label
                               </button>

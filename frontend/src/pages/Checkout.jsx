@@ -642,8 +642,8 @@ const Checkout = () => {
             </div>
             {discount > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-                <span style={{ color: "#0E5C5C" }}>{tr("cart.discount")}</span>
-                <span style={{ color: "#0E5C5C" }}>-&#8377;{discount.toFixed(2)}</span>
+                <span style={{ color: "#1F6B45" }}>{tr("cart.discount")}</span>
+                <span style={{ color: "#1F6B45" }}>-&#8377;{discount.toFixed(2)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
@@ -709,7 +709,7 @@ const Checkout = () => {
             )}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
               <span style={{ color: "var(--color-text-secondary)" }}>{tr("cart.delivery")}</span>
-              <span>{delivery === 0 ? <span style={{ color: "#0E5C5C" }}>{tr("cart.free")}</span> : `\u20B9${delivery}`}</span>
+              <span>{delivery === 0 ? <span style={{ color: "#1F6B45" }}>{tr("cart.free")}</span> : `\u20B9${delivery}`}</span>
             </div>
             {giftCharge > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>

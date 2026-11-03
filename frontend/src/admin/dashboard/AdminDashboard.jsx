@@ -13,7 +13,7 @@ const quickActions = [
   { to: "/admin/refunds", label: "Refunds", icon: CreditCard, desc: "Handle refund requests", color: "#0891b2" },
   // Both of these were routed but linked from nowhere, so the only way in was to know the URL.
   { to: "/admin/returns", label: "Returns", icon: PackageX, desc: "Approve, inspect and refund returns", color: "#be123c" },
-  { to: "/admin/seller-approvals", label: "Sellers", icon: Store, desc: "Approve, suspend and review sellers", color: "#0f766e" },
+  { to: "/admin/seller-approvals", label: "Sellers", icon: Store, desc: "Approve, suspend and review sellers", color: "#1F6B45" },
   { to: "/admin/categories", label: "Categories", icon: Tags, desc: "Organize product categories", color: "#059669" },
   { to: "/admin/inventory", label: "Inventory", icon: BarChart3, desc: "Stock and inventory tracking", color: "#4f46e5" },
   { to: "/admin/qna", label: "Q&A Management", icon: HelpCircle, desc: "Customer questions", color: "#ea580c" },

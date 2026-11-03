@@ -112,6 +112,11 @@ const Home = () => {
   const products = allProducts || [];
   const normalized = useMemo(() => products.map(normalizeProduct).filter(Boolean), [products]);
 
+  // Up to four product photos for the hero panel; none means the panel shows only the river pattern.
+  const heroImages = useMemo(() => {
+    const seen = new Set();
+    return normalized.map(p => p.image).filter(src => src && !seen.has(src) && seen.add(src)).slice(0, 4);
+  }, [normalized]);
   const productsWithDiscount = useMemo(() => normalized.filter(p => p.discount > 0).slice(0, ROW_LIMIT), [normalized]);
   const electronics = useMemo(() => normalized.filter(p => getCategoryName(p) === "Electronics").slice(0, ROW_LIMIT), [normalized]);
   const fashion = useMemo(() => normalized.filter(p => getCategoryName(p) === "Fashion").slice(0, ROW_LIMIT), [normalized]);
@@ -163,19 +168,33 @@ const Home = () => {
       )}
 
       {/* The hero states what the store really is. Add offer banners here only once real offers exist. */}
+      {/* Split hero: what the store is on the left, a few real products from the catalogue on the right. */}
       <section className="sn-hero">
-        <svg className="sn-hero-river" viewBox="0 0 600 500" fill="none" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          <path d="M620 20C470 60 520 170 380 210S250 330 120 360 20 470 -20 500" stroke="currentColor" strokeWidth="1.25" />
-          <path d="M620 60C490 95 540 200 400 240S270 360 140 390 40 490 0 520" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-          <path d="M620 100C510 130 560 230 420 270S290 390 160 420 60 510 20 540" stroke="currentColor" strokeWidth="0.75" opacity="0.35" />
-        </svg>
         <div className="sn-container sn-hero-inner">
-          <p className="sn-eyebrow">Cauvery Store</p>
-          <h1 className="sn-hero-title"><Trans i18nKey="home.heroTitle" components={{ em: <em /> }} /></h1>
-          <p className="sn-hero-sub">{t("home.freeDeliveryOnOrdersOf")}</p>
-          <div className="sn-hero-actions">
-            <Link to="/products" className="sn-btn">{t("cartDrawer.browseProducts")}{" "}<ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
-            <Link to="/seller/register" className="sn-text-link">{t("home.ownAShopStartSelling")}</Link>
+          <div className="sn-hero-copy">
+            <p className="sn-eyebrow">Cauvery Store</p>
+            <h1 className="sn-hero-title"><Trans i18nKey="home.heroTitle" components={{ em: <em /> }} /></h1>
+            <p className="sn-hero-sub">{t("home.freeDeliveryOnOrdersOf")}</p>
+            <div className="sn-hero-actions">
+              <Link to="/products" className="sn-btn">{t("cartDrawer.browseProducts")}{" "}<ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" /></Link>
+              <Link to="/seller/register" className="sn-text-link">{t("home.ownAShopStartSelling")}</Link>
+            </div>
+          </div>
+          <div className="sn-hero-visual" aria-hidden="true">
+            <svg className="sn-hero-river" viewBox="0 0 600 500" fill="none" preserveAspectRatio="xMidYMid slice">
+              <path d="M620 20C470 60 520 170 380 210S250 330 120 360 20 470 -20 500" stroke="currentColor" strokeWidth="1.25" />
+              <path d="M620 60C490 95 540 200 400 240S270 360 140 390 40 490 0 520" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+              <path d="M620 100C510 130 560 230 420 270S290 390 160 420 60 510 20 540" stroke="currentColor" strokeWidth="0.75" opacity="0.35" />
+            </svg>
+            {heroImages.length > 0 ? (
+              <div className={`sn-hero-mosaic sn-hero-mosaic-${heroImages.length}`}>
+                {heroImages.map((src, i) => (
+                  <div key={src} className="sn-hero-tile"><img src={src} alt="" loading={i === 0 ? "eager" : "lazy"} /></div>
+                ))}
+              </div>
+            ) : !loading && (
+              <div className="sn-hero-logo"><img src="/images/logo.jpg" alt="" /></div>
+            )}
           </div>
         </div>
       </section>

@@ -47,7 +47,7 @@
 }
 
 .product-thumbnails img.active {
-  border-color: var(--color-primary, #0E5C5C);
+  border-color: var(--color-primary, #1F6B45);
 }
 
 .product-info-section {
@@ -88,7 +88,7 @@
 .deal-price {
   font-size: 1.6rem;
   font-weight: 800;
-  color: var(--color-primary, #0E5C5C);
+  color: var(--color-primary, #1F6B45);
 }
 
 .mrp-price {
@@ -145,7 +145,7 @@
 
 .variant-btn.active {
   border-color: var(--color-primary);
-  background: #edf8f7;
+  background: #EEF6F0;
   color: var(--color-primary);
   font-weight: 600;
 }

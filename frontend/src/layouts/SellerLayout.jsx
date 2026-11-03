@@ -62,7 +62,7 @@ const SellerLayout = () => {
             <div
               style={{
                 width: "32px", height: "32px", borderRadius: "50%",
-                background: "var(--color-primary, #0E5C5C)", color: "#fff",
+                background: "var(--color-primary, #1F6B45)", color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: "0.75rem", fontWeight: 700,
               }}
