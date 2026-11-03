@@ -9,6 +9,7 @@ import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.entities.User;
 import com.cauverystore.repository.GstConfigurationRepository;
 import com.cauverystore.repository.SellerRegistrationRepository;
+import com.cauverystore.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,7 @@ class CheckoutBillServiceTest {
     @Mock private GstInvoiceService invoiceService;
     @Mock private GstConfigurationRepository gstConfigRepo;
     @Mock private SellerRegistrationRepository sellerRegRepo;
+    @Mock private UserRepository userRepo;
 
     private CheckoutBillService service;
     private User user;
@@ -47,7 +49,7 @@ class CheckoutBillServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CheckoutBillService(cartService, rateResolver, invoiceService, gstConfigRepo, sellerRegRepo);
+        service = new CheckoutBillService(cartService, rateResolver, invoiceService, gstConfigRepo, sellerRegRepo, userRepo);
         user = new User();
         user.setId(7L);
         cart = new Cart();
@@ -268,5 +270,47 @@ class CheckoutBillServiceTest {
         assertEquals(1350.0, lines(bill).get(0).get("lineTotal"),
                 "3 x 450 from the stored cart, whatever the request said");
         assertEquals(1285.72, lines(bill).get(0).get("taxableValue"));
+    }
+
+    private Product listedByStore(long productId, long adminId, String name, double price) {
+        Product p = new Product();
+        p.setId(productId);
+        p.setSellerId(adminId);
+        p.setName(name);
+        p.setPrice(price);
+        User admin = new User();
+        admin.setId(adminId);
+        admin.setRole(com.cauverystore.entities.Role.SUPER_ADMIN);
+        when(userRepo.findById(adminId)).thenReturn(Optional.of(admin));
+        return p;
+    }
+
+    @Test
+    void shouldBillStoreListedProductsUnderTheStoresOwnGstin() {
+        // Products added from the admin panel belong to the store itself. Once the store's
+        // GSTIN is saved in Admin > GST Compliance, they must be sellable like anyone else's.
+        GstConfiguration store = new GstConfiguration();
+        store.setGstin("33ABCDE1234F1Z5");
+        when(gstConfigRepo.findByIsActiveTrue()).thenReturn(List.of(store));
+        Product tee = listedByStore(1L, 1L, "Cotton T-Shirt", 399.0);
+        addToCart(tee, 1);
+        when(rateResolver.resolve(any(), eq(false), any(), anyDouble()))
+                .thenReturn(resolved(5.0, false, "61091000"));
+
+        Map<String, Object> bill = service.billFor(user, new Address());
+
+        assertEquals(Boolean.TRUE, bill.get("canProceed"));
+        assertEquals("CGST+SGST", bill.get("taxType"), "Tamil Nadu store, Tamil Nadu delivery");
+    }
+
+    @Test
+    void shouldStillBlockStoreListedProductsUntilTheStoreHasAGstin() {
+        when(gstConfigRepo.findByIsActiveTrue()).thenReturn(List.of());
+        Product tee = listedByStore(1L, 1L, "Cotton T-Shirt", 399.0);
+        addToCart(tee, 1);
+
+        Map<String, Object> bill = service.billFor(user, new Address());
+
+        assertEquals(Boolean.FALSE, bill.get("canProceed"));
     }
 }
