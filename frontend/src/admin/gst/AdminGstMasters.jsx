@@ -88,9 +88,9 @@ const AdminGstMasters = () => {
             onClick={() => setActive(k.key)}
             style={{
               ...btn,
-              background: active === k.key ? "#0E5C5C" : "#fff",
+              background: active === k.key ? "#1F6B45" : "#fff",
               color: active === k.key ? "#fff" : "#334155",
-              border: `1px solid ${active === k.key ? "#0E5C5C" : "#cbd5e1"}`,
+              border: `1px solid ${active === k.key ? "#1F6B45" : "#cbd5e1"}`,
             }}
           >
             {k.label}{counts && counts[k.key] != null ? ` (${counts[k.key]})` : ""}

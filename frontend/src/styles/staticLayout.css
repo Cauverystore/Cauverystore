@@ -2,14 +2,14 @@
 
 .static-page {
   --hero-min-height: 200px;
-  --static-ink: #14302f;
-  --static-text: #48595a;
-  --static-muted: #6d7c7b;
-  --static-teal: #0E5C5C;
+  --static-ink: #143D2B;
+  --static-text: #4A5B52;
+  --static-muted: #6B7C72;
+  --static-teal: #1F6B45;
   --static-gold: #C8A24B;
-  --static-rule: rgba(14, 92, 92, 0.16);
-  --static-bg-deep: #ebe6dc;
-  background: #F5F1EA;
+  --static-rule: rgba(31, 107, 69, 0.16);
+  --static-bg-deep: #E6F0E8;
+  background: #F1F7F2;
   color: var(--static-text);
 }
 
@@ -68,7 +68,7 @@
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--static-rule);
-  background: #F5F1EA;
+  background: #F1F7F2;
   position: sticky;
   top: 60px;
   z-index: 20;
@@ -168,18 +168,18 @@
   background: #fff;
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: inset 0 0 0 1px rgba(14, 92, 92, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(31, 107, 69, 0.1);
   transition: box-shadow 0.25s, transform 0.25s;
 }
 .static-card:hover {
-  box-shadow: inset 0 0 0 1px rgba(14, 92, 92, 0.1), 0 18px 32px -22px rgba(14, 60, 60, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(31, 107, 69, 0.1), 0 18px 32px -22px rgba(20, 61, 43, 0.45);
   transform: translateY(-2px);
 }
 .static-card-icon {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: rgba(14, 92, 92, 0.08);
+  background: rgba(31, 107, 69, 0.08);
   color: var(--static-teal);
   display: flex;
   align-items: center;
@@ -299,7 +299,7 @@
 
 /* ─── Info / Tip Boxes ─── */
 .static-info-box {
-  background: rgba(14, 92, 92, 0.07);
+  background: rgba(31, 107, 69, 0.07);
   border-radius: 12px;
   border-left: 3px solid var(--static-teal);
   padding: 1rem 1.25rem;
@@ -338,9 +338,9 @@
 .static-btn-primary {
   background: var(--static-teal);
   color: #fff !important;
-  box-shadow: 0 14px 28px -16px rgba(14, 92, 92, 0.7);
+  box-shadow: 0 14px 28px -16px rgba(31, 107, 69, 0.7);
 }
-.static-btn-primary:hover { background: #0a4a4a; }
+.static-btn-primary:hover { background: #17583A; }
 .static-btn-secondary,
 .static-btn-outline {
   background: transparent;

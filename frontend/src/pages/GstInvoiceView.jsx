@@ -10,20 +10,20 @@ const GST_INVOICE_STYLES = `
   .giv-back { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #fff; color: #475569; font-size: 0.85rem; font-weight: 500; cursor: pointer; text-decoration: none; }
   .giv-back:hover { background: #f8fafc; }
   .giv-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-  .giv-btn-primary { background: #0E5C5C; color: #fff; }
-  .giv-btn-primary:hover { background: #0a4a4a; }
-  .giv-btn-outline { background: #fff; color: #0E5C5C; border: 1.5px solid #0E5C5C; }
+  .giv-btn-primary { background: #1F6B45; color: #fff; }
+  .giv-btn-primary:hover { background: #17583A; }
+  .giv-btn-outline { background: #fff; color: #1F6B45; border: 1.5px solid #1F6B45; }
   .giv-btn-outline:hover { background: #f0fdf4; }
 
   .giv-invoice { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
-  .giv-header { padding: 1.5rem 2rem; border-bottom: 2px solid #0E5C5C; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+  .giv-header { padding: 1.5rem 2rem; border-bottom: 2px solid #1F6B45; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
   .giv-header-left { display: flex; align-items: center; gap: 1rem; }
   .giv-header-left img { height: 2.5rem; width: auto; }
-  .giv-brand-name { font-size: 0.95rem; font-weight: 700; color: #0E5C5C; line-height: 1.2; }
+  .giv-brand-name { font-size: 0.95rem; font-weight: 700; color: #1F6B45; line-height: 1.2; }
   .giv-brand-tagline { font-size: 0.68rem; font-weight: 600; color: #C8A24B; margin-bottom: 0.25rem; }
   .giv-header-left h1 { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0; }
   .giv-header-right { text-align: right; }
-  .giv-header-right .giv-inv-number { font-size: 1rem; font-weight: 700; color: #0E5C5C; }
+  .giv-header-right .giv-inv-number { font-size: 1rem; font-weight: 700; color: #1F6B45; }
   .giv-header-right .giv-inv-label { font-size: 0.78rem; color: #64748b; margin-bottom: 0.15rem; }
   .giv-header-right .giv-inv-status { font-size: 0.72rem; padding: 2px 10px; border-radius: 999px; font-weight: 600; display: inline-block; margin-top: 0.25rem; }
   .giv-status-synced { background: #dcfce7; color: #166534; }
@@ -34,7 +34,7 @@ const GST_INVOICE_STYLES = `
   .giv-body { padding: 1.5rem 2rem; }
   .giv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
   .giv-party-box { padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
-  .giv-party-box h3 { font-size: 0.8rem; font-weight: 700; color: #0E5C5C; text-transform: uppercase; letter-spacing: 0.3px; margin: 0 0 0.5rem; padding-bottom: 0.35rem; border-bottom: 1px solid #e2e8f0; }
+  .giv-party-box h3 { font-size: 0.8rem; font-weight: 700; color: #1F6B45; text-transform: uppercase; letter-spacing: 0.3px; margin: 0 0 0.5rem; padding-bottom: 0.35rem; border-bottom: 1px solid #e2e8f0; }
   .giv-party-box .giv-party-name { font-size: 0.95rem; font-weight: 600; color: #0f172a; }
   .giv-party-box .giv-party-detail { font-size: 0.82rem; color: #475569; line-height: 1.5; }
   .giv-party-box .giv-party-gstin { font-size: 0.8rem; font-family: monospace; font-weight: 600; color: #0f172a; margin-top: 0.35rem; }
@@ -46,32 +46,32 @@ const GST_INVOICE_STYLES = `
 
   .giv-items { margin-bottom: 1.5rem; overflow-x: auto; }
   .giv-items table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-  .giv-items th { background: #0E5C5C; color: #fff; padding: 0.6rem 0.75rem; text-align: left; font-weight: 600; white-space: nowrap; font-size: 0.78rem; }
+  .giv-items th { background: #1F6B45; color: #fff; padding: 0.6rem 0.75rem; text-align: left; font-weight: 600; white-space: nowrap; font-size: 0.78rem; }
   .giv-items th:first-child { border-radius: 6px 0 0 0; }
   .giv-items th:last-child { border-radius: 0 6px 0 0; }
   .giv-items td { padding: 0.55rem 0.75rem; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
   .giv-items tr:nth-child(even) td { background: #f8fafc; }
   .giv-items .giv-hsn { font-family: monospace; font-size: 0.78rem; color: #64748b; }
   .giv-items .giv-amt { text-align: right; font-family: monospace; white-space: nowrap; }
-  .giv-items .giv-amt-total { font-weight: 700; color: #0E5C5C; }
+  .giv-items .giv-amt-total { font-weight: 700; color: #1F6B45; }
 
   .giv-summary { display: flex; justify-content: flex-end; margin-bottom: 1.5rem; }
   .giv-summary-table { width: 350px; border-collapse: collapse; font-size: 0.85rem; }
   .giv-summary-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #f1f5f9; }
   .giv-summary-table td:first-child { color: #64748b; }
   .giv-summary-table td:last-child { text-align: right; font-weight: 600; font-family: monospace; }
-  .giv-summary-table .giv-sum-total { font-size: 1rem; font-weight: 800; color: #0E5C5C; border-top: 2px solid #0E5C5C; }
+  .giv-summary-table .giv-sum-total { font-size: 1rem; font-weight: 800; color: #1F6B45; border-top: 2px solid #1F6B45; }
   .giv-summary-table .giv-sum-total td { padding: 0.6rem 0.75rem; }
 
   .giv-tax-breakup { margin-bottom: 1.5rem; }
-  .giv-tax-breakup h3 { font-size: 0.8rem; font-weight: 700; color: #0E5C5C; text-transform: uppercase; letter-spacing: 0.3px; margin: 0 0 0.5rem; }
+  .giv-tax-breakup h3 { font-size: 0.8rem; font-weight: 700; color: #1F6B45; text-transform: uppercase; letter-spacing: 0.3px; margin: 0 0 0.5rem; }
   .giv-tax-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem; }
   .giv-tax-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem 0.75rem; background: #f8fafc; text-align: center; }
   .giv-tax-card .giv-tax-label { font-size: 0.72rem; color: #64748b; }
   .giv-tax-card .giv-tax-value { font-size: 0.95rem; font-weight: 700; color: #0f172a; margin-top: 0.15rem; }
 
   .giv-amount-words { font-size: 0.85rem; color: #475569; margin-bottom: 1.5rem; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #fffbeb; }
-  .giv-amount-words strong { color: #0E5C5C; }
+  .giv-amount-words strong { color: #1F6B45; }
 
   .giv-qr-section { display: flex; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
   .giv-qr-placeholder { width: 120px; height: 120px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #fff; }
@@ -227,7 +227,7 @@ const GstInvoiceView = () => {
                 <div className="giv-party-name">{invoice.buyerName}</div>
                 <div className="giv-party-detail">{invoice.buyerAddress}</div>
                 <div className="giv-party-gstin">{invoice.buyerGstin === "URP" ? "GSTIN: URP (Unregistered Person)" : "GSTIN: " + invoice.buyerGstin}</div>
-                {invoice.buyerGstin && invoice.buyerGstin !== "URP" && <div className="giv-party-detail" style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "#0E5C5C" }}>ITC Eligible: Yes (B2B)</div>}
+                {invoice.buyerGstin && invoice.buyerGstin !== "URP" && <div className="giv-party-detail" style={{ marginTop: "0.2rem", fontSize: "0.78rem", color: "#1F6B45" }}>ITC Eligible: Yes (B2B)</div>}
               </div>
               {invoice.deliveryAddress && (
                 <div className="giv-party-box" style={{ borderStyle: "dashed" }}>
@@ -254,8 +254,8 @@ const GstInvoiceView = () => {
                  invoice.invoiceCopyType === "TRIPLICATE" ? "Triplicate" : "Original"}
               </div></div>
               <div className="giv-id-item"><div className="giv-id-label">HSN Digits</div><div className="giv-id-value">{invoice.hsnDigits || 4}-digit HSN</div></div>
-              <div className="giv-id-item"><div className="giv-id-label">Reverse Charge</div><div className="giv-id-value" style={{ color: invoice.reverseCharge ? "#D93A2A" : "#0E5C5C" }}>{invoice.reverseCharge ? "Applicable" : "Not Applicable"}</div></div>
-              <div className="giv-id-item"><div className="giv-id-label">E-Invoice</div><div className="giv-id-value" style={{ color: invoice.einvoicingRequired ? "#0E5C5C" : "#94a3b8" }}>{invoice.einvoicingRequired ? "Required (turnover > ₹5 Cr)" : "Not required"}</div></div>
+              <div className="giv-id-item"><div className="giv-id-label">Reverse Charge</div><div className="giv-id-value" style={{ color: invoice.reverseCharge ? "#D93A2A" : "#1F6B45" }}>{invoice.reverseCharge ? "Applicable" : "Not Applicable"}</div></div>
+              <div className="giv-id-item"><div className="giv-id-label">E-Invoice</div><div className="giv-id-value" style={{ color: invoice.einvoicingRequired ? "#1F6B45" : "#94a3b8" }}>{invoice.einvoicingRequired ? "Required (turnover > ₹5 Cr)" : "Not required"}</div></div>
               <div className="giv-id-item"><div className="giv-id-label">IRN</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.irn || "Not generated"}</div></div>
               {/^\d{12}$/.test(invoice.ewayBillNumber || "") && <div className="giv-id-item"><div className="giv-id-label">E-Way Bill</div><div className="giv-id-value">{invoice.ewayBillNumber}{invoice.ewayBillExpiry ? " (exp: " + invoice.ewayBillExpiry + ")" : ""}</div></div>}
               <div className="giv-id-item"><div className="giv-id-label">Ack No.</div><div className="giv-id-value" style={{ fontSize: "0.75rem" }}>{invoice.ackNo || "-"}</div></div>

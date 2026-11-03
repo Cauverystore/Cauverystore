@@ -3,8 +3,8 @@
    modals, forms — storefront-aligned green identity
    ============================================================
    Theme palette (uses design-system.css variables):
-     --color-primary: #0E5C5C (green)
-     --color-primary-hover: #0a4a4a
+     --color-primary: #1F6B45 (green)
+     --color-primary-hover: #17583A
      --color-primary-light: var(--teal-100)
      --gray-900: #111827 (sidebar bg)
      --gray-800: #1f293b (sidebar hover)
@@ -1658,8 +1658,8 @@
   border-color: var(--color-success);
 }
 .btn-success:hover {
-  background: #0a4a4a;
-  border-color: #0a4a4a;
+  background: #17583A;
+  border-color: #17583A;
 }
 .btn-warning {
   background: var(--color-warning);
@@ -2200,7 +2200,7 @@ kbd {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--color-primary, #0E5C5C);
+  background: var(--color-primary, #1F6B45);
   color: #fff;
   border: 2px solid #1e293b;
   display: flex;
@@ -2213,8 +2213,8 @@ kbd {
 }
 .sa-toggle-btn:hover,
 .sa-toggle-btn:focus-visible {
-  background: var(--color-primary-hover, #0a4a4a);
-  box-shadow: 0 0 12px rgba(14, 92, 92, 0.6);
+  background: var(--color-primary-hover, #17583A);
+  box-shadow: 0 0 12px rgba(31, 107, 69, 0.6);
   transform: scale(1.1);
 }
 .sa-toggle-btn:focus-visible {

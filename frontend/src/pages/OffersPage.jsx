@@ -116,7 +116,7 @@ const OffersPage = () => {
         .section-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; padding: 0 1.5rem; }
         .section-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; }
         .products-toolbar-count { font-size: 0.85rem; color: #64748b; }
-        .pt-toast { position: fixed; top: 100px; right: 20px; z-index: 9999; padding: 12px 20px; border-radius: 8px; font-weight: 600; background: #0E5C5C; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .pt-toast { position: fixed; top: 100px; right: 20px; z-index: 9999; padding: 12px 20px; border-radius: 8px; font-weight: 600; background: #1F6B45; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
       `}</style>
     </div>
   );

@@ -755,7 +755,7 @@ const Profile = () => {
           {orders.map((order) => {
             const oid = order.id || order._id;
             const orderNum = order.orderId || oid?.toString().slice(-8);
-            const statusColor = order.status === "DELIVERED" ? "#0E5C5C" :
+            const statusColor = order.status === "DELIVERED" ? "#1F6B45" :
               order.status === "CANCELLED" ? "#dc2626" : "#f59e0b";
             return (
               <div key={oid} className="profile-order-card">
@@ -772,7 +772,7 @@ const Profile = () => {
                   <span>&#8377;{(order.totalAmount || order.total || 0).toFixed(2)}</span>
                   <span style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>{order.paymentMethod || t("orderDetail.online")}</span>
                   {(order.paymentStatus === "PAID" || order.paymentStatus === "COMPLETED") && (
-                    <span style={{ color: "#0E5C5C", fontSize: "0.8rem" }}>{t("profile.paid")}</span>
+                    <span style={{ color: "#1F6B45", fontSize: "0.8rem" }}>{t("profile.paid")}</span>
                   )}
                 </div>
                 <div className="profile-order-actions">
@@ -815,7 +815,7 @@ const Profile = () => {
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
                     {review.createdAt ? new Date(review.createdAt).toLocaleDateString("en-IN") : ""}
-                    {review.approved ? <span style={{ color: "#0E5C5C", marginLeft: "0.5rem" }}>{t("seller.translation.approved")}</span> :
+                    {review.approved ? <span style={{ color: "#1F6B45", marginLeft: "0.5rem" }}>{t("seller.translation.approved")}</span> :
                       <span style={{ color: "#f59e0b", marginLeft: "0.5rem" }}>{t("profile.pending")}</span>}
                   </div>
                 </div>
@@ -929,7 +929,7 @@ const Profile = () => {
                     {s.ipAddress ? `${s.ipAddress} · ` : ""}{t("profile.signedIn")}{" "}{s.createdAt ? new Date(s.createdAt).toLocaleString("en-IN") : ""}
                     {s.expiresAt ? ` · Expires ${new Date(s.expiresAt).toLocaleString("en-IN")}` : ""}
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#0E5C5C" }}>{s.status}</div>
+                  <div style={{ fontSize: "0.75rem", color: "#1F6B45" }}>{s.status}</div>
                 </div>
                 <button className="pf-btn-sm pf-btn-danger" onClick={() => handleRevokeSession(s.id)} disabled={sessionBusy === s.id}>
                   {sessionBusy === s.id ? "..." : t("profile.signOut")}

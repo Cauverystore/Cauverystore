@@ -191,7 +191,7 @@ const ExecutiveDashboard = () => {
           {card("Total Orders", dashboard.totalOrders || 0, "#2563eb", <ShoppingCart size={24} />)}
           {card("Active Products", dashboard.activeProducts || 0, "#7c3aed", <Package size={24} />)}
           {card("Total Customers", dashboard.totalCustomers || 0, "#ea580c", <Users size={24} />)}
-          {card("Active Sellers", dashboard.totalSellers || 0, "#0d9488", <Store size={24} />)}
+          {card("Active Sellers", dashboard.totalSellers || 0, "#2F8A5B", <Store size={24} />)}
           {card("Pending Approvals", dashboard.pendingApprovals || 0, "#dc2626", <Hourglass size={24} />)}
         </>}
       </div>
@@ -356,7 +356,7 @@ const SellersTab = ({ sellers }) => {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-        {card("Total Sellers", sellers.length, "#0d9488", <Store size={24} />)}
+        {card("Total Sellers", sellers.length, "#2F8A5B", <Store size={24} />)}
         {card("Total Products", totalProducts, "#7c3aed", <Package size={24} />)}
         {card("Total Sales", f(totalSales), "#059669", <DollarSign size={24} />)}
       </div>

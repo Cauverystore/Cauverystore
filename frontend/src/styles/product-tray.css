@@ -4,10 +4,10 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .pt-card {
-  --pt-ink: #14302f;
-  --pt-text: #48595a;
-  --pt-muted: #6d7c7b;
-  --pt-rule: rgba(14, 92, 92, 0.14);
+  --pt-ink: #143D2B;
+  --pt-text: #4A5B52;
+  --pt-muted: #6B7C72;
+  --pt-rule: rgba(31, 107, 69, 0.14);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -24,12 +24,12 @@
 
 .pt-card:hover {
   transform: translateY(-3px);
-  box-shadow: inset 0 0 0 1px var(--pt-rule), 0 18px 32px -22px rgba(14, 60, 60, 0.5);
+  box-shadow: inset 0 0 0 1px var(--pt-rule), 0 18px 32px -22px rgba(20, 61, 43, 0.5);
 }
 
 /* The title link is stretched over the whole card, so its focus ring is drawn on the card. */
 .pt-card:has(.pt-link:focus-visible) {
-  outline: 2px solid var(--color-primary, #0E5C5C);
+  outline: 2px solid var(--color-primary, #1F6B45);
   outline-offset: 2px;
 }
 
@@ -60,7 +60,7 @@
 .pt-img-placeholder {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #f1eee8 25%, #e8e4dc 50%, #f1eee8 75%);
+  background: linear-gradient(90deg, #EEF4EF 25%, #E2ECE4 50%, #EEF4EF 75%);
   background-size: 200% 100%;
   animation: ptShimmer 1.5s infinite;
 }
@@ -119,12 +119,12 @@
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
-.pt-action-btn:hover { background: rgba(14, 92, 92, 0.1); color: var(--pt-ink); }
+.pt-action-btn:hover { background: rgba(31, 107, 69, 0.1); color: var(--pt-ink); }
 .pt-action-btn:active { transform: scale(0.92); }
 .pt-action-btn:disabled { opacity: 0.5; cursor: default; }
 .pt-action-btn.wishlisted { color: #c2334d; }
 .pt-action-btn.compared,
-.pt-action-btn.saved { color: var(--color-primary, #0E5C5C); background: rgba(14, 92, 92, 0.12); }
+.pt-action-btn.saved { color: var(--color-primary, #1F6B45); background: rgba(31, 107, 69, 0.12); }
 
 /* ─── Button name on hover ─── */
 .pt-action-btn,
@@ -210,7 +210,7 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.pt-gallery-nav:hover { background: var(--color-primary, #0E5C5C); color: #fff; }
+.pt-gallery-nav:hover { background: var(--color-primary, #1F6B45); color: #fff; }
 
 .pt-gallery-dots { display: flex; }
 
@@ -232,11 +232,11 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(20, 48, 47, 0.25);
+  background: rgba(20, 61, 43, 0.25);
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
-.pt-gallery-dot.active::before { background: var(--color-primary, #0E5C5C); transform: scale(1.3); }
+.pt-gallery-dot.active::before { background: var(--color-primary, #1F6B45); transform: scale(1.3); }
 
 /* ─── Body ─── */
 .pt-body {
@@ -274,7 +274,7 @@
 
 .pt-link { color: inherit; text-decoration: none; outline: none; }
 .pt-link::after { content: ""; position: absolute; inset: 0; z-index: 1; }
-.pt-card:hover .pt-link { color: var(--color-primary, #0E5C5C); }
+.pt-card:hover .pt-link { color: var(--color-primary, #1F6B45); }
 
 .pt-options { font-size: 12px; color: var(--pt-muted); }
 
@@ -287,7 +287,7 @@
   gap: 3px;
   padding: 2px 6px;
   border-radius: 5px;
-  background: var(--color-primary, #0E5C5C);
+  background: var(--color-primary, #1F6B45);
   color: #fff;
   font-size: 12px;
   font-weight: 600;
@@ -361,12 +361,12 @@
 .pt-btn:disabled { cursor: not-allowed; }
 
 /* Two buttons, two weights: Buy now is the filled one, Add to cart the outlined one. */
-.pt-btn-buy { background: var(--color-cta, #0E5C5C); color: #fff; }
-.pt-btn-buy:hover:not(:disabled) { background: var(--color-cta-hover, #0a4a4a); }
-.pt-btn-buy:disabled { background: #ebe6dc; color: var(--pt-muted); }
+.pt-btn-buy { background: var(--color-cta, #1F6B45); color: #fff; }
+.pt-btn-buy:hover:not(:disabled) { background: var(--color-cta-hover, #17583A); }
+.pt-btn-buy:disabled { background: #E6F0E8; color: var(--pt-muted); }
 
-.pt-btn-cart { background: #fff; color: var(--color-cta, #0E5C5C); box-shadow: inset 0 0 0 1.5px var(--color-cta, #0E5C5C); }
-.pt-btn-cart:hover:not(:disabled) { background: rgba(14, 92, 92, 0.08); }
+.pt-btn-cart { background: #fff; color: var(--color-cta, #1F6B45); box-shadow: inset 0 0 0 1.5px var(--color-cta, #1F6B45); }
+.pt-btn-cart:hover:not(:disabled) { background: rgba(31, 107, 69, 0.08); }
 .pt-btn-cart:disabled { opacity: 0.6; }
 
 /* The cart button is a square icon on every card size, so "Buy now" always keeps its full label. */
@@ -384,14 +384,14 @@
 .pt-skeleton {
   background: var(--color-surface, #fff);
   border-radius: 14px;
-  box-shadow: inset 0 0 0 1px rgba(14, 92, 92, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(31, 107, 69, 0.14);
   overflow: hidden;
 }
 
 .pt-skel-img,
 .pt-skel-line,
 .pt-skel-btn {
-  background: linear-gradient(90deg, #f1eee8 25%, #e8e4dc 50%, #f1eee8 75%);
+  background: linear-gradient(90deg, #EEF4EF 25%, #E2ECE4 50%, #EEF4EF 75%);
   background-size: 200% 100%;
   animation: ptShimmer 1.5s infinite;
 }
@@ -498,8 +498,8 @@
   border: none;
   border-radius: 50%;
   background: #fff;
-  color: #14302f;
-  box-shadow: 0 6px 18px -6px rgba(14, 60, 60, 0.45), inset 0 0 0 1px rgba(14, 92, 92, 0.16);
+  color: #143D2B;
+  box-shadow: 0 6px 18px -6px rgba(20, 61, 43, 0.45), inset 0 0 0 1px rgba(31, 107, 69, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -507,7 +507,7 @@
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
-.pt-row-arrow:hover { background: var(--color-primary, #0E5C5C); color: #fff; }
+.pt-row-arrow:hover { background: var(--color-primary, #1F6B45); color: #fff; }
 .pt-row-arrow:active { transform: scale(0.94); }
 .pt-row-arrow-prev { left: -14px; }
 .pt-row-arrow-next { right: -14px; }
@@ -523,7 +523,7 @@
 
 /* ─── Toast Notification ─── */
 .pt-toast {
-  background: var(--color-primary, #0E5C5C);
+  background: var(--color-primary, #1F6B45);
   color: #fff;
   padding: 0.6rem 1rem;
   border-radius: var(--radius-md, 6px);
@@ -618,7 +618,7 @@
 
 .pt-bottom-btn:hover,
 .pt-bottom-btn.active {
-  color: var(--color-primary, #0E5C5C);
+  color: var(--color-primary, #1F6B45);
 }
 
 .pt-bottom-btn svg {
@@ -646,7 +646,7 @@
 }
 
 .pt-bottom-checkout {
-  background: var(--color-primary, #0E5C5C);
+  background: var(--color-primary, #1F6B45);
   color: #fff;
   border: none;
   border-radius: var(--radius-full, 9999px);
@@ -661,5 +661,5 @@
 }
 
 .pt-bottom-checkout:hover {
-  background: var(--color-primary-hover, #0a4a4a);
+  background: var(--color-primary-hover, #17583A);
 }

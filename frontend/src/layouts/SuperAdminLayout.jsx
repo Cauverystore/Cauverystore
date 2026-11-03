@@ -35,7 +35,7 @@ const SuperAdminLayout = () => {
   };
 
   const sidebarWidth = collapsed ? '64px' : '260px';
-  const accentColor = 'var(--color-primary, #0E5C5C)';
+  const accentColor = 'var(--color-primary, #1F6B45)';
 
   const linkStyle = ({ isActive }) => ({
     display: 'flex',
@@ -225,7 +225,7 @@ const SuperAdminLayout = () => {
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            background: hoveredToggle ? 'var(--color-primary-hover, #0a4a4a)' : 'var(--color-primary, #0E5C5C)',
+            background: hoveredToggle ? 'var(--color-primary-hover, #17583A)' : 'var(--color-primary, #1F6B45)',
             color: '#fff',
             border: '2px solid #1e293b',
             display: 'flex',
@@ -234,7 +234,7 @@ const SuperAdminLayout = () => {
             cursor: 'pointer',
             zIndex: 101,
             transition: 'all 0.2s',
-            boxShadow: hoveredToggle ? '0 0 12px rgba(14, 92, 92, 0.6)' : '0 2px 6px rgba(0,0,0,0.3)',
+            boxShadow: hoveredToggle ? '0 0 12px rgba(31, 107, 69, 0.6)' : '0 2px 6px rgba(0,0,0,0.3)',
             transform: hoveredToggle ? 'scale(1.1)' : 'scale(1)',
           }}
         >

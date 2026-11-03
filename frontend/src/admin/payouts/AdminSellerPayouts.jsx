@@ -75,7 +75,7 @@ const AdminSellerPayouts = () => {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", gap: "1rem", flexWrap: "wrap" }}>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0 }}>Seller Payouts</h1>
-        <button onClick={() => setShowForm(!showForm)} style={{ padding: "0.5rem 1rem", background: "#0E5C5C", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => setShowForm(!showForm)} style={{ padding: "0.5rem 1rem", background: "#1F6B45", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
           {showForm ? "Close" : "+ Record a payment"}
         </button>
       </div>
@@ -109,7 +109,7 @@ const AdminSellerPayouts = () => {
             <label style={lbl} htmlFor="po-note">Note for the seller (optional)</label>
             <textarea id="po-note" name="note" rows={2} value={form.note} onChange={change} style={inp} />
           </div>
-          <button type="submit" disabled={saving} style={{ padding: "0.55rem 1.25rem", background: "#0E5C5C", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
+          <button type="submit" disabled={saving} style={{ padding: "0.55rem 1.25rem", background: "#1F6B45", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
             {saving ? "Saving..." : "Record payment"}
           </button>
         </form>

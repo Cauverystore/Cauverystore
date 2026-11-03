@@ -121,7 +121,7 @@ const Navbar = () => {
     <>
       {/* Utility Bar */}
       <div className="sn-utility-bar" style={{
-        background: "var(--color-primary, #0E5C5C)", color: "#fff", fontSize: "0.75rem",
+        background: "#143D2B", color: "#fff", fontSize: "0.75rem",
         padding: "0.35rem 1.5rem", display: "flex", justifyContent: "space-between",
         alignItems: "center", position: "sticky", top: 0, zIndex: 101
       }}>
@@ -131,7 +131,7 @@ const Navbar = () => {
         <div style={{ display: "flex", gap: "1.25rem", alignItems: "center" }}>
           <Link to="/contact" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>{t("nav.support")}</Link>
           {["SELLER", "ADMIN", "SUPER_ADMIN"].some((r) => userRoles.includes(r)) ? (
-            <Link to="/seller/dashboard" style={{ color: "#d5f2f0", textDecoration: "none", opacity: 0.85 }}>{t("nav.sellerDashboard")}</Link>
+            <Link to="/seller/dashboard" style={{ color: "#DCEEE1", textDecoration: "none", opacity: 0.85 }}>{t("nav.sellerDashboard")}</Link>
           ) : (
             <Link to="/seller/register" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>{t("nav.becomeSeller")}</Link>
           )}
@@ -171,14 +171,14 @@ const Navbar = () => {
           {/* Logo */}
           <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: "8px" }}>
             <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "2rem", width: "auto" }} />
-            <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #0E5C5C)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
+            <span style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--color-primary, #1F6B45)", fontFamily: "var(--font-heading, Inter)" }}>Cauvery Store</span>
           </Link>
 
           {/* Search Bar */}
           <form onSubmit={handleSearch} style={{
             flex: 1, maxWidth: "520px", display: "flex",
-            borderRadius: "8px", overflow: "hidden",
-            border: "2px solid var(--color-primary, #0E5C5C)"
+            borderRadius: "12px", overflow: "hidden",
+            border: "1.5px solid #BBDCC6", background: "#F1F7F2"
           }}>
             <input
               ref={searchRef}
@@ -189,11 +189,11 @@ const Navbar = () => {
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 flex: 1, padding: "0.55rem 0.75rem", border: "none",
-                fontSize: "0.85rem", outline: "none", background: "#fff"
+                fontSize: "0.9rem", outline: "none", background: "transparent"
               }}
             />
             <button type="submit" aria-label={i18n.t("msgs.searchAria")} style={{
-              padding: "0.55rem 1rem", background: "var(--color-primary, #0E5C5C)",
+              padding: "0.55rem 1rem", background: "var(--color-primary, #1F6B45)",
               color: "#fff", border: "none", cursor: "pointer", display: "flex",
               alignItems: "center", justifyContent: "center"
             }}>
@@ -209,7 +209,7 @@ const Navbar = () => {
               background: "none", border: "none", cursor: "pointer", display: "flex",
               flexDirection: "column", alignItems: "center", gap: "2px", padding: "0.25rem 0.4rem"
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary, #1F6B45)" strokeWidth="1.9">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
               <span style={{ fontSize: "0.65rem", color: "var(--gray-600)", fontWeight: 500 }}>
@@ -220,7 +220,7 @@ const Navbar = () => {
               background: "none", border: "none", cursor: "pointer", display: "flex",
               flexDirection: "column", alignItems: "center", gap: "2px", padding: "0.25rem 0.4rem"
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary, #1F6B45)" strokeWidth="1.9">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
               <span style={{ fontSize: "0.65rem", color: "var(--gray-600)", fontWeight: 500 }}>{t("nav.wishlist")}</span>
@@ -229,7 +229,7 @@ const Navbar = () => {
               background: "none", border: "none", cursor: "pointer", display: "flex",
               flexDirection: "column", alignItems: "center", gap: "2px", padding: "0.25rem 0.4rem", position: "relative"
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" strokeWidth="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary, #1F6B45)" strokeWidth="1.9">
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
               </svg>
@@ -237,7 +237,7 @@ const Navbar = () => {
               {cartCount > 0 && (
                 <span style={{
                   position: "absolute", top: 0, right: 0,
-                  background: "var(--color-primary, #0E5C5C)", color: "#fff",
+                  background: "var(--color-primary, #1F6B45)", color: "#fff",
                   fontSize: "0.6rem", fontWeight: 700, minWidth: 16, height: 16,
                   borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
                   lineHeight: 1
@@ -250,7 +250,7 @@ const Navbar = () => {
 
       {/* Category Navigation */}
       <nav style={{
-        background: "#fff", borderBottom: "1px solid var(--color-border, #e2e8f0)",
+        background: "#E6F0E8", borderBottom: "1px solid #D3E5D8",
         display: "flex", justifyContent: "center", overflowX: "auto",
         position: "sticky", top: "73px", zIndex: 99
       }}>
@@ -260,8 +260,8 @@ const Navbar = () => {
         }}>
           {navLinks.map((item) => (
             <Link key={item.key} to={item.to} style={{
-              padding: "0.55rem 0.7rem", fontSize: "0.82rem", fontWeight: 500,
-              color: "var(--gray-600)", textDecoration: "none", whiteSpace: "nowrap",
+              padding: "0.6rem 0.8rem", fontSize: "0.85rem", fontWeight: 500,
+              color: "#143D2B", textDecoration: "none", whiteSpace: "nowrap",
               display: "flex", alignItems: "center", gap: "2px",
               transition: "color 0.15s", borderBottom: "2px solid transparent"
             }}
@@ -350,6 +350,9 @@ const Navbar = () => {
           .sn-header > div > form { display: none !important; }
           .sn-header > div > nav { display: none; }
           .sn-header > div { padding: 0.6rem 1rem; }
+          .sn-header > div > a span { font-size: 1.2rem !important; white-space: nowrap; }
+          .sn-header-actions { gap: 0.25rem !important; }
+          .sn-header-actions button > span:not([style*="absolute"]) { display: none; }
           .sn-mobile-search-bar {
             display: flex; align-items: center; gap: 0.5rem;
             background: #fff; padding: 0.6rem 1rem;
@@ -357,13 +360,13 @@ const Navbar = () => {
           }
         }
         .sn-mobile-search-bar .sn-mobile-search-input {
-          flex: 1; padding: 0.55rem 0.75rem; border: 2px solid var(--color-primary, #0E5C5C);
-          border-right: none; border-radius: 8px 0 0 8px;
-          font-size: 0.85rem; outline: none;
+          flex: 1; padding: 0.6rem 0.85rem; border: 1.5px solid #BBDCC6;
+          border-right: none; border-radius: 12px 0 0 12px; background: #F1F7F2;
+          font-size: 0.9rem; outline: none;
         }
         .sn-mobile-search-bar .sn-mobile-search-submit {
-          padding: 0.55rem 1rem; background: var(--color-primary, #0E5C5C);
-          color: #fff; border: none; border-radius: 0 8px 8px 0;
+          padding: 0.55rem 1rem; background: var(--color-primary, #1F6B45);
+          color: #fff; border: none; border-radius: 0 12px 12px 0;
           display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
       `}</style>
