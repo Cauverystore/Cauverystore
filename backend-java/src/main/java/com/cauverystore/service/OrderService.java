@@ -939,16 +939,10 @@ public class OrderService {
                 return;
             }
             Long sellerId = order.getSellerId();
-            String sellerGstin = null;
-            Optional<GstConfiguration> gstConfig = gstConfigRepo.findBySellerId(sellerId);
-            if (gstConfig.isPresent()) {
-                sellerGstin = gstConfig.get().getGstin();
-            } else {
-                Optional<SellerRegistration> sellerReg = sellerRegRepo.findByUserId(sellerId);
-                if (sellerReg.isPresent() && sellerReg.get().getGstin() != null && !sellerReg.get().getGstin().isBlank()) {
-                    sellerGstin = sellerReg.get().getGstin();
-                }
-            }
+            // Seller's own GST config, then their registration; products the store lists
+            // itself go out under the store's own registration.
+            String sellerGstin = new SellerGstinResolver(gstConfigRepo, sellerRegRepo, userRepo)
+                    .gstinOf(sellerId).orElse(null);
             if (sellerGstin != null) {
                 // Pass the buyer GSTIN captured at checkout so auto-generated invoices for B2B
                 // supplies are classified as B2B (ITC-eligible) instead of defaulting to B2C/URP.

@@ -9,6 +9,7 @@ import com.cauverystore.entities.SellerRegistration;
 import com.cauverystore.entities.User;
 import com.cauverystore.repository.GstConfigurationRepository;
 import com.cauverystore.repository.SellerRegistrationRepository;
+import com.cauverystore.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -54,17 +55,20 @@ public class CheckoutBillService {
     private final GstInvoiceService invoiceService;
     private final GstConfigurationRepository gstConfigRepo;
     private final SellerRegistrationRepository sellerRegRepo;
+    private final SellerGstinResolver gstinResolver;
 
     public CheckoutBillService(CartService cartService,
                                GstRateResolver rateResolver,
                                GstInvoiceService invoiceService,
                                GstConfigurationRepository gstConfigRepo,
-                               SellerRegistrationRepository sellerRegRepo) {
+                               SellerRegistrationRepository sellerRegRepo,
+                               UserRepository userRepo) {
         this.cartService = cartService;
         this.rateResolver = rateResolver;
         this.invoiceService = invoiceService;
         this.gstConfigRepo = gstConfigRepo;
         this.sellerRegRepo = sellerRegRepo;
+        this.gstinResolver = new SellerGstinResolver(gstConfigRepo, sellerRegRepo, userRepo);
     }
 
     /**
@@ -194,19 +198,12 @@ public class CheckoutBillService {
     /** The seller's registered state, which is one half of the intra/inter-state question.
      *  The GST configuration is authoritative; the GSTIN on the seller's registration is the
      *  fallback (same precedence as invoice generation), so an order from a registered seller
-     *  is never blocked just because their config row is missing. */
+     *  is never blocked just because their config row is missing. Products the store lists
+     *  itself go out under the store's own registration (see SellerGstinResolver). */
     private String sellerStateOf(Product product) {
-        if (product.getSellerId() == null) return null;
-        String gstin = gstConfigRepo.findBySellerId(product.getSellerId())
-                .map(GstConfiguration::getGstin)
+        return gstinResolver.gstinOf(product.getSellerId())
+                .map(gstin -> gstin.substring(0, 2))
                 .orElse(null);
-        if (gstin == null || gstin.length() < 2) {
-            gstin = sellerRegRepo.findByUserId(product.getSellerId())
-                    .map(SellerRegistration::getGstin)
-                    .orElse(null);
-        }
-        if (gstin == null || gstin.length() < 2) return null;
-        return gstin.substring(0, 2);
     }
 
     /** The price actually being charged, offer price included. */
