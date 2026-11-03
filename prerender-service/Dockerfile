@@ -13,6 +13,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY src ./src
 
+# Saved pages live here (or on a volume mounted at /data).
+RUN mkdir -p /app/cache && chown node:node /app/cache
+
 # Run as the unprivileged "node" user.
 USER node
 EXPOSE 3000
