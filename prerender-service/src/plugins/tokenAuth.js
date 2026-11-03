@@ -1,5 +1,5 @@
-// Only callers that know PRERENDER_TOKEN (our Vercel proxy) may use the service,
-// so nobody else can make it render pages on our bill.
+// Only callers that know PRERENDER_TOKEN (your website proxy) may use the service,
+// so nobody else can make it render pages on your bill.
 const crypto = require("crypto");
 
 const expected = Buffer.from(process.env.PRERENDER_TOKEN || "");
