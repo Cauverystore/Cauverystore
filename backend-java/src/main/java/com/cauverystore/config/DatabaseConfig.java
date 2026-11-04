@@ -40,6 +40,21 @@ public class DatabaseConfig {
         log.warn("Check that Railway PostgreSQL is linked to this service.");
 
         String springUrl = env("SPRING_DATASOURCE_URL");
+        if (springUrl != null && (springUrl.startsWith("postgres://") || springUrl.startsWith("postgresql://"))) {
+            // The platform injects connection strings in URI form (postgresql://user:pass@host:port/db).
+            // JDBC needs the jdbc: prefix, with the credentials passed separately.
+            String prefix = springUrl.startsWith("postgresql://") ? "postgresql://" : "postgres://";
+            String rest = springUrl.substring(prefix.length());
+            int atIndex = rest.indexOf('@');
+            if (atIndex > 0) {
+                String userPass = rest.substring(0, atIndex);
+                int colonIndex = userPass.indexOf(':');
+                if (user == null) user = colonIndex < 0 ? userPass : userPass.substring(0, colonIndex);
+                if (pass == null) pass = colonIndex < 0 ? null : userPass.substring(colonIndex + 1);
+                rest = rest.substring(atIndex + 1);
+            }
+            springUrl = "jdbc:postgresql://" + rest;
+        }
         if (springUrl != null && !springUrl.isEmpty()) {
             if (springUrl.contains("localhost") || springUrl.contains("127.0.0.1")) {
                 throw new IllegalStateException(
