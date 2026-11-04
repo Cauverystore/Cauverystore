@@ -4,6 +4,15 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
+// Public origin used to build returned image URLs. Falls back to the
+// platform-injected DEPLOYMENT_HOSTNAME so URLs are never relative.
+function resolvePublicBaseUrl() {
+  const explicit = (process.env.PUBLIC_BASE_URL || '').trim();
+  if (explicit) return explicit.replace(/\/+$/, '');
+  const host = (process.env.DEPLOYMENT_HOSTNAME || '').trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  return host ? `https://${host}` : '';
+}
+
 export const config = {
   port: Number(process.env.PORT) || 9092,
   maxFileSizeBytes: (Number(process.env.MAX_FILE_SIZE_MB) || 5) * 1024 * 1024,
@@ -18,6 +27,6 @@ export const config = {
     accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
   },
-  publicBaseUrl: (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, ''),
+  publicBaseUrl: resolvePublicBaseUrl(),
   databaseUrl: process.env.DATABASE_URL || '',
 };
