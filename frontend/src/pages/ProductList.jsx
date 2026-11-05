@@ -226,13 +226,13 @@ const ProductList = () => {
 
       <style>{`
         .pl-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
-        .pl-sidebar { width: 240px; flex-shrink: 0; background: #fff; border: 1px solid rgba(31, 107, 69, 0.14); border-radius: 16px; padding: 1.25rem; position: sticky; top: 110px; }
+        .pl-sidebar { width: 240px; flex-shrink: 0; background: #fff; border: 1px solid rgba(0, 120, 140, 0.14); border-radius: 16px; padding: 1.25rem; position: sticky; top: 110px; }
         .pl-sidebar-section { margin-bottom: 1.25rem; }
         .pl-sidebar-title { font-size: 0.75rem; font-weight: 600; color: #6B7C72; margin: 0 0 0.6rem; text-transform: uppercase; letter-spacing: 0.14em; }
         .pl-sidebar-categories { display: flex; flex-direction: column; gap: 2px; max-height: 280px; overflow-y: auto; }
         .pl-sidebar-cat { width: 100%; padding: 0.4rem 0.6rem; font-size: 0.82rem; color: #475569; cursor: pointer; border-radius: 6px; transition: all 0.12s; background: none; border: none; text-align: left; font-family: inherit; }
         .pl-sidebar-cat:hover { background: #f1f5f9; }
-        .pl-sidebar-cat.active { background: rgba(31, 107, 69, 0.08); color: #1F6B45; font-weight: 600; }
+        .pl-sidebar-cat.active { background: rgba(0, 120, 140, 0.08); color: #00788C; font-weight: 600; }
         .pl-sidebar-select { width: 100%; padding: 0.45rem 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; }
         .pl-sidebar-input { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; }
         .pl-sidebar-clear { width: 100%; padding: 0.45rem; background: none; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
@@ -265,7 +265,7 @@ const ProductList = () => {
         .pl-drawer-close { background: none; border: none; font-size: 1rem; color: #475569; cursor: pointer; padding: 0.25rem; }
         .pl-drawer-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
         .pl-drawer-footer { padding: 1rem 1.25rem; border-top: 1px solid #e2e8f0; }
-        .pl-drawer-apply { width: 100%; padding: 0.75rem; background: #1F6B45; color: #fff; border: none; border-radius: 999px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+        .pl-drawer-apply { width: 100%; padding: 0.75rem; background: #00788C; color: #fff; border: none; border-radius: 999px; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
       `}</style>
     </div>
   );

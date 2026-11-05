@@ -3,8 +3,8 @@
    modals, forms — storefront-aligned green identity
    ============================================================
    Theme palette (uses design-system.css variables):
-     --color-primary: #1F6B45 (green)
-     --color-primary-hover: #17583A
+     --color-primary: #00788C (green)
+     --color-primary-hover: #006475
      --color-primary-light: var(--teal-100)
      --gray-900: #111827 (sidebar bg)
      --gray-800: #1f293b (sidebar hover)
@@ -180,7 +180,7 @@
 }
 
 .admin-sidebar-link-badge.green { background: rgba(22, 163, 74, 0.2); color: var(--teal-400); }
-.admin-sidebar-link-badge.red { background: var(--color-warning-bg); color: var(--color-accent-gold); }
+.admin-sidebar-link-badge.red { background: var(--color-warning-bg); color: var(--color-warning); }
 .admin-sidebar-link-badge.gray { background: var(--gray-800); color: var(--gray-400); }
 
 .admin-sidebar-footer {
@@ -1208,7 +1208,7 @@
   justify-content: center;
   background: none;
   border: none;
-  color: var(--color-accent-gold, #C8A24B);
+  color: var(--color-accent-gold, #FFB852);
   cursor: pointer;
   font-size: clamp(0.85rem, 2vw, 1.25rem);
   line-height: 1;
@@ -1658,8 +1658,8 @@
   border-color: var(--color-success);
 }
 .btn-success:hover {
-  background: #17583A;
-  border-color: #17583A;
+  background: #006475;
+  border-color: #006475;
 }
 .btn-warning {
   background: var(--color-warning);
@@ -2200,7 +2200,7 @@ kbd {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--color-primary, #1F6B45);
+  background: var(--color-primary, #00788C);
   color: #fff;
   border: 2px solid #1e293b;
   display: flex;
@@ -2213,8 +2213,8 @@ kbd {
 }
 .sa-toggle-btn:hover,
 .sa-toggle-btn:focus-visible {
-  background: var(--color-primary-hover, #17583A);
-  box-shadow: 0 0 12px rgba(31, 107, 69, 0.6);
+  background: var(--color-primary-hover, #006475);
+  box-shadow: 0 0 12px rgba(0, 120, 140, 0.6);
   transform: scale(1.1);
 }
 .sa-toggle-btn:focus-visible {

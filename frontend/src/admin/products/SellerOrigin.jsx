@@ -19,7 +19,7 @@ const SellerOrigin = ({ value, onChange, error }) => {
 
   const chosen = sellers?.find((s) => String(s.id) === String(value ?? ""));
   const label = { display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: "3px" };
-  const box = { background: "#F6FBF8", border: "1px solid #CFE8D6", borderRadius: 6, padding: "8px 12px", fontSize: "0.85rem" };
+  const box = { background: "#F5FBFC", border: "1px solid #C4EFE6", borderRadius: 6, padding: "8px 12px", fontSize: "0.85rem" };
 
   return (
     <div style={{ marginBottom: "0.75rem" }}>
@@ -27,7 +27,7 @@ const SellerOrigin = ({ value, onChange, error }) => {
       <select
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-        style={{ width: "100%", padding: "8px 12px", border: "1px solid #CFE8D6", borderRadius: 6, fontSize: "0.9rem", background: "#fff", boxSizing: "border-box" }}
+        style={{ width: "100%", padding: "8px 12px", border: "1px solid #C4EFE6", borderRadius: 6, fontSize: "0.9rem", background: "#fff", boxSizing: "border-box" }}
       >
         <option value="">{sellers === null ? "Loading sellers..." : "Select the seller"}</option>
         {(sellers || []).map((s) => (

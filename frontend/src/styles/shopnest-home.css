@@ -1,27 +1,27 @@
 /* ══════════════════════ ShopNest Homepage Styles ══════════════════════ */
 
 :root {
-  --sn-navy: #1F6B45;
-  --sn-navy-light: #2A7D52;
-  --sn-accent: #C8A24B;
+  --sn-navy: #00788C;
+  --sn-navy-light: #008AA1;
+  --sn-accent: #FFB852;
   --sn-accent-hover: #b8943a;
-  --sn-cta: #1F6B45;
-  --sn-cta-hover: #17583A;
-  --sn-orange: #C8A24B;
-  --sn-green: #1F6B45;
-  --sn-bg: #F1F7F2;
+  --sn-cta: #00788C;
+  --sn-cta-hover: #006475;
+  --sn-orange: #FFB852;
+  --sn-green: #00788C;
+  --sn-bg: #EFFBF7;
   --sn-card-bg: #FFFFFF;
   --sn-text: #1F2937;
   --sn-text-secondary: #64748B;
-  --sn-border: #D3E5D8;
+  --sn-border: #CDE8EB;
   --sn-radius: 8px;
   --sn-shadow: 0 2px 8px rgba(0,0,0,0.06);
   --sn-shadow-hover: 0 4px 16px rgba(0,0,0,0.10);
-  --text-aquamarine: #DCEEE1;
-  --sn-ink: #143D2B;
-  --sn-body: #4A5B52;
-  --sn-bg-deep: #E6F0E8;
-  --sn-rule: rgba(31, 107, 69, 0.16);
+  --text-aquamarine: #CCEDF1;
+  --sn-ink: #004F5C;
+  --sn-body: #4A5A5E;
+  --sn-bg-deep: #DDF3EE;
+  --sn-rule: rgba(0, 120, 140, 0.16);
 }
 
 .sn-page { font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif); background: var(--sn-bg); color: var(--sn-text); min-height: 100vh; }
@@ -97,7 +97,7 @@
 .sn-hero-title em { font-style: normal; color: var(--sn-navy); }
 .sn-hero-sub { max-width: 46ch; margin: 1.5rem 0 0; font-size: clamp(1rem, 1.4vw, 1.125rem); line-height: 1.65; color: var(--sn-body); }
 .sn-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 2rem; margin-top: 2.25rem; }
-.sn-btn { display: inline-flex; align-items: center; gap: 0.6rem; min-height: 48px; padding: 0.85rem 1.6rem; border-radius: 12px; background: var(--sn-navy); color: #fff; font-size: 0.9375rem; font-weight: 600; text-decoration: none; box-shadow: 0 14px 28px -16px rgba(31, 107, 69, 0.7); transition: background 0.2s ease, transform 0.2s ease; }
+.sn-btn { display: inline-flex; align-items: center; gap: 0.6rem; min-height: 48px; padding: 0.85rem 1.6rem; border-radius: 12px; background: var(--sn-navy); color: #fff; font-size: 0.9375rem; font-weight: 600; text-decoration: none; box-shadow: 0 14px 28px -16px rgba(0, 120, 140, 0.7); transition: background 0.2s ease, transform 0.2s ease; }
 .sn-btn:hover { background: var(--sn-cta-hover); color: #fff; transform: translateY(-1px); }
 .sn-btn:active { transform: translateY(1px); }
 .sn-btn svg { transition: transform 0.2s ease; }
@@ -135,13 +135,13 @@
 .sn-view-all:hover { color: var(--sn-navy); }
 
 /* ─── Toast ─── */
-.sn-toast { position: fixed; top: 100px; right: 20px; z-index: var(--z-toast, 700); padding: 0.85rem 1.25rem; border-radius: 12px; font-weight: 600; font-size: 0.9rem; color: #fff; box-shadow: 0 18px 36px -18px rgba(20, 61, 43, 0.6); animation: slideInRight 0.3s ease-out; }
+.sn-toast { position: fixed; top: 100px; right: 20px; z-index: var(--z-toast, 700); padding: 0.85rem 1.25rem; border-radius: 12px; font-weight: 600; font-size: 0.9rem; color: #fff; box-shadow: 0 18px 36px -18px rgba(0, 58, 68, 0.6); animation: slideInRight 0.3s ease-out; }
 .sn-toast-success { background: var(--sn-navy); }
 .sn-toast-error { background: #b42318; }
 @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 /* ─── Product Scroll Row ─── */
-.sn-empty-section { display: grid; justify-items: start; gap: 0.75rem; padding: clamp(2rem, 5vw, 3.5rem); border-radius: 24px; background: var(--sn-bg-deep); box-shadow: inset 0 0 0 1px rgba(31, 107, 69, 0.08); color: var(--sn-body); font-size: 1rem; line-height: 1.65; }
+.sn-empty-section { display: grid; justify-items: start; gap: 0.75rem; padding: clamp(2rem, 5vw, 3.5rem); border-radius: 24px; background: var(--sn-bg-deep); box-shadow: inset 0 0 0 1px rgba(0, 120, 140, 0.08); color: var(--sn-body); font-size: 1rem; line-height: 1.65; }
 .sn-empty-section p { margin: 0; max-width: 52ch; }
 .sn-empty-section .sn-btn { margin-top: 0.75rem; }
 .sn-empty-title { font-family: var(--font-display); font-size: clamp(1.4rem, 2.4vw, 1.875rem); line-height: 1.2; letter-spacing: -0.02em; color: var(--sn-ink); }

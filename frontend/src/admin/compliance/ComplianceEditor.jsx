@@ -10,17 +10,17 @@ import { BASIC_FIELDS, BAND_STYLE, STATUS_LABEL, visibleSections, CATEGORY_SECTI
 */
 
 const S = {
-  card: { background: "#fff", border: "1px solid #CFE8D6", borderRadius: 8, padding: "1.1rem", marginBottom: "1rem" },
-  title: { fontSize: "0.95rem", fontWeight: 700, color: "#0B3D2E", margin: "0 0 0.75rem", paddingBottom: "0.4rem", borderBottom: "2px solid #EAF7EE" },
+  card: { background: "#fff", border: "1px solid #C4EFE6", borderRadius: 8, padding: "1.1rem", marginBottom: "1rem" },
+  title: { fontSize: "0.95rem", fontWeight: 700, color: "#003A44", margin: "0 0 0.75rem", paddingBottom: "0.4rem", borderBottom: "2px solid #E6F8F3" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" },
   label: { display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: 3 },
-  input: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: 6, fontSize: "0.88rem", boxSizing: "border-box", background: "#fff" },
+  input: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: 6, fontSize: "0.88rem", boxSizing: "border-box", background: "#fff" },
   err: { color: "#dc2626", fontSize: "0.7rem", marginTop: 2 },
   missing: { borderColor: "#f59e0b", background: "#fffbeb" },
   btn: { padding: "7px 14px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 },
 };
-const primary = { ...S.btn, background: "#146C43", color: "#fff" };
-const secondary = { ...S.btn, background: "#fff", color: "#146C43", border: "1px solid #CFE8D6" };
+const primary = { ...S.btn, background: "#00788C", color: "#fff" };
+const secondary = { ...S.btn, background: "#fff", color: "#00788C", border: "1px solid #C4EFE6" };
 const danger = { ...S.btn, background: "#fff", color: "#b91c1c", border: "1px solid #fecaca" };
 
 const NUMBER_KEYS = new Set(["netQuantity", "grossQuantity", "minOrderQty", "maxOrderQty"]);
@@ -194,7 +194,7 @@ const ComplianceEditor = ({ productId, isAdmin = false, onChanged }) => {
       <div style={{ ...S.card, display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <div style={{ fontSize: "0.8rem", color: "#64748B" }}>Compliance score</div>
-          <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#0B3D2E" }}>{result?.score ?? "–"}<span style={{ fontSize: "0.9rem", color: "#64748B" }}>/100</span></div>
+          <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#003A44" }}>{result?.score ?? "–"}<span style={{ fontSize: "0.9rem", color: "#64748B" }}>/100</span></div>
           <ScoreBadge score={result?.score} band={result?.band} />
         </div>
         <div style={{ fontSize: "0.85rem" }}>
@@ -213,7 +213,7 @@ const ComplianceEditor = ({ productId, isAdmin = false, onChanged }) => {
       </div>
 
       {msg && (
-        <div style={{ ...S.card, background: msg.type === "error" ? "#fef2f2" : "#EAF7EE", color: msg.type === "error" ? "#b91c1c" : "#146C43", borderColor: msg.type === "error" ? "#fecaca" : "#CFE8D6" }}>
+        <div style={{ ...S.card, background: msg.type === "error" ? "#fef2f2" : "#E6F8F3", color: msg.type === "error" ? "#b91c1c" : "#00788C", borderColor: msg.type === "error" ? "#fecaca" : "#C4EFE6" }}>
           {msg.text}
         </div>
       )}
@@ -263,7 +263,7 @@ const ComplianceEditor = ({ productId, isAdmin = false, onChanged }) => {
           <table style={{ width: "100%", fontSize: "0.8rem", borderCollapse: "collapse" }}>
             <tbody>
               {data.history.slice().reverse().map((h) => (
-                <tr key={h.id} style={{ borderBottom: "1px solid #EAF7EE" }}>
+                <tr key={h.id} style={{ borderBottom: "1px solid #E6F8F3" }}>
                   <td style={{ padding: 6, whiteSpace: "nowrap", color: "#64748B" }}>{String(h.createdAt || "").replace("T", " ").slice(0, 16)}</td>
                   <td style={{ padding: 6 }}>{h.action}</td>
                   <td style={{ padding: 6 }}>{STATUS_LABEL[h.fromStatus] || h.fromStatus} → {STATUS_LABEL[h.toStatus] || h.toStatus}</td>

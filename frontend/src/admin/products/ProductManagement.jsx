@@ -26,11 +26,11 @@ function slugify(t) { return t.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(
 const S = {
   field: { marginBottom: "0.65rem" },
   label: { display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: "3px" },
-  input: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.9rem", outline: "none", boxSizing: "border-box", background: "#fff" },
-  select: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.9rem", background: "#fff", outline: "none", boxSizing: "border-box" },
-  textarea: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.9rem", minHeight: "72px", resize: "vertical", outline: "none", boxSizing: "border-box" },
-  section: { background: "#fff", borderRadius: "8px", border: "1px solid #CFE8D6", padding: "1rem", marginBottom: "0.75rem" },
-  sTitle: { fontSize: "0.9rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "0.75rem", paddingBottom: "0.4rem", borderBottom: "2px solid #EAF7EE" },
+  input: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.9rem", outline: "none", boxSizing: "border-box", background: "#fff" },
+  select: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.9rem", background: "#fff", outline: "none", boxSizing: "border-box" },
+  textarea: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.9rem", minHeight: "72px", resize: "vertical", outline: "none", boxSizing: "border-box" },
+  section: { background: "#fff", borderRadius: "8px", border: "1px solid #C4EFE6", padding: "1rem", marginBottom: "0.75rem" },
+  sTitle: { fontSize: "0.9rem", fontWeight: 700, color: "#003A44", marginBottom: "0.75rem", paddingBottom: "0.4rem", borderBottom: "2px solid #E6F8F3" },
 };
 
 const ProductManagement = () => {
@@ -193,7 +193,7 @@ const ProductManagement = () => {
   const fldEdit = (label,key,type="text") => (<div style={S.field}><label style={S.label}>{label}</label>{type==="textarea"?<textarea style={S.textarea} value={editForm[key]||""} onChange={e=>setEditForm({...editForm,[key]:e.target.value})}/>:<input style={S.input} type={type} value={editForm[key]||""} onChange={e=>setEditForm({...editForm,[key]:e.target.value})}/>}</div>);
 
   const tabStyle = (t) => ({
-    padding: "10px 20px", border: "none", background: tab===t?"#146C43":"transparent",
+    padding: "10px 20px", border: "none", background: tab===t?"#00788C":"transparent",
     color: tab===t?"#7FFFD4":"#64748B", borderRadius: "6px 6px 0 0", cursor: "pointer",
     fontWeight: 600, fontSize: "0.85rem", whiteSpace: "nowrap", transition: "all 0.15s"
   });
@@ -209,13 +209,13 @@ const ProductManagement = () => {
 
   return (
     <div style={{ maxWidth: "920px", width: "100%", margin: "0 auto", padding: "1.5rem", boxSizing: "border-box" }}>
-      <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "1rem" }}>Product Management</h1>
+      <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#003A44", marginBottom: "1rem" }}>Product Management</h1>
 
-      <div style={{ display: "flex", gap: "4px", marginBottom: "1rem", borderBottom: "2px solid #EAF7EE", overflowX: "auto" }}>
+      <div style={{ display: "flex", gap: "4px", marginBottom: "1rem", borderBottom: "2px solid #E6F8F3", overflowX: "auto" }}>
         {tabs.map(t => <button key={t.key} onClick={()=>switchTab(t.key)} style={tabStyle(t.key)}>{t.label}</button>)}
       </div>
 
-      {msg && (<div style={{ padding: "10px 14px", borderRadius: "6px", marginBottom: "0.75rem", background: msg.type==="success"?"#EAF7EE":"#fef2f2", color: msg.type==="success"?"#146C43":"#dc2626", border: `1px solid ${msg.type==="success"?"#CFE8D6":"#fecaca"}`, fontSize:"0.85rem" }}>{msg.type==="success"?"✓ ":"✕ "}{msg.text}</div>)}
+      {msg && (<div style={{ padding: "10px 14px", borderRadius: "6px", marginBottom: "0.75rem", background: msg.type==="success"?"#E6F8F3":"#fef2f2", color: msg.type==="success"?"#00788C":"#dc2626", border: `1px solid ${msg.type==="success"?"#C4EFE6":"#fecaca"}`, fontSize:"0.85rem" }}>{msg.type==="success"?"✓ ":"✕ "}{msg.text}</div>)}
 
       {/* Add Product */}
       {tab === "add" && (<>
@@ -272,7 +272,7 @@ const ProductManagement = () => {
             unitPrice={form.price?parseFloat(form.price):undefined}
             prePackaged={form.prePackagedAndLabelled}
           />
-          <h4 style={{margin:"1rem 0 0.5rem",fontSize:"0.9rem",fontWeight:600,color:"#0B3D2E"}}>Bill & Print</h4>
+          <h4 style={{margin:"1rem 0 0.5rem",fontSize:"0.9rem",fontWeight:600,color:"#003A44"}}>Bill & Print</h4>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
             {fld("Unit of measure","uom",null,UNITS_OF_MEASURE,"Printed beside the quantity, e.g. 5 KG.")}
             {fld("Cess rate %","cessRate","number",null,"Declaration only — cess is charged at the CBIC rate for this code.")}
@@ -289,7 +289,7 @@ const ProductManagement = () => {
         </div>
         <ProductImagePicker images={newImages} onChange={setNewImages} sectionStyle={S.section} titleStyle={S.sTitle} />
         <div style={{display:"flex",justifyContent:"flex-end",gap:"10px",marginTop:"0.25rem"}}>
-          <button onClick={handleAdd} disabled={submitting} style={{padding:"10px 32px",background:submitting?"#94a3b8":"#2E9B57",color:"#fff",border:"none",borderRadius:"6px",cursor:submitting?"not-allowed":"pointer",fontWeight:600,fontSize:"0.9rem"}}>{submitting?"Creating...":"Create Product"}</button>
+          <button onClick={handleAdd} disabled={submitting} style={{padding:"10px 32px",background:submitting?"#94a3b8":"#00788C",color:"#fff",border:"none",borderRadius:"6px",cursor:submitting?"not-allowed":"pointer",fontWeight:600,fontSize:"0.9rem"}}>{submitting?"Creating...":"Create Product"}</button>
         </div>
       </>)}
 
@@ -297,13 +297,13 @@ const ProductManagement = () => {
       {tab === "bulk" && (
         <div style={S.section}>
           <h3 style={S.sTitle}>Bulk Upload Products</h3>
-          <a href={`${api.defaults.baseURL}/api/${isSeller?"seller":"admin"}/template.xlsx`} download style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"8px 16px",background:"#EAF7EE",color:"#146C43",borderRadius:"6px",textDecoration:"none",fontWeight:600,fontSize:"0.85rem",marginBottom:"1rem",border:"1px solid #CFE8D6"}}><Download size={16} /> Download Template</a>
+          <a href={`${api.defaults.baseURL}/api/${isSeller?"seller":"admin"}/template.xlsx`} download style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"8px 16px",background:"#E6F8F3",color:"#00788C",borderRadius:"6px",textDecoration:"none",fontWeight:600,fontSize:"0.85rem",marginBottom:"1rem",border:"1px solid #C4EFE6"}}><Download size={16} /> Download Template</a>
           <BulkUploadInstructions />
-          <div style={{border:"2px dashed #CFE8D6",borderRadius:"8px",padding:"2rem",textAlign:"center",background:"#fafdfb",marginBottom:"1rem",cursor:"pointer"}} onClick={()=>document.getElementById("bfile")?.click()}>
+          <div style={{border:"2px dashed #C4EFE6",borderRadius:"8px",padding:"2rem",textAlign:"center",background:"#FAFDFD",marginBottom:"1rem",cursor:"pointer"}} onClick={()=>document.getElementById("bfile")?.click()}>
             <input id="bfile" ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e=>setFile(e.target.files[0])} style={{display:"none"}} />
             {file ? <div><p style={{fontWeight:600}}>{file.name}</p><p style={{fontSize:"0.8rem",color:"#64748B"}}>{(file.size/1024).toFixed(1)} KB</p></div> : <div><p style={{color:"#64748B",fontSize:"0.9rem"}}>Click to select .xlsx file</p></div>}
           </div>
-          <button onClick={handleBulk} disabled={!file||submitting} style={{width:"100%",padding:"10px",background:file?"#2E9B57":"#CFE8D6",color:file?"#fff":"#94a3b8",border:"none",borderRadius:"6px",cursor:file?"pointer":"not-allowed",fontWeight:600}}>{submitting?"Uploading...":"Upload Products"}</button>
+          <button onClick={handleBulk} disabled={!file||submitting} style={{width:"100%",padding:"10px",background:file?"#00788C":"#C4EFE6",color:file?"#fff":"#94a3b8",border:"none",borderRadius:"6px",cursor:file?"pointer":"not-allowed",fontWeight:600}}>{submitting?"Uploading...":"Upload Products"}</button>
         </div>
       )}
 
@@ -327,17 +327,17 @@ const ProductManagement = () => {
 
           {/* Bulk bar */}
           {selected.size > 0 && (
-            <div style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 12px",background:"#EAF7EE",borderRadius:"6px",marginBottom:"0.5rem",fontSize:"0.85rem"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 12px",background:"#E6F8F3",borderRadius:"6px",marginBottom:"0.5rem",fontSize:"0.85rem"}}>
               <span style={{fontWeight:600}}>{selected.size} selected</span>
               <button onClick={bulkDelete} style={{padding:"6px 16px",background:"#dc2626",color:"#fff",border:"none",borderRadius:"4px",cursor:"pointer",fontWeight:500}}>Delete Selected</button>
-              <button onClick={()=>setSelected(new Set())} style={{padding:"6px 12px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer"}}>Clear</button>
+              <button onClick={()=>setSelected(new Set())} style={{padding:"6px 12px",border:"1px solid #C4EFE6",borderRadius:"4px",background:"#fff",cursor:"pointer"}}>Clear</button>
             </div>
           )}
 
           <div style={S.section}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.75rem",paddingBottom:"0.4rem",borderBottom:"2px solid #EAF7EE"}}>
-              <h3 style={{fontSize:"0.9rem",fontWeight:700,color:"#0B3D2E",margin:0}}>Products ({filtered.length} of {products.length})</h3>
-              <button onClick={refresh} style={{padding:"4px 12px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Refresh</button>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.75rem",paddingBottom:"0.4rem",borderBottom:"2px solid #E6F8F3"}}>
+              <h3 style={{fontSize:"0.9rem",fontWeight:700,color:"#003A44",margin:0}}>Products ({filtered.length} of {products.length})</h3>
+              <button onClick={refresh} style={{padding:"4px 12px",border:"1px solid #C4EFE6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Refresh</button>
             </div>
             {filtered.length===0 ? <p style={{color:"#64748B",textAlign:"center",padding:"2rem"}}>{products.length===0?"No products yet.":"No products match filters."}</p> : (
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.85rem"}}>
@@ -368,14 +368,14 @@ const ProductManagement = () => {
                 </td>
                 <td style={{padding:"10px"}}>
                   <select value={p.active?"active":"suspended"} onChange={e=>toggleStatus(p.id,e.target.value==="active")}
-                    style={{padding:"2px 6px",borderRadius:"4px",fontSize:"0.75rem",border:"1px solid #CFE8D6",background:p.active?"#EAF7EE":"#fef2f2",color:p.active?"#146C43":"#dc2626"}}>
+                    style={{padding:"2px 6px",borderRadius:"4px",fontSize:"0.75rem",border:"1px solid #C4EFE6",background:p.active?"#E6F8F3":"#fef2f2",color:p.active?"#00788C":"#dc2626"}}>
                     <option value="active">Active</option><option value="suspended">Suspended</option>
                   </select>
                 </td>
                 <td style={{padding:"10px",display:"flex",gap:"6px",flexWrap:"wrap"}}>
-                  <button onClick={()=>navigate(`/admin/products/${p.id}/images`)} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#EAF7EE",color:"#146C43",cursor:"pointer",fontSize:"0.75rem",fontWeight:600}}>Images</button>
-                  {!isSeller && <button onClick={()=>navigate(`/admin/products/${p.id}/compliance`)} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",color:"#146C43",cursor:"pointer",fontSize:"0.75rem",fontWeight:600}}>Compliance</button>}
-                  <button onClick={()=>{setEditing(p);setEditForm({name:p.name||"",price:p.price||"",stock:p.stock||"",description:p.description||"",brand:p.brand||"",hsnCode:p.hsnCode||"",prePackagedAndLabelled:p.prePackagedAndLabelled!==false,gstRateSelectionId:p.gstRateSelectionId??undefined,billDescription:p.billDescription||"",cessRate:p.cessRate??"",uom:p.uom||"NOS",sellerId:p.sellerId??null});switchTab("edit")}} style={{padding:"4px 10px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Edit</button>
+                  <button onClick={()=>navigate(`/admin/products/${p.id}/images`)} style={{padding:"4px 10px",border:"1px solid #C4EFE6",borderRadius:"4px",background:"#E6F8F3",color:"#00788C",cursor:"pointer",fontSize:"0.75rem",fontWeight:600}}>Images</button>
+                  {!isSeller && <button onClick={()=>navigate(`/admin/products/${p.id}/compliance`)} style={{padding:"4px 10px",border:"1px solid #C4EFE6",borderRadius:"4px",background:"#fff",color:"#00788C",cursor:"pointer",fontSize:"0.75rem",fontWeight:600}}>Compliance</button>}
+                  <button onClick={()=>{setEditing(p);setEditForm({name:p.name||"",price:p.price||"",stock:p.stock||"",description:p.description||"",brand:p.brand||"",hsnCode:p.hsnCode||"",prePackagedAndLabelled:p.prePackagedAndLabelled!==false,gstRateSelectionId:p.gstRateSelectionId??undefined,billDescription:p.billDescription||"",cessRate:p.cessRate??"",uom:p.uom||"NOS",sellerId:p.sellerId??null});switchTab("edit")}} style={{padding:"4px 10px",border:"1px solid #C4EFE6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Edit</button>
                   <button onClick={()=>delProduct(p.id)} style={{padding:"4px 10px",border:"1px solid #fecaca",borderRadius:"4px",background:"#fef2f2",color:"#dc2626",cursor:"pointer",fontSize:"0.8rem"}}>Delete</button>
                 </td>
               </tr>)}</tbody>
@@ -401,8 +401,8 @@ const ProductManagement = () => {
             corrected here - the only screen an admin reaches from the product list. The three
             live products classified 123, 1212 and blank are unfixable without this.
           */}
-          <div style={{borderTop:"1px solid #EAF7EE",margin:"1rem 0 0",paddingTop:"0.75rem"}}>
-            <h4 style={{margin:"0 0 0.6rem",fontSize:"0.9rem",fontWeight:600,color:"#146C43"}}>GST Classification</h4>
+          <div style={{borderTop:"1px solid #E6F8F3",margin:"1rem 0 0",paddingTop:"0.75rem"}}>
+            <h4 style={{margin:"0 0 0.6rem",fontSize:"0.9rem",fontWeight:600,color:"#00788C"}}>GST Classification</h4>
             <HsnPicker
               value={editForm.hsnCode||""}
               onChange={(code)=>setEditForm(f=>({...f,hsnCode:code,gstRateSelectionId:undefined}))}
@@ -434,8 +434,8 @@ const ProductManagement = () => {
               unitPrice={editForm.price?parseFloat(editForm.price):undefined}
               prePackaged={editForm.prePackagedAndLabelled}
             />
-            <div style={{borderTop:"1px solid #EAF7EE",marginTop:"0.75rem",paddingTop:"0.75rem"}}>
-              <h4 style={{margin:"0 0 0.6rem",fontSize:"0.9rem",fontWeight:600,color:"#146C43"}}>Bill & Print</h4>
+            <div style={{borderTop:"1px solid #E6F8F3",marginTop:"0.75rem",paddingTop:"0.75rem"}}>
+              <h4 style={{margin:"0 0 0.6rem",fontSize:"0.9rem",fontWeight:600,color:"#00788C"}}>Bill & Print</h4>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
                 <div style={S.field}><label style={S.label}>Unit of measure</label>
                   <select style={S.select} value={editForm.uom||"NOS"} onChange={e=>setEditForm(f=>({...f,uom:e.target.value}))}>
@@ -455,8 +455,8 @@ const ProductManagement = () => {
           </div>
 
           <div style={{display:"flex",gap:"10px",marginTop:"0.75rem",justifyContent:"flex-end"}}>
-            <button onClick={()=>setTab("list")} style={{padding:"8px 16px",border:"1px solid #CFE8D6",borderRadius:"6px",background:"#fff",cursor:"pointer"}}>Cancel</button>
-            <button onClick={saveEdit} style={{padding:"8px 20px",background:"#2E9B57",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600}}>Save Changes</button>
+            <button onClick={()=>setTab("list")} style={{padding:"8px 16px",border:"1px solid #C4EFE6",borderRadius:"6px",background:"#fff",cursor:"pointer"}}>Cancel</button>
+            <button onClick={saveEdit} style={{padding:"8px 20px",background:"#00788C",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600}}>Save Changes</button>
           </div>
         </div>
       )}
@@ -479,7 +479,7 @@ const ProductManagement = () => {
         <div style={S.section}>
           <h3 style={S.sTitle}>Product Reports</h3>
           <p style={{color:"#64748B",marginBottom:"1rem",fontSize:"0.9rem"}}>Total Products: {products.length} | Total Stock: {products.reduce((s,p)=>s+(p.stock||0),0)}</p>
-          <button onClick={exportExcel} style={{padding:"10px 24px",background:"#2E9B57",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600,fontSize:"0.9rem"}}><Download size={16} /> Export to Excel</button>
+          <button onClick={exportExcel} style={{padding:"10px 24px",background:"#00788C",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600,fontSize:"0.9rem"}}><Download size={16} /> Export to Excel</button>
         </div>
       )}
 
@@ -492,7 +492,7 @@ const ProductManagement = () => {
               <input style={S.input} placeholder="Category name *" value={newCat} onChange={e=>{setNewCat(e.target.value);setCatErrors({});}} />
               {catErrors.name && <div style={{color:"#dc2626",fontSize:"0.7rem",marginTop:"2px"}}>{catErrors.name}</div>}
             </div>
-            <button onClick={addCategory} style={{padding:"8px 16px",background:"#2E9B57",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600,whiteSpace:"nowrap",alignSelf:"flex-start"}}>Add</button>
+            <button onClick={addCategory} style={{padding:"8px 16px",background:"#00788C",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontWeight:600,whiteSpace:"nowrap",alignSelf:"flex-start"}}>Add</button>
           </div>
           <div style={{marginBottom:"0.75rem"}}>
             <textarea style={{...S.textarea,minHeight:"60px"}} placeholder="Description (optional, 10-500 chars)" value={newCatDesc} onChange={e=>{setNewCatDesc(e.target.value);setCatErrors({});}} maxLength={500} />
@@ -516,8 +516,8 @@ const ProductManagement = () => {
                       {catErrors.description && <div style={{color:"#dc2626",fontSize:"0.7rem",marginTop:"2px"}}>{catErrors.description}</div>}
                     </td>
                     <td style={{padding:"10px",textAlign:"right",whiteSpace:"nowrap"}}>
-                      <button onClick={saveEditCat} style={{padding:"4px 12px",background:"#EAF7EE",color:"#146C43",border:"1px solid #CFE8D6",borderRadius:"4px",cursor:"pointer",fontSize:"0.8rem",marginRight:"4px"}}>Save</button>
-                      <button onClick={cancelEditCat} style={{padding:"4px 12px",border:"1px solid #CFE8D6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Cancel</button>
+                      <button onClick={saveEditCat} style={{padding:"4px 12px",background:"#E6F8F3",color:"#00788C",border:"1px solid #C4EFE6",borderRadius:"4px",cursor:"pointer",fontSize:"0.8rem",marginRight:"4px"}}>Save</button>
+                      <button onClick={cancelEditCat} style={{padding:"4px 12px",border:"1px solid #C4EFE6",borderRadius:"4px",background:"#fff",cursor:"pointer",fontSize:"0.8rem"}}>Cancel</button>
                     </td>
                   </>
                 ) : (
@@ -525,7 +525,7 @@ const ProductManagement = () => {
                     <td style={{padding:"10px",fontWeight:500}}>{c.name}</td>
                     <td style={{padding:"10px",color:"#64748B"}}>{c.description||<span style={{fontStyle:"italic",color:"#cbd5e1"}}>No description</span>}</td>
                     <td style={{padding:"10px",textAlign:"right",whiteSpace:"nowrap"}}>
-                      <button onClick={()=>startEditCat(c)} style={{padding:"4px 12px",background:"#EAF7EE",color:"#146C43",border:"1px solid #CFE8D6",borderRadius:"4px",cursor:"pointer",fontSize:"0.8rem",marginRight:"4px"}}>Edit</button>
+                      <button onClick={()=>startEditCat(c)} style={{padding:"4px 12px",background:"#E6F8F3",color:"#00788C",border:"1px solid #C4EFE6",borderRadius:"4px",cursor:"pointer",fontSize:"0.8rem",marginRight:"4px"}}>Edit</button>
                       <button onClick={()=>setDeleteCatTarget(c)} style={{padding:"4px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:"4px",cursor:"pointer",fontSize:"0.8rem"}}>Delete</button>
                     </td>
                   </>
@@ -546,7 +546,7 @@ const ProductManagement = () => {
               Are you sure you want to delete <strong>"{deleteCatTarget.name}"</strong>?
             </p>
             <div style={{display:"flex",gap:"10px",justifyContent:"flex-end"}}>
-              <button onClick={()=>setDeleteCatTarget(null)} style={{padding:"8px 20px",border:"1px solid #CFE8D6",borderRadius:"6px",background:"#fff",cursor:"pointer",fontSize:"0.85rem",fontWeight:500}}>Cancel</button>
+              <button onClick={()=>setDeleteCatTarget(null)} style={{padding:"8px 20px",border:"1px solid #C4EFE6",borderRadius:"6px",background:"#fff",cursor:"pointer",fontSize:"0.85rem",fontWeight:500}}>Cancel</button>
               <button onClick={()=>delCategory(deleteCatTarget.id)} style={{padding:"8px 20px",background:"#dc2626",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"0.85rem",fontWeight:600}}>Delete</button>
             </div>
           </div>

@@ -75,7 +75,7 @@ class ErrorBoundary extends Component {
         <button
           onClick={this.handleReload}
           style={{
-            marginTop: "1rem", padding: "0.5rem 1.5rem", background: "#1F6B45", color: "#fff",
+            marginTop: "1rem", padding: "0.5rem 1.5rem", background: "#00788C", color: "#fff",
             border: "none", borderRadius: "6px", cursor: "pointer",
           }}
         >{i18n.t("errorBoundary.reloadPage")}</button>

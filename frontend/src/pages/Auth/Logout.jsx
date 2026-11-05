@@ -33,7 +33,7 @@ const Logout = () => {
         <div className="auth-card" style={{ textAlign: 'center' }}>
           <div className="auth-header">
             <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: "48px", width: "auto" }} />
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #1F6B45)" }}>Cauvery Store</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--color-primary, #00788C)" }}>Cauvery Store</div>
             <h1 className="auth-title">{t("logout.goodbye")}</h1>
             <p className="auth-subtitle">{message}</p>
           </div>

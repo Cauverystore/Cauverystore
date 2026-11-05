@@ -1,6 +1,6 @@
 /* ============================================================
    Cauvery Store Chat Widget
-   Brand: teal #1F6B45 primary, gold #C8A24B accent, beige bg
+   Brand: teal #00788C primary, gold #FFB852 accent, beige bg
    ============================================================ */
 
 .cw-widget,
@@ -17,7 +17,7 @@
   height: min(560px, calc(100vh - 7rem - var(--bottom-bar-offset, 0px)));
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-primary, #F1F7F2);
+  background: var(--color-bg-primary, #EFFBF7);
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 18px;
   overflow: hidden;
@@ -35,7 +35,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.85rem 1rem;
-  background: linear-gradient(135deg, var(--color-primary, #1F6B45) 0%, var(--color-primary-dark, #17583A) 100%);
+  background: linear-gradient(135deg, var(--color-primary, #00788C) 0%, var(--color-primary-dark, #006475) 100%);
   color: #ffffff;
   flex-shrink: 0;
 }
@@ -131,7 +131,7 @@
 }
 
 .cw-row.cw-user .cw-bubble {
-  background: var(--color-primary, #1F6B45);
+  background: var(--color-primary, #00788C);
   color: #ffffff;
   border-bottom-right-radius: 4px;
 }
@@ -161,7 +161,7 @@
   padding: 0.45rem 0.7rem;
   border: none;
   border-radius: 8px;
-  background: var(--color-primary, #1F6B45);
+  background: var(--color-primary, #00788C);
   color: #ffffff;
   font-size: 0.78rem;
   font-weight: 600;
@@ -171,7 +171,7 @@
 }
 
 .cw-action:hover:not(:disabled) {
-  background: var(--color-primary-hover, #17583A);
+  background: var(--color-primary-hover, #006475);
 }
 
 .cw-action:active:not(:disabled) {
@@ -192,10 +192,10 @@
 
 .cw-chip {
   padding: 0.32rem 0.65rem;
-  border: 1px solid var(--color-primary, #1F6B45);
+  border: 1px solid var(--color-primary, #00788C);
   border-radius: 999px;
   background: transparent;
-  color: var(--color-primary, #1F6B45);
+  color: var(--color-primary, #00788C);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -203,7 +203,7 @@
 }
 
 .cw-chip:hover:not(:disabled) {
-  background: var(--color-primary, #1F6B45);
+  background: var(--color-primary, #00788C);
   color: #ffffff;
 }
 
@@ -223,7 +223,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--color-primary-light, #DCEEE1);
+  background: var(--color-primary-light, #CCEDF1);
   animation: cw-blink 1.2s infinite ease-in-out;
 }
 
@@ -254,14 +254,14 @@
   font-size: 0.83rem;
   font-family: inherit;
   color: var(--color-text-primary, #111827);
-  background: var(--color-bg-primary, #F1F7F2);
+  background: var(--color-bg-primary, #EFFBF7);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cw-input:focus {
-  border-color: var(--color-primary, #1F6B45);
-  box-shadow: var(--shadow-focus, 0 0 0 3px rgba(31, 107, 69, 0.2));
+  border-color: var(--color-primary, #00788C);
+  box-shadow: var(--shadow-focus, 0 0 0 3px rgba(0, 120, 140, 0.2));
 }
 
 .cw-input::placeholder {
@@ -277,14 +277,14 @@
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: var(--color-primary, #1F6B45);
+  background: var(--color-primary, #00788C);
   color: #ffffff;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .cw-send:hover:not(:disabled) {
-  background: var(--color-primary-hover, #17583A);
+  background: var(--color-primary-hover, #006475);
 }
 
 .cw-send:disabled {
@@ -308,16 +308,16 @@
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: var(--color-primary, #1F6B45);
+  background: var(--color-primary, #00788C);
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 10px 25px -5px rgba(31, 107, 69, 0.5);
+  box-shadow: 0 10px 25px -5px rgba(0, 120, 140, 0.5);
   z-index: 991;
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .cw-launcher:hover {
-  background: var(--color-primary-hover, #17583A);
+  background: var(--color-primary-hover, #006475);
   transform: translateY(-2px);
 }
 

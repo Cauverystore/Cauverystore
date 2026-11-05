@@ -41,8 +41,8 @@ const ProductDashboard = () => {
   });
 
   const StatCard = ({ label, value, color }) => (
-    <div style={{ background: "#fff", borderRadius: "8px", border: `1px solid #CFE8D6`, borderTop: `3px solid ${color}`, padding: "1rem", textAlign: "center" }}>
-      <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0B3D2E" }}>{value ?? 0}</div>
+    <div style={{ background: "#fff", borderRadius: "8px", border: `1px solid #C4EFE6`, borderTop: `3px solid ${color}`, padding: "1rem", textAlign: "center" }}>
+      <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#003A44" }}>{value ?? 0}</div>
       <div style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "4px" }}>{label}</div>
     </div>
   );
@@ -51,13 +51,13 @@ const ProductDashboard = () => {
 
   const SC = {
     wrap: { maxWidth: "1200px", padding: "1.5rem" },
-    h1: { fontSize: "1.5rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "0.25rem" },
+    h1: { fontSize: "1.5rem", fontWeight: 700, color: "#003A44", marginBottom: "0.25rem" },
     sub: { color: "#64748B", marginBottom: "1.25rem", fontSize: "0.85rem" },
     grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" },
-    section: { background: "#fff", borderRadius: "8px", border: "1px solid #CFE8D6", padding: "1rem", marginBottom: "1rem" },
-    sTitle: { fontSize: "0.9rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "0.75rem", paddingBottom: "0.4rem", borderBottom: "2px solid #EAF7EE" },
-    input: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.85rem", outline: "none", boxSizing: "border-box" },
-    select: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.85rem", background: "#fff", outline: "none", boxSizing: "border-box" },
+    section: { background: "#fff", borderRadius: "8px", border: "1px solid #C4EFE6", padding: "1rem", marginBottom: "1rem" },
+    sTitle: { fontSize: "0.9rem", fontWeight: 700, color: "#003A44", marginBottom: "0.75rem", paddingBottom: "0.4rem", borderBottom: "2px solid #E6F8F3" },
+    input: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.85rem", outline: "none", boxSizing: "border-box" },
+    select: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.85rem", background: "#fff", outline: "none", boxSizing: "border-box" },
   };
 
   return (
@@ -66,7 +66,7 @@ const ProductDashboard = () => {
       <p style={SC.sub}>Key metrics and product overview</p>
 
       <div style={SC.grid}>
-        <StatCard label="Total Products" value={stats.totalProducts} color="#1F6B45" />
+        <StatCard label="Total Products" value={stats.totalProducts} color="#00788C" />
         <StatCard label="Active" value={stats.active} color="#16a34a" />
         <StatCard label="Draft" value={stats.draft} color="#f59e0b" />
         <StatCard label="Out of Stock" value={stats.outOfStock} color="#dc2626" />
@@ -74,9 +74,9 @@ const ProductDashboard = () => {
         <StatCard label="Pending Approval" value={stats.pendingApproval} color="#3b82f6" />
         <StatCard label="Rejected" value={stats.rejected} color="#991b1b" />
         <StatCard label="Recently Added" value={stats.recentlyAdded} color="#8b5cf6" />
-        <StatCard label="Featured" value={stats.featured} color="#1F6B45" />
+        <StatCard label="Featured" value={stats.featured} color="#00788C" />
         <StatCard label="Trending" value={stats.trending} color="#06b6d4" />
-        <StatCard label="Best Seller" value={stats.bestSeller} color="#C8A24B" />
+        <StatCard label="Best Seller" value={stats.bestSeller} color="#FFB852" />
         <StatCard label="New Arrival" value={stats.newArrival} color="#ec4899" />
       </div>
 
@@ -102,9 +102,9 @@ const ProductDashboard = () => {
       </div>
 
       <div style={SC.section}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", paddingBottom: "0.4rem", borderBottom: "2px solid #EAF7EE" }}>
-          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, color: "#0B3D2E", margin: 0 }}>Products ({filtered.length})</h3>
-          <button onClick={() => navigate("/admin/products/add")} style={{ padding: "6px 14px", background: "#2E9B57", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>+ Add Product</button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", paddingBottom: "0.4rem", borderBottom: "2px solid #E6F8F3" }}>
+          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, color: "#003A44", margin: 0 }}>Products ({filtered.length})</h3>
+          <button onClick={() => navigate("/admin/products/add")} style={{ padding: "6px 14px", background: "#00788C", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>+ Add Product</button>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
@@ -136,11 +136,11 @@ const ProductDashboard = () => {
                   <td style={{ padding: "8px", textAlign: "right" }}>₹{(p.offerPrice || p.price || 0).toLocaleString()}</td>
                   <td style={{ padding: "8px", textAlign: "right", color: p.stock != null && p.stock < 10 ? "#dc2626" : "inherit", fontWeight: p.stock != null && p.stock < 10 ? 700 : 400 }}>{p.stock ?? 0}</td>
                   <td style={{ padding: "8px", textAlign: "center" }}>
-                    <span style={{ padding: "2px 8px", borderRadius: "10px", fontSize: "0.7rem", fontWeight: 600, background: p.active ? "#EAF7EE" : "#fef2f2", color: p.active ? "#146C43" : "#dc2626" }}>{p.active ? "Active" : "Inactive"}</span>
+                    <span style={{ padding: "2px 8px", borderRadius: "10px", fontSize: "0.7rem", fontWeight: 600, background: p.active ? "#E6F8F3" : "#fef2f2", color: p.active ? "#00788C" : "#dc2626" }}>{p.active ? "Active" : "Inactive"}</span>
                   </td>
                   <td style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    <button onClick={() => navigate(`/admin/products/edit/${p.id}`)} style={{ padding: "4px 10px", border: "1px solid #CFE8D6", borderRadius: "4px", background: "#fff", cursor: "pointer", fontSize: "0.75rem", marginRight: "4px" }}>Edit</button>
-                    <button onClick={() => navigate(`/admin/products/${p.id}/images`)} style={{ padding: "4px 10px", border: "1px solid #CFE8D6", borderRadius: "4px", background: "#EAF7EE", color: "#146C43", cursor: "pointer", fontSize: "0.75rem" }}>Images</button>
+                    <button onClick={() => navigate(`/admin/products/edit/${p.id}`)} style={{ padding: "4px 10px", border: "1px solid #C4EFE6", borderRadius: "4px", background: "#fff", cursor: "pointer", fontSize: "0.75rem", marginRight: "4px" }}>Edit</button>
+                    <button onClick={() => navigate(`/admin/products/${p.id}/images`)} style={{ padding: "4px 10px", border: "1px solid #C4EFE6", borderRadius: "4px", background: "#E6F8F3", color: "#00788C", cursor: "pointer", fontSize: "0.75rem" }}>Images</button>
                   </td>
                 </tr>
               ))}

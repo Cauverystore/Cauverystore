@@ -11,16 +11,16 @@ const ComplianceTypeSelect = ({ value, onChange, style }) => (
 const typeLabel = (v) => (CATEGORY_TYPES.find((t) => t.value === v) || CATEGORY_TYPES[0]).label;
 
 const S = {
-  section: { background: "#fff", borderRadius: "8px", border: "1px solid #CFE8D6", padding: "1.25rem", marginBottom: "1rem" },
-  title: { fontSize: "0.95rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #EAF7EE" },
-  input: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.9rem", outline: "none", boxSizing: "border-box", background: "#fff" },
-  textarea: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.9rem", minHeight: "72px", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" },
-  btnP: { padding: "8px 16px", background: "#2E9B57", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" },
+  section: { background: "#fff", borderRadius: "8px", border: "1px solid #C4EFE6", padding: "1.25rem", marginBottom: "1rem" },
+  title: { fontSize: "0.95rem", fontWeight: 700, color: "#003A44", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #E6F8F3" },
+  input: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.9rem", outline: "none", boxSizing: "border-box", background: "#fff" },
+  textarea: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.9rem", minHeight: "72px", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" },
+  btnP: { padding: "8px 16px", background: "#00788C", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" },
   btnD: { padding: "6px 14px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem" },
-  btnS: { padding: "6px 14px", background: "#EAF7EE", color: "#146C43", border: "1px solid #CFE8D6", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem" },
+  btnS: { padding: "6px 14px", background: "#E6F8F3", color: "#00788C", border: "1px solid #C4EFE6", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem" },
   modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" },
   modalBox: { background: "#fff", borderRadius: "10px", padding: "1.5rem", maxWidth: "420px", width: "100%", boxShadow: "0 4px 24px rgba(0,0,0,0.15)" },
-  msg: (type) => ({ padding: "10px 14px", borderRadius: "6px", marginBottom: "0.75rem", background: type === "success" ? "#EAF7EE" : "#fef2f2", color: type === "success" ? "#146C43" : "#dc2626", border: `1px solid ${type === "success" ? "#CFE8D6" : "#fecaca"}`, fontSize: "0.85rem" }),
+  msg: (type) => ({ padding: "10px 14px", borderRadius: "6px", marginBottom: "0.75rem", background: type === "success" ? "#E6F8F3" : "#fef2f2", color: type === "success" ? "#00788C" : "#dc2626", border: `1px solid ${type === "success" ? "#C4EFE6" : "#fecaca"}`, fontSize: "0.85rem" }),
 };
 
 // Licence a seller must hold to list in a category (codes match SellerLicenceService).
@@ -223,7 +223,7 @@ const AdminCategories = () => {
                         </td>
                         <td style={{ padding: "10px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button onClick={() => saveEdit(c.id)} style={{ ...S.btnS, marginRight: "6px" }}>Save</button>
-                          <button onClick={cancelEdit} style={{ padding: "6px 14px", border: "1px solid #CFE8D6", borderRadius: "4px", background: "#fff", cursor: "pointer", fontSize: "0.8rem" }}>Cancel</button>
+                          <button onClick={cancelEdit} style={{ padding: "6px 14px", border: "1px solid #C4EFE6", borderRadius: "4px", background: "#fff", cursor: "pointer", fontSize: "0.8rem" }}>Cancel</button>
                         </td>
                       </>
                     ) : (
@@ -231,7 +231,7 @@ const AdminCategories = () => {
                         <td style={{ padding: "10px", fontWeight: 500 }}>{c.name}</td>
                         <td style={{ padding: "10px", color: "#64748B" }}>{c.description || <span style={{ fontStyle: "italic", color: "#cbd5e1" }}>No description</span>}</td>
                         <td style={{ padding: "10px", color: c.requiredLicence ? "#b45309" : "#94a3b8", fontSize: "0.85rem" }}>{c.requiredLicence ? licenceName(c.requiredLicence) : "Anyone"}
-                          <div style={{ color: c.complianceType ? "#146C43" : "#94a3b8", fontSize: "0.75rem" }}>Compliance: {typeLabel(c.complianceType)}</div></td>
+                          <div style={{ color: c.complianceType ? "#00788C" : "#94a3b8", fontSize: "0.75rem" }}>Compliance: {typeLabel(c.complianceType)}</div></td>
                         <td style={{ padding: "10px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button onClick={() => startEdit(c)} style={{ ...S.btnS, marginRight: "6px" }}>Edit</button>
                           <button onClick={() => confirmDelete(c)} style={S.btnD}>Delete</button>
@@ -254,7 +254,7 @@ const AdminCategories = () => {
             <p style={{ color: "#64748B", fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
               {standard.filter((s) => !s.exists).length} will be added. Ones you already have are greyed out and left as they are. You can edit or delete any of them afterwards.
             </p>
-            <div style={{ overflowY: "auto", flex: 1, border: "1px solid #CFE8D6", borderRadius: "6px" }}>
+            <div style={{ overflowY: "auto", flex: 1, border: "1px solid #C4EFE6", borderRadius: "6px" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
                 <thead>
                   <tr style={{ background: "#f8f8f8", position: "sticky", top: 0 }}>
@@ -264,7 +264,7 @@ const AdminCategories = () => {
                 </thead>
                 <tbody>
                   {standard.map((s) => (
-                    <tr key={s.name} style={{ borderTop: "1px solid #EAF7EE", opacity: s.exists ? 0.45 : 1 }}>
+                    <tr key={s.name} style={{ borderTop: "1px solid #E6F8F3", opacity: s.exists ? 0.45 : 1 }}>
                       <td style={{ padding: "8px" }}>
                         <div style={{ fontWeight: 600 }}>{s.name}{s.exists ? " (already added)" : ""}</div>
                         <div style={{ color: "#64748B" }}>{s.description}</div>
@@ -278,7 +278,7 @@ const AdminCategories = () => {
               </table>
             </div>
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "1rem" }}>
-              <button onClick={() => setStandard(null)} style={{ padding: "8px 20px", border: "1px solid #CFE8D6", borderRadius: "6px", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => setStandard(null)} style={{ padding: "8px 20px", border: "1px solid #C4EFE6", borderRadius: "6px", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>Cancel</button>
               <button onClick={addStandard} disabled={addingStandard || standard.every((s) => s.exists)} style={{ ...S.btnP, opacity: addingStandard ? 0.6 : 1 }}>
                 {addingStandard ? "Adding..." : `Add ${standard.filter((s) => !s.exists).length} categories`}
               </button>
@@ -296,7 +296,7 @@ const AdminCategories = () => {
               Are you sure you want to delete <strong>"{deleteTarget.name}"</strong>?
             </p>
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <button onClick={() => setDeleteTarget(null)} style={{ padding: "8px 20px", border: "1px solid #CFE8D6", borderRadius: "6px", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => setDeleteTarget(null)} style={{ padding: "8px 20px", border: "1px solid #C4EFE6", borderRadius: "6px", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>Cancel</button>
               <button onClick={handleDelete} style={{ padding: "8px 20px", background: "#dc2626", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}>Delete</button>
             </div>
           </div>

@@ -66,7 +66,7 @@ const AdminSidebar = ({ open, onNavigate }) => {
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "1.15rem", width: "auto" }} />
         <div>
-          <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--color-primary, #1F6B45)" }}>Cauvery Store</div>
+          <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--color-primary, #00788C)" }}>Cauvery Store</div>
           <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "1px" }}>{labelText}</div>
         </div>
       </div>
@@ -81,7 +81,7 @@ const AdminSidebar = ({ open, onNavigate }) => {
           style={({ isActive }) => ({
             display: "flex", alignItems: "center", gap: "12px", padding: "10px 20px",
             color: isActive ? "#fff" : "#94a3b8", textDecoration: "none", fontSize: "0.875rem",
-            background: isActive ? "#1e293b" : "transparent", borderLeft: isActive ? "3px solid var(--color-primary, #1F6B45)" : "3px solid transparent",
+            background: isActive ? "#1e293b" : "transparent", borderLeft: isActive ? "3px solid var(--color-primary, #00788C)" : "3px solid transparent",
             transition: "all 0.15s",
           })}
         >

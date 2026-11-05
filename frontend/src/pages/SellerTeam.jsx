@@ -5,7 +5,7 @@ import { confirmAction, showMessage } from "../components/ConfirmDialog";
 // The seller's team: who can work in this store, pending invitations, and the roles on offer.
 const box = { background: "#fff", padding: "1.25rem 1.5rem", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", marginBottom: "1.5rem" };
 const inp = { padding: "0.5rem 0.65rem", border: "1px solid #d1d5db", borderRadius: 6, fontSize: "0.875rem", boxSizing: "border-box" };
-const btn = { padding: "0.5rem 1.1rem", background: "#1F6B45", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.875rem", fontWeight: 600 };
+const btn = { padding: "0.5rem 1.1rem", background: "#00788C", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.875rem", fontWeight: 600 };
 const linkBtn = (color) => ({ background: "none", border: "none", color, cursor: "pointer", fontSize: "0.8rem", padding: "0 4px" });
 const cell = { padding: "0.6rem 0.4rem", fontSize: "0.875rem", borderTop: "1px solid #f1f5f9", verticalAlign: "top" };
 const dateText = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");

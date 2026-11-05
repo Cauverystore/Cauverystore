@@ -7,10 +7,10 @@ import "../styles/staticLayout.css";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
-const green = "#1F6B45";
-const dark = "#143D2B";
-const muted = "#4A5B52";
-const border = "1px solid rgba(31, 107, 69, 0.14)";
+const green = "#00788C";
+const dark = "#004F5C";
+const muted = "#4A5A5E";
+const border = "1px solid rgba(0, 120, 140, 0.14)";
 
 const LAST_UPDATED = "10 October 2026";
 
@@ -482,7 +482,7 @@ const ReturnsandRefundPolicy = () => {
       </div>
 
       <style>{`
-        .rrp-nav-link:hover { background: rgba(31, 107, 69, 0.07) !important; color: ${green} !important; }
+        .rrp-nav-link:hover { background: rgba(0, 120, 140, 0.07) !important; color: ${green} !important; }
         @media (max-width: 768px) {
           .rrp-layout { flex-direction: column !important; }
           .rrp-nav { width: 100% !important; position: static !important; }

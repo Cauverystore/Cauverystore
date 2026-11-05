@@ -208,8 +208,8 @@ const AdminGstCompliance = () => {
             </h3>
             <span style={{
               fontSize: "0.78rem", fontWeight: 600, padding: "2px 10px", borderRadius: "12px",
-              background: identity.readyToFile ? "#EAF7EE" : "#FEF3C7",
-              color: identity.readyToFile ? "#146C43" : "#92400E",
+              background: identity.readyToFile ? "#E6F8F3" : "#FEF3C7",
+              color: identity.readyToFile ? "#00788C" : "#92400E",
             }}>
               {identity.readyToFile ? "Complete" : `${identity.outstanding} outstanding`}
             </span>
@@ -233,7 +233,7 @@ const AdminGstCompliance = () => {
                   <div key={it.field} style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
                     <span style={{
                       flexShrink: 0, width: "1.1rem", textAlign: "center", fontWeight: 700,
-                      color: ok ? "#146C43" : invalid ? "#B91C1C" : "#92400E",
+                      color: ok ? "#00788C" : invalid ? "#B91C1C" : "#92400E",
                     }}>
                       {ok ? "✓" : invalid ? "✗" : "•"}
                     </span>

@@ -9,13 +9,13 @@ import { CATEGORY_TYPES, STATUS_LABEL } from "./complianceFields";
   the rest back. Every product is checked when the page loads; nothing is saved by looking.
 */
 
-const card = { background: "#fff", border: "1px solid #CFE8D6", borderRadius: 8, padding: "0.9rem 1rem" };
-const input = { padding: "7px 10px", border: "1px solid #CFE8D6", borderRadius: 6, fontSize: "0.85rem", background: "#fff" };
+const card = { background: "#fff", border: "1px solid #C4EFE6", borderRadius: 8, padding: "0.9rem 1rem" };
+const input = { padding: "7px 10px", border: "1px solid #C4EFE6", borderRadius: 6, fontSize: "0.85rem", background: "#fff" };
 
 const Tile = ({ label, value, color, active, onClick }) => (
-  <button onClick={onClick} style={{ ...card, textAlign: "left", cursor: "pointer", outline: active ? "2px solid #146C43" : "none" }}>
+  <button onClick={onClick} style={{ ...card, textAlign: "left", cursor: "pointer", outline: active ? "2px solid #00788C" : "none" }}>
     <div style={{ fontSize: "0.75rem", color: "#64748B" }}>{label}</div>
-    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: color || "#0B3D2E" }}>{value ?? "–"}</div>
+    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: color || "#003A44" }}>{value ?? "–"}</div>
   </button>
 );
 
@@ -73,14 +73,14 @@ const ComplianceDashboard = () => {
             {data?.enforceLive && <span style={{ color: "#b45309" }}> · live enforcement is ON</span>}
           </div>
         </div>
-        <button onClick={load} style={{ ...input, cursor: "pointer", fontWeight: 600, color: "#146C43" }}>Re-check</button>
+        <button onClick={load} style={{ ...input, cursor: "pointer", fontWeight: 600, color: "#00788C" }}>Re-check</button>
       </div>
 
       {error && <div style={{ ...card, background: "#fef2f2", color: "#b91c1c", marginBottom: "1rem" }}>{error}</div>}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.6rem", marginBottom: "1rem" }}>
         <Tile label="Total products" value={t.total} active={quick === "all"} onClick={() => setQuick("all")} />
-        <Tile label="Compliant (100)" value={t.compliant} color="#146C43" active={quick === "compliant"} onClick={() => setQuick("compliant")} />
+        <Tile label="Compliant (100)" value={t.compliant} color="#00788C" active={quick === "compliant"} onClick={() => setQuick("compliant")} />
         <Tile label="Non-compliant" value={t.nonCompliant} color="#b91c1c" active={quick === "nonCompliant"} onClick={() => setQuick("nonCompliant")} />
         <Tile label="Warning (90-99)" value={t.warning} color="#b45309" active={quick === "warning"} onClick={() => setQuick("warning")} />
         <Tile label="Blocked" value={t.blocked} color="#b91c1c" active={quick === "blocked"} onClick={() => setQuick("blocked")} />
@@ -110,7 +110,7 @@ const ComplianceDashboard = () => {
       <div style={{ ...card, padding: 0, overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.83rem" }}>
           <thead>
-            <tr style={{ background: "#F6FBF8", textAlign: "left" }}>
+            <tr style={{ background: "#F5FBFC", textAlign: "left" }}>
               {["Product", "Seller", "Type", "Workflow", "Score", "Top gaps", ""].map((h) => <th key={h} style={{ padding: "8px 10px" }}>{h}</th>)}
             </tr>
           </thead>
@@ -118,14 +118,14 @@ const ComplianceDashboard = () => {
             {!data && !error && <tr><td colSpan={7} style={{ padding: 16, color: "#64748B" }}>Loading...</td></tr>}
             {data && rows.length === 0 && <tr><td colSpan={7} style={{ padding: 16, color: "#64748B" }}>No products match.</td></tr>}
             {rows.map((r) => (
-              <tr key={r.productId} style={{ borderTop: "1px solid #EAF7EE" }}>
+              <tr key={r.productId} style={{ borderTop: "1px solid #E6F8F3" }}>
                 <td style={{ padding: "8px 10px" }}>
                   <div style={{ fontWeight: 600 }}>{r.name}</div>
                   <div style={{ color: "#64748B", fontSize: "0.75rem" }}>#{r.productId}{r.sku ? ` · ${r.sku}` : ""}{r.category ? ` · ${r.category}` : ""}</div>
                 </td>
                 <td style={{ padding: "8px 10px" }}>{r.seller || (r.sellerId ? `#${r.sellerId}` : <span style={{ color: "#b91c1c" }}>none</span>)}</td>
                 <td style={{ padding: "8px 10px" }}>{r.categoryType}</td>
-                <td style={{ padding: "8px 10px" }}>{STATUS_LABEL[r.status] || r.status}{r.live ? <span style={{ color: "#146C43" }}> · on sale</span> : ""}</td>
+                <td style={{ padding: "8px 10px" }}>{STATUS_LABEL[r.status] || r.status}{r.live ? <span style={{ color: "#00788C" }}> · on sale</span> : ""}</td>
                 <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}><ScoreBadge score={r.score} band={r.band} /></td>
                 <td style={{ padding: "8px 10px", color: "#475569", maxWidth: 360 }}>
                   {(r.issues || []).slice().sort((a, b) => b.critical - a.critical).slice(0, 4).map((i) => i.label).join(", ")}
@@ -133,7 +133,7 @@ const ComplianceDashboard = () => {
                 </td>
                 <td style={{ padding: "8px 10px" }}>
                   <button onClick={() => navigate(`/admin/products/${r.productId}/compliance`)}
-                    style={{ padding: "4px 10px", border: "1px solid #CFE8D6", borderRadius: 4, background: "#EAF7EE", color: "#146C43", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600 }}>
+                    style={{ padding: "4px 10px", border: "1px solid #C4EFE6", borderRadius: 4, background: "#E6F8F3", color: "#00788C", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600 }}>
                     Fix
                   </button>
                 </td>

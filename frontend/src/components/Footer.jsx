@@ -25,7 +25,7 @@ const Footer = () => {
   <>
     {/* Newsletter */}
     <section style={{
-      background: "var(--color-primary, #1F6B45)", padding: "2.5rem 1.5rem",
+      background: "var(--color-primary, #00788C)", padding: "2.5rem 1.5rem",
       color: "#fff"
     }}>
       <div style={{
@@ -49,11 +49,11 @@ const Footer = () => {
           }} />
           {/* White on the teal band: a teal button would vanish into it. */}
           <button type="submit" style={{
-            padding: "0.6rem 1.25rem", background: "#fff", color: "var(--color-primary, #1F6B45)",
+            padding: "0.6rem 1.25rem", background: "#fff", color: "var(--color-primary, #00788C)",
             border: "1px solid #fff", borderRadius: "999px", fontWeight: 600, fontSize: "0.85rem",
             cursor: "pointer", whiteSpace: "nowrap", transition: "background 0.2s"
           }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary-lighter, #F1F7F2)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary-lighter, #EFFBF7)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
           >{t("footer.subscribe")}</button>
         </form>
@@ -62,7 +62,7 @@ const Footer = () => {
 
     {/* Main Footer */}
     <footer style={{
-      background: "#143D2B", color: "#B9D3C2", padding: "2.5rem 1.5rem 1.5rem"
+      background: "#004F5C", color: "#B9D6DB", padding: "2.5rem 1.5rem 1.5rem"
     }}>
       <div style={{
         maxWidth: "var(--container-max, 1200px)", margin: "0 auto",
@@ -79,10 +79,10 @@ const Footer = () => {
             {t("footer.getToKnow")}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/about" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.about")}</Link>
-            <Link to="/contact" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.contact")}</Link>
-            <Link to="/faq" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.helpCenter")}</Link>
-            <Link to="/offers" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.offers")}</Link>
+            <Link to="/about" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.about")}</Link>
+            <Link to="/contact" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.contact")}</Link>
+            <Link to="/faq" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.helpCenter")}</Link>
+            <Link to="/offers" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.offers")}</Link>
           </div>
         </div>
 
@@ -92,15 +92,15 @@ const Footer = () => {
             {t("footer.customerService")}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/contact" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.contact")}</Link>
-            <Link to="/faq" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.faq")}</Link>
-            <Link to="/orders" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.yourOrders")}</Link>
+            <Link to="/contact" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.contact")}</Link>
+            <Link to="/faq" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.faq")}</Link>
+            <Link to="/orders" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.yourOrders")}</Link>
             {/* One link per policy: payment partners and shoppers look for each by name. */}
-            <Link to="/refund-policy" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.refunds")}</Link>
-            <Link to="/shipping-policy" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.shipping")}</Link>
-            <Link to="/terms-and-conditions" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.terms")}</Link>
-            <Link to="/privacy-policy" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.privacy")}</Link>
-            <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS))} style={{ color: "#B9D3C2", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontSize: "0.85rem", fontFamily: "inherit" }}>{t("footer.cookies")}</button>
+            <Link to="/refund-policy" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.refunds")}</Link>
+            <Link to="/shipping-policy" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.shipping")}</Link>
+            <Link to="/terms-and-conditions" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.terms")}</Link>
+            <Link to="/privacy-policy" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.privacy")}</Link>
+            <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS))} style={{ color: "#B9D6DB", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontSize: "0.85rem", fontFamily: "inherit" }}>{t("footer.cookies")}</button>
           </div>
         </div>
 
@@ -110,8 +110,8 @@ const Footer = () => {
             {t("footer.sellerServices")}
           </h4>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <Link to="/seller/register" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.sellOn")}</Link>
-            <Link to="/contact" style={{ color: "#B9D3C2", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.partnerSupport")}</Link>
+            <Link to="/seller/register" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.sellOn")}</Link>
+            <Link to="/contact" style={{ color: "#B9D6DB", textDecoration: "none", fontSize: "0.85rem" }}>{t("footer.partnerSupport")}</Link>
           </div>
         </div>
 
@@ -129,12 +129,12 @@ const Footer = () => {
               <a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name} style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 32, height: 32, borderRadius: "50%",
-                background: "rgba(255,255,255,0.08)", color: "#B9D3C2",
+                background: "rgba(255,255,255,0.08)", color: "#B9D6DB",
                 textDecoration: "none",
                 transition: "background 0.2s, color 0.2s"
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary)"; e.currentTarget.style.color = "#fff"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#B9D3C2"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#B9D6DB"; }}
               >
                 {icon}
               </a>
@@ -144,7 +144,7 @@ const Footer = () => {
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "0.35rem",
               padding: "0.3rem 0.6rem", border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: "6px", fontSize: "0.75rem", color: "#B9D3C2", width: "fit-content"
+              borderRadius: "6px", fontSize: "0.75rem", color: "#B9D6DB", width: "fit-content"
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
               App Store
@@ -152,7 +152,7 @@ const Footer = () => {
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "0.35rem",
               padding: "0.3rem 0.6rem", border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: "6px", fontSize: "0.75rem", color: "#B9D3C2", width: "fit-content"
+              borderRadius: "6px", fontSize: "0.75rem", color: "#B9D6DB", width: "fit-content"
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               Google Play
@@ -185,7 +185,7 @@ const Footer = () => {
     {/* Back to Top */}
     <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title={t("footer.backToTop")} aria-label={t("footer.backToTop")} style={{
       position: "fixed", bottom: "calc(80px + var(--bottom-bar-offset, 0px))", right: "1.5rem", zIndex: 50,
-      width: 40, height: 40, borderRadius: "50%", background: "var(--color-primary, #1F6B45)",
+      width: 40, height: 40, borderRadius: "50%", background: "var(--color-primary, #00788C)",
       color: "#fff", border: "none", cursor: "pointer", display: "flex",
       alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     }}>

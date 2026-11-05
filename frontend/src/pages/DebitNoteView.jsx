@@ -10,32 +10,32 @@ const GST_DEBIT_NOTE_STYLES = `
   .giv-back { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #fff; color: #475569; font-size: 0.85rem; font-weight: 500; cursor: pointer; text-decoration: none; }
   .giv-back:hover { background: #f8fafc; }
   .giv-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-  .giv-btn-primary { background: #1F6B45; color: #fff; }
-  .giv-btn-primary:hover { background: #17583A; }
-  .giv-btn-outline { background: #fff; color: #1F6B45; border: 1.5px solid #1F6B45; }
+  .giv-btn-primary { background: #00788C; color: #fff; }
+  .giv-btn-primary:hover { background: #006475; }
+  .giv-btn-outline { background: #fff; color: #00788C; border: 1.5px solid #00788C; }
   .giv-btn-outline:hover { background: #f0fdf4; }
 
   .giv-invoice { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
-  .giv-header { padding: 1.5rem 2rem; border-bottom: 2px solid #1F6B45; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+  .giv-header { padding: 1.5rem 2rem; border-bottom: 2px solid #00788C; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
   .giv-header-left { display: flex; align-items: center; gap: 1rem; }
   .giv-header-left img { height: 2.5rem; width: auto; }
-  .giv-brand-name { font-size: 0.95rem; font-weight: 700; color: #1F6B45; line-height: 1.2; }
-  .giv-brand-tagline { font-size: 0.68rem; font-weight: 600; color: #C8A24B; margin-bottom: 0.25rem; }
+  .giv-brand-name { font-size: 0.95rem; font-weight: 700; color: #00788C; line-height: 1.2; }
+  .giv-brand-tagline { font-size: 0.68rem; font-weight: 600; color: #A35F00; margin-bottom: 0.25rem; }
   .giv-header-left h1 { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0; }
   .giv-header-right { text-align: right; }
-  .giv-header-right .giv-inv-number { font-size: 1rem; font-weight: 700; color: #1F6B45; }
+  .giv-header-right .giv-inv-number { font-size: 1rem; font-weight: 700; color: #00788C; }
   .giv-header-right .giv-inv-label { font-size: 0.78rem; color: #64748b; margin-bottom: 0.15rem; }
 
   .giv-body { padding: 1.5rem 2rem; }
   .giv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
   .giv-party-box { padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
-  .giv-party-box h3 { font-size: 0.8rem; font-weight: 700; color: #1F6B45; text-transform: uppercase; letter-spacing: 0.3px; margin: 0 0 0.5rem; padding-bottom: 0.35rem; border-bottom: 1px solid #e2e8f0; }
+  .giv-party-box h3 { font-size: 0.8rem; font-weight: 700; color: #00788C; text-transform: uppercase; letter-spacing: 0.3px; margin: 0 0 0.5rem; padding-bottom: 0.35rem; border-bottom: 1px solid #e2e8f0; }
   .giv-party-box .giv-party-name { font-size: 0.95rem; font-weight: 600; color: #0f172a; }
   .giv-party-box .giv-party-detail { font-size: 0.82rem; color: #475569; line-height: 1.5; }
   .giv-party-box .giv-party-gstin { font-size: 0.8rem; font-family: monospace; font-weight: 600; color: #0f172a; margin-top: 0.35rem; }
 
   .giv-reason { margin-bottom: 1.5rem; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #fffbeb; font-size: 0.85rem; color: #475569; }
-  .giv-reason strong { color: #1F6B45; }
+  .giv-reason strong { color: #00788C; }
 
   .giv-identifiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; }
   .giv-id-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -43,23 +43,23 @@ const GST_DEBIT_NOTE_STYLES = `
 
   .giv-items { margin-bottom: 1.5rem; overflow-x: auto; }
   .giv-items table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-  .giv-items th { background: #1F6B45; color: #fff; padding: 0.6rem 0.75rem; text-align: left; font-weight: 600; white-space: nowrap; font-size: 0.78rem; }
+  .giv-items th { background: #00788C; color: #fff; padding: 0.6rem 0.75rem; text-align: left; font-weight: 600; white-space: nowrap; font-size: 0.78rem; }
   .giv-items td { padding: 0.55rem 0.75rem; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
   .giv-items tr:nth-child(even) td { background: #f8fafc; }
   .giv-items .giv-hsn { font-family: monospace; font-size: 0.78rem; color: #64748b; }
   .giv-items .giv-amt { text-align: right; font-family: monospace; white-space: nowrap; }
-  .giv-items .giv-amt-total { font-weight: 700; color: #1F6B45; }
+  .giv-items .giv-amt-total { font-weight: 700; color: #00788C; }
 
   .giv-summary { display: flex; justify-content: flex-end; margin-bottom: 1.5rem; }
   .giv-summary-table { width: 350px; border-collapse: collapse; font-size: 0.85rem; }
   .giv-summary-table td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #f1f5f9; }
   .giv-summary-table td:first-child { color: #64748b; }
   .giv-summary-table td:last-child { text-align: right; font-weight: 600; font-family: monospace; }
-  .giv-summary-table .giv-sum-total { font-size: 1rem; font-weight: 800; color: #1F6B45; border-top: 2px solid #1F6B45; }
+  .giv-summary-table .giv-sum-total { font-size: 1rem; font-weight: 800; color: #00788C; border-top: 2px solid #00788C; }
   .giv-summary-table .giv-sum-total td { padding: 0.6rem 0.75rem; }
 
   .giv-amount-words { font-size: 0.85rem; color: #475569; margin-bottom: 1.5rem; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #fffbeb; }
-  .giv-amount-words strong { color: #1F6B45; }
+  .giv-amount-words strong { color: #00788C; }
 
   .giv-declaration { font-size: 0.78rem; color: #64748b; line-height: 1.6; padding: 0.75rem 1rem; border-top: 1px solid #e2e8f0; }
   .giv-footer { text-align: center; padding: 1rem 2rem; border-top: 1px solid #e2e8f0; font-size: 0.75rem; color: #94a3b8; }

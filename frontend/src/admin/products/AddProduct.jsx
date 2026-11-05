@@ -146,19 +146,19 @@ const AddProduct = () => {
     field: { marginBottom: "0.75rem" },
     label: { display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: "3px" },
     input: {
-      width: "100%", padding: "8px 12px", border: "1px solid #CFE8D6", borderRadius: "6px",
+      width: "100%", padding: "8px 12px", border: "1px solid #C4EFE6", borderRadius: "6px",
       fontSize: "0.9rem", outline: "none", boxSizing: "border-box", background: "#fff"
     },
     select: {
-      width: "100%", padding: "8px 12px", border: "1px solid #CFE8D6", borderRadius: "6px",
+      width: "100%", padding: "8px 12px", border: "1px solid #C4EFE6", borderRadius: "6px",
       fontSize: "0.9rem", background: "#fff", outline: "none", boxSizing: "border-box"
     },
     textarea: {
-      width: "100%", padding: "8px 12px", border: "1px solid #CFE8D6", borderRadius: "6px",
+      width: "100%", padding: "8px 12px", border: "1px solid #C4EFE6", borderRadius: "6px",
       fontSize: "0.9rem", minHeight: "80px", resize: "vertical", outline: "none", boxSizing: "border-box"
     },
-    section: { background: "#fff", borderRadius: "8px", border: "1px solid #CFE8D6", padding: "1.25rem", marginBottom: "1rem" },
-    sectionTitle: { fontSize: "0.95rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #EAF7EE" },
+    section: { background: "#fff", borderRadius: "8px", border: "1px solid #C4EFE6", padding: "1.25rem", marginBottom: "1rem" },
+    sectionTitle: { fontSize: "0.95rem", fontWeight: 700, color: "#003A44", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #E6F8F3" },
     counter: { fontSize: "0.7rem", color: "#94a3b8" },
     hint: { fontSize: "0.7rem", color: "#64748B", marginTop: "2px" },
     error: { color: "#dc2626", fontSize: "0.7rem", marginTop: "2px" },
@@ -195,7 +195,7 @@ const AddProduct = () => {
 
   return (
     <div style={{ maxWidth: "860px", width: "100%", margin: "0 auto", padding: "1.5rem", boxSizing: "border-box" }}>
-      <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "0.25rem" }}>
+      <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#003A44", marginBottom: "0.25rem" }}>
         Add Product
       </h1>
       <p style={{ color: "#64748B", marginBottom: "1rem", fontSize: "0.85rem" }}>
@@ -205,9 +205,9 @@ const AddProduct = () => {
       {msg && (
         <div style={{
           padding: "10px 14px", borderRadius: "6px", marginBottom: "1rem",
-          background: msg.type === "success" ? "#EAF7EE" : "#fef2f2",
-          color: msg.type === "success" ? "#146C43" : "#dc2626",
-          border: `1px solid ${msg.type === "success" ? "#CFE8D6" : "#fecaca"}`,
+          background: msg.type === "success" ? "#E6F8F3" : "#fef2f2",
+          color: msg.type === "success" ? "#00788C" : "#dc2626",
+          border: `1px solid ${msg.type === "success" ? "#C4EFE6" : "#fecaca"}`,
           fontSize: "0.85rem"
         }}>
           {msg.type === "success" ? "\u2713 " : "\u2717 "}{msg.text}
@@ -302,7 +302,7 @@ const AddProduct = () => {
             differently from the listing (e.g. "Basmati Rice 5kg" on the shelf, "rice (premium
             basmati)" on the bill). UOM prints next to the quantity; cess is a declaration and
             is only ever charged at the CBIC's published rate for the code. */}
-        <h4 style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0B3D2E", margin: "1rem 0 0.5rem" }}>
+        <h4 style={{ fontSize: "0.85rem", fontWeight: 700, color: "#003A44", margin: "1rem 0 0.5rem" }}>
           Bill &amp; Print
         </h4>
         {fld("Bill / invoice description", "billDescription", "textarea", null,
@@ -352,7 +352,7 @@ const AddProduct = () => {
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "0.5rem" }}>
         <button onClick={() => navigate(redirectPath)}
           style={{
-            padding: "10px 20px", border: "1px solid #CFE8D6", borderRadius: "6px",
+            padding: "10px 20px", border: "1px solid #C4EFE6", borderRadius: "6px",
             background: "#fff", color: "#64748B", cursor: "pointer", fontWeight: 500, fontSize: "0.9rem"
           }}>
           Cancel
@@ -360,7 +360,7 @@ const AddProduct = () => {
         <button onClick={handleSubmit} disabled={submitting}
           style={{
             padding: "10px 32px",
-            background: submitting ? "#94a3b8" : "#2E9B57",
+            background: submitting ? "#94a3b8" : "#00788C",
             color: "#fff", border: "none", borderRadius: "6px",
             cursor: submitting ? "not-allowed" : "pointer", fontWeight: 600, fontSize: "0.9rem"
           }}>

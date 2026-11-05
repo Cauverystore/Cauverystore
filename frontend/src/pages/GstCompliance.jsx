@@ -17,16 +17,16 @@ const GST_COMPLIANCE_STYLES = `
 
   .gst-tabs { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; overflow-x: auto; }
   .gst-tab { padding: 0.7rem 1.25rem; font-size: 0.85rem; font-weight: 500; color: #64748b; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; white-space: nowrap; }
-  .gst-tab:hover { color: #1F6B45; }
-  .gst-tab.active { color: #1F6B45; border-bottom-color: #1F6B45; font-weight: 600; }
+  .gst-tab:hover { color: #00788C; }
+  .gst-tab.active { color: #00788C; border-bottom-color: #00788C; font-weight: 600; }
 
   .gst-toolbar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
   .gst-search { flex: 1; min-width: 200px; padding: 0.5rem 0.75rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; outline: none; }
-  .gst-search:focus { border-color: #1F6B45; }
+  .gst-search:focus { border-color: #00788C; }
   .gst-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
-  .gst-btn-primary { background: #1F6B45; color: #fff; }
-  .gst-btn-primary:hover { background: #17583A; }
-  .gst-btn-outline { background: transparent; color: #1F6B45; border: 1.5px solid #1F6B45; }
+  .gst-btn-primary { background: #00788C; color: #fff; }
+  .gst-btn-primary:hover { background: #006475; }
+  .gst-btn-outline { background: transparent; color: #00788C; border: 1.5px solid #00788C; }
   .gst-btn-outline:hover { background: #f0fdf4; }
   .gst-btn-sm { padding: 0.35rem 0.7rem; font-size: 0.78rem; }
   .gst-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -47,7 +47,7 @@ const GST_COMPLIANCE_STYLES = `
   .gst-field { margin-bottom: 1rem; }
   .gst-field label { display: block; font-size: 0.82rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; }
   .gst-field input, .gst-field select { width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.88rem; outline: none; box-sizing: border-box; }
-  .gst-field input:focus, .gst-field select:focus { border-color: #1F6B45; }
+  .gst-field input:focus, .gst-field select:focus { border-color: #00788C; }
 
   .gst-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   .gst-summary-item { padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; }

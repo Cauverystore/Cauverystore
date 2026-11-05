@@ -230,7 +230,7 @@ const Cart = () => {
   const renderStockStatus = (product) => {
     if (product.stockStatus) {
       const color = product.stockStatus === "Out of Stock" ? "#94a3b8"
-        : product.stockStatus.includes("Only") ? "#d97706" : "#1F6B45";
+        : product.stockStatus.includes("Only") ? "#d97706" : "#00788C";
       return <span style={{ color, fontSize: "0.8rem", fontWeight: 500 }}>{product.stockStatus}</span>;
     }
     return null;
@@ -337,7 +337,7 @@ const Cart = () => {
                     {originalPrice > price && <span className="cart-item-original-price">&#8377;{originalPrice.toFixed(2)}</span>}
                   </div>
                   {renderStockStatus(product)}
-                  <div style={{ fontSize: "0.8rem", color: "#1F6B45", marginTop: "0.2rem" }}>{deliveryEst}</div>
+                  <div style={{ fontSize: "0.8rem", color: "#00788C", marginTop: "0.2rem" }}>{deliveryEst}</div>
                   <div className="cart-item-actions">
                     <div className="cart-item-qty">
                       <button className="cart-item-qty-btn" onClick={() => updateQty(itemId, qty - 1)}
@@ -493,7 +493,7 @@ const Cart = () => {
           )}
         </div>
         {promoMsg && (
-          <div style={{ fontSize: "0.8rem", marginBottom: "0.75rem", color: promoMsg.type === "success" ? "#1F6B45" : "#92400e" }}>
+          <div style={{ fontSize: "0.8rem", marginBottom: "0.75rem", color: promoMsg.type === "success" ? "#00788C" : "#92400e" }}>
             {promoMsg.text}
           </div>
         )}
