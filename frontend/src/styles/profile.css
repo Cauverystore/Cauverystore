@@ -28,9 +28,9 @@
 }
 
 .profile-notification.success {
-  background: #EEF6F0;
+  background: #E6F6F8;
   color: var(--color-primary);
-  border: 1px solid #BBDCC6;
+  border: 1px solid #99DBE3;
 }
 
 .profile-notification.error {

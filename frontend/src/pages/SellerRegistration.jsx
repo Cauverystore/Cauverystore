@@ -329,7 +329,7 @@ const SellerRegistration = () => {
         <Helmet><title>Registration Status | Seller | Cauvery Store</title></Helmet>
         <div className="reg-success">
           <div className="reg-success-icon">
-            {status === "APPROVED" ? <Check size={28} color="#1F6B45" /> : status === "REJECTED" ? <X size={28} color="#dc2626" /> : <Clock size={28} color="#2563eb" />}
+            {status === "APPROVED" ? <Check size={28} color="#00788C" /> : status === "REJECTED" ? <X size={28} color="#dc2626" /> : <Clock size={28} color="#2563eb" />}
           </div>
           <h2>{status === "APPROVED" ? "Registration Approved!" : status === "REJECTED" ? "Registration Rejected" : "Registration Submitted!"}</h2>
           {status === "SUBMITTED" && (
@@ -467,14 +467,14 @@ const SellerRegistration = () => {
                   </button>
                 </div>
                 {regGstinStatus && !gstinResult && (
-                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem", color: regGstinStatus === "VERIFIED" ? "#1F6B45" : "#dc2626" }}>
+                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem", color: regGstinStatus === "VERIFIED" ? "#00788C" : "#dc2626" }}>
                     {regGstinStatus === "VERIFIED" ? <BadgeCheck size={13} /> : <BadgeX size={13} />}
                     GSTIN {regGstinStatus === "VERIFIED" ? "verified" : "verification " + regGstinStatus.toLowerCase()}
                     {regData?.gstinLegalName && <span style={{ color: "#64748b" }}>· {regData.gstinLegalName}</span>}
                   </div>
                 )}
                 {gstinResult && (
-                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", padding: "0.5rem 0.6rem", borderRadius: "8px", background: gstinResult.gstinStatus === "VERIFIED" ? "#EEF6F0" : "#fef2f2", border: `1px solid ${gstinResult.gstinStatus === "VERIFIED" ? "#BBDCC6" : "#fecaca"}`, color: gstinResult.gstinStatus === "VERIFIED" ? "#17583A" : "#991b1b" }}>
+                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", padding: "0.5rem 0.6rem", borderRadius: "8px", background: gstinResult.gstinStatus === "VERIFIED" ? "#E6F6F8" : "#fef2f2", border: `1px solid ${gstinResult.gstinStatus === "VERIFIED" ? "#99DBE3" : "#fecaca"}`, color: gstinResult.gstinStatus === "VERIFIED" ? "#006475" : "#991b1b" }}>
                     <strong>{gstinResult.gstinStatus === "VERIFIED" ? "GSTIN verified successfully" : "GSTIN verification failed"}</strong>
                     {gstinResult.gstinStatus === "VERIFIED" && (
                       <div style={{ marginTop: "0.25rem" }}>
@@ -519,13 +519,13 @@ const SellerRegistration = () => {
                   {verifyingBank ? "Verifying bank account..." : "Verify Bank Account"}
                 </button>
                 {regBankStatus && !bankResult && (
-                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem", color: regBankStatus === "VERIFIED" ? "#1F6B45" : "#dc2626" }}>
+                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem", color: regBankStatus === "VERIFIED" ? "#00788C" : "#dc2626" }}>
                     {regBankStatus === "VERIFIED" ? <BadgeCheck size={13} /> : <BadgeX size={13} />}
                     Bank account {regBankStatus === "VERIFIED" ? "verified" : "verification " + regBankStatus.toLowerCase()}
                   </div>
                 )}
                 {bankResult && (
-                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", padding: "0.5rem 0.6rem", borderRadius: "8px", background: bankResult.bankStatus === "VERIFIED" ? "#EEF6F0" : "#fef2f2", border: `1px solid ${bankResult.bankStatus === "VERIFIED" ? "#BBDCC6" : "#fecaca"}`, color: bankResult.bankStatus === "VERIFIED" ? "#17583A" : "#991b1b" }}>
+                  <div style={{ fontSize: "0.78rem", marginTop: "0.4rem", padding: "0.5rem 0.6rem", borderRadius: "8px", background: bankResult.bankStatus === "VERIFIED" ? "#E6F6F8" : "#fef2f2", border: `1px solid ${bankResult.bankStatus === "VERIFIED" ? "#99DBE3" : "#fecaca"}`, color: bankResult.bankStatus === "VERIFIED" ? "#006475" : "#991b1b" }}>
                     <strong>{bankResult.bankStatus === "VERIFIED" ? "Bank account verified successfully" : "Bank account verification failed"}</strong>
                     {bankResult.bankStatus === "VERIFIED" && bankResult.reference && <div style={{ marginTop: "0.25rem", color: "#64748b" }}>Ref: {bankResult.reference}</div>}
                   </div>
@@ -589,7 +589,7 @@ const SellerRegistration = () => {
                     <p>{c.description}</p>
                   </div>
                   {c.isMandatory && <span style={{ fontSize: "0.7rem", color: "#f59e0b", fontWeight: 600, flexShrink: 0 }}>MANDATORY</span>}
-                  {c.isCompleted && <Check size={16} color="#1F6B45" style={{ flexShrink: 0 }} />}
+                  {c.isCompleted && <Check size={16} color="#00788C" style={{ flexShrink: 0 }} />}
                 </div>
               ))}
             </div>

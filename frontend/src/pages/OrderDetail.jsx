@@ -389,7 +389,7 @@ const OrderDetail = () => {
           <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.paymentStatus")}</span>
           <span style={{
             fontWeight: 600,
-            color: ["PAID", "COMPLETED", "COD_COLLECTED"].includes(order?.paymentStatus) ? "#1F6B45" : "#f59e0b"
+            color: ["PAID", "COMPLETED", "COD_COLLECTED"].includes(order?.paymentStatus) ? "#00788C" : "#f59e0b"
           }}>
             {order?.paymentStatus === "COD_PENDING" ? t("orderDetail.codPending")
               : order?.paymentStatus === "COD_COLLECTED" ? t("orderDetail.codCollected")
@@ -400,7 +400,7 @@ const OrderDetail = () => {
           <span style={{ color: "var(--color-text-secondary)" }}>{t("orderDetail.status")}</span>
           <span style={{
             fontWeight: 600,
-            color: isCancelled ? "#dc2626" : currentStep >= STATUS_STEPS.length - 1 ? "#1F6B45" : "#f59e0b"
+            color: isCancelled ? "#dc2626" : currentStep >= STATUS_STEPS.length - 1 ? "#00788C" : "#f59e0b"
           }}>
             {status}
           </span>

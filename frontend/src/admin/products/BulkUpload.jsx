@@ -66,7 +66,7 @@ const BulkUpload = () => {
 
   return (
     <div style={{ maxWidth: "720px", width: "100%", margin: "0 auto", padding: "2rem", boxSizing: "border-box" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "0.25rem" }}>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#003A44", marginBottom: "0.25rem" }}>
         Bulk Upload Products
       </h1>
       <p style={{ color: "#64748B", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
@@ -75,7 +75,7 @@ const BulkUpload = () => {
 
       <div style={{
         background: "#fff", padding: "2rem", borderRadius: "8px",
-        border: "1px solid #CFE8D6", marginBottom: "1.5rem"
+        border: "1px solid #C4EFE6", marginBottom: "1.5rem"
       }}>
         <div style={{ marginBottom: "1.5rem" }}>
           <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem", color: "#1F2937" }}>
@@ -84,9 +84,9 @@ const BulkUpload = () => {
           <a href={templateUrl} download
             style={{
               display: "inline-flex", alignItems: "center", gap: "8px",
-              padding: "10px 20px", background: "#EAF7EE", color: "#146C43",
+              padding: "10px 20px", background: "#E6F8F3", color: "#00788C",
               borderRadius: "6px", textDecoration: "none", fontWeight: 600,
-              fontSize: "0.9rem", border: "1px solid #CFE8D6"
+              fontSize: "0.9rem", border: "1px solid #C4EFE6"
             }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
@@ -106,8 +106,8 @@ const BulkUpload = () => {
           </h3>
           <div
             style={{
-              border: "2px dashed #CFE8D6", borderRadius: "8px", padding: "2rem",
-              textAlign: "center", background: "#fafdfb", cursor: "pointer",
+              border: "2px dashed #C4EFE6", borderRadius: "8px", padding: "2rem",
+              textAlign: "center", background: "#FAFDFD", cursor: "pointer",
               marginBottom: "1rem"
             }}
             onClick={() => fileRef.current?.click()}
@@ -126,7 +126,7 @@ const BulkUpload = () => {
                 <button
                   onClick={(e) => { e.stopPropagation(); setFile(null); fileRef.current.value = ""; }}
                   style={{
-                    marginTop: "8px", padding: "4px 12px", border: "1px solid #CFE8D6",
+                    marginTop: "8px", padding: "4px 12px", border: "1px solid #C4EFE6",
                     borderRadius: "4px", background: "#fff", cursor: "pointer", fontSize: "0.8rem"
                   }}
                 >
@@ -145,9 +145,9 @@ const BulkUpload = () => {
           {result && (
             <div style={{
               padding: "12px 16px", borderRadius: "6px", marginBottom: "1rem",
-              background: result.type === "success" ? "#EAF7EE" : result.type === "partial" ? "#fffbeb" : "#fef2f2",
-              color: result.type === "success" ? "#146C43" : result.type === "partial" ? "#92400e" : "#dc2626",
-              border: `1px solid ${result.type === "success" ? "#CFE8D6" : result.type === "partial" ? "#fde68a" : "#fecaca"}`,
+              background: result.type === "success" ? "#E6F8F3" : result.type === "partial" ? "#fffbeb" : "#fef2f2",
+              color: result.type === "success" ? "#00788C" : result.type === "partial" ? "#92400e" : "#dc2626",
+              border: `1px solid ${result.type === "success" ? "#C4EFE6" : result.type === "partial" ? "#fde68a" : "#fecaca"}`,
               fontSize: "0.9rem"
             }}>
               {result.type === "success" ? "\u2713 " : result.type === "partial" ? "\u26a0 " : "\u2717 "}{result.message}
@@ -176,7 +176,7 @@ const BulkUpload = () => {
             disabled={!file || uploading}
             style={{
               padding: "10px 28px", width: "100%",
-              background: file && !uploading ? "#2E9B57" : "#CFE8D6",
+              background: file && !uploading ? "#00788C" : "#C4EFE6",
               color: file && !uploading ? "#fff" : "#94a3b8",
               border: "none", borderRadius: "6px",
               cursor: file && !uploading ? "pointer" : "not-allowed",
@@ -194,8 +194,8 @@ const BulkUpload = () => {
           <button
             onClick={() => navigate(redirectPath)}
             style={{
-              padding: "8px 20px", background: "none", color: "#2E9B57",
-              border: "1px solid #2E9B57", borderRadius: "6px",
+              padding: "8px 20px", background: "none", color: "#00788C",
+              border: "1px solid #00788C", borderRadius: "6px",
               cursor: "pointer", fontWeight: 500, fontSize: "0.9rem"
             }}
           >

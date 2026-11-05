@@ -14,8 +14,8 @@ const STEPS = [
 
 export default function BulkUploadInstructions() {
   return (
-    <div style={{ background: "#F8FBF9", border: "1px solid #CFE8D6", borderRadius: "8px", padding: "0.9rem 1.1rem", margin: "0 0 1rem" }}>
-      <h4 style={{ margin: "0 0 0.5rem", fontSize: "0.9rem", fontWeight: 700, color: "#0B3D2E" }}>How to fill the template</h4>
+    <div style={{ background: "#F8FBF9", border: "1px solid #C4EFE6", borderRadius: "8px", padding: "0.9rem 1.1rem", margin: "0 0 1rem" }}>
+      <h4 style={{ margin: "0 0 0.5rem", fontSize: "0.9rem", fontWeight: 700, color: "#003A44" }}>How to fill the template</h4>
       <ol style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "0.82rem", color: "#374151", lineHeight: 1.55 }}>
         {STEPS.map((s, i) => <li key={i} style={{ marginBottom: "0.25rem" }}>{s}</li>)}
       </ol>

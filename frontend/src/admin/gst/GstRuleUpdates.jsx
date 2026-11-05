@@ -140,7 +140,7 @@ const GstRuleUpdates = () => {
       <div style={{ display: "flex", gap: 6, margin: "0.75rem 0" }}>
         {FILTERS.map(([key, label]) => (
           <button key={key} type="button" onClick={() => setFilter(key)}
-                  style={{ ...btn, background: filter === key ? "#1F6B45" : "#f3f4f6", color: filter === key ? "#fff" : "#374151" }}>
+                  style={{ ...btn, background: filter === key ? "#00788C" : "#f3f4f6", color: filter === key ? "#fff" : "#374151" }}>
             {label}
           </button>
         ))}
@@ -185,7 +185,7 @@ const GstRuleUpdates = () => {
                   {u.kind === "ADVISORY" ? (
                     <>
                       <button type="button" onClick={() => setOpenText(openText === u.id ? null : u.id)}
-                              style={{ ...btn, background: "#e0f2f1", color: "#1F6B45" }}>
+                              style={{ ...btn, background: "#e0f2f1", color: "#00788C" }}>
                         {openText === u.id ? "Hide advisory" : "Read advisory"}
                       </button>
                       <a href={`https://www.gst.gov.in/newsandupdates/read/${u.cbicDocumentId}`} target="_blank" rel="noopener noreferrer"
@@ -197,7 +197,7 @@ const GstRuleUpdates = () => {
                     </>
                   ) : (
                     <button type="button" onClick={() => openDocument(u)} disabled={busy === "doc" + u.id}
-                            style={{ ...btn, background: "#e0f2f1", color: "#1F6B45" }}>
+                            style={{ ...btn, background: "#e0f2f1", color: "#00788C" }}>
                       {busy === "doc" + u.id ? "Opening…" : "Read PDF"}
                     </button>
                   )}

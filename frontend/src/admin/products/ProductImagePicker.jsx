@@ -86,7 +86,7 @@ export default function ProductImagePicker({ images, onChange, sectionStyle, tit
       {images.length > 0 ? (
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {images.map((f, i) => (
-            <div key={i} style={{ position: "relative", width: "80px", height: "80px", borderRadius: "6px", overflow: "hidden", border: "1px solid #CFE8D6" }}>
+            <div key={i} style={{ position: "relative", width: "80px", height: "80px", borderRadius: "6px", overflow: "hidden", border: "1px solid #C4EFE6" }}>
               <img src={URL.createObjectURL(f)} alt={altText.uploadPreview(i + 1)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               <button type="button" onClick={() => removeImage(i)} aria-label={`Remove ${f.name}`}
                 style={{ position: "absolute", top: "2px", right: "2px", width: "20px", height: "20px", borderRadius: "50%", border: "none", background: "rgba(220,38,38,0.8)", color: "#fff", cursor: "pointer", fontSize: "12px", lineHeight: "20px", padding: 0 }}>
@@ -96,14 +96,14 @@ export default function ProductImagePicker({ images, onChange, sectionStyle, tit
           ))}
           {images.length < MAX_IMAGES && (
             <div onClick={() => fileRef.current?.click()}
-              style={{ width: "80px", height: "80px", borderRadius: "6px", border: "2px dashed #CFE8D6", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: "1.5rem" }}>
+              style={{ width: "80px", height: "80px", borderRadius: "6px", border: "2px dashed #C4EFE6", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: "1.5rem" }}>
               +
             </div>
           )}
         </div>
       ) : (
         <div onClick={() => fileRef.current?.click()}
-          style={{ padding: "1.5rem", textAlign: "center", border: "2px dashed #CFE8D6", borderRadius: "6px", cursor: "pointer", color: "#94a3b8", fontSize: "0.85rem" }}>
+          style={{ padding: "1.5rem", textAlign: "center", border: "2px dashed #C4EFE6", borderRadius: "6px", cursor: "pointer", color: "#94a3b8", fontSize: "0.85rem" }}>
           Click to upload product images
         </div>
       )}

@@ -44,7 +44,7 @@ const CompleteProfile = () => {
         <div className="auth-card">
           <div className="auth-header">
             <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: '48px', width: 'auto' }} />
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #1F6B45)' }}>Cauvery Store</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #00788C)' }}>Cauvery Store</div>
             <h1 className="auth-title">{t("completeProfile.oneLastStep")}</h1>
             <p className="auth-subtitle">
               {user?.fullName ? `Welcome, ${user.fullName}! ` : ''}{t("completeProfile.googleDidnTShareA")}</p>

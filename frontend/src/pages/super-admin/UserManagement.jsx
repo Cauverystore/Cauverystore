@@ -326,9 +326,9 @@ const UserManagement = () => {
             style={{
               padding: '10px 20px',
               border: 'none',
-              borderBottom: activeTab === tab.key ? '2px solid var(--color-primary, #1F6B45)' : '2px solid transparent',
+              borderBottom: activeTab === tab.key ? '2px solid var(--color-primary, #00788C)' : '2px solid transparent',
               background: activeTab === tab.key ? 'var(--color-primary-light, #f0fdf4)' : 'transparent',
-              color: activeTab === tab.key ? 'var(--color-primary, #1F6B45)' : '#6b7280',
+              color: activeTab === tab.key ? 'var(--color-primary, #00788C)' : '#6b7280',
               fontWeight: activeTab === tab.key ? 600 : 400,
               fontSize: '0.875rem',
               cursor: 'pointer',

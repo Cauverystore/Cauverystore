@@ -38,9 +38,9 @@ const STATUS_COLOR = {
   APPROVED: { bg: "#DBEAFE", color: "#1E40AF" },
   IN_TRANSIT: { bg: "#E0E7FF", color: "#3730A3" },
   RECEIVED: { bg: "#EDE9FE", color: "#5B21B6" },
-  COMPLETED: { bg: "#EAF7EE", color: "#146C43" },
-  REFUNDED: { bg: "#EAF7EE", color: "#146C43" },
-  REFUND_ISSUED: { bg: "#EAF7EE", color: "#146C43" },
+  COMPLETED: { bg: "#E6F8F3", color: "#00788C" },
+  REFUNDED: { bg: "#E6F8F3", color: "#00788C" },
+  REFUND_ISSUED: { bg: "#E6F8F3", color: "#00788C" },
   REJECTED: { bg: "#FEE2E2", color: "#B91C1C" },
   CANCELLED: { bg: "#E5E7EB", color: "#374151" },
 };
@@ -172,7 +172,7 @@ const AdminReturns = () => {
         return [
           {
             label: "QC Pass — restock & credit",
-            color: "#2E9B57",
+            color: "#00788C",
             run: () => move(id, "COMPLETED",
               "Pass this return?\n\nThe goods go back into sellable stock and a credit note is issued against the original invoice."),
           },
@@ -185,7 +185,7 @@ const AdminReturns = () => {
         ];
       case "COMPLETED":
         return [{
-          label: "Mark Refunded", color: "#146C43",
+          label: "Mark Refunded", color: "#00788C",
           run: () => move(id, "REFUNDED", "Confirm the refund has been paid to the customer?"),
         }];
       default:
@@ -290,7 +290,7 @@ const AdminReturns = () => {
       {message && <div className="admin-alert success" style={{ marginBottom: "0.75rem" }}>{message}</div>}
       {error && <div className="admin-alert error" style={{ marginBottom: "0.75rem" }}>{error}</div>}
 
-      <div style={{ display: "flex", gap: "4px", marginBottom: "0.75rem", borderBottom: "2px solid #EAF7EE", overflowX: "auto" }}>
+      <div style={{ display: "flex", gap: "4px", marginBottom: "0.75rem", borderBottom: "2px solid #E6F8F3", overflowX: "auto" }}>
         {STATUS_TABS.map((s) => (
           <button
             key={s}
@@ -298,9 +298,9 @@ const AdminReturns = () => {
             style={{
               padding: "8px 14px", border: "none", cursor: "pointer", fontWeight: 600,
               fontSize: "0.82rem", whiteSpace: "nowrap",
-              background: statusTab === s ? "#EAF7EE" : "transparent",
-              color: statusTab === s ? "#146C43" : "#64748B",
-              borderBottom: statusTab === s ? "2px solid #2E9B57" : "2px solid transparent",
+              background: statusTab === s ? "#E6F8F3" : "transparent",
+              color: statusTab === s ? "#00788C" : "#64748B",
+              borderBottom: statusTab === s ? "2px solid #00788C" : "2px solid transparent",
             }}
           >
             {s === "All" ? "All" : STATUS_LABEL[s] || s}
@@ -363,7 +363,7 @@ const AdminReturns = () => {
                               <span style={{ fontFamily: "monospace" }}>RFND-{f.id}</span>
                               <span style={{
                                 marginLeft: "6px", fontWeight: 600,
-                                color: f.status === "COMPLETED" ? "#146C43"
+                                color: f.status === "COMPLETED" ? "#00788C"
                                   : f.status === "FAILED" ? "#B91C1C" : "#92400E",
                               }}>{f.status}</span>
                               {f.expectedCredit && (

@@ -133,7 +133,7 @@ export function visibleSections(categoryType, countryOfOrigin, details) {
 }
 
 export const BAND_STYLE = {
-  PUBLISHABLE: { bg: "#EAF7EE", fg: "#146C43", text: "Ready to publish" },
+  PUBLISHABLE: { bg: "#E6F8F3", fg: "#00788C", text: "Ready to publish" },
   WARNING: { bg: "#fff7ed", fg: "#b45309", text: "Publishable with warnings" },
   BLOCKED: { bg: "#fef2f2", fg: "#b91c1c", text: "Blocked" },
 };

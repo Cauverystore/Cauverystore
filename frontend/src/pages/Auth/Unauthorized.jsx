@@ -14,7 +14,7 @@ const Unauthorized = () => {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #EEF6F0 0%, #ffffff 50%, #EEF6F0 100%)',
+    background: 'linear-gradient(135deg, #E6F6F8 0%, #ffffff 50%, #E6F6F8 100%)',
     padding: '24px',
   };
 
@@ -57,7 +57,7 @@ const Unauthorized = () => {
               alignItems: 'center',
               gap: '8px',
               padding: '12px 28px',
-              background: '#1F6B45',
+              background: '#00788C',
               color: '#fff',
               border: 'none',
               borderRadius: '10px',
@@ -67,8 +67,8 @@ const Unauthorized = () => {
               cursor: 'pointer',
               transition: 'all 0.15s',
             }}
-            onMouseEnter={(e) => { e.target.style.background = '#17583A'; e.target.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={(e) => { e.target.style.background = '#1F6B45'; e.target.style.transform = 'translateY(0)'; }}
+            onMouseEnter={(e) => { e.target.style.background = '#006475'; e.target.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={(e) => { e.target.style.background = '#00788C'; e.target.style.transform = 'translateY(0)'; }}
           >
             {isAuthenticated ? t("unauthorized.goToHome") : t("unauthorized.goToLogin")}
           </Link>

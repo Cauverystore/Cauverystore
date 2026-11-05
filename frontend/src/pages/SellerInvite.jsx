@@ -7,7 +7,7 @@ import { STORE_KEY } from "../context/SellerStoreContext";
 // Where an emailed team invitation lands. Shows which store and role, then asks the person to
 // sign in (or sign up) with the invited email and accept.
 const card = { maxWidth: 480, margin: "3rem auto", background: "#fff", padding: "2rem", borderRadius: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.06)", textAlign: "center" };
-const btn = { display: "inline-block", padding: "0.65rem 1.4rem", background: "#1F6B45", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: "0.95rem", fontWeight: 600, textDecoration: "none" };
+const btn = { display: "inline-block", padding: "0.65rem 1.4rem", background: "#00788C", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: "0.95rem", fontWeight: 600, textDecoration: "none" };
 
 const SellerInvite = () => {
   const [params] = useSearchParams();
@@ -59,7 +59,7 @@ const SellerInvite = () => {
             ) : (
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: "1rem" }}>
                 <Link to={`/login?redirect=${encodeURIComponent(here)}`} style={btn}>Sign in</Link>
-                <Link to={`/register?redirect=${encodeURIComponent(here)}`} style={{ ...btn, background: "#fff", color: "#1F6B45", border: "1px solid #1F6B45" }}>Create an account</Link>
+                <Link to={`/register?redirect=${encodeURIComponent(here)}`} style={{ ...btn, background: "#fff", color: "#00788C", border: "1px solid #00788C" }}>Create an account</Link>
               </div>
             )}
           </>

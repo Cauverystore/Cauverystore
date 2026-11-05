@@ -351,7 +351,7 @@ const SellerProducts = () => {
                             Edit
                           </button>
                           <button
-                            style={{ ...btnBase, padding: "0.35rem 0.65rem", fontSize: "0.78rem", background: "#146C43", color: "#fff" }}
+                            style={{ ...btnBase, padding: "0.35rem 0.65rem", fontSize: "0.78rem", background: "#00788C", color: "#fff" }}
                             onClick={() => navigate(`/seller/products/wizard/${pid}`)}
                           >
                             Compliance

@@ -7,46 +7,46 @@
 
 :root {
   /* --- Brand palette --- */
-  --teal-50: #EEF6F0;
-  --teal-100: #DCEEE1;
-  --teal-200: #BBDCC6;
-  --teal-300: #8FC7A6;
-  --teal-400: #62AE84;
-  --teal-500: #3E9466;
-  --teal-600: #2A7D52;
-  --teal-700: #17583A;
-  --teal-800: #143D2B;
-  --teal-900: #0E2A1D;
-  --teal-950: #071A11;
+  --teal-50: #E6F6F8;
+  --teal-100: #CCEDF1;
+  --teal-200: #99DBE3;
+  --teal-300: #5FC3D0;
+  --teal-400: #26A6B8;
+  --teal-500: #008AA1;
+  --teal-600: #008AA1;
+  --teal-700: #006475;
+  --teal-800: #004F5C;
+  --teal-900: #003A44;
+  --teal-950: #00262D;
 
   /* --- Primary / Action --- */
-  --color-primary: #1F6B45;
-  --color-primary-hover: #17583A;
-  --color-primary-active: #124A30;
+  --color-primary: #00788C;
+  --color-primary-hover: #006475;
+  --color-primary-active: #00525F;
   --color-primary-light: var(--teal-100);
   --color-primary-lighter: var(--teal-50);
-  --color-primary-dark: #17583A;
+  --color-primary-dark: #006475;
   --color-primary-text: #ffffff;
 
   /* --- CTA (buttons / interactive) --- */
-  --color-cta: #1F6B45;
-  --color-cta-hover: #17583A;
-  --color-cta-active: #124A30;
+  --color-cta: #00788C;
+  --color-cta-hover: #006475;
+  --color-cta-active: #00525F;
 
   /* --- Accent / Semantic --- */
-  --color-accent-gold: #C8A24B;
+  --color-accent-gold: #FFB852;
   --color-accent-orange: #d97706;
   --color-accent-red: #dc2626;
   --color-accent-rose: #f43f5e;
   --color-accent-blue: #2563eb;
   --color-accent-indigo: #4f46e5;
-  --color-accent-teal: #2F8A5B;
+  --color-accent-teal: #008AA1;
 
   /* --- Semantic states --- */
-  --color-success: #1F6B45;
+  --color-success: #00788C;
   --color-success-light: var(--teal-100);
   --color-success-bg: var(--teal-50);
-  --color-warning: #C8A24B;
+  --color-warning: #A35F00;
   --color-warning-light: #faf0d7;
   --color-warning-bg: #fdf8ed;
   --color-error: #dc2626;
@@ -57,7 +57,7 @@
   --color-info-bg: #eff6ff;
 
   /* --- Rating --- */
-  --color-star: #C8A24B;
+  --color-star: #FFB852;
   --color-star-empty: #d1d5db;
 
   /* --- Neutral palette --- */
@@ -76,8 +76,8 @@
   --black: #000000;
 
   /* --- Surfaces & Text --- */
-  --color-bg-primary: #F1F7F2;
-  --color-bg-secondary: #E6F0E8;
+  --color-bg-primary: #EFFBF7;
+  --color-bg-secondary: #DDF3EE;
   --color-bg-tertiary: var(--white);
   --color-surface: var(--white);
   --color-surface-hover: var(--gray-50);
@@ -97,7 +97,7 @@
   --color-border: var(--gray-200);
   --color-border-light: var(--gray-100);
   --color-border-dark: var(--gray-300);
-  --color-border-focus: #1F6B45;
+  --color-border-focus: #00788C;
   --color-border-error: var(--color-error);
 
   /* --- Shadows --- */
@@ -108,8 +108,8 @@
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.04);
-  --shadow-focus: 0 0 0 3px rgba(31, 107, 69, 0.2);
-  --shadow-focus-error: 0 0 0 3px rgba(200, 162, 75, 0.3);
+  --shadow-focus: 0 0 0 3px rgba(0, 120, 140, 0.2);
+  --shadow-focus-error: 0 0 0 3px rgba(255, 184, 82, 0.3);
 
   /* --- Border radius --- */
   --radius-none: 0;
@@ -661,7 +661,7 @@ svg.icon {
   font-family: var(--font-display);
   font-weight: var(--font-weight-medium);
   letter-spacing: -0.02em;
-  color: #143D2B;
+  color: #004F5C;
 }
 
 #main-content .cart-title,
@@ -671,5 +671,5 @@ svg.icon {
 #main-content h2.section-title {
   font-size: clamp(1.75rem, 3vw, 2.25rem);
   font-weight: var(--font-weight-medium);
-  color: #143D2B;
+  color: #004F5C;
 }

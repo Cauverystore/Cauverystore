@@ -38,14 +38,14 @@ const STEP_TITLES = [
 ];
 
 const S = {
-  card: { background: "#fff", border: "1px solid #CFE8D6", borderRadius: 8, padding: "1.1rem", marginBottom: "1rem" },
+  card: { background: "#fff", border: "1px solid #C4EFE6", borderRadius: 8, padding: "1.1rem", marginBottom: "1rem" },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" },
   label: { display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: 3 },
-  input: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: 6, fontSize: "0.88rem", boxSizing: "border-box", background: "#fff" },
+  input: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: 6, fontSize: "0.88rem", boxSizing: "border-box", background: "#fff" },
   btn: { padding: "8px 16px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.88rem", fontWeight: 600 },
 };
-const primary = { ...S.btn, background: "#146C43", color: "#fff" };
-const secondary = { ...S.btn, background: "#fff", color: "#146C43", border: "1px solid #CFE8D6" };
+const primary = { ...S.btn, background: "#00788C", color: "#fff" };
+const secondary = { ...S.btn, background: "#fff", color: "#00788C", border: "1px solid #C4EFE6" };
 
 const EMPTY_PRODUCT = {
   name: "", brand: "", category: "", sku: "", description: "",
@@ -246,16 +246,16 @@ const SellerProductWizard = () => {
           <span><strong>{id ? `${score}% complete` : "0% complete"}</strong>{compliance && <> · <ScoreBadge score={score} band={compliance.band} /></>}</span>
           <span>{id ? (STATUS_LABEL[status] || status) : "Not saved yet"}</span>
         </div>
-        <div style={{ height: 8, background: "#EAF7EE", borderRadius: 999, overflow: "hidden" }} role="progressbar" aria-valuenow={score} aria-valuemin={0} aria-valuemax={100}>
-          <div style={{ width: `${id ? score : 0}%`, height: "100%", background: score >= 100 ? "#146C43" : score >= 90 ? "#d97706" : "#dc2626" }} />
+        <div style={{ height: 8, background: "#E6F8F3", borderRadius: 999, overflow: "hidden" }} role="progressbar" aria-valuenow={score} aria-valuemin={0} aria-valuemax={100}>
+          <div style={{ width: `${id ? score : 0}%`, height: "100%", background: score >= 100 ? "#00788C" : score >= 90 ? "#d97706" : "#dc2626" }} />
         </div>
         <ol style={{ display: "flex", flexWrap: "wrap", gap: 6, listStyle: "none", padding: 0, margin: "0.75rem 0 0" }}>
           {STEP_TITLES.map((t, i) => (
             <li key={t}>
               <button disabled={!id && i > 0} onClick={() => setStep(i)}
                 style={{ ...S.btn, padding: "5px 10px", fontSize: "0.78rem", fontWeight: i === step ? 700 : 500,
-                  background: i === step ? "#146C43" : stepDone(i) ? "#EAF7EE" : "#fff",
-                  color: i === step ? "#fff" : "#0B3D2E", border: "1px solid #CFE8D6", cursor: !id && i > 0 ? "not-allowed" : "pointer" }}>
+                  background: i === step ? "#00788C" : stepDone(i) ? "#E6F8F3" : "#fff",
+                  color: i === step ? "#fff" : "#003A44", border: "1px solid #C4EFE6", cursor: !id && i > 0 ? "not-allowed" : "pointer" }}>
                 {stepDone(i) && i !== step ? "✓ " : `${i + 1}. `}{t}
               </button>
             </li>
@@ -265,7 +265,7 @@ const SellerProductWizard = () => {
 
       {statusNote && status === "DRAFT" && <div style={{ ...S.card, background: "#fff7ed", color: "#b45309" }}>{statusNote}</div>}
       {!editable && <div style={{ ...S.card, background: "#f8fafc" }}>This listing is with the Cauvery Store team ({STATUS_LABEL[status]}). Changing it now sends it back to draft.</div>}
-      {msg && <div style={{ ...S.card, background: msg.type === "error" ? "#fef2f2" : "#EAF7EE", color: msg.type === "error" ? "#b91c1c" : "#146C43" }}>{msg.text}</div>}
+      {msg && <div style={{ ...S.card, background: msg.type === "error" ? "#fef2f2" : "#E6F8F3", color: msg.type === "error" ? "#b91c1c" : "#00788C" }}>{msg.text}</div>}
 
       <div style={S.card}>
         <h2 style={{ fontSize: "1.05rem", margin: "0 0 0.75rem" }}>{step + 1}. {STEP_TITLES[step]}</h2>
@@ -329,7 +329,7 @@ const SellerProductWizard = () => {
 
         {step === 6 && (
           <div>
-            {compliance && compliance.issues.length === 0 && <p style={{ color: "#146C43" }}>Everything is filled in. Submit it for review.</p>}
+            {compliance && compliance.issues.length === 0 && <p style={{ color: "#00788C" }}>Everything is filled in. Submit it for review.</p>}
             {compliance && compliance.issues.length > 0 && (
               <>
                 <p style={{ fontSize: "0.88rem" }}>Still missing (the step to fix it is in brackets):</p>
@@ -339,7 +339,7 @@ const SellerProductWizard = () => {
                     return (
                       <li key={i.field} style={{ color: i.critical ? "#b91c1c" : "#b45309" }}>
                         {i.message}{" "}
-                        {s >= 0 && s < 6 && <button style={{ ...S.btn, padding: "0 6px", background: "none", color: "#146C43", textDecoration: "underline" }} onClick={() => setStep(s)}>(step {s + 1})</button>}
+                        {s >= 0 && s < 6 && <button style={{ ...S.btn, padding: "0 6px", background: "none", color: "#00788C", textDecoration: "underline" }} onClick={() => setStep(s)}>(step {s + 1})</button>}
                         {s === 6 && <Link to="/seller/store" style={{ fontSize: "0.8rem" }}> (store profile)</Link>}
                       </li>
                     );
@@ -356,7 +356,7 @@ const SellerProductWizard = () => {
               {status === "SELLER_REVIEW" && <button style={secondary} disabled={busy} onClick={() => act("reject")}>Back to draft</button>}
               {status === "ADMIN_REVIEW" && <span style={{ fontSize: "0.88rem" }}>Waiting for the Cauvery Store team to review it.</span>}
               {status === "APPROVED" && <span style={{ fontSize: "0.88rem" }}>Approved; it goes on sale when the team publishes it.</span>}
-              {status === "PUBLISHED" && <span style={{ fontSize: "0.88rem", color: "#146C43" }}>On the store.</span>}
+              {status === "PUBLISHED" && <span style={{ fontSize: "0.88rem", color: "#00788C" }}>On the store.</span>}
             </div>
           </div>
         )}
