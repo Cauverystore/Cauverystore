@@ -321,7 +321,7 @@ const CustomerInvoice = () => {
               <h3>Tax Breakup</h3>
               <div className="giv-tax-grid">
                 <div className="giv-tax-card">
-                  <div className="giv-tax-label">Taxable Amount</div>
+                  <div className="giv-tax-label">Taxable Amount{invoice.deliveryCharge > 0 ? " (incl. delivery)" : ""}</div>
                   <div className="giv-tax-value">&#8377;{(invoice.taxableAmount || 0).toFixed(2)}</div>
                 </div>
                 {(invoice.discountAmount > 0) && (
@@ -330,12 +330,8 @@ const CustomerInvoice = () => {
                     <div className="giv-tax-value" style={{ color: "#16a34a" }}>-&#8377;{(invoice.discountAmount || 0).toFixed(2)}</div>
                   </div>
                 )}
-                {(invoice.deliveryCharge > 0) && (
-                  <div className="giv-tax-card">
-                    <div className="giv-tax-label">Delivery Charge</div>
-                    <div className="giv-tax-value">&#8377;{(invoice.deliveryCharge || 0).toFixed(2)}</div>
-                  </div>
-                )}
+                {/* Delivery is already a line in the table above and inside the taxable amount;
+                    a separate card made it look like it was charged twice. */}
                 {!invoice.isInterState ? (
                   <>
                     <div className="giv-tax-card">
@@ -363,10 +359,8 @@ const CustomerInvoice = () => {
                     <div className="giv-tax-value" style={{ color: "#b45309" }}>&#8377;{(invoice.totalCess || 0).toFixed(2)}</div>
                   </div>
                 )}
-                <div className="giv-tax-card">
-                  <div className="giv-tax-label">TCS @ {(invoice.tcsRate ?? "-")}%</div>
-                  <div className="giv-tax-value" style={{ color: "#dc2626" }}>&#8377;{(invoice.tcsAmount || 0).toFixed(2)}</div>
-                </div>
+                {/* No TCS here: TCS is held back from the seller's payout, never charged to the
+                    customer, so it belongs on the seller's statement (it stays on the admin GST view). */}
               </div>
             </div>
 
@@ -374,13 +368,11 @@ const CustomerInvoice = () => {
               <table className="giv-summary-table">
                 <tbody>
                   {(invoice.discountAmount > 0) && <tr><td>Discount</td><td style={{ color: "#16a34a" }}>-&#8377;{(invoice.discountAmount || 0).toFixed(2)}</td></tr>}
-                  {(invoice.deliveryCharge > 0) && <tr><td>Delivery Charge</td><td>&#8377;{(invoice.deliveryCharge || 0).toFixed(2)}</td></tr>}
-                  <tr><td>Taxable Amount</td><td>&#8377;{(invoice.taxableAmount || 0).toFixed(2)}</td></tr>
+                  <tr><td>Taxable Amount{invoice.deliveryCharge > 0 ? " (incl. delivery)" : ""}</td><td>&#8377;{(invoice.taxableAmount || 0).toFixed(2)}</td></tr>
                   {!invoice.isInterState && <><tr><td>CGST</td><td style={{ color: "#2563eb" }}>&#8377;{(invoice.cgstAmount || 0).toFixed(2)}</td></tr><tr><td>{invoice.utgstApplied ? "UTGST" : "SGST"}</td><td style={{ color: "#7c3aed" }}>&#8377;{(invoice.sgstAmount || 0).toFixed(2)}</td></tr></>}
                   {invoice.isInterState && <tr><td>IGST</td><td style={{ color: "#d97706" }}>&#8377;{(invoice.igstAmount || 0).toFixed(2)}</td></tr>}
                   <tr><td>Total Tax</td><td>&#8377;{(invoice.totalTax || 0).toFixed(2)}</td></tr>
                   {(invoice.totalCess > 0) && <tr><td>Compensation Cess</td><td style={{ color: "#b45309" }}>&#8377;{(invoice.totalCess || 0).toFixed(2)}</td></tr>}
-                  <tr><td>TCS @ {(invoice.tcsRate ?? "-")}%</td><td style={{ color: "#dc2626" }}>&#8377;{(invoice.tcsAmount || 0).toFixed(2)}</td></tr>
                   <tr className="giv-sum-total"><td>Total Amount</td><td>&#8377;{(invoice.totalAmount || 0).toFixed(2)}</td></tr>
                 </tbody>
               </table>
