@@ -10,9 +10,15 @@ import i18n from "../i18n";
 let uid = 0;
 const nextId = () => `msg-${Date.now()}-${uid++}`;
 
-const ChatIcon = () => (
+// Shopping bag with a speech bubble: the store's shopping assistant.
+const AssistantIcon = () => (
   <svg className="cw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    <path d="M5 8h11l-.6 4" />
+    <path d="M8 8V6.5a3 3 0 0 1 6 0V8" />
+    <path d="M5 8 4 20h7" />
+    <path d="M14 14.5h7a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1h-4.5L14 23v-2a1 1 0 0 1-1-1v-4.5a1 1 0 0 1 1-1z" />
+    <circle cx="16" cy="17.75" r="0.4" fill="currentColor" />
+    <circle cx="18.5" cy="17.75" r="0.4" fill="currentColor" />
   </svg>
 );
 
@@ -95,6 +101,13 @@ const ChatWidget = () => {
   }, [open]);
 
   const appendBot = useCallback((data) => {
+    // Remember which products this reply listed, in order, for "the second one" follow-ups.
+    const cards = data?.data?.products?.length ? data.data.products : data?.data?.product ? [data.data.product] : [];
+    const listed = cards.length
+      ? cards.map((p) => p.id)
+      : [...new Set((data?.actions || []).map((a) => a.productId).filter(Boolean))];
+    if (data?.data?.cartChanged) window.dispatchEvent(new Event("cart:updated"));
+    if (data?.data?.wishlistChanged) wishlist.refresh();
     setMessages((prev) => [
       ...prev,
       {
@@ -103,9 +116,10 @@ const ChatWidget = () => {
         text: data?.reply || i18n.t("msgs.chatNoUnderstand"),
         actions: data?.actions || [],
         quickReplies: data?.quickReplies || [],
+        productIds: listed,
       },
     ]);
-  }, []);
+  }, [wishlist]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -167,7 +181,8 @@ const ChatWidget = () => {
       setInput("");
       setBusy(true);
       try {
-        const { data } = await sendChatMessage(trimmed, history);
+        const lastList = [...messagesRef.current].reverse().find((m) => m.productIds?.length);
+        const { data } = await sendChatMessage(trimmed, history, { productIds: lastList?.productIds || [] });
         appendBot(data);
       } catch {
         appendBot({
@@ -262,7 +277,7 @@ const ChatWidget = () => {
           <div className="cw-header">
             <div className="cw-header-info">
               <div className="cw-avatar">
-                <ChatIcon />
+                <AssistantIcon />
               </div>
               <div>
                 <div className="cw-title">{tr("chatWidget.cauveryStoreAssistant")}</div>
@@ -328,8 +343,15 @@ const ChatWidget = () => {
         </div>
       )}
 
-      <button className="cw-launcher" ref={launcherRef} onClick={() => setOpen((o) => !o)} aria-label={open ? tr("chatWidget.closeChat") : tr("chatWidget.openChatAssistant")}>
-        {open ? <CloseIcon /> : <ChatIcon />}
+      <button
+        className={`cw-launcher${open ? " cw-launcher-open" : ""}`}
+        ref={launcherRef}
+        onClick={() => setOpen((o) => !o)}
+        aria-label={open ? tr("chatWidget.closeChat") : tr("chatWidget.openChatAssistant")}
+        title={open ? undefined : tr("chatWidget.launcherLabel")}
+      >
+        {open ? <CloseIcon /> : <AssistantIcon />}
+        {!open && <span className="cw-launcher-label">{tr("chatWidget.launcherLabel")}</span>}
       </button>
     </>
   );

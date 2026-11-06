@@ -467,7 +467,8 @@
     "askAboutProductsOrdersOffers": "उत्पादों, ऑर्डर और ऑफ़र के बारे में पूछें...",
     "typeAMessage": "संदेश लिखें",
     "sendMessage": "संदेश भेजें",
-    "openChatAssistant": "चैट असिस्टेंट खोलें"
+    "openChatAssistant": "चैट असिस्टेंट खोलें",
+    "launcherLabel": "खरीदारी में मदद"
   },
   "confirmDialog": {
     "areYouSure": "क्या आप सुनिश्चित हैं?",

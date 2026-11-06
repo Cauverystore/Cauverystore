@@ -16,7 +16,9 @@ const withRetry = async (request) => {
 };
 
 // history: earlier turns [{ role: "user" | "assistant", text }], so the assistant can follow the conversation.
-export const sendChatMessage = (message, history = []) => withRetry(() => api.post("/api/chat", { message, history }));
+// context.productIds: products in the chat's last list, so "add the second one" works.
+export const sendChatMessage = (message, history = [], context = {}) =>
+  withRetry(() => api.post("/api/chat", { message, history, context }));
 
 export const performChatAction = (payload) => withRetry(() => api.post("/api/chat/action", { action: payload }));
 

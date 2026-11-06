@@ -467,7 +467,8 @@
     "askAboutProductsOrdersOffers": "ఉత్పత్తులు, ఆర్డర్లు, ఆఫర్ల గురించి అడగండి...",
     "typeAMessage": "సందేశం టైప్ చేయండి",
     "sendMessage": "సందేశం పంపండి",
-    "openChatAssistant": "చాట్ అసిస్టెంట్‌ను తెరవండి"
+    "openChatAssistant": "చాట్ అసిస్టెంట్‌ను తెరవండి",
+    "launcherLabel": "షాపింగ్ సహాయం"
   },
   "confirmDialog": {
     "areYouSure": "మీరు ఖచ్చితంగా ఉన్నారా?",
