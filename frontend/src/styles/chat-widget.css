@@ -301,13 +301,18 @@
   position: fixed;
   right: 1.25rem;
   bottom: calc(1.25rem + var(--bottom-bar-offset, 0px));
-  width: 58px;
+  min-width: 58px;
   height: 58px;
+  padding: 0 1.25rem 0 1rem;
+  gap: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  border-radius: 50%;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
   background: var(--color-primary, #00788C);
   color: #ffffff;
   cursor: pointer;
@@ -324,6 +329,17 @@
 .cw-launcher .cw-icon {
   width: 26px;
   height: 26px;
+  flex-shrink: 0;
+}
+
+.cw-launcher-label {
+  white-space: nowrap;
+}
+
+/* Open: a round close button. */
+.cw-launcher.cw-launcher-open {
+  padding: 0;
+  width: 58px;
 }
 
 @keyframes cw-slide-up {
@@ -361,6 +377,15 @@
   .cw-launcher {
     right: 0.75rem;
     bottom: calc(0.75rem + var(--bottom-bar-offset, 0px));
+    padding: 0;
+    width: 54px;
+    min-width: 54px;
+    height: 54px;
+  }
+
+  /* Small phones: icon only, so it doesn't cover the page. */
+  .cw-launcher-label {
+    display: none;
   }
 }
 

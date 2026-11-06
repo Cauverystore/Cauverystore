@@ -467,7 +467,8 @@
     "askAboutProductsOrdersOffers": "ഉൽപ്പന്നങ്ങൾ, ഓർഡറുകൾ, ഓഫറുകൾ എന്നിവയെക്കുറിച്ച് ചോദിക്കൂ...",
     "typeAMessage": "സന്ദേശം ടൈപ്പ് ചെയ്യുക",
     "sendMessage": "സന്ദേശം അയയ്ക്കുക",
-    "openChatAssistant": "ചാറ്റ് അസിസ്റ്റന്റ് തുറക്കുക"
+    "openChatAssistant": "ചാറ്റ് അസിസ്റ്റന്റ് തുറക്കുക",
+    "launcherLabel": "ഷോപ്പിംഗ് സഹായം"
   },
   "confirmDialog": {
     "areYouSure": "ഉറപ്പാണോ?",

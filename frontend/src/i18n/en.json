@@ -468,7 +468,8 @@
     "askAboutProductsOrdersOffers": "Ask about products, orders, offers...",
     "typeAMessage": "Type a message",
     "sendMessage": "Send message",
-    "openChatAssistant": "Open chat assistant"
+    "openChatAssistant": "Open chat assistant",
+    "launcherLabel": "Shopping help"
   },
   "confirmDialog": {
     "areYouSure": "Are you sure?",

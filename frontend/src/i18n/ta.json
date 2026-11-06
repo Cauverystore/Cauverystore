@@ -467,7 +467,8 @@
     "askAboutProductsOrdersOffers": "பொருட்கள், ஆர்டர்கள், சலுகைகள் பற்றி கேளுங்கள்...",
     "typeAMessage": "செய்தியை உள்ளிடவும்",
     "sendMessage": "செய்தி அனுப்பு",
-    "openChatAssistant": "அரட்டை உதவியாளரைத் திற"
+    "openChatAssistant": "அரட்டை உதவியாளரைத் திற",
+    "launcherLabel": "ஷாப்பிங் உதவி"
   },
   "confirmDialog": {
     "areYouSure": "உறுதியாகவா?",
