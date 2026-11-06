@@ -71,6 +71,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/template.xlsx").permitAll()
                 .requestMatchers("/api/seller/template.xlsx").permitAll()
                 .requestMatchers("/api/newsletter/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/contact").permitAll()
                 .requestMatchers("/api/chat/**").permitAll()
                 // Courier webhook - checked against its own token in CourierUpdateController.
                 .requestMatchers(HttpMethod.POST, "/api/courier-updates").permitAll()

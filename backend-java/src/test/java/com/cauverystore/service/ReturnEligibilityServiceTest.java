@@ -143,6 +143,18 @@ class ReturnEligibilityServiceTest {
     }
 
     @Test
+    void websiteReturnFormWordingGetsFreePickupForFaultyGoods() {
+        // The website's return form sends these exact values.
+        Order o = delivered(LocalDateTime.now().minusDays(1), product("Kettle", "Appliances", 7, "7 Days"));
+
+        assertEquals(Boolean.TRUE, service.check(o, "Damaged product").get("pickupFree"));
+        assertEquals(Boolean.TRUE, service.check(o, "Wrong item").get("pickupFree"));
+        assertEquals(Boolean.TRUE, service.check(o, "Defective").get("pickupFree"));
+        assertEquals(Boolean.FALSE, service.check(o, "Size issue").get("pickupFree"));
+        assertEquals(Boolean.FALSE, service.check(o, "Changed mind").get("pickupFree"));
+    }
+
+    @Test
     void anUndeliveredOrderCannotBeReturned() {
         Order o = new Order();
         o.setStatus("SHIPPED");

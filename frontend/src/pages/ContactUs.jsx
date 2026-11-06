@@ -26,8 +26,9 @@ const ContactUs = () => {
     try {
       await homeService.submitContact(form);
       setSubmitted(true);
-    } catch {
-      setError(t("contactUs.failedToSendMessagePlease"));
+    } catch (err) {
+      // Show the server's reason (bad email, too many messages) when there is one.
+      setError(err?.response?.data?.error || t("contactUs.failedToSendMessagePlease"));
     } finally {
       setSubmitting(false);
     }

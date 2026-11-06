@@ -569,6 +569,29 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    /** Where Contact Us messages are delivered. */
+    @Value("${support.inbox.email:support@cauverystore.in}")
+    private String supportInbox;
+
+    public void sendContactMessage(com.cauverystore.entities.ContactMessage m) {
+        String subject = "Contact Us: " + (m.getSubject() != null ? m.getSubject() : "New message") + " - " + m.getName();
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>New Contact Us message</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'><strong>From:</strong> " + escape(m.getName())
+                + " &lt;" + escape(m.getEmail()) + "&gt;<br/>"
+                + "<strong>Subject:</strong> " + escape(m.getSubject() != null ? m.getSubject() : "-") + "<br/>"
+                + "<strong>Message no.:</strong> " + m.getId() + "</p>"
+                + "<div style='background:" + BEIGE + ";padding:16px;border-radius:6px;white-space:pre-wrap;color:#111827;font-size:14px;'>"
+                + escape(m.getMessage()) + "</div>"
+                + "<p style='color:#9ca3af;font-size:12px;'>Reply to this email to answer the customer directly.</p>";
+        if (!configured) {
+            log.warn("Email not configured. Contact message {} saved but not emailed.", m.getId());
+            return;
+        }
+        String replyTo = m.getEmail();
+        String html = wrapBranded(body);
+        sender.execute(() -> deliver(supportInbox, subject, html, replyTo));
+    }
+
     private static String escape(String s) {
         return s == null ? "" : s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
@@ -582,13 +605,18 @@ public class EmailService {
     }
 
     private void deliver(String to, String subject, String html) {
+        deliver(to, subject, html, null);
+    }
+
+    private void deliver(String to, String subject, String html, String replyTo) {
         try {
-            CreateEmailOptions request = CreateEmailOptions.builder()
+            CreateEmailOptions.Builder builder = CreateEmailOptions.builder()
                     .from(fromEmail)
                     .to(to)
                     .subject(subject)
-                    .html(html)
-                    .build();
+                    .html(html);
+            if (replyTo != null) builder.replyTo(replyTo);
+            CreateEmailOptions request = builder.build();
             resend.emails().send(request);
             log.info("Email sent to {} with subject: {}", to, subject);
         } catch (Exception e) {

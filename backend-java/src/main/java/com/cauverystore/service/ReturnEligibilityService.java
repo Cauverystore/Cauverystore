@@ -66,7 +66,11 @@ public class ReturnEligibilityService {
      * than leaving to whoever reads the reason later.
      */
     private static final Set<String> FAULT_REASONS = Set.of(
-            "DAMAGED", "WRONG_ITEM", "DEFECTIVE", "NOT_AS_DESCRIBED", "MISSING_PARTS");
+            "DAMAGED", "WRONG_ITEM", "DEFECTIVE", "NOT_AS_DESCRIBED", "MISSING_PARTS",
+            // The website's return form sends its own wording ("Damaged product"). Without these a
+            // damaged parcel was treated as a change of mind and the customer paid for pickup.
+            "DAMAGED_PRODUCT", "DAMAGED_ITEM", "WRONG_ITEM_RECEIVED", "WRONG_PRODUCT",
+            "PRODUCT_DEFECTIVE", "DEFECTIVE_PRODUCT", "ITEM_MISSING", "MISSING_ITEM");
 
     /**
      * Checks an order can be returned and returns the terms, or explains why not.
@@ -104,7 +108,7 @@ public class ReturnEligibilityService {
         // same choice the wind-down calculation makes about the same missing data.
 
         boolean sellerAtFault = reason != null
-                && FAULT_REASONS.contains(reason.trim().toUpperCase(Locale.ROOT).replace(' ', '_'));
+                && FAULT_REASONS.contains(reason.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z]+", "_").replaceAll("^_+|_+$", ""));
 
         Map<String, Object> terms = new LinkedHashMap<>();
         terms.put("returnable", true);
