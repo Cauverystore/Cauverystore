@@ -95,6 +95,13 @@ const ChatWidget = () => {
   }, [open]);
 
   const appendBot = useCallback((data) => {
+    // Remember which products this reply listed, in order, for "the second one" follow-ups.
+    const cards = data?.data?.products?.length ? data.data.products : data?.data?.product ? [data.data.product] : [];
+    const listed = cards.length
+      ? cards.map((p) => p.id)
+      : [...new Set((data?.actions || []).map((a) => a.productId).filter(Boolean))];
+    if (data?.data?.cartChanged) window.dispatchEvent(new Event("cart:updated"));
+    if (data?.data?.wishlistChanged) wishlist.refresh();
     setMessages((prev) => [
       ...prev,
       {
@@ -103,9 +110,10 @@ const ChatWidget = () => {
         text: data?.reply || i18n.t("msgs.chatNoUnderstand"),
         actions: data?.actions || [],
         quickReplies: data?.quickReplies || [],
+        productIds: listed,
       },
     ]);
-  }, []);
+  }, [wishlist]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -167,7 +175,8 @@ const ChatWidget = () => {
       setInput("");
       setBusy(true);
       try {
-        const { data } = await sendChatMessage(trimmed, history);
+        const lastList = [...messagesRef.current].reverse().find((m) => m.productIds?.length);
+        const { data } = await sendChatMessage(trimmed, history, { productIds: lastList?.productIds || [] });
         appendBot(data);
       } catch {
         appendBot({

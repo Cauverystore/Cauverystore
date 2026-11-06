@@ -65,7 +65,8 @@ public class ChatService {
             "they", "their", "there", "here", "not", "so", "very", "some", "any", "also", "then"
     );
 
-    private static final Set<String> GREETINGS = Set.of("hi", "hello", "hey", "namaste", "hola", "hai", "good", "morning", "evening", "afternoon");
+    private static final Set<String> GREETINGS = Set.of("hi", "hello", "hey", "namaste", "hola", "hai", "good", "morning",
+            "evening", "afternoon", "vanakkam", "namaskar", "namaskaram", "hii", "hiii", "helo", "hello there", "there");
 
     private static final List<String> FAQ_KEYWORDS = List.of(
             "refund", "return", "exchange", "shipping", "delivery", "courier", "payment", "cod",
@@ -108,15 +109,23 @@ public class ChatService {
     );
 
     public ChatResponse respond(String authHeader, String message) {
-        return respond(authHeader, message, null, null);
+        return respond(authHeader, message, null, null, List.of());
+    }
+
+    public ChatResponse respond(String authHeader, String message, List<Map<String, String>> history, String clientIp) {
+        return respond(authHeader, message, history, clientIp, List.of());
     }
 
     /**
      * Every message goes to the AI assistant when it is switched on; it can search products and
      * read and change the shopper's cart, wishlist and orders through tools. If the AI is off,
-     * over the hourly limit, or fails, the keyword rules below answer instead.
+     * over the hourly limit, or fails, the store's own assistant below answers: it understands
+     * commands ("add the second one to my cart"), order numbers, small typos and follow-ups.
+     *
+     * @param shownProductIds products in the chat's last list, in order, so "the second one" works
      */
-    public ChatResponse respond(String authHeader, String message, List<Map<String, String>> history, String clientIp) {
+    public ChatResponse respond(String authHeader, String message, List<Map<String, String>> history,
+                                String clientIp, List<Long> shownProductIds) {
         if (message == null || message.trim().isEmpty()) {
             return fallback();
         }
@@ -128,7 +137,9 @@ public class ChatService {
             if (ai != null) return aiReply(ai, shop);
         }
 
-        String msg = message.trim().toLowerCase(Locale.ROOT);
+        String msg = message.trim().toLowerCase(Locale.ROOT).replace('\u2019', '\'');
+        ChatResponse smart = smartAnswer(authHeader, msg, shownProductIds == null ? List.of() : shownProductIds);
+        if (smart != null) return smart;
         String intent = classify(msg);
 
         return switch (intent) {
@@ -181,12 +192,17 @@ public class ChatService {
         }
 
         if (matchesAny(msg, "help", "what can you do", "assist", "options", "features", "guide")) return "help";
-        if (matchesAny(msg, "thank", "thanks", "great", "awesome", "nice", "perfect", "cool", "helpful", "good job")) return "thanks";
+        // Only short messages: "nice cotton saree" is a search, not thanks.
+        if (msg.split("\\s+").length <= 4
+                && matchesAny(msg, "thank", "thanks", "great", "awesome", "nice", "perfect", "cool", "helpful", "good job")) return "thanks";
         if (matchesAny(msg, "contact", "talk to", "human", "agent", "support person", "reach", "phone number", "support team")) return "contact";
 
         if (matchesAny(msg, "wishlist", "saved items", "favorite", "favourite", "watchlist", "shortlist", "saved for later")) return "wishlist";
-        if (matchesAny(msg, "cart", "bag", "basket", "add to cart", "buy now", "checkout")) return "cart";
-        if (matchesAny(msg, "order", "track", "delivery status", "shipped", "delivered", "purchases", "bought", "my order")) return "orders";
+        if (matchesAny(msg, "cart", "my bag", "basket", "checkout")) return "cart";
+        // "I want to order a saree" is a search; these mean the shopper's own orders.
+        if (matchesAny(msg, "my order", "track", "delivery status", "shipped", "delivered", "purchases", "bought",
+                "order status", "order history", "past order", "previous order", "recent order", "where is my")
+                || msg.matches("^(show\\s+)?(my\\s+)?orders?[?.!]*$")) return "orders";
         if (matchesAny(msg, "offer", "offers", "deal", "discount", "coupon", "promo", "sale", "savings", "festive")) return "deals";
         if (matchesAny(msg, "refund", "return", "exchange", "shipping", "delivery", "payment", "pay", "cod", "upi",
                 "warranty", "cancel order", "how do i", "how to", "faq", "policy", "when will", "return policy", "what is the")) return "faq";
@@ -483,6 +499,11 @@ public class ChatService {
                     .filter(p -> minPrice <= 0 || effectivePrice(p) >= minPrice)
                     .filter(p -> maxPrice <= 0 || effectivePrice(p) <= maxPrice)
                     .collect(Collectors.toList());
+            List<String> what = tokens.stream().filter(w -> !PRICE_NOISE.contains(w) && !w.matches("\\d+")).toList();
+            if (!what.isEmpty()) {
+                // "sarees under 1000": only sarees, then by price.
+                pricePool = pricePool.stream().filter(p -> scoreProduct(p, what) > 0).collect(Collectors.toList());
+            }
             Comparator<Product> byPrice = Comparator.comparingDouble(this::effectivePrice);
             if (priceDesc) pricePool.sort(byPrice.reversed());
             else pricePool.sort(byPrice);
@@ -872,6 +893,359 @@ public class ChatService {
         return pool.size() > 6 ? new ArrayList<>(pool.subList(0, 6)) : pool;
     }
 
+    // ---------------------------------------------------------------
+    // Understanding commands and follow-ups (no outside AI needed)
+    // ---------------------------------------------------------------
+
+    /** Words in a command that don't name the product ("add 2 of the ... to my cart"). */
+    private static final Set<String> COMMAND_NOISE = Set.of(
+            "add", "put", "buy", "save", "cart", "basket", "wishlist", "wish", "list", "remove", "delete",
+            "move", "take", "out", "drop", "one", "ones", "item", "items", "product", "products", "pls",
+            "quantity", "qty", "pcs", "piece", "pieces", "nos", "units", "two", "three", "four", "five",
+            "six", "seven", "eight", "nine", "ten", "first", "second", "third", "fourth", "fifth", "sixth",
+            "last", "1st", "2nd", "3rd", "4th", "5th", "6th", "again", "more", "too", "now", "just",
+            "same", "into", "favourite", "favorite", "later", "ill", "cheapest", "cheaper", "costliest");
+
+    /** Words in a price search that don't name the product ("sarees under 500 rupees"). */
+    private static final Set<String> PRICE_NOISE = Set.of(
+            "under", "below", "above", "over", "less", "more", "than", "between", "cheap", "cheaper",
+            "cheapest", "expensive", "costly", "costliest", "pricey", "budget", "price", "priced", "prices",
+            "rupees", "rupee", "inr", "affordable", "lowest", "highest", "low", "high", "most", "least",
+            "premium", "within", "upto", "max", "maximum", "min", "minimum", "range", "cost", "value",
+            "money", "end", "top", "inexpensive", "beneath", "greater", "atleast", "products", "items");
+
+    private static final Pattern BYE = Pattern.compile("^(bye|goodbye|good bye|see you|see ya|tata|bye bye|good night)\\b.*");
+    private static final Pattern OK_ONLY = Pattern.compile("^(ok|okay|k|kk|fine|alright|all right|hmm+|got it|sure|yes|no|nope)[.! ]*$");
+    private static final Pattern THANKS_START = Pattern.compile("^(thanks?|thank you|thankyou|thx|ty|nandri|dhanyavad|dhanyavaad|shukriya)\\b.*");
+    private static final Pattern REMOVE_START = Pattern.compile("^(please\\s+|pls\\s+)?(remove|delete|take out|drop)\\b.*");
+    private static final Pattern MOVE_START = Pattern.compile("^(please\\s+|pls\\s+)?move\\b.*");
+    private static final Pattern ADD_START = Pattern.compile(
+            "^(please\\s+|pls\\s+|can you\\s+|could you\\s+|kindly\\s+)?(add|put|buy|save|i'?ll take|i will take)\\b.*");
+
+    /**
+     * Commands and follow-ups the keyword intents can't handle: "add the second one",
+     * "remove the towel", "where is order 12", "is it in stock". Null when the message is
+     * something else, so the usual intents answer.
+     */
+    private ChatResponse smartAnswer(String authHeader, String msg, List<Long> shown) {
+        int words = msg.split("\\s+").length;
+        if (BYE.matcher(msg).matches()) {
+            return ChatResponse.create("bye", "Thanks for visiting Cauvery Store! Come back any time.");
+        }
+        if (THANKS_START.matcher(msg).matches() && words <= 6) return thanks();
+        if (OK_ONLY.matcher(msg).matches()) {
+            return ChatResponse.create("ok", "Is there anything else I can help you with?")
+                    .quickReplies(List.of("Show me best sellers", "Any offers right now?", "Show my cart", "Track my order"));
+        }
+        if (matchesAny(msg, "who are you", "are you a bot", "are you human", "are you a robot", "are you real", "your name")) {
+            return ChatResponse.create("about",
+                            "I'm Cauvery Store's shopping assistant, an automated helper. I can find products, "
+                                    + "add them to your cart or wishlist, show your orders and track deliveries, and share "
+                                    + "offers. For anything I can't sort out, our support team is on the Contact Us page.")
+                    .actions(List.of(nav("CONTACT", "Contact Us")));
+        }
+
+        Long orderNo = ChatText.orderNumber(msg);
+        if (orderNo != null && (matchesAny(msg, "order", "track", "where", "status", "deliver", "ship") || msg.contains("#"))) {
+            return trackOrderReply(authHeader, orderNo);
+        }
+        if (matchesAny(msg, "cancel") && !matchesAny(msg, "policy")) return cancelHelp();
+        if (matchesAny(msg, "damaged", "broken", "defective", "wrong item", "wrong product", "missing item", "not working", "torn")) {
+            return damagedHelp();
+        }
+
+        boolean wishlistWord = matchesAny(msg, "wishlist", "wish list", "save for later", "favourite", "favorite");
+        if (REMOVE_START.matcher(msg).matches()) return removeCommand(authHeader, msg, wishlistWord);
+        if (MOVE_START.matcher(msg).matches()) return moveCommand(authHeader, msg);
+        if (ADD_START.matcher(msg).matches() || matchesAny(msg, "add to cart", "add to my cart", "add it", "add this", "add that")) {
+            return addCommand(authHeader, msg, shown, wishlistWord || msg.startsWith("save"));
+        }
+
+        if (!shown.isEmpty()) {
+            Product ref = referencedProduct(msg, shown);
+            if (ref != null && matchesAny(msg, "more", "detail", "about", "stock", "price", "cost", "how much",
+                    "available", "describe", "spec", "tell", "show", "view", "size", "colour", "color")) {
+                return viewProduct(Map.of("productId", ref.getId()));
+            }
+        }
+        return null;
+    }
+
+    /** "the second one", "the cheapest one", or "it" when only one product was shown. */
+    private Product referencedProduct(String msg, List<Long> shown) {
+        if (shown.isEmpty()) return null;
+        List<Product> listed = new ArrayList<>();
+        for (Long id : shown) {
+            Product p = activeProduct(id);
+            if (p != null) listed.add(p);
+        }
+        if (listed.isEmpty()) return null;
+        int idx = ChatText.ordinal(msg, listed.size());
+        if (idx >= 0) return idx < listed.size() ? listed.get(idx) : null;
+        if (matchesAny(msg, "cheapest", "cheaper", "lowest price", "least expensive")) {
+            return listed.stream().min(Comparator.comparingDouble(this::effectivePrice)).orElse(null);
+        }
+        if (matchesAny(msg, "costliest", "most expensive", "priciest", "dearest")) {
+            return listed.stream().max(Comparator.comparingDouble(this::effectivePrice)).orElse(null);
+        }
+        if (listed.size() == 1 && (ChatText.pointsBack(msg) || productWords(msg).isEmpty())) return listed.get(0);
+        return null;
+    }
+
+    private List<String> productWords(String msg) {
+        return tokens(msg).stream()
+                .filter(w -> !COMMAND_NOISE.contains(w))
+                .filter(w -> !w.matches("\\d+"))
+                .toList();
+    }
+
+    private ChatResponse addCommand(String authHeader, String msg, List<Long> shown, boolean toWishlist) {
+        if (!isAuthed(authHeader)) return loginPrompt(toWishlist ? "save items to your wishlist" : "add items to your cart");
+        Product p = referencedProduct(msg, shown);
+        List<Product> options = new ArrayList<>();
+        if (p == null) {
+            List<String> words = productWords(msg);
+            if (words.isEmpty()) {
+                for (Long id : shown) {
+                    Product s = activeProduct(id);
+                    if (s != null && options.size() < 4) options.add(s);
+                }
+            } else {
+                List<Product> ranked = productService.getActiveProducts().stream()
+                        .filter(x -> scoreProduct(x, words) > 0)
+                        .sorted((a, b) -> Integer.compare(scoreProduct(b, words), scoreProduct(a, words)))
+                        .limit(4)
+                        .toList();
+                if (ranked.size() == 1
+                        || (ranked.size() > 1 && scoreProduct(ranked.get(0), words) > scoreProduct(ranked.get(1), words))) {
+                    p = ranked.get(0);
+                } else {
+                    options.addAll(ranked);
+                }
+            }
+        }
+        if (p == null && options.isEmpty()) {
+            return ChatResponse.create("no_results",
+                            "I couldn't tell which product you mean. Try \"add cotton towel to cart\", or search first and then say \"add the first one\".")
+                    .quickReplies(List.of("Show me best sellers", "Any offers right now?"));
+        }
+        if (p == null) {
+            StringBuilder sb = new StringBuilder("Which one would you like?\n");
+            List<Map<String, Object>> actions = new ArrayList<>();
+            List<Map<String, Object>> cards = new ArrayList<>();
+            for (int i = 0; i < options.size(); i++) {
+                Product o = options.get(i);
+                sb.append("\n").append(i + 1).append(". ").append(o.getName()).append(" - ").append(priceLabel(o));
+                cards.add(compactProduct(o));
+                actions.add(toWishlist
+                        ? action("ADD_TO_WISHLIST", "Save: " + o.getName(), "productId", o.getId())
+                        : action("ADD_TO_CART", "Add: " + o.getName(), "productId", o.getId()));
+            }
+            sb.append("\n\nTap one, or say \"the second one\".");
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("products", cards);
+            return ChatResponse.create("choose_product", sb.toString()).data(data).actions(actions);
+        }
+
+        if (toWishlist) {
+            ChatResponse r = addToWishlist(authHeader, Map.of("productId", p.getId()));
+            return r.data(Map.of("wishlistChanged", true));
+        }
+        int stock = p.getStock() == null ? 0 : p.getStock();
+        if (stock <= 0) {
+            return ChatResponse.create("out_of_stock",
+                            p.getName() + " is out of stock right now. Save it to your wishlist and check back soon.")
+                    .actions(List.of(action("ADD_TO_WISHLIST", "Save to Wishlist", "productId", p.getId())));
+        }
+        int qty = ChatText.quantity(msg);
+        try {
+            cartService.addItem(authHeader, p.getId(), qty);
+            return cartTouched(authHeader, "Added " + (qty > 1 ? qty + " x " : "") + p.getName() + " to your cart.")
+                    .data(Map.of("cartChanged", true));
+        } catch (Exception e) {
+            return errorReply("Couldn't add " + p.getName() + " to your cart. " + safeMessage(e));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ChatResponse removeCommand(String authHeader, String msg, boolean fromWishlist) {
+        if (!isAuthed(authHeader)) return loginPrompt("manage your " + (fromWishlist ? "wishlist" : "cart"));
+        List<String> words = productWords(msg);
+        try {
+            if (fromWishlist) {
+                List<Product> saved = wishlistService.getWishlist(authHeader).stream()
+                        .map(WishlistItem::getProduct).filter(x -> x != null).toList();
+                Product target = pickFrom(saved, msg, words);
+                if (target == null) return chooseFrom(saved, "remove", "REMOVE_FROM_WISHLIST", fromWishlist);
+                wishlistService.removeFromWishlist(authHeader, target.getId());
+                return ChatResponse.create("wishlist", "Removed " + target.getName() + " from your wishlist.")
+                        .actions(List.of(nav("VIEW_WISHLIST", "View Wishlist")))
+                        .data(Map.of("wishlistChanged", true));
+            }
+            Map<String, Object> cart = cartService.getCartWithDetails(authHeader);
+            List<Map<String, Object>> items = (List<Map<String, Object>>) cart.getOrDefault("items", List.of());
+            if (items.isEmpty()) return ChatResponse.create("cart", "Your cart is already empty.");
+            if (matchesAny(msg, "everything", "all items", "all of them", "whole cart", "entire cart") || msg.matches(".*\\ball\\b.*")) {
+                cartService.clearCart(authHeader);
+                return ChatResponse.create("cart", "Done, your cart is now empty.")
+                        .quickReplies(List.of("Show me best sellers", "Show my wishlist"))
+                        .data(Map.of("cartChanged", true));
+            }
+            List<Product> inCart = new ArrayList<>();
+            Map<Long, Long> itemIdByProduct = new LinkedHashMap<>();
+            for (Map<String, Object> item : items) {
+                Map<String, Object> pm = (Map<String, Object>) item.get("product");
+                Long pid = pm == null ? null : longOf(pm.get("id"));
+                if (pid == null) continue;
+                Product shell = new Product();
+                shell.setId(pid);
+                shell.setName(str(pm.get("name")));
+                shell.setBrand(str(pm.get("brand")));
+                inCart.add(shell);
+                itemIdByProduct.put(pid, longOf(item.get("id")));
+            }
+            Product target = pickFrom(inCart, msg, words);
+            if (target == null) {
+                StringBuilder sb = new StringBuilder("Which item should I remove?\n");
+                List<Map<String, Object>> actions = new ArrayList<>();
+                for (int i = 0; i < inCart.size() && i < 6; i++) {
+                    Product x = inCart.get(i);
+                    sb.append("\n").append(i + 1).append(". ").append(x.getName());
+                    actions.add(action("REMOVE_FROM_CART", "Remove: " + x.getName(), "itemId", itemIdByProduct.get(x.getId())));
+                }
+                return ChatResponse.create("choose_item", sb.toString()).actions(actions);
+            }
+            cartService.removeItem(authHeader, itemIdByProduct.get(target.getId()));
+            return cartTouched(authHeader, "Removed " + target.getName() + " from your cart.")
+                    .data(Map.of("cartChanged", true));
+        } catch (Exception e) {
+            return errorReply("Couldn't remove that. " + safeMessage(e));
+        }
+    }
+
+    private ChatResponse moveCommand(String authHeader, String msg) {
+        if (!isAuthed(authHeader)) return loginPrompt("move items to your cart");
+        try {
+            List<Product> saved = wishlistService.getWishlist(authHeader).stream()
+                    .map(WishlistItem::getProduct).filter(x -> x != null).toList();
+            if (saved.isEmpty()) return ChatResponse.create("wishlist", "Your wishlist is empty, so there's nothing to move.");
+            if (matchesAny(msg, "everything", "all of them", "all items") || msg.matches(".*\\ball\\b.*")) {
+                int moved = 0;
+                List<String> failed = new ArrayList<>();
+                for (Product x : saved) {
+                    try {
+                        wishlistService.moveToCart(authHeader, x.getId());
+                        moved++;
+                    } catch (Exception e) {
+                        failed.add(x.getName());
+                    }
+                }
+                String text = "Moved " + moved + " item(s) from your wishlist to your cart."
+                        + (failed.isEmpty() ? "" : " Couldn't move: " + String.join(", ", failed) + " (likely out of stock).");
+                return cartTouched(authHeader, text).data(Map.of("cartChanged", true, "wishlistChanged", true));
+            }
+            Product target = pickFrom(saved, msg, productWords(msg));
+            if (target == null) return chooseFrom(saved, "move to your cart", "MOVE_TO_CART", true);
+            return moveToCart(authHeader, Map.of("productId", target.getId()))
+                    .data(Map.of("cartChanged", true, "wishlistChanged", true));
+        } catch (Exception e) {
+            return errorReply("Couldn't move that. " + safeMessage(e));
+        }
+    }
+
+    /** One product from a short list by position, by name (typos allowed), or the only one. */
+    private Product pickFrom(List<Product> list, String msg, List<String> words) {
+        if (list.isEmpty()) return null;
+        int idx = ChatText.ordinal(msg, list.size());
+        if (idx >= 0) return idx < list.size() ? list.get(idx) : null;
+        if (!words.isEmpty()) {
+            List<Product> ranked = list.stream()
+                    .filter(x -> scoreProduct(x, words) > 0)
+                    .sorted((a, b) -> Integer.compare(scoreProduct(b, words), scoreProduct(a, words)))
+                    .toList();
+            if (ranked.size() == 1) return ranked.get(0);
+            if (ranked.size() > 1 && scoreProduct(ranked.get(0), words) > scoreProduct(ranked.get(1), words)) return ranked.get(0);
+            return null;
+        }
+        return list.size() == 1 ? list.get(0) : null;
+    }
+
+    private ChatResponse chooseFrom(List<Product> list, String verb, String actionType, boolean wishlist) {
+        if (list.isEmpty()) {
+            return ChatResponse.create(wishlist ? "wishlist" : "cart", "Your " + (wishlist ? "wishlist" : "cart") + " is empty.");
+        }
+        StringBuilder sb = new StringBuilder("Which item should I " + verb + "?\n");
+        List<Map<String, Object>> actions = new ArrayList<>();
+        for (int i = 0; i < list.size() && i < 6; i++) {
+            Product x = list.get(i);
+            sb.append("\n").append(i + 1).append(". ").append(x.getName());
+            if ("MOVE_TO_CART".equals(actionType)) {
+                actions.add(action(actionType, "Move: " + x.getName(), "productId", x.getId()));
+            }
+        }
+        if (actions.isEmpty()) actions.add(nav(wishlist ? "VIEW_WISHLIST" : "VIEW_CART", wishlist ? "View Wishlist" : "View Cart"));
+        return ChatResponse.create("choose_item", sb.toString()).actions(actions);
+    }
+
+    private ChatResponse trackOrderReply(String authHeader, Long orderId) {
+        if (!isAuthed(authHeader)) return loginPrompt("track your orders");
+        Map<String, Object> detail;
+        try {
+            detail = orderService.getOrderDetail(orderId, authHeader);
+        } catch (Exception e) {
+            return ChatResponse.create("orders", "I couldn't find order #" + orderId + " on your account. Here are your orders:")
+                    .actions(List.of(nav("VIEW_ORDERS", "My Orders")));
+        }
+        String status = friendlyStatus(str(detail.get("status")));
+        StringBuilder sb = new StringBuilder("Order #").append(orderId).append(" is ").append(status).append(".");
+        Object amount = detail.get("totalAmount");
+        if (amount instanceof Number n) sb.append("\nAmount: ").append(inr(n.doubleValue()));
+        String placed = str(detail.get("createdAt"));
+        if (placed != null && placed.length() >= 10) sb.append("\nPlaced on: ").append(placed, 0, 10);
+        try {
+            Map<String, Object> t = orderService.getOrderTracking(orderId, authHeader);
+            if (t.get("courier") != null) sb.append("\nCourier: ").append(t.get("courier"));
+            if (t.get("trackingNumber") != null) sb.append("\nTracking number: ").append(t.get("trackingNumber"));
+            if (t.get("estimatedDelivery") != null) sb.append("\nExpected delivery: ").append(t.get("estimatedDelivery"));
+            if (t.get("events") instanceof List<?> events && !events.isEmpty()) {
+                Object latest = t.get("courier") != null ? events.get(0) : events.get(events.size() - 1);
+                if (latest instanceof Map<?, ?> ev) {
+                    String what = str(ev.get("description"));
+                    if (what == null || what.isBlank()) what = friendlyStatus(str(ev.get("status")));
+                    String when = str(ev.get("timestamp"));
+                    sb.append("\nLatest update: ").append(what)
+                            .append(when == null || when.isBlank() ? "" : " (" + when + ")");
+                }
+            }
+        } catch (Exception ignored) {
+            // No courier details yet; the status above still answers the question.
+        }
+        return ChatResponse.create("orders", sb.toString())
+                .actions(List.of(action("TRACK_ORDER", "Open Order #" + orderId, "orderId", orderId),
+                        nav("VIEW_ORDERS", "All Orders")));
+    }
+
+    private String friendlyStatus(String status) {
+        if (status == null || status.isBlank()) return "being processed";
+        return status.toLowerCase(Locale.ROOT).replace('_', ' ');
+    }
+
+    private ChatResponse cancelHelp() {
+        return ChatResponse.create("cancel",
+                        "You can cancel an order yourself until it ships: open My Orders, pick the order and tap Cancel. "
+                                + "If you paid online, the refund goes back to the same payment method. "
+                                + "If it has already shipped, you can return it after delivery.")
+                .actions(List.of(nav("VIEW_ORDERS", "My Orders"), nav("CONTACT", "Contact Us")));
+    }
+
+    private ChatResponse damagedHelp() {
+        return ChatResponse.create("damaged",
+                        "Sorry about that! Damaged, defective, wrong or missing items get a free return pickup. "
+                                + "Open My Orders, pick the order, tap Return, and choose \"Damaged product\" (or the reason that fits). "
+                                + "Photos help us sort it out faster.")
+                .actions(List.of(nav("VIEW_ORDERS", "My Orders"), nav("CONTACT", "Contact Us")));
+    }
+
     private ChatResponse fallback() {
         return ChatResponse.create("fallback",
                         "I didn't quite catch that. I can help you find products, check your cart and wishlist, track orders, and share offers. Try one of these:")
@@ -997,7 +1371,7 @@ public class ChatService {
     private List<String> tokens(String msg) {
         String clean = msg.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9 ]", " ");
         return Arrays.stream(clean.split("\\s+"))
-                .filter(w -> w.length() >= 3)
+                .filter(w -> w.length() >= 3 || ChatText.SHORT_PRODUCT_WORDS.contains(w))
                 .filter(w -> !STOPWORDS.contains(w))
                 .distinct()
                 .collect(Collectors.toList());
@@ -1020,13 +1394,31 @@ public class ChatService {
             String name = (p.getName() == null ? "" : p.getName()).toLowerCase(Locale.ROOT);
             String brand = (p.getBrand() == null ? "" : p.getBrand()).toLowerCase(Locale.ROOT);
             String sub = (p.getSubCategory() == null ? "" : p.getSubCategory()).toLowerCase(Locale.ROOT);
+            Set<String> hayWords = new java.util.HashSet<>(Arrays.asList(haystack.split("[^a-z0-9]+")));
+            String[] nameWords = name.split("[^a-z0-9]+");
             int score = 0;
             for (String t : tokens) {
-                if (!haystack.contains(t)) continue;
-                if (name.contains(t)) score += 5;
-                else if (brand.contains(t)) score += 3;
-                else if (sub.contains(t)) score += 2;
-                else score += 1;
+                int best = 0;
+                // The word, its singular, and everyday synonyms ("mobiles" finds "phone").
+                for (String v : ChatText.variants(t)) {
+                    boolean found = v.length() <= 3 ? hayWords.contains(v) : haystack.contains(v);
+                    if (!found) continue;
+                    int s = (v.length() <= 3 ? Arrays.asList(nameWords).contains(v) : name.contains(v)) ? 5
+                            : brand.contains(v) ? 3 : sub.contains(v) ? 2 : 1;
+                    best = Math.max(best, s);
+                }
+                if (best == 0) {
+                    // Small typos: "towl" still finds "towel".
+                    for (String w : nameWords) {
+                        if (ChatText.closeEnough(t, w)) { best = 4; break; }
+                    }
+                    if (best == 0) {
+                        for (String w : hayWords) {
+                            if (ChatText.closeEnough(t, w)) { best = 1; break; }
+                        }
+                    }
+                }
+                score += best;
             }
             return score;
         } catch (Exception e) {

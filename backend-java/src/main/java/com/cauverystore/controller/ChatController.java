@@ -29,7 +29,24 @@ public class ChatController {
         String message = body != null && body.get("message") != null
                 ? String.valueOf(body.get("message"))
                 : "";
-        return ResponseEntity.ok(chatService.respond(authHeader, message, history(body), http.getRemoteAddr()));
+        return ResponseEntity.ok(chatService.respond(authHeader, message, history(body), http.getRemoteAddr(), shownProducts(body)));
+    }
+
+    /** Products in the chat's last list, in order: {"context": {"productIds": [12, 7, ...]}}. */
+    private static List<Long> shownProducts(Map<String, Object> body) {
+        List<Long> ids = new ArrayList<>();
+        if (body == null || !(body.get("context") instanceof Map<?, ?> ctx) || !(ctx.get("productIds") instanceof List<?> raw)) {
+            return ids;
+        }
+        for (Object o : raw) {
+            if (ids.size() >= 10) break;
+            try {
+                ids.add(Long.valueOf(String.valueOf(o)));
+            } catch (NumberFormatException ignored) {
+                // not an id
+            }
+        }
+        return ids;
     }
 
     /** Earlier turns sent by the chat window: [{"role": "user"|"assistant", "text": "..."}]. */
