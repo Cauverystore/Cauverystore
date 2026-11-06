@@ -52,6 +52,11 @@ const ChatWidget = () => {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef(null);
+  // Latest messages, read when sending so the recent conversation goes along with each question.
+  const messagesRef = useRef([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   const inputRef = useRef(null);
   const widgetRef = useRef(null);
   const launcherRef = useRef(null);
@@ -154,11 +159,15 @@ const ChatWidget = () => {
     async (text) => {
       if (!text || !text.trim() || busy) return;
       const trimmed = text.trim();
+      const history = messagesRef.current
+        .filter((m) => m.text)
+        .slice(-10)
+        .map((m) => ({ role: m.from === "user" ? "user" : "assistant", text: m.text }));
       setMessages((prev) => [...prev, { id: nextId(), from: "user", text: trimmed, actions: [], quickReplies: [] }]);
       setInput("");
       setBusy(true);
       try {
-        const { data } = await sendChatMessage(trimmed);
+        const { data } = await sendChatMessage(trimmed, history);
         appendBot(data);
       } catch {
         appendBot({

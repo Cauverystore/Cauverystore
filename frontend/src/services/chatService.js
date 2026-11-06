@@ -15,7 +15,8 @@ const withRetry = async (request) => {
   }
 };
 
-export const sendChatMessage = (message) => withRetry(() => api.post("/api/chat", { message }));
+// history: earlier turns [{ role: "user" | "assistant", text }], so the assistant can follow the conversation.
+export const sendChatMessage = (message, history = []) => withRetry(() => api.post("/api/chat", { message, history }));
 
 export const performChatAction = (payload) => withRetry(() => api.post("/api/chat/action", { action: payload }));
 

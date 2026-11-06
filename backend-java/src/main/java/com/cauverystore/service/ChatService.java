@@ -29,11 +29,17 @@ public class ChatService {
     private final OrderService orderService;
     private final CouponService couponService;
     private final AuthorizationService authorizationService;
+    private final AiShoppingAssistant aiAssistant;
+    private final RateLimiterService rateLimiter;
+
+    /** AI replies allowed per visitor address per hour; after that the keyword chat answers. */
+    private static final int AI_REPLIES_PER_HOUR = 30;
 
     public ChatService(ProductService productService, FaqService faqService,
                        CartService cartService, WishlistService wishlistService,
                        OrderService orderService, CouponService couponService,
-                       AuthorizationService authorizationService) {
+                       AuthorizationService authorizationService,
+                       AiShoppingAssistant aiAssistant, RateLimiterService rateLimiter) {
         this.productService = productService;
         this.faqService = faqService;
         this.cartService = cartService;
@@ -41,6 +47,8 @@ public class ChatService {
         this.orderService = orderService;
         this.couponService = couponService;
         this.authorizationService = authorizationService;
+        this.aiAssistant = aiAssistant;
+        this.rateLimiter = rateLimiter;
     }
 
     private static final Set<String> STOPWORDS = Set.of(
@@ -96,11 +104,29 @@ public class ChatService {
     );
 
     public ChatResponse respond(String authHeader, String message) {
+        return respond(authHeader, message, null, null);
+    }
+
+    /**
+     * Cart, wishlist, orders and small talk are answered by the rules below, which can see the
+     * shopper's account. Product and store questions, and anything the rules don't understand,
+     * go to the AI assistant when it is switched on; if it is off, over the hourly limit, or
+     * fails, the rules answer as before.
+     */
+    public ChatResponse respond(String authHeader, String message, List<Map<String, String>> history, String clientIp) {
         if (message == null || message.trim().isEmpty()) {
             return fallback();
         }
+        if (message.length() > 1000) message = message.substring(0, 1000);
         String msg = message.trim().toLowerCase(Locale.ROOT);
         String intent = classify(msg);
+
+        if (AI_INTENTS.contains(intent)
+                && aiAssistant.isEnabled()
+                && rateLimiter.allow("chat-ai:" + (clientIp == null ? "unknown" : clientIp), AI_REPLIES_PER_HOUR, 3_600_000L)) {
+            AiShoppingAssistant.Reply ai = aiAssistant.answer(message.trim(), history, this::searchForAssistant);
+            if (ai != null) return aiReply(ai);
+        }
 
         return switch (intent) {
             case "greeting" -> greeting(authHeader);
@@ -551,6 +577,51 @@ public class ChatService {
                         action("ADD_TO_CART", "Add to Cart", "productId", match.getId()),
                         action("VIEW_PRODUCT", "View Product", "productId", match.getId())
                 ));
+    }
+
+    private static final Set<String> AI_INTENTS = Set.of("faq", "product_search", "product_details", "fallback");
+
+    private ChatResponse aiReply(AiShoppingAssistant.Reply ai) {
+        List<Map<String, Object>> actions = new ArrayList<>();
+        List<Map<String, Object>> productList = new ArrayList<>();
+        List<Product> products = ai.products().size() > 6 ? ai.products().subList(0, 6) : ai.products();
+        for (Product p : products) {
+            productList.add(compactProduct(p));
+            // Buttons only for products the reply actually names; Claude may have looked at more.
+            if (actions.size() < 6 && p.getName() != null && ai.text().contains(p.getName())) {
+                actions.add(action("VIEW_PRODUCT", "View: " + p.getName(), "productId", p.getId()));
+                actions.add(action("ADD_TO_CART", "Add to Cart: " + p.getName(), "productId", p.getId()));
+            }
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("products", productList);
+        return ChatResponse.create("ai", ai.text()).data(data).actions(actions);
+    }
+
+    /** The AI assistant's product search tool, using the same matching as the keyword search. */
+    List<Product> searchForAssistant(String query, Double minPrice, Double maxPrice, String sort) {
+        List<Product> pool = productService.getActiveProducts().stream()
+                .filter(p -> p.getPrice() != null)
+                .filter(p -> minPrice == null || effectivePrice(p) >= minPrice)
+                .filter(p -> maxPrice == null || effectivePrice(p) <= maxPrice)
+                .collect(Collectors.toList());
+        if ("best_sellers".equals(sort)) {
+            List<Product> best = pool.stream().filter(p -> Boolean.TRUE.equals(p.getBestSeller())).toList();
+            if (!best.isEmpty()) pool = new ArrayList<>(best);
+        } else if ("new_arrivals".equals(sort)) {
+            List<Product> fresh = pool.stream().filter(p -> Boolean.TRUE.equals(p.getNewArrival())).toList();
+            if (!fresh.isEmpty()) pool = new ArrayList<>(fresh);
+        }
+        List<String> words = tokens(query == null ? "" : query);
+        if (!words.isEmpty()) {
+            pool = pool.stream()
+                    .filter(p -> scoreProduct(p, words) > 0)
+                    .sorted((a, b) -> Integer.compare(scoreProduct(b, words), scoreProduct(a, words)))
+                    .collect(Collectors.toList());
+        }
+        if ("price_low_to_high".equals(sort)) pool.sort(Comparator.comparingDouble(this::effectivePrice));
+        if ("price_high_to_low".equals(sort)) pool.sort(Comparator.comparingDouble(this::effectivePrice).reversed());
+        return pool.size() > 6 ? new ArrayList<>(pool.subList(0, 6)) : pool;
     }
 
     private ChatResponse fallback() {
