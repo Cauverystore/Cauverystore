@@ -5,6 +5,7 @@ import com.cauverystore.entities.Coupon;
 import com.cauverystore.entities.Faq;
 import com.cauverystore.entities.Product;
 import com.cauverystore.entities.WishlistItem;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,9 @@ import java.util.regex.Pattern;
 
 @Service
 public class ChatService {
+
+    // findAndRegisterModules: order dates may be java.time values.
+    private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
 
     private final ProductService productService;
     private final FaqService faqService;
@@ -108,25 +112,24 @@ public class ChatService {
     }
 
     /**
-     * Cart, wishlist, orders and small talk are answered by the rules below, which can see the
-     * shopper's account. Product and store questions, and anything the rules don't understand,
-     * go to the AI assistant when it is switched on; if it is off, over the hourly limit, or
-     * fails, the rules answer as before.
+     * Every message goes to the AI assistant when it is switched on; it can search products and
+     * read and change the shopper's cart, wishlist and orders through tools. If the AI is off,
+     * over the hourly limit, or fails, the keyword rules below answer instead.
      */
     public ChatResponse respond(String authHeader, String message, List<Map<String, String>> history, String clientIp) {
         if (message == null || message.trim().isEmpty()) {
             return fallback();
         }
         if (message.length() > 1000) message = message.substring(0, 1000);
+        if (aiAssistant.isEnabled()
+                && rateLimiter.allow("chat-ai:" + (clientIp == null ? "unknown" : clientIp), AI_REPLIES_PER_HOUR, 3_600_000L)) {
+            AssistantShop shop = new AssistantShop(authHeader);
+            AiShoppingAssistant.Reply ai = aiAssistant.answer(message.trim(), history, shop, shopperNote(authHeader));
+            if (ai != null) return aiReply(ai, shop);
+        }
+
         String msg = message.trim().toLowerCase(Locale.ROOT);
         String intent = classify(msg);
-
-        if (AI_INTENTS.contains(intent)
-                && aiAssistant.isEnabled()
-                && rateLimiter.allow("chat-ai:" + (clientIp == null ? "unknown" : clientIp), AI_REPLIES_PER_HOUR, 3_600_000L)) {
-            AiShoppingAssistant.Reply ai = aiAssistant.answer(message.trim(), history, this::searchForAssistant);
-            if (ai != null) return aiReply(ai);
-        }
 
         return switch (intent) {
             case "greeting" -> greeting(authHeader);
@@ -579,23 +582,268 @@ public class ChatService {
                 ));
     }
 
-    private static final Set<String> AI_INTENTS = Set.of("faq", "product_search", "product_details", "fallback");
-
-    private ChatResponse aiReply(AiShoppingAssistant.Reply ai) {
+    private ChatResponse aiReply(AiShoppingAssistant.Reply ai, AssistantShop shop) {
         List<Map<String, Object>> actions = new ArrayList<>();
+        if (shop.loginNeeded) {
+            actions.add(nav("LOGIN", "Login"));
+            actions.add(nav("REGISTER", "Create Account"));
+        }
+        // Buttons from the account tools the assistant used (View Cart, Track Order, ...).
+        for (Map<String, Object> a : shop.actions) {
+            if (actions.size() >= 6) break;
+            if (actions.stream().noneMatch(a::equals)) actions.add(a);
+        }
         List<Map<String, Object>> productList = new ArrayList<>();
         List<Product> products = ai.products().size() > 6 ? ai.products().subList(0, 6) : ai.products();
         for (Product p : products) {
+            // Cards and buttons only for products the reply names; Claude may have looked at more.
+            if (p.getName() == null || !ai.text().contains(p.getName())) continue;
             productList.add(compactProduct(p));
-            // Buttons only for products the reply actually names; Claude may have looked at more.
-            if (actions.size() < 6 && p.getName() != null && ai.text().contains(p.getName())) {
+            if (actions.size() < 8) {
                 actions.add(action("VIEW_PRODUCT", "View: " + p.getName(), "productId", p.getId()));
                 actions.add(action("ADD_TO_CART", "Add to Cart: " + p.getName(), "productId", p.getId()));
             }
         }
+        if (actions.isEmpty() && ai.text().contains("Contact Us")) actions.add(nav("CONTACT", "Contact Us"));
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("products", productList);
         return ChatResponse.create("ai", ai.text()).data(data).actions(actions);
+    }
+
+    private String shopperNote(String authHeader) {
+        if (!isAuthed(authHeader)) return "not signed in.";
+        try {
+            String full = authorizationService.getCurrentUser().getFullName();
+            if (full != null && !full.isBlank()) return "signed in, first name " + full.strip().split("\\s+")[0] + ".";
+        } catch (Exception ignored) {
+            // name unavailable; still signed in
+        }
+        return "signed in.";
+    }
+
+    /**
+     * The assistant's tools for one chat message, acting as the signed-in shopper. Collects the
+     * buttons to show under the reply (View Cart, Track Order, Login...).
+     */
+    final class AssistantShop implements AiShoppingAssistant.Shop {
+        private final String authHeader;
+        final List<Map<String, Object>> actions = new ArrayList<>();
+        boolean loginNeeded;
+
+        AssistantShop(String authHeader) {
+            this.authHeader = authHeader;
+        }
+
+        @Override
+        public List<Product> search(String query, Double minPrice, Double maxPrice, String sort) {
+            return searchForAssistant(query, minPrice, maxPrice, sort);
+        }
+
+        @Override
+        public String run(String tool, Map<String, Object> in) {
+            if ("list_offers".equals(tool)) return offersForAssistant(this);
+            if (!isAuthed(authHeader)) {
+                loginNeeded = true;
+                return "The shopper is not signed in, so this can't be done. Ask them to log in or create an account.";
+            }
+            try {
+                return switch (tool) {
+                    case "view_cart" -> cartForAssistant(this);
+                    case "add_to_cart" -> {
+                        Product p = activeProduct(in.get("product_id"));
+                        if (p == null) yield "No product with that id is on sale.";
+                        int qty = in.get("quantity") instanceof Number n ? Math.max(1, Math.min(10, n.intValue())) : 1;
+                        cartService.addItem(authHeader, p.getId(), qty);
+                        cartButtons(this);
+                        yield "Added " + qty + " x " + p.getName() + " to the cart.\n" + cartForAssistant(this);
+                    }
+                    case "remove_from_cart" -> {
+                        Long itemId = longOf(in.get("cart_item_id"));
+                        if (itemId == null) yield "Give the cart_item_id from view_cart.";
+                        cartService.removeItem(authHeader, itemId);
+                        yield "Removed.\n" + cartForAssistant(this);
+                    }
+                    case "view_wishlist" -> wishlistForAssistant(this);
+                    case "add_to_wishlist" -> {
+                        Product p = activeProduct(in.get("product_id"));
+                        if (p == null) yield "No product with that id is on sale.";
+                        wishlistService.addToWishlist(authHeader, p.getId());
+                        actions.add(nav("VIEW_WISHLIST", "View Wishlist"));
+                        yield "Saved " + p.getName() + " to the wishlist.";
+                    }
+                    case "move_wishlist_to_cart" -> {
+                        Product p = activeProduct(in.get("product_id"));
+                        if (p == null) yield "No product with that id is on sale.";
+                        wishlistService.moveToCart(authHeader, p.getId());
+                        cartButtons(this);
+                        yield "Moved " + p.getName() + " from the wishlist to the cart.\n" + cartForAssistant(this);
+                    }
+                    case "view_orders" -> ordersForAssistant(this);
+                    case "track_order" -> trackForAssistant(this, longOf(in.get("order_id")));
+                    default -> "Unknown tool.";
+                };
+            } catch (Exception e) {
+                // Stock limits, wrong ids and similar: tell Claude what went wrong so it can explain.
+                return "That didn't work: " + safeMessage(e);
+            }
+        }
+    }
+
+    private Product activeProduct(Object id) {
+        Long productId = longOf(id);
+        if (productId == null) return null;
+        try {
+            Product p = productService.getProductById(productId);
+            return p != null && p.isActive() ? p : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void cartButtons(AssistantShop shop) {
+        shop.actions.add(nav("VIEW_CART", "View Cart"));
+        shop.actions.add(nav("CHECKOUT", "Checkout"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private String cartForAssistant(AssistantShop shop) throws Exception {
+        Map<String, Object> cart = cartService.getCartWithDetails(shop.authHeader);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) cart.getOrDefault("items", List.of());
+        if (items.isEmpty()) return "The cart is empty.";
+        List<Map<String, Object>> lines = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            Map<String, Object> product = (Map<String, Object>) item.get("product");
+            Map<String, Object> line = new LinkedHashMap<>();
+            line.put("cart_item_id", item.get("id"));
+            if (product != null) {
+                line.put("product_id", product.get("id"));
+                line.put("name", product.get("name"));
+                line.put("stock", product.get("stockStatus"));
+            }
+            line.put("quantity", item.get("quantity"));
+            line.put("subtotal_inr", item.get("subtotal"));
+            lines.add(line);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("items", lines);
+        out.put("items_total_inr", cart.get("totalPrice"));
+        out.put("delivery_inr", cart.get("deliveryCharge"));
+        out.put("amount_to_pay_inr", cart.get("finalAmount"));
+        cartButtons(shop);
+        return JSON.writeValueAsString(out);
+    }
+
+    private String wishlistForAssistant(AssistantShop shop) throws Exception {
+        List<WishlistItem> items = wishlistService.getWishlist(shop.authHeader);
+        if (items.isEmpty()) return "The wishlist is empty.";
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (WishlistItem item : items) {
+            Product p = item.getProduct();
+            if (p == null) continue;
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("product_id", p.getId());
+            row.put("name", p.getName());
+            row.put("price_inr", effectivePrice(p));
+            int stock = p.getStock() == null ? 0 : p.getStock();
+            row.put("stock", stock <= 0 ? "out of stock" : "in stock");
+            rows.add(row);
+            if (rows.size() >= 20) break;
+        }
+        shop.actions.add(nav("VIEW_WISHLIST", "View Wishlist"));
+        return JSON.writeValueAsString(rows);
+    }
+
+    @SuppressWarnings("unchecked")
+    private String ordersForAssistant(AssistantShop shop) throws Exception {
+        List<Map<String, Object>> orders = orderService.getOrdersByHeader(shop.authHeader, null);
+        if (orders.isEmpty()) return "The shopper has no orders yet.";
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Map<String, Object> o : orders.subList(0, Math.min(orders.size(), 8))) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("order_id", o.get("id"));
+            row.put("placed_at", o.get("createdAt"));
+            row.put("status", o.get("status"));
+            row.put("amount_inr", o.get("totalAmount"));
+            row.put("payment", o.get("paymentMethod"));
+            List<String> names = new ArrayList<>();
+            for (Map<String, Object> item : (List<Map<String, Object>>) o.getOrDefault("items", List.of())) {
+                names.add(item.get("quantity") + " x " + item.get("productName"));
+            }
+            row.put("items", names);
+            rows.add(row);
+        }
+        shop.actions.add(nav("VIEW_ORDERS", "My Orders"));
+        return JSON.writeValueAsString(rows);
+    }
+
+    private String trackForAssistant(AssistantShop shop, Long orderId) throws Exception {
+        if (orderId == null) return "Which order? Ask for the order number, or call view_orders.";
+        Map<String, Object> detail;
+        try {
+            detail = orderService.getOrderDetail(orderId, shop.authHeader);
+        } catch (Exception e) {
+            return "There is no order #" + orderId + " on this shopper's account.";
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("order_id", orderId);
+        out.put("status", detail.get("status"));
+        out.put("placed_at", detail.get("createdAt"));
+        out.put("amount_inr", detail.get("totalAmount"));
+        out.put("payment_method", detail.get("paymentMethod"));
+        out.put("payment_status", detail.get("paymentStatus"));
+        if (detail.get("shippingAddress") instanceof Map<?, ?> addr) out.put("delivering_to_city", addr.get("city"));
+        try {
+            Map<String, Object> tracking = orderService.getOrderTracking(orderId, shop.authHeader);
+            out.put("courier", tracking.get("courier"));
+            out.put("tracking_number", tracking.get("trackingNumber"));
+            out.put("tracking_link", tracking.get("trackingUrl"));
+            out.put("expected_delivery", tracking.get("estimatedDelivery"));
+            if (tracking.get("events") instanceof List<?> events) {
+                out.put("recent_updates", events.size() > 5 ? events.subList(0, 5) : events);
+            }
+        } catch (Exception ignored) {
+            // No courier details yet; the status above still answers the question.
+        }
+        shop.actions.add(action("TRACK_ORDER", "Track Order #" + orderId, "orderId", orderId));
+        return JSON.writeValueAsString(out);
+    }
+
+    private String offersForAssistant(AssistantShop shop) {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            List<Map<String, Object>> coupons = new ArrayList<>();
+            for (Coupon c : couponService.getAll()) {
+                if (!c.isActive()) continue;
+                if (c.getValidUntil() != null && !c.getValidUntil().isAfter(now)) continue;
+                if (c.getValidFrom() != null && c.getValidFrom().isAfter(now)) continue;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("code", c.getCode());
+                row.put("discount", "PERCENTAGE".equalsIgnoreCase(c.getType())
+                        ? Math.round(c.getValue()) + "% off" : "flat " + inr(c.getValue()) + " off");
+                if (c.getMinOrderAmount() != null && c.getMinOrderAmount() > 0) row.put("min_order_inr", c.getMinOrderAmount());
+                if (c.getValidUntil() != null) row.put("valid_until", c.getValidUntil().toLocalDate().toString());
+                coupons.add(row);
+                if (coupons.size() >= 8) break;
+            }
+            List<Map<String, Object>> discounted = new ArrayList<>();
+            for (Product p : productService.getActiveProducts()) {
+                if (p.getOfferPrice() == null || p.getPrice() == null || p.getOfferPrice() >= p.getPrice()) continue;
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("product_id", p.getId());
+                row.put("name", p.getName());
+                row.put("price_inr", p.getOfferPrice());
+                row.put("original_price_inr", p.getPrice());
+                discounted.add(row);
+                if (discounted.size() >= 6) break;
+            }
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("coupon_codes", coupons);
+            out.put("discounted_products", discounted);
+            shop.actions.add(nav("VIEW_OFFERS", "All Offers"));
+            return JSON.writeValueAsString(out);
+        } catch (Exception e) {
+            return "Offers couldn't be loaded just now.";
+        }
     }
 
     /** The AI assistant's product search tool, using the same matching as the keyword search. */
