@@ -16,7 +16,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -34,13 +39,20 @@ import java.util.Set;
  *
  * Shopper accounts only: sellers and staff have compliance records and open commitments, so they
  * go through support. An account with an order still in progress cannot be deleted until the
- * order is finished or cancelled, so nobody loses a parcel or a refund.
+ * order is finished or cancelled, so nobody loses a parcel or a refund. Even after that, the
+ * account stays until {@link #WAITING_PERIOD_DAYS} days have passed since the last order was
+ * placed, which covers returns, refunds and complaints about that order.
  */
 @Service
 public class AccountDeletionService {
 
     /** Orders in one of these states are finished; anything else is still in progress. */
     static final Set<String> FINISHED_ORDER_STATUSES = Set.of("DELIVERED", "CANCELLED", "REFUNDED");
+
+    /** An account can only be deleted this many days after the shopper's most recent order. */
+    public static final int WAITING_PERIOD_DAYS = 30;
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
 
     /** What the shopper must type to confirm (the app and the website both show it). */
     public static final String CONFIRM_WORD = "DELETE";
@@ -91,6 +103,11 @@ public class AccountDeletionService {
 
     @Transactional
     public void deleteAccount(User user, String password, String confirm) {
+        deleteAccount(user, password, confirm, LocalDateTime.now());
+    }
+
+    // The clock is a parameter so the 30-day rule can be tested on fixed dates.
+    void deleteAccount(User user, String password, String confirm, LocalDateTime now) {
         if (user.getRole() != Role.CUSTOMER) {
             throw new AccountDeletionException(HttpStatus.FORBIDDEN,
                     "Seller and staff accounts can't be deleted here. Please contact support.");
@@ -113,6 +130,20 @@ public class AccountDeletionService {
         if (hasOpenOrder) {
             throw new AccountDeletionException(HttpStatus.CONFLICT,
                     "You still have an order in progress. You can delete your account once it is delivered or cancelled.");
+        }
+
+        LocalDateTime lastOrderAt = orders.stream()
+                .map(Order::getCreatedAt)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        if (lastOrderAt != null) {
+            LocalDateTime eligibleFrom = lastOrderAt.plusDays(WAITING_PERIOD_DAYS);
+            if (now.isBefore(eligibleFrom)) {
+                throw new AccountDeletionException(HttpStatus.CONFLICT,
+                        "You can delete your account from " + eligibleFrom.toLocalDate().format(DATE_FORMAT)
+                                + ", " + WAITING_PERIOD_DAYS + " days after your last order.");
+            }
         }
 
         String oldEmail = user.getEmail();

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,9 +62,13 @@ class AccountDeletionServiceTest {
         when(newsletterRepo.findByEmail(any())).thenReturn(Optional.empty());
     }
 
-    private static Order order(String status) {
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 12, 1, 10, 0);
+
+    /** An order placed this many days before NOW. */
+    private static Order order(String status, long daysAgo) {
         Order o = new Order();
         o.setStatus(status);
+        o.setCreatedAt(NOW.minusDays(daysAgo));
         return o;
     }
 
@@ -73,9 +78,9 @@ class AccountDeletionServiceTest {
 
     @Test
     void deletesAccountAndAnonymisesTheUser() {
-        when(orderRepo.findByUser(user)).thenReturn(List.of(order("DELIVERED"), order("CANCELLED")));
+        when(orderRepo.findByUser(user)).thenReturn(List.of(order("DELIVERED", 90), order("CANCELLED", 45)));
 
-        service.deleteAccount(user, "Secret#123", "delete");
+        service.deleteAccount(user, "Secret#123", "delete", NOW);
 
         assertEquals("Deleted user", user.getFullName());
         assertEquals("deleted-42@deleted.invalid", user.getEmail());
@@ -93,7 +98,7 @@ class AccountDeletionServiceTest {
 
     @Test
     void wrongPasswordIsRefusedAndNothingChanges() {
-        AccountDeletionException e = refused(() -> service.deleteAccount(user, "nope", "DELETE"));
+        AccountDeletionException e = refused(() -> service.deleteAccount(user, "nope", "DELETE", NOW));
         assertEquals(HttpStatus.UNAUTHORIZED, e.getStatus());
         assertEquals("ACTIVE", user.getStatus());
         verify(userRepo, never()).save(any());
@@ -101,15 +106,15 @@ class AccountDeletionServiceTest {
 
     @Test
     void missingConfirmationWordIsRefused() {
-        AccountDeletionException e = refused(() -> service.deleteAccount(user, "Secret#123", "yes"));
+        AccountDeletionException e = refused(() -> service.deleteAccount(user, "Secret#123", "yes", NOW));
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
         verify(userRepo, never()).save(any());
     }
 
     @Test
     void anOrderInProgressBlocksDeletion() {
-        when(orderRepo.findByUser(user)).thenReturn(List.of(order("DELIVERED"), order("SHIPPED")));
-        AccountDeletionException e = refused(() -> service.deleteAccount(user, "Secret#123", "DELETE"));
+        when(orderRepo.findByUser(user)).thenReturn(List.of(order("DELIVERED", 90), order("SHIPPED", 90)));
+        AccountDeletionException e = refused(() -> service.deleteAccount(user, "Secret#123", "DELETE", NOW));
         assertEquals(HttpStatus.CONFLICT, e.getStatus());
         verify(userRepo, never()).save(any());
     }
@@ -117,7 +122,7 @@ class AccountDeletionServiceTest {
     @Test
     void sellersAndStaffAreSentToSupport() {
         user.setRole(Role.SELLER);
-        AccountDeletionException e = refused(() -> service.deleteAccount(user, "Secret#123", "DELETE"));
+        AccountDeletionException e = refused(() -> service.deleteAccount(user, "Secret#123", "DELETE", NOW));
         assertEquals(HttpStatus.FORBIDDEN, e.getStatus());
         verify(userRepo, never()).save(any());
     }
@@ -125,7 +130,30 @@ class AccountDeletionServiceTest {
     @Test
     void googleAccountWithoutPasswordNeedsOnlyTheConfirmationWord() {
         user.setPassword(null);
-        service.deleteAccount(user, null, "DELETE");
+        service.deleteAccount(user, null, "DELETE", NOW);
+        assertEquals("DELETED", user.getStatus());
+    }
+
+    @Test
+    void aRecentOrderBlocksDeletionUntilThirtyDaysHavePassed() {
+        when(orderRepo.findByUser(user)).thenReturn(List.of(order("DELIVERED", 90), order("DELIVERED", 10)));
+        AccountDeletionException e = refused(() -> service.deleteAccount(user, "Secret#123", "DELETE", NOW));
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+        // 10 days ago + 30 days = 20 days from NOW (1 Dec 2026) = 21 Dec 2026
+        assertTrue(e.getMessage().contains("21 Dec 2026"), e.getMessage());
+        verify(userRepo, never()).save(any());
+    }
+
+    @Test
+    void anOrderPlacedExactlyThirtyDaysAgoNoLongerBlocks() {
+        when(orderRepo.findByUser(user)).thenReturn(List.of(order("DELIVERED", 30)));
+        service.deleteAccount(user, "Secret#123", "DELETE", NOW);
+        assertEquals("DELETED", user.getStatus());
+    }
+
+    @Test
+    void aShopperWhoNeverOrderedCanDeleteAtOnce() {
+        service.deleteAccount(user, "Secret#123", "DELETE", NOW);
         assertEquals("DELETED", user.getStatus());
     }
 }

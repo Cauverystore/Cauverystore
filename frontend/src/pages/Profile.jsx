@@ -999,8 +999,8 @@ const Profile = () => {
         <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.5rem 0 0.75rem", color: "var(--color-danger, #b42318)" }}>Delete account</h4>
         <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
           This removes your personal details, saved payment methods and wishlist, and signs you out everywhere.
-          Records of past orders and invoices are kept as tax law requires. It cannot be undone, and you can't delete
-          your account while an order is still in progress.
+          Records of past orders and invoices are kept as tax law requires. It cannot be undone. You can't delete
+          your account while an order is in progress, or within 30 days of your last order.
         </div>
         <input type="password" placeholder="Your password" value={deletePassword} autoComplete="current-password"
           onChange={(e) => setDeletePassword(e.target.value)} style={{ display: "block", marginBottom: "0.5rem", width: "100%", maxWidth: 320 }} />
