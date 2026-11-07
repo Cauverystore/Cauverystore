@@ -63,13 +63,68 @@ const validateSection = (section, v) => {
   return '';
 };
 
+// An on/off switch. Read-only (greyed, not clickable) until the section is being edited.
+const ToggleSwitch = ({ checked, onChange, disabled, label }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      style={{
+        position: 'relative',
+        width: '44px',
+        height: '24px',
+        padding: 0,
+        border: 'none',
+        borderRadius: '999px',
+        background: checked ? '#0f766e' : '#cbd5e1',
+        opacity: disabled ? 0.6 : 1,
+        cursor: disabled ? 'default' : 'pointer',
+        transition: 'background 0.15s',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: '3px',
+          left: checked ? '23px' : '3px',
+          width: '18px',
+          height: '18px',
+          borderRadius: '50%',
+          background: '#fff',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+          transition: 'left 0.15s',
+        }}
+      />
+    </button>
+    <span style={{ fontSize: '0.9rem', color: checked ? '#0f766e' : '#64748b', fontWeight: 500 }}>
+      {checked ? 'Enabled' : 'Disabled'}
+    </span>
+  </div>
+);
+
 const SettingField = ({ label, value, onChange, type = 'text', editing, options, placeholder }) => {
+  if (type === 'boolean') {
+    return (
+      <div className="admin-form-group">
+        <label className="admin-form-label">{label}</label>
+        <div style={{ padding: editing ? 0 : '4px 0' }}>
+          <ToggleSwitch checked={!!value} onChange={onChange} disabled={!editing} label={label} />
+        </div>
+      </div>
+    );
+  }
+
   if (!editing) {
     return (
       <div className="admin-form-group">
         <label className="admin-form-label">{label}</label>
         <div style={{ padding: '8px 0', fontSize: '0.9rem', color: '#1f2937' }}>
-          {type === 'boolean' ? (value ? 'Yes' : 'No') : type === 'password' ? '••••••••' : value || '-'}
+          {type === 'password' ? '••••••••' : value || '-'}
         </div>
       </div>
     );
@@ -78,12 +133,7 @@ const SettingField = ({ label, value, onChange, type = 'text', editing, options,
   return (
     <div className="admin-form-group">
       <label className="admin-form-label">{label}</label>
-      {type === 'boolean' ? (
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-          <input type="checkbox" checked={value} onChange={e => onChange(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: '#f59e0b' }} />
-          {value ? 'Enabled' : 'Disabled'}
-        </label>
-      ) : type === 'select' ? (
+      {type === 'select' ? (
         <select className="admin-form-select" value={value} onChange={e => onChange(e.target.value)}>
           {options?.map(o => <option key={o.value || o} value={o.value || o}>{o.label || o}</option>)}
         </select>
