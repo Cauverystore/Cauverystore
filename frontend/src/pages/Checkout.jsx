@@ -23,10 +23,10 @@ const Checkout = () => {
     t: tr
   } = useTranslation();
 
-  const [codLimits, setCodLimits] = useState({ min: DEFAULT_COD_MIN_ORDER_VALUE, max: DEFAULT_COD_MAX_ORDER_VALUE });
+  const [codLimits, setCodLimits] = useState({ min: DEFAULT_COD_MIN_ORDER_VALUE, max: DEFAULT_COD_MAX_ORDER_VALUE, codEnabled: true, onlineEnabled: true });
   useEffect(() => {
     api.get("/api/settings/cod")
-      .then(({ data }) => setCodLimits({ min: Number(data.minOrderValue) || 0, max: Number(data.maxOrderValue) || 0 }))
+      .then(({ data }) => setCodLimits({ min: Number(data.minOrderValue) || 0, max: Number(data.maxOrderValue) || 0, codEnabled: data.codEnabled !== false, onlineEnabled: data.onlineEnabled !== false }))
       .catch(() => {});
   }, []);
   const [step, setStep] = useState(0);
@@ -198,9 +198,19 @@ const Checkout = () => {
     }
   };
 
-  const codAllowed = total >= codLimits.min && (codLimits.max <= 0 || total <= codLimits.max);
+  const codAllowed = codLimits.codEnabled && total >= codLimits.min && (codLimits.max <= 0 || total <= codLimits.max);
+  const onlineAllowed = codLimits.onlineEnabled;
+  // If the method picked earlier is no longer on offer, fall back to one that is.
+  useEffect(() => {
+    if (!onlineAllowed && paymentMethod !== "COD") setPaymentMethod("COD");
+    else if (!codAllowed && paymentMethod === "COD" && onlineAllowed) setPaymentMethod("UPI");
+  }, [onlineAllowed, codAllowed, paymentMethod]);
 
   const handlePlaceOrder = async () => {
+    if (paymentMethod !== "COD" && !onlineAllowed) {
+      setError(tr("checkout.onlinePaymentUnavailable"));
+      return;
+    }
     if (paymentMethod === "COD" && !codAllowed) {
       setError(tr("checkout.codNotAvailableAbove", { min: codLimits.min.toLocaleString("en-IN"), max: codLimits.max.toLocaleString("en-IN") }));
       return;
@@ -276,7 +286,10 @@ const Checkout = () => {
           order_id: paymentData.razorpayOrderId || paymentData.orderId,
           prefill: { name: shipping.fullName, contact: shipping.phone },
           // Razorpay offers COD on every checkout once it is active, so hide it on large orders.
-          ...(codAllowed ? {} : { config: { display: { hide: [{ method: "cod" }] } } }),
+          ...((codAllowed && onlineAllowed) ? {} : { config: { display: { hide: [
+            ...(codAllowed ? [] : [{ method: "cod" }]),
+            ...(onlineAllowed ? [] : ["card", "upi", "netbanking", "wallet", "emi", "paylater"].map((method) => ({ method })))
+          ] } } }),
           handler: async function (response) {
             try {
               const verifyRes = await api.post("/api/payment/verify", {
@@ -501,10 +514,12 @@ const Checkout = () => {
             <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>{tr("checkout.howWouldYouLikeTo")}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {[
-                { value: "CARD", label: tr("checkout.creditDebitCard"), desc: tr("checkout.visaMastercardAndRupay") },
-                { value: "UPI", label: "UPI", desc: tr("checkout.googlePayPhonepePaytmOr") },
-                { value: "NET_BANKING", label: tr("footer.netBanking"), desc: tr("checkout.allMajorBanks") },
-                { value: "WALLET", label: tr("checkout.wallet"), desc: tr("checkout.paytmAmazonPayMobikwik") },
+                ...(onlineAllowed ? [
+                  { value: "CARD", label: tr("checkout.creditDebitCard"), desc: tr("checkout.visaMastercardAndRupay") },
+                  { value: "UPI", label: "UPI", desc: tr("checkout.googlePayPhonepePaytmOr") },
+                  { value: "NET_BANKING", label: tr("footer.netBanking"), desc: tr("checkout.allMajorBanks") },
+                  { value: "WALLET", label: tr("checkout.wallet"), desc: tr("checkout.paytmAmazonPayMobikwik") },
+                ] : []),
                 ...(codAllowed ? [{ value: "COD", label: tr("msgs.payCod"), desc: tr("checkout.payCashWhenDelivered") }] : []),
               ].map((opt) => (
                 <label key={opt.value} onClick={() => setPaymentMethod(opt.value)} style={{

@@ -862,6 +862,14 @@ public class OrderService {
         // Only cash on delivery may be placed without a verified online payment. Anything else
         // that arrives unpaid (no payment sent, or one already used for another order) is
         // refused; this method is transactional, so the order and its stock deduction roll back.
+        if (codLimitService != null) {
+            if (isCodOrder(order) && !codLimitService.codEnabled()) {
+                throw new RuntimeException("Cash on delivery is currently unavailable. Please pay online for this order.");
+            }
+            if (!isCodOrder(order) && !codLimitService.onlineEnabled()) {
+                throw new RuntimeException("Online payment is currently unavailable. Please choose cash on delivery.");
+            }
+        }
         if (isCodOrder(order)) {
             CodLimitService.Limits limits = codLimits();
             if (!limits.allows(order.getTotalAmount())) {

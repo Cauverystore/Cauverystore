@@ -17,6 +17,9 @@ public class CodLimitService {
 
     public static final String MIN_KEY = "cod.minOrderValue";
     public static final String MAX_KEY = "cod.maxOrderValue";
+    /** Payment tab switches. Absent means enabled. */
+    public static final String COD_ENABLED_KEY = "payment.enableCod";
+    public static final String ONLINE_ENABLED_KEY = "payment.enableOnlinePayments";
 
     public record Limits(double min, double max) {
         public boolean allows(double total) {
@@ -40,6 +43,20 @@ public class CodLimitService {
         return new Limits(read(MIN_KEY, defaultMin), read(MAX_KEY, defaultMax));
     }
 
+    public boolean codEnabled() {
+        return readBool(COD_ENABLED_KEY);
+    }
+
+    public boolean onlineEnabled() {
+        return readBool(ONLINE_ENABLED_KEY);
+    }
+
+    private boolean readBool(String key) {
+        PlatformSetting s = settings.getSetting(key);
+        if (s == null || s.getSettingValue() == null || s.getSettingValue().isBlank()) return true;
+        return !"false".equalsIgnoreCase(s.getSettingValue().trim());
+    }
+
     private double read(String key, double fallback) {
         PlatformSetting s = settings.getSetting(key);
         if (s == null || s.getSettingValue() == null || s.getSettingValue().isBlank()) return fallback;
@@ -53,6 +70,16 @@ public class CodLimitService {
 
     /** Rejects a bad COD limit before it is saved; other keys are ignored. */
     public void validate(Map<String, String> updates) {
+        if (updates.containsKey(COD_ENABLED_KEY) || updates.containsKey(ONLINE_ENABLED_KEY)) {
+            boolean cod = updates.containsKey(COD_ENABLED_KEY)
+                    ? !"false".equalsIgnoreCase(String.valueOf(updates.get(COD_ENABLED_KEY)).trim()) : codEnabled();
+            boolean online = updates.containsKey(ONLINE_ENABLED_KEY)
+                    ? !"false".equalsIgnoreCase(String.valueOf(updates.get(ONLINE_ENABLED_KEY)).trim()) : onlineEnabled();
+            if (!cod && !online) {
+                throw new IllegalArgumentException(
+                        "Cash on delivery and online payments cannot both be disabled; customers would have no way to pay.");
+            }
+        }
         if (!updates.containsKey(MIN_KEY) && !updates.containsKey(MAX_KEY)) return;
         Limits now = current();
         double min = parse(updates, MIN_KEY, now.min());

@@ -72,4 +72,29 @@ class CodLimitServiceTest {
         assertDoesNotThrow(() -> service.validate(Map.of(CodLimitService.MIN_KEY, "1000", CodLimitService.MAX_KEY, "3000")));
         assertDoesNotThrow(() -> service.validate(Map.of("store.name", "x")));
     }
+
+    @Test
+    void paymentSwitchesDefaultToEnabled() {
+        assertTrue(service.codEnabled());
+        assertTrue(service.onlineEnabled());
+    }
+
+    @Test
+    void paymentSwitchReadsSavedValue() {
+        when(settings.getSetting(CodLimitService.COD_ENABLED_KEY))
+                .thenReturn(setting(CodLimitService.COD_ENABLED_KEY, "false"));
+        assertFalse(service.codEnabled());
+        assertTrue(service.onlineEnabled());
+    }
+
+    @Test
+    void validateRejectsDisablingBothPaymentWays() {
+        assertThrows(IllegalArgumentException.class, () -> service.validate(
+                Map.of(CodLimitService.COD_ENABLED_KEY, "false", CodLimitService.ONLINE_ENABLED_KEY, "false")));
+        when(settings.getSetting(CodLimitService.COD_ENABLED_KEY))
+                .thenReturn(setting(CodLimitService.COD_ENABLED_KEY, "false"));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.validate(Map.of(CodLimitService.ONLINE_ENABLED_KEY, "false")));
+        assertDoesNotThrow(() -> service.validate(Map.of(CodLimitService.ONLINE_ENABLED_KEY, "true")));
+    }
 }

@@ -194,7 +194,21 @@ public class PaymentService {
         return keyId;
     }
 
+    /** Edited in Platform Settings; null only in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CodLimitService codLimitService;
+
     public Map<String, Object> createRazorpayOrder(String authHeader, Map<String, Object> body) {
+        if (codLimitService != null) {
+            Object method = body.get("paymentMethod");
+            boolean cod = method != null && method.toString().toUpperCase(java.util.Locale.ROOT).contains("COD");
+            if (cod && !codLimitService.codEnabled()) {
+                throw new IllegalArgumentException("Cash on delivery is currently unavailable. Please pay online.");
+            }
+            if (!cod && !codLimitService.onlineEnabled()) {
+                throw new IllegalArgumentException("Online payment is currently unavailable. Please choose cash on delivery.");
+            }
+        }
         Object amountObj = body.get("amount");
         if (amountObj == null) {
             throw new IllegalArgumentException("amount is required");

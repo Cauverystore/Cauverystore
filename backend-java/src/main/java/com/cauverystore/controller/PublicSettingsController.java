@@ -19,11 +19,14 @@ public class PublicSettingsController {
         this.codLimitService = codLimitService;
     }
 
-    /** The order-value range in which cash on delivery is offered (max 0 = no upper limit). */
+    /** The COD order-value range (max 0 = no upper limit) and whether COD / online payment are switched on. */
     @GetMapping("/cod")
-    public ResponseEntity<Map<String, Double>> getCodLimits() {
+    public ResponseEntity<Map<String, Object>> getCodLimits() {
         var l = codLimitService.current();
-        return ResponseEntity.ok(Map.of("minOrderValue", l.min(), "maxOrderValue", l.max()));
+        return ResponseEntity.ok(Map.of(
+                "minOrderValue", l.min(), "maxOrderValue", l.max(),
+                "codEnabled", codLimitService.codEnabled(),
+                "onlineEnabled", codLimitService.onlineEnabled()));
     }
 
     @GetMapping("/homepage")
