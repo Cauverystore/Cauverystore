@@ -54,7 +54,7 @@ const SettingField = ({ label, value, onChange, type = 'text', editing, options,
   );
 };
 
-const SettingsSection = ({ title, fields, editing, setEditing, onSave, saving }) => (
+const SettingsSection = ({ title, fields, children, editing, setEditing, onSave, saving }) => (
   <div className="admin-chart-card" style={{ marginBottom: '24px' }}>
     <div className="admin-chart-header">
       <div className="admin-chart-title">{title}</div>
@@ -70,6 +70,7 @@ const SettingsSection = ({ title, fields, editing, setEditing, onSave, saving })
       </div>
     </div>
     {fields}
+    {children}
   </div>
 );
 
