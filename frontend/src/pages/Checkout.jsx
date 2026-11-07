@@ -12,8 +12,10 @@ import i18n from "../i18n";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
 // Shown on the review step, so the customer reads "Cash on Delivery" rather than "COD".
-// Orders above this are prepaid only. Keep in step with cod.max-order-value on the server (default 500).
-const COD_MAX_ORDER_VALUE = 500;
+// Cash on delivery only for orders from MIN to MAX; others are prepaid only. Keep in step with
+// cod.min-order-value / cod.max-order-value on the server (defaults 1000 / 3000).
+const COD_MIN_ORDER_VALUE = 1000;
+const COD_MAX_ORDER_VALUE = 3000;
 const PAYMENT_LABELS = { get COD() { return i18n.t("msgs.payCod"); }, get CARD() { return i18n.t("msgs.payCard"); }, UPI: "UPI", get NET_BANKING() { return i18n.t("msgs.payNetBanking"); }, get WALLET() { return i18n.t("msgs.payWallet"); } };
 
 const Checkout = () => {
@@ -190,11 +192,11 @@ const Checkout = () => {
     }
   };
 
-  const codAllowed = total <= COD_MAX_ORDER_VALUE;
+  const codAllowed = total >= COD_MIN_ORDER_VALUE && total <= COD_MAX_ORDER_VALUE;
 
   const handlePlaceOrder = async () => {
     if (paymentMethod === "COD" && !codAllowed) {
-      setError(tr("checkout.codNotAvailableAbove", { max: COD_MAX_ORDER_VALUE.toLocaleString("en-IN") }));
+      setError(tr("checkout.codNotAvailableAbove", { min: COD_MIN_ORDER_VALUE.toLocaleString("en-IN"), max: COD_MAX_ORDER_VALUE.toLocaleString("en-IN") }));
       return;
     }
     // The server refuses to invoice goods it cannot tax, so taking payment for them would only
