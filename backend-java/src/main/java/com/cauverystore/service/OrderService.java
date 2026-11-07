@@ -879,7 +879,7 @@ public class OrderService {
 
     /** Cash on delivery: the order was placed with the COD payment method. */
     /** Largest order that may be paid in cash on delivery; larger ones must be prepaid. 0 = no limit. */
-    @org.springframework.beans.factory.annotation.Value("${cod.max-order-value:10000}")
+    @org.springframework.beans.factory.annotation.Value("${cod.max-order-value:3000}")
     private double codMaxOrderValue;
 
     private static boolean isCodOrder(Order order) {
