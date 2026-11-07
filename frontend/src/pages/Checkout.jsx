@@ -12,8 +12,8 @@ import i18n from "../i18n";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
 // Shown on the review step, so the customer reads "Cash on Delivery" rather than "COD".
-// Orders above this are prepaid only. Keep in step with cod.max-order-value on the server (default 3000).
-const COD_MAX_ORDER_VALUE = 3000;
+// Orders above this are prepaid only. Keep in step with cod.max-order-value on the server (default 500).
+const COD_MAX_ORDER_VALUE = 500;
 const PAYMENT_LABELS = { get COD() { return i18n.t("msgs.payCod"); }, get CARD() { return i18n.t("msgs.payCard"); }, UPI: "UPI", get NET_BANKING() { return i18n.t("msgs.payNetBanking"); }, get WALLET() { return i18n.t("msgs.payWallet"); } };
 
 const Checkout = () => {
