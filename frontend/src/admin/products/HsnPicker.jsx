@@ -19,6 +19,27 @@ import api from "../../api/axios";
  * product classified by guesswork. So the tariff can also be walked from the top: pick the
  * trade, then the heading.
  */
+
+// Words that carry no meaning when comparing a product name with a tariff description.
+const STOP_WORDS = new Set(["other", "than", "with", "without", "whether", "not", "that", "this", "from", "their", "such", "parts", "products", "goods", "articles", "preparations", "including", "excluding", "of", "and", "the", "for", "in", "or"]);
+
+const wordsOf = (text) =>
+  (text || "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !STOP_WORDS.has(w));
+
+// An advisory check, never a block: true when the product's name and the code's official
+// description share no word at all, which is how a vaccine code ends up on a test product or
+// a grocery item. It can be wrong for brand names, so it only asks the seller to look twice.
+export function looksUnrelated(productName, description) {
+  const name = wordsOf(productName);
+  const desc = wordsOf(description);
+  if (name.length === 0 || desc.length === 0) return false;
+  const stem = (w) => (w.length > 4 && w.endsWith("s") ? w.slice(0, -1) : w);
+  return !name.some((n) => desc.some((d) => {
+    const a = stem(n), b = stem(d);
+    return a.includes(b) || b.includes(a);
+  }));
+}
+
 const HsnPicker = ({ value, onChange, categoryId, productName, unitPrice, prePackaged }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -155,6 +176,12 @@ const HsnPicker = ({ value, onChange, categoryId, productName, unitPrice, prePac
                 ? "Not a code in the official GSTN master — this product cannot be taxed correctly until it is changed."
                 : selected.description}
             </span>
+            {!selected.invalid && looksUnrelated(productName, selected.description) && (
+              <span style={{ display: "block", color: "#b45309", marginTop: 4 }}>
+                Check this code: its description doesn't seem to match "{productName}". A wrong code
+                means the wrong GST rate on invoices.
+              </span>
+            )}
           </span>
           <button type="button" onClick={() => { onChange(""); setSelected(null); setOpen(true); }}
                   style={{ ...linkBtn }}>
