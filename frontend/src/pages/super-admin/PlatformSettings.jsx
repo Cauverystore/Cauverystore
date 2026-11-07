@@ -310,6 +310,10 @@ const PlatformSettings = () => {
 
   const renderPaymentSettings = () => (
     <SettingsSection title="Payment Configuration" editing={editState.payment} setEditing={(v) => startEditing('payment', v)} onSave={() => handleSave('payment')} saving={saving}>
+      <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 12px' }}>
+        Switch cash on delivery or online payment off to stop offering it on the website, the app and the server straight after saving.
+        At least one of them must stay on. The cash on delivery order range is on the Cash on Delivery tab.
+      </p>
       <SettingField label="Razorpay Key ID" value={settings.payment.razorpayKeyId} onChange={updateSetting('payment', 'razorpayKeyId')} editing={editState.payment} type={editState.payment ? 'text' : 'password'} />
       <div className="admin-form-row">
         <SettingField label="Enable COD" value={settings.payment.enableCod} onChange={updateSetting('payment', 'enableCod')} editing={editState.payment} type="boolean" />
