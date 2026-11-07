@@ -9,6 +9,8 @@ const userService = {
   addAddress: (data) => api.post("/api/users/addresses", data),
   updateAddress: (id, data) => api.put(`/api/users/addresses/${id}`, data),
   deleteAddress: (id) => api.delete(`/api/users/addresses/${id}`),
+  // Deletes the signed-in shopper's own account. confirm must be the word DELETE.
+  deleteAccount: (password, confirm) => api.delete("/api/users/account", { data: { password, confirm } }),
   getDefaultAddress: () => api.get("/api/users/addresses/default"),
   getBillingAddress: () => api.get("/api/users/addresses/billing"),
 
