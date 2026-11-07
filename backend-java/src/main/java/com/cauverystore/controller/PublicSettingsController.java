@@ -1,5 +1,6 @@
 package com.cauverystore.controller;
 
+import com.cauverystore.service.CodLimitService;
 import com.cauverystore.service.PlatformSettingsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,8 +12,18 @@ import java.util.Map;
 public class PublicSettingsController {
 
     private final PlatformSettingsService platformSettingsService;
-    public PublicSettingsController(PlatformSettingsService platformSettingsService) {
+    private final CodLimitService codLimitService;
+
+    public PublicSettingsController(PlatformSettingsService platformSettingsService, CodLimitService codLimitService) {
         this.platformSettingsService = platformSettingsService;
+        this.codLimitService = codLimitService;
+    }
+
+    /** The order-value range in which cash on delivery is offered (max 0 = no upper limit). */
+    @GetMapping("/cod")
+    public ResponseEntity<Map<String, Double>> getCodLimits() {
+        var l = codLimitService.current();
+        return ResponseEntity.ok(Map.of("minOrderValue", l.min(), "maxOrderValue", l.max()));
     }
 
     @GetMapping("/homepage")

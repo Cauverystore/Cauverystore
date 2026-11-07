@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Store, Lock, CreditCard, Mail, Receipt } from 'lucide-react';
+import { Store, Lock, CreditCard, Mail, Receipt, Banknote } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../admin/context/ToastContext';
 
@@ -7,6 +7,7 @@ const TABS = [
   { id: 'store', label: 'Store Settings', icon: <Store size={18} /> },
   { id: 'security', label: 'Security', icon: <Lock size={18} /> },
   { id: 'payment', label: 'Payment', icon: <CreditCard size={18} /> },
+  { id: 'cod', label: 'Cash on Delivery', icon: <Banknote size={18} /> },
   { id: 'email', label: 'Email', icon: <Mail size={18} /> },
   { id: 'tax', label: 'Tax / GST', icon: <Receipt size={18} /> },
 ];
@@ -15,6 +16,7 @@ const initialSettings = {
   store: { name: 'Cauvery Store', description: '', currency: 'INR', timezone: 'Asia/Kolkata', contactEmail: '', phone: '', address: '' },
   security: { minPasswordLength: 8, maxLoginAttempts: 5, sessionTimeout: 60, requireOtp: false },
   payment: { razorpayKeyId: '', enableCod: true, enableOnlinePayments: true, currency: 'INR' },
+  cod: { minOrderValue: 1000, maxOrderValue: 3000 },
   email: { fromName: '', fromEmail: '', smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '' },
   tax: { gstRate: 18, enableTax: true, taxCalculationMethod: 'inclusive', hsnRequired: false },
 };
@@ -78,11 +80,11 @@ const PlatformSettings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [editState, setEditState] = useState({ store: false, security: false, payment: false, email: false, tax: false });
+  const [editState, setEditState] = useState({ store: false, security: false, payment: false, cod: false, email: false, tax: false });
 
   const flatToNested = (flat) => {
     if (!flat || !Array.isArray(flat)) return initialSettings;
-    const grouped = { store: {}, security: {}, payment: {}, email: {}, tax: {} };
+    const grouped = { store: {}, security: {}, payment: {}, cod: {}, email: {}, tax: {} };
     flat.forEach(item => {
       const key = item.settingKey || item.key || '';
       const value = item.settingValue || item.value || '';
@@ -96,6 +98,9 @@ const PlatformSettings = () => {
       } else if (key.startsWith('payment.') || cat === 'payment') {
         const k = key.replace('payment.', '');
         if (k) grouped.payment[k] = value;
+      } else if (key.startsWith('cod.') || cat === 'cod') {
+        const k = key.replace('cod.', '');
+        if (k) grouped.cod[k] = value;
       } else if (key.startsWith('email.') || cat === 'email') {
         const k = key.replace('email.', '');
         if (k) grouped.email[k] = value;
@@ -108,6 +113,7 @@ const PlatformSettings = () => {
       store: { ...initialSettings.store, ...grouped.store },
       security: { ...initialSettings.security, ...grouped.security },
       payment: { ...initialSettings.payment, ...grouped.payment },
+      cod: { ...initialSettings.cod, ...grouped.cod },
       email: { ...initialSettings.email, ...grouped.email },
       tax: { ...initialSettings.tax, ...grouped.tax },
     };
@@ -201,6 +207,19 @@ const PlatformSettings = () => {
     </SettingsSection>
   );
 
+  const renderCodSettings = () => (
+    <SettingsSection title="Cash on Delivery Limits" editing={editState.cod} setEditing={(v) => setEditState(p => ({...p, cod: v}))} onSave={() => handleSave('cod')} saving={saving}>
+      <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 12px' }}>
+        Cash on delivery is offered only when the order total is between these two amounts (inclusive); other orders must be paid online.
+        Enter 0 as the maximum for no upper limit. Applies to the website, the app and the server straight after saving.
+      </p>
+      <div className="admin-form-row">
+        <SettingField label="Minimum order value (₹)" value={settings.cod.minOrderValue} onChange={updateSetting('cod', 'minOrderValue')} editing={editState.cod} type="number" />
+        <SettingField label="Maximum order value (₹)" value={settings.cod.maxOrderValue} onChange={updateSetting('cod', 'maxOrderValue')} editing={editState.cod} type="number" />
+      </div>
+    </SettingsSection>
+  );
+
   const renderEmailSettings = () => (
     <SettingsSection title="Email Configuration" editing={editState.email} setEditing={(v) => setEditState(p => ({...p, email: v}))} onSave={() => handleSave('email')} saving={saving}>
       <div className="admin-form-row">
@@ -235,6 +254,7 @@ const PlatformSettings = () => {
     store: renderStoreSettings(),
     security: renderSecuritySettings(),
     payment: renderPaymentSettings(),
+    cod: renderCodSettings(),
     email: renderEmailSettings(),
     tax: renderTaxSettings(),
   };

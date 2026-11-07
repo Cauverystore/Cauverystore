@@ -193,7 +193,7 @@
     "wallet": "Wallet",
     "paytmAmazonPayMobikwik": "Paytm, Amazon Pay, Mobikwik",
     "payCashWhenDelivered": "Pay in cash when your order arrives",
-    "codNotAvailableAbove": "Cash on delivery is available for orders up to ₹{{max}}. Please pay online for this order.",
+    "codNotAvailableAbove": "Cash on delivery is available for orders from ₹{{min}} to ₹{{max}}. Please pay online for this order.",
     "giftWrap49": "Gift Wrap (+₹49)",
     "checkYourOrder": "Check your order",
     "deliveringTo": "Delivering to",
