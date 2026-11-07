@@ -20,6 +20,7 @@ import com.cauverystore.service.AuditService;
 import com.cauverystore.service.AuthorizationService;
 import com.cauverystore.service.EmailService;
 import com.cauverystore.service.ImpersonationService;
+import com.cauverystore.service.CodLimitService;
 import com.cauverystore.service.PlatformSettingsService;
 import com.cauverystore.service.ProductService;
 import com.cauverystore.service.UserService;
@@ -60,6 +61,7 @@ public class SuperAdminController {
     private final RefundRepository refundRepo;
     private final AuditLogRepository auditLogRepo;
     private final PlatformSettingsService platformSettingsService;
+    private final com.cauverystore.service.CodLimitService codLimitService;
     private final ImpersonationService impersonationService;
     private final AuthorizationService authorizationService;
     private final AuditService auditService;
@@ -435,8 +437,20 @@ public class SuperAdminController {
     }
 
     @PutMapping("/settings")
-    public ResponseEntity<List<PlatformSetting>> updateSettings(@RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(platformSettingsService.updateSettings(body));
+    public ResponseEntity<?> updateSettings(@RequestBody Map<String, String> body) {
+        try {
+            codLimitService.validate(body);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+        boolean codChanged = body.containsKey(CodLimitService.MIN_KEY) || body.containsKey(CodLimitService.MAX_KEY);
+        List<PlatformSetting> saved = platformSettingsService.updateSettings(body);
+        if (codChanged) {
+            auditService.log(authorizationService.getCurrentUserId(), authorizationService.getCurrentUserEmail(),
+                    "COD_LIMITS_UPDATED", "PlatformSetting", null,
+                    "COD limits now " + codLimitService.current().min() + " to " + codLimitService.current().max(), null);
+        }
+        return ResponseEntity.ok(saved);
     }
 
     @GetMapping("/settings/security")

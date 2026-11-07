@@ -862,12 +862,13 @@ public class OrderService {
         // Only cash on delivery may be placed without a verified online payment. Anything else
         // that arrives unpaid (no payment sent, or one already used for another order) is
         // refused; this method is transactional, so the order and its stock deduction roll back.
-        if (isCodOrder(order)
-                && ((codMaxOrderValue > 0 && order.getTotalAmount() > codMaxOrderValue)
-                    || order.getTotalAmount() < codMinOrderValue)) {
-            throw new RuntimeException("Cash on delivery is available for orders from Rs "
-                    + Math.round(codMinOrderValue) + " to Rs " + Math.round(codMaxOrderValue)
-                    + ". Please pay online for this order.");
+        if (isCodOrder(order)) {
+            CodLimitService.Limits limits = codLimits();
+            if (!limits.allows(order.getTotalAmount())) {
+                throw new RuntimeException("Cash on delivery is available for orders from Rs "
+                        + Math.round(limits.min()) + (limits.max() > 0 ? " to Rs " + Math.round(limits.max()) : " upwards")
+                        + ". Please pay online for this order.");
+            }
         }
         if (!isCodOrder(order) && !order.isPaid()) {
             throw new RuntimeException("Payment has not been verified for this order, so it cannot be placed.");
@@ -881,13 +882,21 @@ public class OrderService {
     }
 
     /** Cash on delivery: the order was placed with the COD payment method. */
-    /** Smallest order that may be paid in cash on delivery; smaller ones must be prepaid. 0 = no minimum. */
-    @org.springframework.beans.factory.annotation.Value("${cod.min-order-value:1000}")
+    /** Edited in Platform Settings; null only in unit tests, where the property defaults below apply. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CodLimitService codLimitService;
+
+    @org.springframework.beans.factory.annotation.Value("${cod.min-order-value:0}")
     private double codMinOrderValue;
 
-    /** Largest order that may be paid in cash on delivery; larger ones must be prepaid. 0 = no limit. */
-    @org.springframework.beans.factory.annotation.Value("${cod.max-order-value:3000}")
+    @org.springframework.beans.factory.annotation.Value("${cod.max-order-value:0}")
     private double codMaxOrderValue;
+
+    private CodLimitService.Limits codLimits() {
+        return codLimitService != null
+                ? codLimitService.current()
+                : new CodLimitService.Limits(codMinOrderValue, codMaxOrderValue);
+    }
 
     private static boolean isCodOrder(Order order) {
         return order.getPaymentMethod() != null

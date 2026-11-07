@@ -12,10 +12,10 @@ import i18n from "../i18n";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
 // Shown on the review step, so the customer reads "Cash on Delivery" rather than "COD".
-// Cash on delivery only for orders from MIN to MAX; others are prepaid only. Keep in step with
-// cod.min-order-value / cod.max-order-value on the server (defaults 1000 / 3000).
-const COD_MIN_ORDER_VALUE = 1000;
-const COD_MAX_ORDER_VALUE = 3000;
+// Cash on delivery only for orders from MIN to MAX; others are prepaid only. These are the
+// fallback values; the live range is edited in Platform Settings and fetched from /api/settings/cod.
+const DEFAULT_COD_MIN_ORDER_VALUE = 1000;
+const DEFAULT_COD_MAX_ORDER_VALUE = 3000;
 const PAYMENT_LABELS = { get COD() { return i18n.t("msgs.payCod"); }, get CARD() { return i18n.t("msgs.payCard"); }, UPI: "UPI", get NET_BANKING() { return i18n.t("msgs.payNetBanking"); }, get WALLET() { return i18n.t("msgs.payWallet"); } };
 
 const Checkout = () => {
@@ -23,6 +23,12 @@ const Checkout = () => {
     t: tr
   } = useTranslation();
 
+  const [codLimits, setCodLimits] = useState({ min: DEFAULT_COD_MIN_ORDER_VALUE, max: DEFAULT_COD_MAX_ORDER_VALUE });
+  useEffect(() => {
+    api.get("/api/settings/cod")
+      .then(({ data }) => setCodLimits({ min: Number(data.minOrderValue) || 0, max: Number(data.maxOrderValue) || 0 }))
+      .catch(() => {});
+  }, []);
   const [step, setStep] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [serverTax, setServerTax] = useState(null);
@@ -192,11 +198,11 @@ const Checkout = () => {
     }
   };
 
-  const codAllowed = total >= COD_MIN_ORDER_VALUE && total <= COD_MAX_ORDER_VALUE;
+  const codAllowed = total >= codLimits.min && (codLimits.max <= 0 || total <= codLimits.max);
 
   const handlePlaceOrder = async () => {
     if (paymentMethod === "COD" && !codAllowed) {
-      setError(tr("checkout.codNotAvailableAbove", { min: COD_MIN_ORDER_VALUE.toLocaleString("en-IN"), max: COD_MAX_ORDER_VALUE.toLocaleString("en-IN") }));
+      setError(tr("checkout.codNotAvailableAbove", { min: codLimits.min.toLocaleString("en-IN"), max: codLimits.max.toLocaleString("en-IN") }));
       return;
     }
     // The server refuses to invoice goods it cannot tax, so taking payment for them would only
