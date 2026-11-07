@@ -12,6 +12,8 @@ const TABS = [
   { id: 'tax', label: 'Tax / GST', icon: <Receipt size={18} /> },
 ];
 
+const SECTION_NAMES = { store: 'Store', security: 'Security', payment: 'Payment', cod: 'Cash on delivery', email: 'Email', tax: 'Tax / GST' };
+
 const initialSettings = {
   store: { name: 'Cauvery Store', description: '', currency: 'INR', timezone: 'Asia/Kolkata', contactEmail: '', phone: '', address: '' },
   security: { minPasswordLength: 8, maxLoginAttempts: 5, sessionTimeout: 60, requireOtp: false },
@@ -19,6 +21,46 @@ const initialSettings = {
   cod: { minOrderValue: 1000, maxOrderValue: 3000 },
   email: { fromName: '', fromEmail: '', smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '' },
   tax: { gstRate: 18, enableTax: true, taxCalculationMethod: 'inclusive', hsnRequired: false },
+};
+
+// The server stores every value as text, so "false" must not be treated as true.
+const BOOLEAN_KEYS = {
+  security: ['requireOtp'],
+  payment: ['enableCod', 'enableOnlinePayments'],
+  tax: ['enableTax', 'hsnRequired'],
+};
+const NUMBER_KEYS = {
+  security: ['minPasswordLength', 'maxLoginAttempts', 'sessionTimeout'],
+  cod: ['minOrderValue', 'maxOrderValue'],
+  email: ['smtpPort'],
+  tax: ['gstRate'],
+};
+const toBool = (v) => v === true || String(v).trim().toLowerCase() === 'true';
+
+const normalise = (section, values) => {
+  const out = { ...values };
+  (BOOLEAN_KEYS[section] || []).forEach(k => { out[k] = toBool(out[k]); });
+  (NUMBER_KEYS[section] || []).forEach(k => {
+    const n = Number(out[k]);
+    out[k] = out[k] === '' || Number.isNaN(n) ? initialSettings[section][k] : n;
+  });
+  return out;
+};
+
+// Returns an error message, or '' when the section is fine to save.
+const validateSection = (section, v) => {
+  for (const k of NUMBER_KEYS[section] || []) {
+    const n = Number(v[k]);
+    if (v[k] === '' || Number.isNaN(n) || n < 0) return 'Enter a number, 0 or more, in every number field.';
+  }
+  if (section === 'cod' && Number(v.maxOrderValue) > 0 && Number(v.minOrderValue) > Number(v.maxOrderValue)) {
+    return 'The cash on delivery minimum cannot be more than the maximum.';
+  }
+  if (section === 'tax' && Number(v.gstRate) > 100) return 'GST rate cannot be more than 100%.';
+  if (section === 'security' && Number(v.minPasswordLength) < 6) return 'Minimum password length must be at least 6.';
+  if (section === 'email' && v.fromEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.fromEmail)) return 'From Email is not a valid email address.';
+  if (section === 'store' && v.contactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.contactEmail)) return 'Contact Email is not a valid email address.';
+  return '';
 };
 
 const SettingField = ({ label, value, onChange, type = 'text', editing, options, placeholder }) => {
@@ -48,7 +90,7 @@ const SettingField = ({ label, value, onChange, type = 'text', editing, options,
       ) : type === 'textarea' ? (
         <textarea className="admin-form-textarea" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
       ) : (
-        <input className="admin-form-input" type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+        <input className="admin-form-input" type={type} value={value} min={type === 'number' ? 0 : undefined} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
       )}
     </div>
   );
@@ -81,10 +123,11 @@ const PlatformSettings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [snapshot, setSnapshot] = useState({});
   const [editState, setEditState] = useState({ store: false, security: false, payment: false, cod: false, email: false, tax: false });
 
   const flatToNested = (flat) => {
-    if (!flat || !Array.isArray(flat)) return initialSettings;
+    if (!flat || !Array.isArray(flat)) return flatToNested([]);
     const grouped = { store: {}, security: {}, payment: {}, cod: {}, email: {}, tax: {} };
     flat.forEach(item => {
       const key = item.settingKey || item.key || '';
@@ -111,12 +154,12 @@ const PlatformSettings = () => {
       }
     });
     return {
-      store: { ...initialSettings.store, ...grouped.store },
-      security: { ...initialSettings.security, ...grouped.security },
-      payment: { ...initialSettings.payment, ...grouped.payment },
-      cod: { ...initialSettings.cod, ...grouped.cod },
-      email: { ...initialSettings.email, ...grouped.email },
-      tax: { ...initialSettings.tax, ...grouped.tax },
+      store: normalise('store', { ...initialSettings.store, ...grouped.store }),
+      security: normalise('security', { ...initialSettings.security, ...grouped.security }),
+      payment: normalise('payment', { ...initialSettings.payment, ...grouped.payment }),
+      cod: normalise('cod', { ...initialSettings.cod, ...grouped.cod }),
+      email: normalise('email', { ...initialSettings.email, ...grouped.email }),
+      tax: normalise('tax', { ...initialSettings.tax, ...grouped.tax }),
     };
   };
 
@@ -138,7 +181,23 @@ const PlatformSettings = () => {
     setSettings(prev => ({ ...prev, [section]: { ...prev[section], [key]: value } }));
   };
 
+  const startEditing = (section, on) => {
+    if (on) {
+      setSnapshot(prev => ({ ...prev, [section]: settings[section] }));
+    } else {
+      // Cancel: put back what was saved, so abandoned edits do not linger on screen.
+      setSettings(prev => ({ ...prev, [section]: snapshot[section] || prev[section] }));
+      setError('');
+    }
+    setEditState(prev => ({ ...prev, [section]: on }));
+  };
+
   const handleSave = async (section) => {
+    const problem = validateSection(section, settings[section]);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -147,12 +206,14 @@ const PlatformSettings = () => {
       Object.entries(sectionData).forEach(([key, value]) => {
         flat[`${section}.${key}`] = String(value);
       });
-      await api.put('/api/super-admin/settings', flat);
+      const res = await api.put('/api/super-admin/settings', flat);
+      setSettings(flatToNested(res.data));
       setEditState(prev => ({ ...prev, [section]: false }));
-      showToast(`${section} settings saved`, 'success');
+      showToast(`${SECTION_NAMES[section]} settings saved`, 'success');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save settings');
-      showToast('Failed to save settings', 'error');
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to save settings';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -169,7 +230,7 @@ const PlatformSettings = () => {
   }
 
   const renderStoreSettings = () => (
-    <SettingsSection title="Store Settings" editing={editState.store} setEditing={(v) => setEditState(p => ({...p, store: v}))} onSave={() => handleSave('store')} saving={saving}>
+    <SettingsSection title="Store Settings" editing={editState.store} setEditing={(v) => startEditing('store', v)} onSave={() => handleSave('store')} saving={saving}>
       <SettingField label="Store Name" value={settings.store.name} onChange={updateSetting('store', 'name')} editing={editState.store} />
       <SettingField label="Description" value={settings.store.description} onChange={updateSetting('store', 'description')} editing={editState.store} type="textarea" />
       <div className="admin-form-row">
@@ -185,7 +246,7 @@ const PlatformSettings = () => {
   );
 
   const renderSecuritySettings = () => (
-    <SettingsSection title="Security Settings" editing={editState.security} setEditing={(v) => setEditState(p => ({...p, security: v}))} onSave={() => handleSave('security')} saving={saving}>
+    <SettingsSection title="Security Settings" editing={editState.security} setEditing={(v) => startEditing('security', v)} onSave={() => handleSave('security')} saving={saving}>
       <div className="admin-form-row">
         <SettingField label="Min Password Length" value={settings.security.minPasswordLength} onChange={updateSetting('security', 'minPasswordLength')} editing={editState.security} type="number" />
         <SettingField label="Max Login Attempts" value={settings.security.maxLoginAttempts} onChange={updateSetting('security', 'maxLoginAttempts')} editing={editState.security} type="number" />
@@ -198,7 +259,7 @@ const PlatformSettings = () => {
   );
 
   const renderPaymentSettings = () => (
-    <SettingsSection title="Payment Configuration" editing={editState.payment} setEditing={(v) => setEditState(p => ({...p, payment: v}))} onSave={() => handleSave('payment')} saving={saving}>
+    <SettingsSection title="Payment Configuration" editing={editState.payment} setEditing={(v) => startEditing('payment', v)} onSave={() => handleSave('payment')} saving={saving}>
       <SettingField label="Razorpay Key ID" value={settings.payment.razorpayKeyId} onChange={updateSetting('payment', 'razorpayKeyId')} editing={editState.payment} type={editState.payment ? 'text' : 'password'} />
       <div className="admin-form-row">
         <SettingField label="Enable COD" value={settings.payment.enableCod} onChange={updateSetting('payment', 'enableCod')} editing={editState.payment} type="boolean" />
@@ -209,7 +270,7 @@ const PlatformSettings = () => {
   );
 
   const renderCodSettings = () => (
-    <SettingsSection title="Cash on Delivery Limits" editing={editState.cod} setEditing={(v) => setEditState(p => ({...p, cod: v}))} onSave={() => handleSave('cod')} saving={saving}>
+    <SettingsSection title="Cash on Delivery Limits" editing={editState.cod} setEditing={(v) => startEditing('cod', v)} onSave={() => handleSave('cod')} saving={saving}>
       <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 12px' }}>
         Cash on delivery is offered only when the order total is between these two amounts (inclusive); other orders must be paid online.
         Enter 0 as the maximum for no upper limit. Applies to the website, the app and the server straight after saving.
@@ -222,7 +283,7 @@ const PlatformSettings = () => {
   );
 
   const renderEmailSettings = () => (
-    <SettingsSection title="Email Configuration" editing={editState.email} setEditing={(v) => setEditState(p => ({...p, email: v}))} onSave={() => handleSave('email')} saving={saving}>
+    <SettingsSection title="Email Configuration" editing={editState.email} setEditing={(v) => startEditing('email', v)} onSave={() => handleSave('email')} saving={saving}>
       <div className="admin-form-row">
         <SettingField label="From Name" value={settings.email.fromName} onChange={updateSetting('email', 'fromName')} editing={editState.email} />
         <SettingField label="From Email" value={settings.email.fromEmail} onChange={updateSetting('email', 'fromEmail')} editing={editState.email} type="email" />
@@ -239,7 +300,7 @@ const PlatformSettings = () => {
   );
 
   const renderTaxSettings = () => (
-    <SettingsSection title="Tax / GST Configuration" editing={editState.tax} setEditing={(v) => setEditState(p => ({...p, tax: v}))} onSave={() => handleSave('tax')} saving={saving}>
+    <SettingsSection title="Tax / GST Configuration" editing={editState.tax} setEditing={(v) => startEditing('tax', v)} onSave={() => handleSave('tax')} saving={saving}>
       <div className="admin-form-row">
         <SettingField label="GST Rate (%)" value={settings.tax.gstRate} onChange={updateSetting('tax', 'gstRate')} editing={editState.tax} type="number" />
         <SettingField label="Enable Tax" value={settings.tax.enableTax} onChange={updateSetting('tax', 'enableTax')} editing={editState.tax} type="boolean" />
@@ -270,7 +331,7 @@ const PlatformSettings = () => {
         {TABS.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => { setActiveTab(tab.id); setError(''); }}
             style={{
               padding: '10px 20px',
               background: activeTab === tab.id ? '#0f172a' : 'transparent',
