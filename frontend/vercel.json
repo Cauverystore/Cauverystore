@@ -18,9 +18,9 @@
     }
   ],
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "react-scripts build",
+  "buildCommand": "npm run build",
   "outputDirectory": "build",
-  "framework": "create-react-app",
+  "framework": "vite",
   "proxy": {
     "entrypoint": "proxy.js",
     "matcher": [
