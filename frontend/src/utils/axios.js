@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.REACT_APP_API_URL || 'http://localhost:9091',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:9091',
   withCredentials: true,
 });
 
@@ -94,7 +94,7 @@ api.interceptors.response.use(
         // very call finishes. That's a permanent deadlock: every future request hangs forever
         // instead of ever reaching the catch block below.
         const res = await axios.post(
-          (import.meta.env.REACT_APP_API_URL || 'http://localhost:9091') + '/api/auth/refresh',
+          (process.env.REACT_APP_API_URL || 'http://localhost:9091') + '/api/auth/refresh',
           {},
           { withCredentials: true }
         );

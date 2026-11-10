@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <link rel="icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" href="/logo192.png" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#00788C" />
   <!-- No static meta description here: every page sets its own through Helmet, and a second tag here made two per page. -->
-  <link rel="manifest" href="/manifest.json" />
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Cauvery Store | Online Shopping in India</title>
@@ -43,7 +43,6 @@
 <body>
   <noscript>Please turn on JavaScript in your browser to shop at Cauvery Store.</noscript>
   <div id="root"></div>
-  <script type="module" src="/src/index.jsx"></script>
   <script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/service-worker.js'); }); }</script>
 </body>
 </html>

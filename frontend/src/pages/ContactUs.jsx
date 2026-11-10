@@ -102,12 +102,12 @@ const ContactUs = () => {
             </div>
             {/* Shown only when a real number is configured - a made-up fallback number
                 misleads customers and fails a payment partner's contact-details check. */}
-            {import.meta.env.REACT_APP_CONTACT_PHONE && (
+            {process.env.REACT_APP_CONTACT_PHONE && (
             <div className="contact-detail-item">
               <Phone size={18} />
               <div>
                 <strong>{t("addressBook.phone")}</strong>
-                <span>{import.meta.env.REACT_APP_CONTACT_PHONE}</span>
+                <span>{process.env.REACT_APP_CONTACT_PHONE}</span>
               </div>
             </div>
             )}

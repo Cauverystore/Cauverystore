@@ -138,7 +138,7 @@ const Register = () => {
 
   useEffect(() => {
     if (isNativeApp) return;
-    const clientId = import.meta.env.REACT_APP_GOOGLE_CLIENT_ID;
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
     if (!clientId) return;
 
     let cancelled = false;
@@ -241,10 +241,10 @@ const Register = () => {
             <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
           </svg>{t("register.signUpWithGoogle")}</button>
       )}
-      {!isNativeApp && import.meta.env.REACT_APP_GOOGLE_CLIENT_ID && (
+      {!isNativeApp && process.env.REACT_APP_GOOGLE_CLIENT_ID && (
         <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center' }} />
       )}
-      {(isNativeApp || import.meta.env.REACT_APP_GOOGLE_CLIENT_ID) && (
+      {(isNativeApp || process.env.REACT_APP_GOOGLE_CLIENT_ID) && (
         <div className="auth-divider">{t("register.orSignUpWithEmail")}</div>
       )}
     </>

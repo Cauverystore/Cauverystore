@@ -12,7 +12,7 @@ export function trackEvent(name, params = {}) {
 export function trackPageView(path, title) {
   if (!isGtagReady()) return;
   try {
-    window.gtag("config", import.meta.env.REACT_APP_GA_MEASUREMENT_ID, {
+    window.gtag("config", process.env.REACT_APP_GA_MEASUREMENT_ID, {
       page_path: path,
       page_title: title || document.title,
     });

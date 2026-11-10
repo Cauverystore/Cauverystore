@@ -171,7 +171,7 @@ const Login = () => {
 
   useEffect(() => {
     if (!GOOGLE_ROLES.includes(role) || isNativeApp) return;
-    const clientId = import.meta.env.REACT_APP_GOOGLE_CLIENT_ID;
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
     if (!clientId) return;
 
     let cancelled = false;
@@ -438,7 +438,7 @@ const Login = () => {
             </>
           )}
 
-            {GOOGLE_ROLES.includes(role) && !isNativeApp && import.meta.env.REACT_APP_GOOGLE_CLIENT_ID && (
+            {GOOGLE_ROLES.includes(role) && !isNativeApp && process.env.REACT_APP_GOOGLE_CLIENT_ID && (
             <>
               <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center' }} />
               <div className="auth-divider">{t("login.orSignInWithYour")}</div>

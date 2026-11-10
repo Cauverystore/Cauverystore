@@ -5,8 +5,8 @@ const inp = { width: "100%", padding: "0.5rem", border: "1px solid #d1d5db", bor
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "1.25rem" };
 const btn = { padding: "0.4rem 0.85rem", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 500 };
 
-const IMPORTER = import.meta.env.REACT_APP_GST_IMPORTER_URL || "https://gst-importer-api-production.up.railway.app";
-const TOKEN = import.meta.env.REACT_APP_GST_IMPORTER_TOKEN || "";
+const IMPORTER = process.env.REACT_APP_GST_IMPORTER_URL || "https://gst-importer-api-production.up.railway.app";
+const TOKEN = process.env.REACT_APP_GST_IMPORTER_TOKEN || "";
 
 const KINDS = [
   { key: "state", label: "States" },
