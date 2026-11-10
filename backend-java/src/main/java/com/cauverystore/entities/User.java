@@ -9,8 +9,17 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
+@EntityListeners(UserPublicIdListener.class)
 @JsonIgnoreProperties({"refreshToken"})
 public class User extends BaseEntity {
+    /**
+     * The ID people see and quote: Sup001, Admin001, Seller001, Cust001. Assigned once when the
+     * account is created and never changed, even if the person later gains another role.
+     * Read-only over the API so nobody can set their own.
+     */
+    @Column(name = "public_id", unique = true, length = 32, updatable = false)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String publicId;
     private String fullName;
     private String username;
     @Column(unique = true, nullable = false)
@@ -92,6 +101,14 @@ public class User extends BaseEntity {
     public void invalidateSessions() {
         this.refreshToken = null;
         this.tokenVersion = (this.tokenVersion == null ? 0 : this.tokenVersion) + 1;
+    }
+
+    public String getPublicId() {
+        return this.publicId;
+    }
+
+    public void setPublicId(final String publicId) {
+        this.publicId = publicId;
     }
 
     @java.lang.SuppressWarnings("all")
