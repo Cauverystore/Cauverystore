@@ -67,6 +67,23 @@ public final class StatutoryRates {
                 "No " + code + " rate for " + date + " in master-data/statutory_rates.json"));
     }
 
+    /** Income-tax TDS an e-commerce operator deducts from a participant (s.194-O / s.393 Sl. 8(v)). */
+    public static final String TDS_194O = "TDS_194O";
+    /** The higher rate when the participant has furnished neither PAN nor Aadhaar. */
+    public static final String TDS_194O_NO_PAN = "TDS_194O_NO_PAN";
+    /** Rupee limit of gross sales up to which a PAN/Aadhaar-furnishing individual or HUF is exempt. */
+    public static final String TDS_194O_EXEMPT_LIMIT = "TDS_194O_EXEMPT_LIMIT";
+
+    /** 194-O TDS rate in percent on the date the sale is credited. */
+    public static double tds194oRateOn(LocalDate date, boolean panOrAadhaarFurnished) {
+        return rateOn(panOrAadhaarFurnished ? TDS_194O : TDS_194O_NO_PAN, date);
+    }
+
+    /** Rupee exemption limit for individual/HUF participants on the given date. */
+    public static double tds194oExemptLimitOn(LocalDate date) {
+        return rateOn(TDS_194O_EXEMPT_LIMIT, date);
+    }
+
     /** Total s.52 TCS rate in percent (CGST+SGST, or IGST) on the date of supply. */
     public static double tcsRateOn(LocalDate date) {
         return rateOn(TCS_S52, date);

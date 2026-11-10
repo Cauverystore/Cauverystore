@@ -2,6 +2,34 @@
  "note": "Rates fixed by law rather than by HSN. Add a new row with its effective date when a notification changes one; never edit or remove a past row - invoices already issued were taxed by it.",
  "lastUpdated": "2026-11-01",
  "rates": {
+  "TDS_194O": [
+   {
+    "from": "2020-10-01",
+    "to": "2024-09-30",
+    "rate": 1.0,
+    "source": "Section 194-O, Income-tax Act 1961 (inserted by Finance Act 2020)"
+   },
+   {
+    "from": "2024-10-01",
+    "rate": 0.1,
+    "source": "Finance (No. 2) Act 2024 (0.1% from 1-10-2024); continued as section 393(1) Sl. No. 8(v), Income-tax Act 2025, from 1-4-2026"
+   }
+  ],
+  "TDS_194O_NO_PAN": [
+   {
+    "from": "2020-10-01",
+    "rate": 5.0,
+    "source": "Higher-rate rule for a participant who has not furnished PAN or Aadhaar; 5% for e-commerce payments. Confirm the section reference under the Income-tax Act 2025 with your CA."
+   }
+  ],
+  "TDS_194O_EXEMPT_LIMIT": [
+   {
+    "from": "2020-10-01",
+    "value": 500000,
+    "note": "Rupees of gross sales in the year. No deduction for an individual or HUF participant who has furnished PAN or Aadhaar and whose gross sales through the operator in the year do not exceed this.",
+    "source": "Section 194-O(4), Income-tax Act 1961; section 393(1) Sl. No. 8(v), Income-tax Act 2025"
+   }
+  ],
   "TCS_S52": [
    {
     "from": "2018-10-01",

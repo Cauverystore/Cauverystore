@@ -24,6 +24,7 @@ Rates, due dates and thresholds change. Confirm every figure on gst.gov.in or ta
 | Before GSTR-1 due date | Export GSTR-1 for the previous month. Check totals tie to the sales register, credit notes are included, and place of supply looks right. |
 | Before GSTR-3B due date | Review the GSTR-3B data. Note the ITC block shows credit on sales invoices, not credit you can claim on purchases; get purchase ITC from your CA or accounting tool and GSTR-2B. |
 | Marketplace operator only | Prepare GSTR-8 (TCS collected). Confirm the TCS rate on the portal. |
+| Marketplace operator only | Income-tax TDS on sellers (section 194-O, now section 393(1) Sl. No. 8(v)): open `GET /api/admin/tds-194o?fy=2026-27` as an admin. It shows, per seller, how much to hold back from payouts (0.1%; 5% if the seller gave no PAN/Aadhaar; none for an individual/HUF with PAN/Aadhaar up to Rs 5 lakh a year). It does not deposit the tax or file the TDS return; your CA does that. Check the rates in `statutory_rates.json` and the seller's constitution of business first. |
 | After filing | Mark the deadline filed in the app and keep the portal acknowledgement. |
 
 ## Each year

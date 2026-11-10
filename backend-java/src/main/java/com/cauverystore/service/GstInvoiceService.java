@@ -30,6 +30,7 @@ import com.cauverystore.repository.TcsRecordRepository;
 import com.cauverystore.repository.CreditNoteRepository;
 import com.cauverystore.repository.DebitNoteRepository;
 import com.cauverystore.util.GstComplianceUtil;
+import com.cauverystore.util.InvoiceDocumentType;
 import com.cauverystore.util.PdfBrandingUtil;
 import com.cauverystore.util.ExcelExportUtil;
 import com.lowagie.text.Document;
@@ -1977,7 +1978,8 @@ public class GstInvoiceService {
         headerTable.setWidths(new float[]{60, 40});
         PdfPCell leftCell = new PdfPCell();
         leftCell.setBorder(Rectangle.NO_BORDER);
-        leftCell.addElement(new Paragraph("Tax Invoice", bold14));
+        // Rule 49: a document with no tax on any line is a bill of supply, not a tax invoice.
+        leftCell.addElement(new Paragraph(InvoiceDocumentType.titleFor(inv.getItems()), bold14));
         leftCell.addElement(new Paragraph(
                 (inv.getInvoiceCopyType() != null && inv.getInvoiceCopyType().equals("ORIGINAL") ? "Original for Recipient" :
                  "ORIGINAL".equals(inv.getInvoiceCopyType()) ? "Original for Recipient" :
