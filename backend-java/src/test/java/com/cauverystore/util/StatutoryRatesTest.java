@@ -31,4 +31,21 @@ class StatutoryRatesTest {
         assertThrows(IllegalStateException.class,
                 () -> StatutoryRates.tcsRateOn(LocalDate.of(2018, 9, 30)));
     }
+
+    @Test
+    void tds194oIsOnePercentUntilSeptember2024_thenPointOnePercent() {
+        assertEquals(1.0, StatutoryRates.tds194oRateOn(LocalDate.of(2024, 9, 30), true), 0.0001);
+        assertEquals(0.1, StatutoryRates.tds194oRateOn(LocalDate.of(2024, 10, 1), true), 0.0001);
+        assertEquals(0.1, StatutoryRates.tds194oRateOn(LocalDate.of(2026, 11, 1), true), 0.0001);
+    }
+
+    @Test
+    void tds194oWithoutPanIsFivePercent() {
+        assertEquals(5.0, StatutoryRates.tds194oRateOn(LocalDate.of(2026, 11, 1), false), 0.0001);
+    }
+
+    @Test
+    void tds194oExemptLimitIsFiveLakh() {
+        assertEquals(500_000.0, StatutoryRates.tds194oExemptLimitOn(LocalDate.of(2026, 11, 1)), 0.0);
+    }
 }

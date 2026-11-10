@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer, Download, Loader } from "lucide-react";
 import api from "../api/axios";
 import useAltText from "../hooks/useAltText";
+import { invoiceDocumentTitle } from "../utils/invoiceDocumentType";
 
 const GST_INVOICE_STYLES = `
   .giv-page { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
@@ -194,7 +195,7 @@ const GstInvoiceView = () => {
               <div>
                 <div className="giv-brand-name">Cauvery Store</div>
                 <div className="giv-brand-tagline">Everyday Essentials, Delivered</div>
-                <h1>Tax Invoice</h1>
+                <h1>{invoiceDocumentTitle(invoice)}</h1>
                 <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
                   {invoice.invoiceCopyType === "ORIGINAL" ? "Original for Recipient" :
                    invoice.invoiceCopyType === "DUPLICATE" ? "Duplicate for Transporter" :
