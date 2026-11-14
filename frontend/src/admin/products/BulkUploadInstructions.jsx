@@ -3,7 +3,7 @@ import React from "react";
 // Short version of the template's Instructions sheet, shown beside the upload box so
 // nobody has to open the second sheet to learn the rules that block an upload.
 const STEPS = [
-  "Download a fresh template. Delete the 5 sample rows, but keep row 1 (the headings) exactly as it is.",
+  "Download a fresh template and type one product per row on the first sheet, starting at row 2. Keep row 1 (the headings) exactly as it is. The 'Example' sheet shows a filled-in row and is never uploaded.",
   <><strong>Leave Product Code (column A) empty.</strong> The store creates a unique code for every product. If any row has a code, the whole file is refused and nothing is uploaded.</>,
   "Fill in Product Name, Price (numbers only, no ₹) and Stock Quantity (whole number) for every product.",
   "Use the dropdowns for Category, Country, Warranty, Return Policy, Shipping Class and Badges. If the store has an 'Others' category, a row with an empty or unknown category goes there; otherwise that row is refused.",
