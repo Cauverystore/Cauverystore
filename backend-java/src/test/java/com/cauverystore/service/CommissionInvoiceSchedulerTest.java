@@ -1,7 +1,6 @@
 package com.cauverystore.service;
 
 import com.cauverystore.entities.GstConfiguration;
-import com.cauverystore.repository.GstConfigurationRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -17,17 +16,16 @@ import static org.mockito.Mockito.*;
 class CommissionInvoiceSchedulerTest {
 
     private final CommissionInvoiceService service = mock(CommissionInvoiceService.class);
-    private final GstConfigurationRepository configRepo = mock(GstConfigurationRepository.class);
 
     private CommissionInvoiceScheduler at(String instant) {
-        return new CommissionInvoiceScheduler(service, configRepo,
+        return new CommissionInvoiceScheduler(service,
                 Clock.fixed(Instant.parse(instant), CommissionInvoiceScheduler.INDIA));
     }
 
     private void storeGstin(String gstin) {
         GstConfiguration c = new GstConfiguration();
         c.setGstin(gstin);
-        when(configRepo.findAll()).thenReturn(List.of(c));
+        when(service.marketplaceConfig()).thenReturn(java.util.Optional.of(c));
     }
 
     @Test
@@ -77,7 +75,7 @@ class CommissionInvoiceSchedulerTest {
         storeGstin("  ");
         at("2026-12-15T22:30:00Z").billLastMonth();
 
-        when(configRepo.findAll()).thenReturn(List.of());
+        when(service.marketplaceConfig()).thenReturn(java.util.Optional.empty());
         at("2026-12-15T22:30:00Z").billLastMonth();
 
         verify(service, never()).generateForPeriod(anyString(), anyString());

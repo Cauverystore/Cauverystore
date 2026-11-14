@@ -67,6 +67,17 @@ public class CommissionInvoiceService {
         this.auditService = auditService;
     }
 
+    /**
+     * The marketplace's own GST registration: the active configuration with no seller attached.
+     * A seller's configuration must never be picked up here, or the commission invoice would be
+     * issued in that seller's name.
+     */
+    public Optional<GstConfiguration> marketplaceConfig() {
+        return configRepo.findByIsActiveTrue().stream()
+                .filter(c -> c.getSellerId() == null)
+                .findFirst();
+    }
+
     /** Raised when a commission invoice cannot be issued correctly. */
     public static class CommissionException extends RuntimeException {
         public CommissionException(String message) { super(message); }
@@ -103,7 +114,7 @@ public class CommissionInvoiceService {
             return existing.get();
         }
 
-        GstConfiguration config = configRepo.findAll().stream().findFirst()
+        GstConfiguration config = marketplaceConfig()
                 .orElseThrow(() -> new CommissionException(
                         "No marketplace GST configuration exists, so there is no supplier to "
                                 + "invoice from. Set one up before billing commission."));
@@ -295,7 +306,7 @@ public class CommissionInvoiceService {
         List<CommissionInvoiceLine> lines = buildLines(sellerId, from, to);
 
         // The same rate the commission invoice for this month charges.
-        double gstRate = configRepo.findAll().stream().findFirst()
+        double gstRate = marketplaceConfig()
                 .map(GstConfiguration::getCommissionGstRate).filter(r -> r != null).orElse(18.0);
 
         List<Map<String, Object>> rows = new ArrayList<>();
