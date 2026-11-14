@@ -1,7 +1,6 @@
 package com.cauverystore.service;
 
 import com.cauverystore.entities.GstConfiguration;
-import com.cauverystore.repository.GstConfigurationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -38,17 +37,15 @@ public class CommissionInvoiceScheduler {
     private static final DateTimeFormatter PERIOD = DateTimeFormatter.ofPattern("MMyyyy");
 
     private final CommissionInvoiceService service;
-    private final GstConfigurationRepository configRepo;
     private final Clock clock;
 
     @org.springframework.beans.factory.annotation.Autowired
-    public CommissionInvoiceScheduler(CommissionInvoiceService service, GstConfigurationRepository configRepo) {
-        this(service, configRepo, Clock.system(INDIA));
+    public CommissionInvoiceScheduler(CommissionInvoiceService service) {
+        this(service, Clock.system(INDIA));
     }
 
-    CommissionInvoiceScheduler(CommissionInvoiceService service, GstConfigurationRepository configRepo, Clock clock) {
+    CommissionInvoiceScheduler(CommissionInvoiceService service, Clock clock) {
         this.service = service;
-        this.configRepo = configRepo;
         this.clock = clock;
     }
 
@@ -66,7 +63,7 @@ public class CommissionInvoiceScheduler {
         String period = month.format(PERIOD);
 
         // The same configuration generateForSeller invoices from.
-        String gstin = configRepo.findAll().stream().findFirst()
+        String gstin = service.marketplaceConfig()
                 .map(GstConfiguration::getGstin).orElse(null);
         if (gstin == null || gstin.isBlank()) {
             log.warn("Commission invoices for {} not raised: the store has no GSTIN yet. "
