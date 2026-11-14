@@ -235,8 +235,9 @@ const SellerProducts = () => {
             href={`${api.defaults.baseURL || "http://localhost:9091"}/api/seller/template.xlsx`}
             style={{ ...btnBase, background: "#f3f4f6", color: "#374151", textDecoration: "none", fontSize: "0.8rem" }}
           >
-            Upload Template
+            Download Template
           </a>
+          <button style={{ ...btnBase, background: "#6366f1", color: "#fff" }} onClick={() => navigate("/seller/products/bulk-upload")}>Bulk Upload</button>
           <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/wizard")}>Add Product</button>
           <button style={{ ...btnBase, background: "#f3f4f6", color: "#374151" }} onClick={() => navigate("/seller/products/add")}>Quick add (one page)</button>
         </div>

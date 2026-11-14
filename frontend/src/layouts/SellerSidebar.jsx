@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Package, PlusCircle, ClipboardList, ShoppingCart,
-  BarChart3, Wallet, FileText, ShieldCheck, Store, ArrowLeft, Users,
+  BarChart3, Wallet, FileText, ShieldCheck, Store, ArrowLeft, Users, Upload,
 } from "lucide-react";
 import { useSellerStore } from "../context/SellerStoreContext";
 import useAltText from "../hooks/useAltText";
@@ -13,6 +13,7 @@ const links = [
   { to: "/seller/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: "dashboard.view" },
   { to: "/seller/products", label: "Products", icon: Package, end: true, perm: "products.view" },
   { to: "/seller/products/add", label: "Add Product", icon: PlusCircle, perm: "products.manage" },
+  { to: "/seller/products/bulk-upload", label: "Bulk Upload", icon: Upload, perm: "products.view" },
   { to: "/seller/inventory", label: "Inventory", icon: ClipboardList, perm: "products.view" },
   { to: "/seller/orders", label: "Orders & Returns", icon: ShoppingCart, perm: "orders.view" },
   { to: "/seller/analytics", label: "Analytics", icon: BarChart3, perm: "analytics.view" },

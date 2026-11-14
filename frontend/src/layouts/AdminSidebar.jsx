@@ -8,7 +8,7 @@ import {
   ShoppingCart, CreditCard, Users, ClipboardList, Ticket, Ship, Percent,
   Star, HelpCircle, FileEdit, Bell, FileSpreadsheet, FolderArchive,
   Image, Mail, Trophy, ArrowUpDown, ShieldCheck, Settings, Shield,
-  BookOpen, MapPin, Wallet, Inbox, Receipt, RefreshCw,
+  BookOpen, MapPin, Wallet, Inbox, Receipt, RefreshCw, Upload,
 } from "lucide-react";
 import useAltText from "../hooks/useAltText";
 
@@ -16,6 +16,7 @@ const allLinks = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true, module: null },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3, module: "analytics" },
   { to: "/admin/products", label: "Products", icon: Package, module: "products" },
+  { to: "/admin/products/bulk-upload", label: "Bulk Upload", icon: Upload, module: "products" },
   { to: "/admin/categories", label: "Categories", icon: Tags, module: "categories" },
   { to: "/admin/brands", label: "Brands", icon: Building2, module: "brands" },
   { to: "/admin/product-dashboard", label: "Product Dashboard", icon: LayoutList, module: "productDashboard" },
