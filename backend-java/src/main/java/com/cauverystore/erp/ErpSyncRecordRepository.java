@@ -11,4 +11,9 @@ public interface ErpSyncRecordRepository extends JpaRepository<ErpSyncRecord, Lo
     Optional<ErpSyncRecord> findByEntityTypeAndEntityId(String entityType, Long entityId);
     long countByStatus(String status);
     List<ErpSyncRecord> findTop50ByStatusOrderByUpdatedAtDesc(String status);
+    List<ErpSyncRecord> findTop200ByOrderByUpdatedAtDesc();
+    List<ErpSyncRecord> findTop200ByStatusOrderByUpdatedAtDesc(String status);
+    List<ErpSyncRecord> findTop200ByEntityTypeOrderByUpdatedAtDesc(String entityType);
+    List<ErpSyncRecord> findTop200ByEntityTypeAndStatusOrderByUpdatedAtDesc(String entityType, String status);
+    long countByEntityTypeAndStatus(String entityType, String status);
 }

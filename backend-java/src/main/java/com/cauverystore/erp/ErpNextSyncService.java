@@ -30,6 +30,9 @@ import java.util.Optional;
  * What is mirrored:
  *   commission invoice -> ERPNext Sales Invoice to the seller (as Customer), 18% GST on SAC 998599
  *   seller payout      -> ERPNext Journal Entry: Dr seller payable (party Supplier), Cr bank
+ *
+ * The store's own sales, purchases, stock and customer money are mirrored by
+ * {@link ErpNextStoreSyncService}, which this runs first.
  */
 @Service
 public class ErpNextSyncService {
@@ -43,6 +46,7 @@ public class ErpNextSyncService {
     private final CommissionInvoiceRepository invoices;
     private final SellerPayoutRepository payouts;
     private final SellerRegistrationRepository registrations;
+    private final ErpNextStoreSyncService storeSync;
 
     @Value("${erpnext.company:}") private String company;
     @Value("${erpnext.abbr:}") private String abbr;
@@ -60,12 +64,13 @@ public class ErpNextSyncService {
 
     public ErpNextSyncService(ErpNextClient erp, ErpSyncRecordRepository records,
                               CommissionInvoiceRepository invoices, SellerPayoutRepository payouts,
-                              SellerRegistrationRepository registrations) {
+                              SellerRegistrationRepository registrations, ErpNextStoreSyncService storeSync) {
         this.erp = erp;
         this.records = records;
         this.invoices = invoices;
         this.payouts = payouts;
         this.registrations = registrations;
+        this.storeSync = storeSync;
     }
 
     /** Pushes everything not yet in ERPNext. force=true also retries items that gave up. */
@@ -75,6 +80,17 @@ public class ErpNextSyncService {
             result.put("skipped", "ERPNext is not configured");
             return result;
         }
+        // The store's own trading first (products, purchases, sales, returns, money), then the
+        // marketplace side. A problem in one must not stop the other.
+        Map<String, Object> store;
+        try {
+            store = storeSync.syncAll(force);
+        } catch (Exception e) {
+            log.warn("ERPNext store sync stopped: {}", e.getMessage());
+            store = Map.of("error", String.valueOf(e.getMessage()));
+        }
+        result.put("store", store);
+
         int ok = 0, failed = 0;
         List<String> errors = new ArrayList<>();
 
