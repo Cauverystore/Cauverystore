@@ -30,6 +30,10 @@ public class EmailService {
     @Value("${resend.from.email:Cauvery Store <noreply@cauverystore.in>}")
     private String fromEmail;
 
+    /** Where customers' replies go. Empty means replies go to the sender (noreply), i.e. nowhere. */
+    @Value("${resend.reply-to:}")
+    private String defaultReplyTo;
+
     private Resend resend;
     private boolean configured = false;
 
@@ -592,7 +596,38 @@ public class EmailService {
         sender.execute(() -> deliver(supportInbox, subject, html, replyTo));
     }
 
-    private static String escape(String s) {
+    /**
+     * Passes on an email the store received at its own address (see InboundEmailService).
+     *
+     * Sent synchronously so the caller can record whether it went. Reply-To is the original
+     * sender, so pressing Reply in the personal inbox answers the customer directly.
+     * Attachments are handed to Resend as short-lived download links that it fetches while
+     * sending.
+     */
+    public boolean forwardReceived(java.util.List<String> to, String replyToAddress, String subject, String html,
+                                   java.util.List<com.resend.services.emails.model.Attachment> attachments) {
+        if (!configured || to == null || to.isEmpty()) return false;
+        try {
+            CreateEmailOptions.Builder b = CreateEmailOptions.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject(subject)
+                    .html(html);
+            if (replyToAddress != null && !replyToAddress.isBlank()) b.replyTo(replyToAddress);
+            if (attachments != null && !attachments.isEmpty()) b.attachments(attachments);
+            resend.emails().send(b.build());
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to forward received email to {}: {}", to, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    public boolean isConfigured() {
+        return configured;
+    }
+
+    static String escape(String s) {
         return s == null ? "" : s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
@@ -605,7 +640,7 @@ public class EmailService {
     }
 
     private void deliver(String to, String subject, String html) {
-        deliver(to, subject, html, null);
+        deliver(to, subject, html, defaultReplyTo == null || defaultReplyTo.isBlank() ? null : defaultReplyTo.trim());
     }
 
     private void deliver(String to, String subject, String html, String replyTo) {

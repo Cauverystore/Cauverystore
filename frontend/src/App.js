@@ -134,6 +134,7 @@ const PaymentMethods = lazy(() => import("./pages/PaymentMethods"));
 const AdminBanners = lazy(() => import("./admin/banners/AdminBanners"));
 const AdminFaq = lazy(() => import("./admin/faq/AdminFaq"));
 const AdminSupportTickets = lazy(() => import("./admin/support/AdminSupportTickets"));
+const AdminInbox = lazy(() => import("./admin/support/AdminInbox"));
 const AdminNewsletter = lazy(() => import("./admin/newsletter/AdminNewsletter"));
 const AdminLoyalty = lazy(() => import("./admin/loyalty/AdminLoyalty"));
 const StockMovements = lazy(() => import("./admin/inventory/StockMovements"));
@@ -325,6 +326,7 @@ function App() {
             <Route path="banners" element={<AdminBanners />} />
             <Route path="faq" element={<AdminFaq />} />
             <Route path="support-tickets" element={<AdminSupportTickets />} />
+            <Route path="inbox" element={<AdminInbox />} />
             <Route path="newsletter" element={<AdminNewsletter />} />
             <Route path="loyalty" element={<AdminLoyalty />} />
             <Route path="stock-movements" element={<StockMovements />} />

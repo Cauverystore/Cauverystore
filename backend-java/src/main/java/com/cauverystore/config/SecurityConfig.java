@@ -77,6 +77,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/courier-updates").permitAll()
                 // Razorpay webhook - checked against its signature in PaymentWebhookController.
                 .requestMatchers(HttpMethod.POST, "/api/payment/webhook").permitAll()
+                // Resend inbound-email webhook - checked against its Svix signature in InboundEmailService.
+                .requestMatchers(HttpMethod.POST, "/api/email/inbound").permitAll()
                 .requestMatchers("/api/support-tickets/**").authenticated()
                 .requestMatchers("/api/payment-methods/**").authenticated()
                 .requestMatchers("/error").permitAll()
