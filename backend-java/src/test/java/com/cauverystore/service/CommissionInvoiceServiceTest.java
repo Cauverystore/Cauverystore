@@ -60,6 +60,7 @@ class CommissionInvoiceServiceTest {
         seller.setGstinStateCode("33");
 
         when(configRepo.findAll()).thenReturn(List.of(config));
+        when(configRepo.findByIsActiveTrue()).thenReturn(List.of(config));
         when(sellerRegRepo.findByUserId(12L)).thenReturn(Optional.of(seller));
         when(invoiceRepo.findBySellerIdAndPeriod(anyLong(), any())).thenReturn(Optional.empty());
         when(invoiceRepo.findTopByInvoiceNumberStartingWithOrderByInvoiceNumberDesc(any()))
@@ -255,5 +256,18 @@ class CommissionInvoiceServiceTest {
         assertEquals(7.5, line.getRatePercent());
         assertEquals(200.0, line.getOrderValue());
         assertEquals(15.0, line.getCommissionAmount(), 0.01);
+    }
+
+    @Test
+    void billsFromTheStoresOwnGstSetupNeverASellers() {
+        GstConfiguration sellers = new GstConfiguration();
+        sellers.setGstin("33AABCS5555E1Z2");
+        sellers.setSellerId(12L);
+        when(configRepo.findByIsActiveTrue()).thenReturn(List.of(sellers, config));
+
+        assertEquals("33AABCC1234D1Z5", service.marketplaceConfig().orElseThrow().getGstin());
+
+        when(configRepo.findByIsActiveTrue()).thenReturn(List.of(sellers));
+        assertTrue(service.marketplaceConfig().isEmpty());
     }
 }
