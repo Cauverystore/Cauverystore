@@ -13,6 +13,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -94,6 +95,45 @@ public class ErpNextClient {
     public JsonNode submit(String doctype, String name) {
         JsonNode n = call("PUT", "/api/resource/" + enc(doctype) + "/" + enc(name), Map.of("docstatus", 1));
         return n == null ? null : n.get("data");
+    }
+
+    /** Deletes a draft. */
+    public void delete(String doctype, String name) {
+        call("DELETE", "/api/resource/" + enc(doctype) + "/" + enc(name), null);
+    }
+
+    /** Cancels a submitted document (docstatus 1 -> 2). */
+    public void cancel(String doctype, String name) {
+        call("POST", "/api/method/frappe.client.cancel", Map.of("doctype", doctype, "name", name));
+    }
+
+    /** Changes fields on an existing document (drafts, masters and settings). */
+    public JsonNode update(String doctype, String name, Map<String, Object> fields) {
+        JsonNode n = call("PUT", "/api/resource/" + enc(doctype) + "/" + enc(name), fields);
+        return n == null ? null : n.get("data");
+    }
+
+    /**
+     * Documents matching simple equality filters, with the listed fields.
+     * filters: field -> value, all must match.
+     */
+    public JsonNode list(String doctype, Map<String, String> filters, List<String> fields, int limit) {
+        StringBuilder f = new StringBuilder("[");
+        for (Map.Entry<String, String> e : filters.entrySet()) {
+            if (f.length() > 1) f.append(',');
+            f.append("[\"").append(e.getKey().replace("\"", "")).append("\",\"=\",\"")
+                    .append(String.valueOf(e.getValue()).replace("\"", "")).append("\"]");
+        }
+        f.append(']');
+        StringBuilder fl = new StringBuilder("[");
+        for (String field : fields) {
+            if (fl.length() > 1) fl.append(',');
+            fl.append('"').append(field.replace("\"", "")).append('"');
+        }
+        fl.append(']');
+        JsonNode n = call("GET", "/api/resource/" + enc(doctype) + "?fields=" + enc(fl.toString())
+                + "&limit_page_length=" + limit + "&filters=" + enc(f.toString()), null);
+        return n == null ? mapper.createArrayNode() : n.path("data");
     }
 
     /** Returns the first document name matching a field value, or null. */

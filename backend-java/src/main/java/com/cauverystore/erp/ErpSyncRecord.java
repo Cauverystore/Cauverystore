@@ -11,8 +11,24 @@ import java.time.LocalDateTime;
 public class ErpSyncRecord {
     public static final String COMMISSION_INVOICE = "COMMISSION_INVOICE";
     public static final String SELLER_PAYOUT = "SELLER_PAYOUT";
+    /** A product the store sells itself, as an ERPNext Item. */
+    public static final String ITEM = "ITEM";
+    /** A customer tax invoice for the store's own goods. */
+    public static final String SALES_INVOICE = "SALES_INVOICE";
+    /** A credit note against one of those invoices (return or price adjustment). */
+    public static final String SALES_RETURN = "SALES_RETURN";
+    /** Money received from a customer for an order. */
+    public static final String CUSTOMER_PAYMENT = "CUSTOMER_PAYMENT";
+    /** Money paid back to a customer. */
+    public static final String CUSTOMER_REFUND = "CUSTOMER_REFUND";
+    /** A received purchase order from a supplier, as a draft Purchase Invoice. */
+    public static final String PURCHASE_BILL = "PURCHASE_BILL";
     public static final String SYNCED = "SYNCED";
     public static final String FAILED = "FAILED";
+    /** Not an error: needs another record first (e.g. a payment waits for its invoice). */
+    public static final String WAITING = "WAITING";
+    /** Cancelled on the website after it reached the ERP, and cancelled there too. */
+    public static final String CANCELLED = "CANCELLED";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,6 +52,10 @@ public class ErpSyncRecord {
     @Column(name = "attempts", nullable = false)
     private Integer attempts = 0;
 
+    /** Hash of what was last sent, so a changed product is sent again. */
+    @Column(name = "fingerprint", length = 64)
+    private String fingerprint;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -55,5 +75,7 @@ public class ErpSyncRecord {
     public void setErrorMessage(String m) { this.errorMessage = m; }
     public Integer getAttempts() { return attempts; }
     public void setAttempts(Integer a) { this.attempts = a; }
+    public String getFingerprint() { return fingerprint; }
+    public void setFingerprint(String f) { this.fingerprint = f; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

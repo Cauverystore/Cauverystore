@@ -94,6 +94,7 @@ const AdminInventory = lazy(() => import("./admin/inventory/AdminInventory"));
 const AdminCoupons = lazy(() => import("./admin/coupons/AdminCoupons"));
 const AdminGstRates = lazy(() => import("./admin/gst/AdminGstRates"));
 const AdminSellerPayouts = lazy(() => import("./admin/payouts/AdminSellerPayouts"));
+const AdminErpSync = lazy(() => import("./admin/erp/AdminErpSync"));
 const AdminGstCompliance = lazy(() => import("./admin/gst/AdminGstCompliance"));
 const AdminGstMasters = lazy(() => import("./admin/gst/AdminGstMasters"));
 const AdminTds194o = lazy(() => import("./admin/gst/AdminTds194o"));
@@ -291,6 +292,7 @@ function App() {
             <Route path="orders" element={<AdminOrders />} />
             <Route path="refunds" element={<AdminRefunds />} />
             <Route path="seller-payouts" element={<AdminSellerPayouts />} />
+            <Route path="erp-sync" element={<AdminErpSync />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="inventory" element={<AdminInventory />} />
