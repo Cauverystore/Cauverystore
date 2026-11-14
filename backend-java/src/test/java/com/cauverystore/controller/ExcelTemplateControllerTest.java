@@ -29,16 +29,18 @@ class ExcelTemplateControllerTest {
             assertEquals("Image 3 URL", header.getCell(27).getStringCellValue());
             assertEquals("Pre-Packaged and Labelled", header.getCell(28).getStringCellValue());
             assertEquals("GST Rate Line ID", header.getCell(29).getStringCellValue());
-            // Every sample row must line up with the headings, or "Yes" lands in a photo column.
-            for (int r = 1; r <= sheet.getLastRowNum(); r++) {
-                assertEquals("Yes", sheet.getRow(r).getCell(28).getStringCellValue(), "row " + (r + 1));
-            }
             assertEquals("Product Code (leave empty)", header.getCell(0).getStringCellValue());
-            for (int r = 1; r <= sheet.getLastRowNum(); r++) {
-                assertEquals("", sheet.getRow(r).getCell(0).getStringCellValue(), "sample row " + (r + 1) + " must not carry a code");
-            }
-            assertEquals("https://picsum.photos/seed/s24ultra3/400/400",
-                    sheet.getRow(1).getCell(27).getStringCellValue());
+            // No example rows on the upload sheet: uploading the template as-is must add nothing.
+            assertEquals(0, sheet.getLastRowNum(), "upload sheet must hold only the headings");
+
+            // The example sits on its own sheet, lined up with the headings and with no code.
+            Sheet example = wb.getSheet(ExcelTemplateController.EXAMPLE_SHEET);
+            assertNotNull(example);
+            assertNotEquals(0, wb.getSheetIndex(example));
+            Row ex = example.getRow(1);
+            assertEquals("", ex.getCell(0).getStringCellValue());
+            assertEquals("Yes", ex.getCell(28).getStringCellValue());
+            assertEquals("7323", ex.getCell(10).getStringCellValue());
         }
     }
 

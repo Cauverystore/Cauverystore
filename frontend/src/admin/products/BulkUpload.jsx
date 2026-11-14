@@ -94,7 +94,7 @@ const BulkUpload = () => {
             Download Product Upload Template (.xlsx)
           </a>
           <p style={{ fontSize: "0.8rem", color: "#64748B", marginTop: "8px" }}>
-            Includes sample data, dropdowns, and instructions sheet.
+            Includes dropdowns, an example sheet (never uploaded) and an instructions sheet.
           </p>
         </div>
 
