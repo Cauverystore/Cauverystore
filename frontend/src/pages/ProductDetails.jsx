@@ -205,6 +205,21 @@ const ProductDetails = () => {
 
   const schemaImages = [...(product.images || []), product.image].map(fullUrl).filter((u, i, all) => u && all.indexOf(u) === i);
 
+  // Delivery terms for Google, matching the Shipping Policy and the checkout charge
+  // (CartServiceImpl / OrderService): free from ₹500, otherwise a flat ₹40.
+  // Dispatch 1-2 business days, then 2-7 business days in transit.
+  const schemaPrice = Number(product.dealPrice || product.price) || 0;
+  const shippingDetails = {
+    "@type": "OfferShippingDetails",
+    "shippingRate": { "@type": "MonetaryAmount", "value": schemaPrice >= 500 ? 0 : 40, "currency": "INR" },
+    "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "IN" },
+    "deliveryTime": {
+      "@type": "ShippingDeliveryTime",
+      "handlingTime": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 2, "unitCode": "DAY" },
+      "transitTime": { "@type": "QuantitativeValue", "minValue": 2, "maxValue": 7, "unitCode": "DAY" }
+    }
+  };
+
   return (
     <div className="product-detail-page">
       <Helmet>
@@ -238,6 +253,7 @@ const ProductDetails = () => {
           "availability": (product.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           // Marketplace: name the shop that sells it, the same one shown as "Sold by".
           "seller": seller ? { "@type": "Organization", "name": seller.name } : undefined,
+          "shippingDetails": shippingDetails,
           // Mirrors the returns line shown on the page.
           "hasMerchantReturnPolicy": returnDays > 0 ? {
             "@type": "MerchantReturnPolicy",
