@@ -2,7 +2,7 @@
 FROM node:20-slim
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends chromium ca-certificates fonts-liberation \
+ && apt-get install -y --no-install-recommends chromium ca-certificates fonts-liberation tini \
  && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production \
@@ -19,4 +19,6 @@ RUN mkdir -p /app/cache && chown node:node /app/cache
 # Run as the unprivileged "node" user.
 USER node
 EXPOSE 3000
+# tini cleans up dead Chrome processes, so a crashed Chrome cannot keep its port.
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "src/server.js"]

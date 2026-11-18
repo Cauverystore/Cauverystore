@@ -39,6 +39,9 @@ const config = {
   maxQueueWaitMs: num("MAX_QUEUE_WAIT_SECONDS", 15) * 1000,
   maxQueueLength: num("MAX_QUEUE_LENGTH", 50),
   splitDevices: bool("SEPARATE_MOBILE", true),
+  // If Chrome stays disconnected this long, the service quits so the host starts it
+  // again fresh. 0 turns this off.
+  chromeWatchdogSeconds: num("CHROME_WATCHDOG_SECONDS", 120),
 
   // Saved pages
   cacheHours: num("CACHE_HOURS", 24),

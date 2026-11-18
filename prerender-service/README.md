@@ -25,6 +25,9 @@ It replaces the paid Prerender.io service. The website's Vercel proxy
   rendering, so renders are fast and never count as visits.
 - Pages with `<meta name="prerender-status-code" content="404">` return 404.
 - Header `X-Prerender-Recache: 1` forces a fresh render.
+- **Chrome watchdog**: if Chrome stays disconnected for 2 minutes (`CHROME_WATCHDOG_SECONDS`,
+  0 = off), the service sends an alert and quits so Railway starts it again fresh
+  (restart policy `ALWAYS`). Without this, a stuck Chrome left every render failing.
 
 ## Dashboard
 Open `https://<service address>/dashboard` and sign in with `DASHBOARD_PASSWORD`

@@ -38,6 +38,7 @@ const queue = require("./plugins/queue");
 const stats = require("./plugins/stats");
 const blockResources = require("./plugins/blockResources");
 const warmup = require("./warmup");
+const alerts = require("./alerts");
 
 console.log(`Cauvery Prerender ${version} - rendering ${config.domains.join(",")} on port ${config.port}`);
 console.log(`Browser: ${chromeLocation}`);
@@ -76,6 +77,7 @@ server.use(prerender.removeScriptTags()); // crawlers get plain HTML
 
 server.start();
 warmup.start();
+startChromeWatchdog();
 if (!config.dashboardDisabled) console.log(`Dashboard: http://localhost:${config.port}/dashboard`);
 
 function findBrowser() {
@@ -92,4 +94,35 @@ function findBrowser() {
       ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Chromium.app/Contents/MacOS/Chromium"]
       : ["/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable"];
   return candidates.find((p) => fs.existsSync(p));
+}
+
+// Chrome watchdog. The prerender library can lose Chrome for good: if Chrome hangs
+// when it is told to restart, or one reconnect attempt fails ("socket hang up"), the
+// library never tries again and every page then times out with "Timed out waiting
+// for Chrome connection" until someone restarts the service. That happened on the
+// live service from 16 Nov 2026, and crawlers got days-old saved copies or the bare
+// page. Here: if Chrome has been disconnected for CHROME_WATCHDOG_SECONDS in a row,
+// kill it hard and quit with an error, so Railway (restart policy) starts us fresh.
+function startChromeWatchdog() {
+  const limitMs = config.chromeWatchdogSeconds * 1000;
+  if (!limitMs) return;
+  let downSince = null;
+  setInterval(() => {
+    if (server.isBrowserConnected) {
+      downSince = null;
+      return;
+    }
+    downSince = downSince || Date.now();
+    if (Date.now() - downSince < limitMs) return;
+    const msg = `Chrome has been disconnected for ${config.chromeWatchdogSeconds}s; restarting the whole service.`;
+    console.error(`[watchdog] ${msg}`);
+    try {
+      const child = server.browser && server.browser.chromeChild;
+      if (child) child.kill("SIGKILL");
+    } catch (e) {
+      // already gone
+    }
+    const quit = () => process.exit(1);
+    Promise.race([alerts.send("watchdog", msg).catch(() => {}), new Promise((r) => setTimeout(r, 5000))]).then(quit, quit);
+  }, 10000).unref();
 }
