@@ -76,9 +76,12 @@ public class SuperAdminController {
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboard() {
         Map<String, Object> stats = new HashMap<>();
-        stats.put("totalRevenue", orderRepo.findAll().stream()
+        var allOrders = orderRepo.findAll();
+        stats.put("totalRevenue", allOrders.stream()
                 .filter(o -> !"CANCELLED".equals(o.getStatus()) && !"REFUNDED".equals(o.getStatus()))
                 .mapToDouble(o -> o.getTotalAmount()).sum());
+        stats.put("monthlyRevenue", com.cauverystore.util.MonthlyRevenue.lastMonths(
+                allOrders, java.time.YearMonth.now(java.time.ZoneId.of("Asia/Kolkata")), 12));
         stats.put("totalOrders", orderRepo.count());
         stats.put("totalCustomers", userRepo.findAll().stream()
                 .filter(u -> u.getRole() == Role.CUSTOMER).count());

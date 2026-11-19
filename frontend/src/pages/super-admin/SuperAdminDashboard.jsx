@@ -13,12 +13,14 @@ const statCards = [
   { key: 'failedPayments', label: 'Failed Payments', icon: <XCircle size={22} />, color: '#4f46e5' },
 ];
 
-const barData = [
-  { label: 'Jan', value: 65 }, { label: 'Feb', value: 78 }, { label: 'Mar', value: 90 },
-  { label: 'Apr', value: 72 }, { label: 'May', value: 88 }, { label: 'Jun', value: 95 },
-  { label: 'Jul', value: 82 }, { label: 'Aug', value: 70 }, { label: 'Sep', value: 85 },
-  { label: 'Oct', value: 92 }, { label: 'Nov', value: 100 }, { label: 'Dec', value: 110 },
-];
+// Short rupee amounts for the chart labels: 292 -> ₹292, 1250 -> ₹1.3k, 345000 -> ₹3.5L.
+export const shortRupees = (v) => {
+  const n = Number(v) || 0;
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1).replace(/\.0$/, '')}Cr`;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1).replace(/\.0$/, '')}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+  return `₹${Math.round(n)}`;
+};
 
 const SuperAdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -56,7 +58,10 @@ const SuperAdminDashboard = () => {
     );
   }
 
+  // Real revenue for the last 12 months, from the dashboard data (cancelled and refunded orders left out).
+  const barData = (stats?.monthlyRevenue || []).map((m) => ({ key: m.month, label: m.label, year: m.year, value: Number(m.revenue) || 0 }));
   const maxBarValue = Math.max(...barData.map(b => b.value), 1);
+  const hasSales = barData.some(b => b.value > 0);
 
   return (
     <div className="page">
@@ -91,17 +96,25 @@ const SuperAdminDashboard = () => {
         <div className="card">
           <div className="card-header">
             <span className="card-title">Monthly Revenue Trend</span>
+            <span className="text-xs text-tertiary">Last 12 months, excluding cancelled and refunded orders</span>
           </div>
           <div className="card-body">
+            {barData.length === 0 ? (
+              <div className="text-sm text-tertiary" style={{ padding: '24px 0', textAlign: 'center' }}>Monthly figures are not available.</div>
+            ) : (
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '200px', padding: '8px 0' }}>
               {barData.map((bar) => (
-                <div key={bar.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                  <span className="text-xs text-tertiary mb-1">{bar.value}k</span>
-                  <div style={{ width: '100%', maxWidth: '32px', height: `${(bar.value / maxBarValue) * 100}%`, background: 'linear-gradient(to top, #f59e0b, #d97706)', borderRadius: '4px 4px 0 0', transition: 'height 0.3s', minHeight: '4px' }} />
+                <div key={bar.key} title={`${bar.label} ${bar.year}: ₹${bar.value.toLocaleString('en-IN')}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                  <span className="text-xs text-tertiary mb-1">{bar.value > 0 ? shortRupees(bar.value) : ''}</span>
+                  <div style={{ width: '100%', maxWidth: '32px', height: bar.value > 0 ? `${(bar.value / maxBarValue) * 100}%` : '2px', background: bar.value > 0 ? 'linear-gradient(to top, #f59e0b, #d97706)' : '#e5e7eb', borderRadius: '4px 4px 0 0', transition: 'height 0.3s', minHeight: '2px' }} />
                   <span className="text-xs text-tertiary mt-1">{bar.label}</span>
                 </div>
               ))}
             </div>
+            )}
+            {barData.length > 0 && !hasSales && (
+              <div className="text-xs text-tertiary" style={{ textAlign: 'center' }}>No sales in the last 12 months yet.</div>
+            )}
           </div>
         </div>
 
