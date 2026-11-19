@@ -106,4 +106,44 @@ class GstComplianceUtilTest {
         assertFalse(GstComplianceUtil.isGstinChecksumValid("short"));
         assertFalse(GstComplianceUtil.isGstinChecksumValid("27AAPFU0939F1Z*"));
     }
+
+    @Test
+    void formatRupees_groupsInLakhsAndCrores() {
+        org.junit.jupiter.api.Assertions.assertEquals("₹60,00,00,000", GstComplianceUtil.formatRupees(600000000));
+        org.junit.jupiter.api.Assertions.assertEquals("₹5,00,00,000", GstComplianceUtil.formatRupees(5_00_00_000));
+        org.junit.jupiter.api.Assertions.assertEquals("₹1,00,000", GstComplianceUtil.formatRupees(100000));
+        org.junit.jupiter.api.Assertions.assertEquals("₹999", GstComplianceUtil.formatRupees(999));
+        org.junit.jupiter.api.Assertions.assertEquals("₹1,234.50", GstComplianceUtil.formatRupees(1234.5));
+    }
+
+    @Test
+    void hasValidCheckDigit_acceptsGenuineGstins_andAgreesWithValidateGstin() {
+        // GSTN's own published sample. The old check rejected it, so the marketplace
+        // registration form refused real numbers.
+        assertTrue(GstComplianceUtil.hasValidCheckDigit("27AAPFU0939F1ZV"));
+        assertDoesNotThrow(() -> GstComplianceUtil.validateGstin("27AAPFU0939F1ZV"));
+        assertFalse(GstComplianceUtil.hasValidCheckDigit("27AAPFU0939F1ZW"));
+        assertFalse(GstComplianceUtil.hasValidCheckDigit("33ABCDE1234F1Z5"), "the demo seller's made-up GSTIN");
+    }
+
+    @Test
+    void creditNoteDeadlineIsThirtiethNovemberAfterTheFinancialYear() {
+        // FY 2025-26 (Apr 2025 to Mar 2026): deadline 30 Nov 2026.
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.LocalDate.of(2026, 11, 30),
+                GstComplianceUtil.creditNoteDeadline(java.time.LocalDate.of(2025, 4, 1)));
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.LocalDate.of(2026, 11, 30),
+                GstComplianceUtil.creditNoteDeadline(java.time.LocalDate.of(2026, 3, 31)));
+        // April 2026 starts FY 2026-27: deadline 30 Nov 2027.
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.LocalDate.of(2027, 11, 30),
+                GstComplianceUtil.creditNoteDeadline(java.time.LocalDate.of(2026, 4, 1)));
+        assertFalse(GstComplianceUtil.creditNoteTimeBarred(java.time.LocalDate.of(2025, 6, 1), java.time.LocalDate.of(2026, 11, 30)));
+        assertTrue(GstComplianceUtil.creditNoteTimeBarred(java.time.LocalDate.of(2025, 6, 1), java.time.LocalDate.of(2026, 12, 1)));
+    }
+
+    @Test
+    void b2cLargeUsesInvoiceValue() {
+        assertTrue(GstComplianceUtil.isB2cLarge(true, 100_000.01));
+        assertFalse(GstComplianceUtil.isB2cLarge(true, 100_000.0));
+        assertFalse(GstComplianceUtil.isB2cLarge(false, 500_000.0));
+    }
 }

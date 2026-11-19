@@ -420,20 +420,6 @@ public class GstComplianceController {
         }
     }
 
-    @PostMapping("/ewaybill")
-    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
-    public ResponseEntity<?> generateEwayBill(@RequestBody Map<String, Object> body) {
-        Long invoiceId = body.get("invoiceId") != null ? ((Number) body.get("invoiceId")).longValue() : null;
-        if (invoiceId == null) return ResponseEntity.badRequest().body(Map.of("error", "invoiceId is required"));
-        GstInvoice inv = invoiceRepo.findById(invoiceId)
-                .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
-        try {
-            return ResponseEntity.ok(gstnClient.generateEwayBill(inv));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
     @GetMapping("/gstn/status")
     @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> getGstnStatus() {

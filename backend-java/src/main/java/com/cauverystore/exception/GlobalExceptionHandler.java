@@ -120,6 +120,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
 
+    /** 409 with the full compliance result, so the screen can list exactly what is missing. */
+    @ExceptionHandler(com.cauverystore.service.ProductComplianceService.ComplianceBlockedException.class)
+    public ResponseEntity<Map<String, Object>> handleComplianceBlocked(
+            com.cauverystore.service.ProductComplianceService.ComplianceBlockedException ex) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage(), "compliance", ex.getResult()));
+    }
+
+    @ExceptionHandler(com.cauverystore.service.ProductComplianceWorkflowService.InvalidTransitionException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidWorkflowTransition(
+            com.cauverystore.service.ProductComplianceWorkflowService.InvalidTransitionException ex) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
         String msg = ex.getMessage();

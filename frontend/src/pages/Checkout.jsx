@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { isGstinFormatValid, isGstinChecksumValid } from "../utils/gstin";
 import { variantLabel } from "../utils/variant";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
@@ -11,6 +12,10 @@ import i18n from "../i18n";
 
 const STEPS = ["Delivery", "Payment", "Review", "Confirm"];
 // Shown on the review step, so the customer reads "Cash on Delivery" rather than "COD".
+// Cash on delivery only for orders from MIN to MAX; others are prepaid only. These are the
+// fallback values; the live range is edited in Platform Settings and fetched from /api/settings/cod.
+const DEFAULT_COD_MIN_ORDER_VALUE = 1000;
+const DEFAULT_COD_MAX_ORDER_VALUE = 3000;
 const PAYMENT_LABELS = { get COD() { return i18n.t("msgs.payCod"); }, get CARD() { return i18n.t("msgs.payCard"); }, UPI: "UPI", get NET_BANKING() { return i18n.t("msgs.payNetBanking"); }, get WALLET() { return i18n.t("msgs.payWallet"); } };
 
 const Checkout = () => {
@@ -18,6 +23,12 @@ const Checkout = () => {
     t: tr
   } = useTranslation();
 
+  const [codLimits, setCodLimits] = useState({ min: DEFAULT_COD_MIN_ORDER_VALUE, max: DEFAULT_COD_MAX_ORDER_VALUE, codEnabled: true, onlineEnabled: true });
+  useEffect(() => {
+    api.get("/api/settings/cod")
+      .then(({ data }) => setCodLimits({ min: Number(data.minOrderValue) || 0, max: Number(data.maxOrderValue) || 0, codEnabled: data.codEnabled !== false, onlineEnabled: data.onlineEnabled !== false }))
+      .catch(() => {});
+  }, []);
   const [step, setStep] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [serverTax, setServerTax] = useState(null);
@@ -42,6 +53,7 @@ const Checkout = () => {
   const [billToShipTo, setBillToShipTo] = useState(false);
   const [consigneeName, setConsigneeName] = useState("");
   const [consigneeAddress, setConsigneeAddress] = useState("");
+  const [consigneeGstin, setConsigneeGstin] = useState("");
 
   const [shipping, setShipping] = useState({
     fullName: "", phone: "", line1: "", line2: "", street: "", city: "", state: "", pincode: "", country: "India"
@@ -142,10 +154,15 @@ const Checkout = () => {
       if (b2b) {
         const g = gstin.trim().toUpperCase();
         if (g.length !== 15) return i18n.t("msgs.gstin15");
-        if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(g)) return i18n.t("msgs.gstinInvalid");
+        if (!isGstinFormatValid(g)) return i18n.t("msgs.gstinInvalid");
+        if (!isGstinChecksumValid(g)) return i18n.t("msgs.gstinChecksum");
         if (!buyerLegalName.trim()) return i18n.t("msgs.legalNameRequired");
         // Rule 46(o) requires the consignee on the invoice when they are not the buyer. Caught
         // here rather than at the API, so nobody reaches the payment step and is turned back.
+        if (billToShipTo && consigneeGstin.trim()
+            && !/^[0-9]{2}[A-Z0-9]{13}$/.test(consigneeGstin.trim().toUpperCase())) {
+          return i18n.t("msgs.consigneeGstinInvalid");
+        }
         if (billToShipTo && !consigneeName.trim()) {
           return i18n.t("msgs.consigneeRequired");
         }
@@ -181,7 +198,23 @@ const Checkout = () => {
     }
   };
 
+  const codAllowed = codLimits.codEnabled && total >= codLimits.min && (codLimits.max <= 0 || total <= codLimits.max);
+  const onlineAllowed = codLimits.onlineEnabled;
+  // If the method picked earlier is no longer on offer, fall back to one that is.
+  useEffect(() => {
+    if (!onlineAllowed && paymentMethod !== "COD") setPaymentMethod("COD");
+    else if (!codAllowed && paymentMethod === "COD" && onlineAllowed) setPaymentMethod("UPI");
+  }, [onlineAllowed, codAllowed, paymentMethod]);
+
   const handlePlaceOrder = async () => {
+    if (paymentMethod !== "COD" && !onlineAllowed) {
+      setError(tr("checkout.onlinePaymentUnavailable"));
+      return;
+    }
+    if (paymentMethod === "COD" && !codAllowed) {
+      setError(tr("checkout.codNotAvailableAbove", { min: codLimits.min.toLocaleString("en-IN"), max: codLimits.max.toLocaleString("en-IN") }));
+      return;
+    }
     // The server refuses to invoice goods it cannot tax, so taking payment for them would only
     // produce a payment with no lawful invoice behind it and a refund to arrange afterwards.
     if (bill && bill.canProceed === false) {
@@ -209,7 +242,8 @@ const Checkout = () => {
       ...(b2b && billToShipTo && {
         billToShipTo: true,
         consigneeName: consigneeName.trim(),
-        ...(consigneeAddress.trim() && { consigneeAddress: consigneeAddress.trim() })
+        ...(consigneeAddress.trim() && { consigneeAddress: consigneeAddress.trim() }),
+        ...(consigneeGstin.trim() && { consigneeGstin: consigneeGstin.trim().toUpperCase() })
       })
     };
 
@@ -217,11 +251,10 @@ const Checkout = () => {
     setError("");
 
     try {
-      if (paymentMethod === "COD") {
-        const res = await api.post("/api/orders/place", payload);
-        const orderId = res.data?.id || res.data?._id || res.data?.orderId;
-        navigate(`/order-success?id=${orderId}`);
-      } else {
+      // Every method, including Cash on Delivery, goes through Razorpay's checkout. For COD the
+      // customer confirms the order there and pays the cash at the door; the server confirms it
+      // with Razorpay and records the cash when the order is delivered.
+      {
         let rzp;
         try {
           await loadRazorpay();
@@ -252,15 +285,24 @@ const Checkout = () => {
           description: tr("checkout.orderPayment"),
           order_id: paymentData.razorpayOrderId || paymentData.orderId,
           prefill: { name: shipping.fullName, contact: shipping.phone },
+          // Razorpay offers COD on every checkout once it is active, so hide it on large orders.
+          ...((codAllowed && onlineAllowed) ? {} : { config: { display: { hide: [
+            ...(codAllowed ? [] : [{ method: "cod" }]),
+            ...(onlineAllowed ? [] : ["card", "upi", "netbanking", "wallet", "emi", "paylater"].map((method) => ({ method })))
+          ] } } }),
           handler: async function (response) {
             try {
-              await api.post("/api/payment/verify", {
+              const verifyRes = await api.post("/api/payment/verify", {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature
               });
+              // Razorpay's checkout lets the customer pick any method, so what they actually chose
+              // there decides how the order is recorded, not the option clicked on our page.
+              const viaCod = verifyRes.data?.method === "cod";
               const orderRes = await api.post("/api/orders/place", {
                 ...payload,
+                paymentMethod: viaCod ? "COD" : (paymentMethod === "COD" ? "ONLINE" : paymentMethod),
                 paymentId: response.razorpay_payment_id,
                 razorpayOrderId: response.razorpay_order_id
               });
@@ -443,6 +485,13 @@ const Checkout = () => {
                           placeholder={tr("checkout.leaveBlankToUseThe")}
                           style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none", resize: "vertical" }} />
                       </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                        <label htmlFor="consignee-gstin" style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--color-text-secondary)" }}>{tr("checkout.consigneeGstin")}</label>
+                        <input id="consignee-gstin" name="consigneeGstin" value={consigneeGstin}
+                          onChange={(e) => setConsigneeGstin(e.target.value.toUpperCase())} maxLength={15}
+                          placeholder={tr("checkout.consigneeGstinHint")}
+                          style={{ padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem", outline: "none" }} />
+                      </div>
                       {/*
                         Said plainly, because it is the part that surprises people: the tax
                         follows the buyer's registered state, not where the parcel goes.
@@ -465,10 +514,13 @@ const Checkout = () => {
             <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>{tr("checkout.howWouldYouLikeTo")}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {[
-                { value: "CARD", label: tr("checkout.creditDebitCard"), desc: tr("checkout.visaMastercardAndRupay") },
-                { value: "UPI", label: "UPI", desc: tr("checkout.googlePayPhonepePaytmOr") },
-                { value: "NET_BANKING", label: tr("footer.netBanking"), desc: tr("checkout.allMajorBanks") },
-                { value: "WALLET", label: tr("checkout.wallet"), desc: tr("checkout.paytmAmazonPayMobikwik") },
+                ...(onlineAllowed ? [
+                  { value: "CARD", label: tr("checkout.creditDebitCard"), desc: tr("checkout.visaMastercardAndRupay") },
+                  { value: "UPI", label: "UPI", desc: tr("checkout.googlePayPhonepePaytmOr") },
+                  { value: "NET_BANKING", label: tr("footer.netBanking"), desc: tr("checkout.allMajorBanks") },
+                  { value: "WALLET", label: tr("checkout.wallet"), desc: tr("checkout.paytmAmazonPayMobikwik") },
+                ] : []),
+                ...(codAllowed ? [{ value: "COD", label: tr("msgs.payCod"), desc: tr("checkout.payCashWhenDelivered") }] : []),
               ].map((opt) => (
                 <label key={opt.value} onClick={() => setPaymentMethod(opt.value)} style={{
                   display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem",
@@ -613,8 +665,8 @@ const Checkout = () => {
             </div>
             {discount > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-                <span style={{ color: "#0E5C5C" }}>{tr("cart.discount")}</span>
-                <span style={{ color: "#0E5C5C" }}>-&#8377;{discount.toFixed(2)}</span>
+                <span style={{ color: "#00788C" }}>{tr("cart.discount")}</span>
+                <span style={{ color: "#00788C" }}>-&#8377;{discount.toFixed(2)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
@@ -680,7 +732,7 @@ const Checkout = () => {
             )}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
               <span style={{ color: "var(--color-text-secondary)" }}>{tr("cart.delivery")}</span>
-              <span>{delivery === 0 ? <span style={{ color: "#0E5C5C" }}>{tr("cart.free")}</span> : `\u20B9${delivery}`}</span>
+              <span>{delivery === 0 ? <span style={{ color: "#00788C" }}>{tr("cart.free")}</span> : `\u20B9${delivery}`}</span>
             </div>
             {giftCharge > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.9rem" }}>

@@ -95,8 +95,10 @@ const AdminCoupons = lazy(() => import("./admin/coupons/AdminCoupons"));
 const AdminGstRates = lazy(() => import("./admin/gst/AdminGstRates"));
 const AdminSellerPayouts = lazy(() => import("./admin/payouts/AdminSellerPayouts"));
 const AdminFinance = lazy(() => import("./admin/finance/AdminFinance"));
+const AdminErpSync = lazy(() => import("./admin/erp/AdminErpSync"));
 const AdminGstCompliance = lazy(() => import("./admin/gst/AdminGstCompliance"));
 const AdminGstMasters = lazy(() => import("./admin/gst/AdminGstMasters"));
+const AdminTds194o = lazy(() => import("./admin/gst/AdminTds194o"));
 const AdminShipping = lazy(() => import("./admin/shipping/AdminShipping"));
 const AdminReviews = lazy(() => import("./admin/reviews/AdminReviews"));
 const AdminQna = lazy(() => import("./admin/qna/AdminQna"));
@@ -114,6 +116,9 @@ const AdminPurchaseOrders = lazy(() => import("./admin/purchases/AdminPurchaseOr
 const AdminReturns = lazy(() => import("./admin/returns/AdminReturns"));
 const BulkOperations = lazy(() => import("./admin/bulk/BulkOperations"));
 const ProductApproval = lazy(() => import("./pages/super-admin/ProductApproval"));
+const SellerProductWizard = lazy(() => import("./pages/SellerProductWizard"));
+const ComplianceDashboard = lazy(() => import("./admin/compliance/ComplianceDashboard"));
+const ProductCompliancePage = lazy(() => import("./admin/compliance/ProductCompliancePage"));
 const SellerApproval = lazy(() => import("./pages/super-admin/SellerApproval"));
 const SuperAdminDashboard = lazy(() => import("./pages/super-admin/SuperAdminDashboard"));
 const UserManagement = lazy(() => import("./pages/super-admin/UserManagement"));
@@ -130,6 +135,7 @@ const PaymentMethods = lazy(() => import("./pages/PaymentMethods"));
 const AdminBanners = lazy(() => import("./admin/banners/AdminBanners"));
 const AdminFaq = lazy(() => import("./admin/faq/AdminFaq"));
 const AdminSupportTickets = lazy(() => import("./admin/support/AdminSupportTickets"));
+const AdminInbox = lazy(() => import("./admin/support/AdminInbox"));
 const AdminNewsletter = lazy(() => import("./admin/newsletter/AdminNewsletter"));
 const AdminLoyalty = lazy(() => import("./admin/loyalty/AdminLoyalty"));
 const StockMovements = lazy(() => import("./admin/inventory/StockMovements"));
@@ -253,6 +259,8 @@ function App() {
             <Route path="dashboard" element={<SellerDashboard />} />
             <Route path="products" element={<SellerProducts />} />
             <Route path="products/add" element={<AddProduct />} />
+            <Route path="products/wizard" element={<SellerProductWizard />} />
+            <Route path="products/wizard/:id" element={<SellerProductWizard />} />
             <Route path="products/edit/:id" element={<EditProduct />} />
             <Route path="products/bulk-upload" element={<BulkUpload />} />
             <Route path="inventory" element={<SellerInventory />} />
@@ -281,10 +289,13 @@ function App() {
             <Route path="products/:id/variants" element={<ManageVariants />} />
             <Route path="products/:id/images" element={<ManageImages />} />
             <Route path="products/:id/discounts" element={<ManageDiscounts />} />
+            <Route path="products/:id/compliance" element={<ProductCompliancePage />} />
+            <Route path="product-compliance" element={<ComplianceDashboard />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="refunds" element={<AdminRefunds />} />
             <Route path="seller-payouts" element={<AdminSellerPayouts />} />
             <Route path="finance" element={<AdminFinance />} />
+            <Route path="erp-sync" element={<AdminErpSync />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="inventory" element={<AdminInventory />} />
@@ -295,6 +306,7 @@ function App() {
             <Route path="gst-rates" element={<AdminGstRates />} />
             <Route path="gst-compliance" element={<AdminGstCompliance />} />
             <Route path="gst-masters" element={<AdminGstMasters />} />
+            <Route path="tds-194o" element={<AdminTds194o />} />
             <Route path="shipping" element={<AdminShipping />} />
             <Route path="reviews" element={<AdminReviews />} />
             <Route path="content" element={<AdminContent />} />
@@ -316,6 +328,7 @@ function App() {
             <Route path="banners" element={<AdminBanners />} />
             <Route path="faq" element={<AdminFaq />} />
             <Route path="support-tickets" element={<AdminSupportTickets />} />
+            <Route path="inbox" element={<AdminInbox />} />
             <Route path="newsletter" element={<AdminNewsletter />} />
             <Route path="loyalty" element={<AdminLoyalty />} />
             <Route path="stock-movements" element={<StockMovements />} />

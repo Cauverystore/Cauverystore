@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { CATEGORY_TYPES } from "../compliance/complianceFields";
+
+// Which category-specific compliance fields the category's products must carry.
+const ComplianceTypeSelect = ({ value, onChange, style }) => (
+  <select aria-label="Compliance fields" style={style} value={value || "GENERAL"} onChange={(e) => onChange(e.target.value)}>
+    {CATEGORY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.value === "GENERAL" ? "Compliance: common fields" : `Compliance: ${t.label}`}</option>)}
+  </select>
+);
+const typeLabel = (v) => (CATEGORY_TYPES.find((t) => t.value === v) || CATEGORY_TYPES[0]).label;
 
 const S = {
-  section: { background: "#fff", borderRadius: "8px", border: "1px solid #CFE8D6", padding: "1.25rem", marginBottom: "1rem" },
-  title: { fontSize: "0.95rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #EAF7EE" },
-  input: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.9rem", outline: "none", boxSizing: "border-box", background: "#fff" },
-  textarea: { width: "100%", padding: "8px 10px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "0.9rem", minHeight: "72px", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" },
-  btnP: { padding: "8px 16px", background: "#2E9B57", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" },
+  section: { background: "#fff", borderRadius: "8px", border: "1px solid #C4EFE6", padding: "1.25rem", marginBottom: "1rem" },
+  title: { fontSize: "0.95rem", fontWeight: 700, color: "#003A44", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #E6F8F3" },
+  input: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.9rem", outline: "none", boxSizing: "border-box", background: "#fff" },
+  textarea: { width: "100%", padding: "8px 10px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "0.9rem", minHeight: "72px", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" },
+  btnP: { padding: "8px 16px", background: "#00788C", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" },
   btnD: { padding: "6px 14px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem" },
-  btnS: { padding: "6px 14px", background: "#EAF7EE", color: "#146C43", border: "1px solid #CFE8D6", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem" },
+  btnS: { padding: "6px 14px", background: "#E6F8F3", color: "#00788C", border: "1px solid #C4EFE6", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem" },
   modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" },
   modalBox: { background: "#fff", borderRadius: "10px", padding: "1.5rem", maxWidth: "420px", width: "100%", boxShadow: "0 4px 24px rgba(0,0,0,0.15)" },
-  msg: (type) => ({ padding: "10px 14px", borderRadius: "6px", marginBottom: "0.75rem", background: type === "success" ? "#EAF7EE" : "#fef2f2", color: type === "success" ? "#146C43" : "#dc2626", border: `1px solid ${type === "success" ? "#CFE8D6" : "#fecaca"}`, fontSize: "0.85rem" }),
+  msg: (type) => ({ padding: "10px 14px", borderRadius: "6px", marginBottom: "0.75rem", background: type === "success" ? "#E6F8F3" : "#fef2f2", color: type === "success" ? "#00788C" : "#dc2626", border: `1px solid ${type === "success" ? "#C4EFE6" : "#fecaca"}`, fontSize: "0.85rem" }),
 };
 
 // Licence a seller must hold to list in a category (codes match SellerLicenceService).
@@ -23,18 +32,21 @@ const LICENCES = [
   ["LEGAL_METROLOGY", "Legal Metrology"],
   ["IEC", "Import Export Code"],
   ["TRADE", "Trade Licence"],
+  ["OTHER", "Other licence"],
 ];
 const licenceName = (code) => (LICENCES.find(([c]) => c === code) || [, code])[1];
 
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newCat, setNewCat] = useState({ name: "", description: "", requiredLicence: "" });
+  const [newCat, setNewCat] = useState({ name: "", description: "", requiredLicence: "", complianceType: "GENERAL" });
   const [editing, setEditing] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", requiredLicence: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", requiredLicence: "", complianceType: "GENERAL" });
   const [msg, setMsg] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [errors, setErrors] = useState({});
+  const [standard, setStandard] = useState(null); // recommended list, shown before adding
+  const [addingStandard, setAddingStandard] = useState(false);
 
   const fetchCategories = async () => {
     try {
@@ -65,8 +77,8 @@ const AdminCategories = () => {
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     try {
-      await api.post("/api/categories/admin/add", { name: newCat.name.trim(), description: newCat.description.trim() || null, requiredLicence: newCat.requiredLicence || null });
-      setNewCat({ name: "", description: "", requiredLicence: "" });
+      await api.post("/api/categories/admin/add", { name: newCat.name.trim(), description: newCat.description.trim() || null, requiredLicence: newCat.requiredLicence || null, complianceType: newCat.complianceType || "GENERAL" });
+      setNewCat({ name: "", description: "", requiredLicence: "", complianceType: "GENERAL" });
       await fetchCategories();
       setMsg({ type: "success", text: "Category added!" });
     } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Failed to add category" }); }
@@ -74,22 +86,41 @@ const AdminCategories = () => {
 
   const startEdit = (cat) => {
     setEditing(cat.id);
-    setEditForm({ name: cat.name || "", description: cat.description || "", requiredLicence: cat.requiredLicence || "" });
+    setEditForm({ name: cat.name || "", description: cat.description || "", requiredLicence: cat.requiredLicence || "", complianceType: cat.complianceType || "GENERAL" });
     setErrors({});
   };
 
-  const cancelEdit = () => { setEditing(null); setEditForm({ name: "", description: "", requiredLicence: "" }); setErrors({}); };
+  const cancelEdit = () => { setEditing(null); setEditForm({ name: "", description: "", requiredLicence: "", complianceType: "GENERAL" }); setErrors({}); };
 
   const saveEdit = async (id) => {
     const v = validate(editForm.name, editForm.description);
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     try {
-      await api.put("/api/categories/admin/update/" + id, { name: editForm.name.trim(), description: editForm.description.trim() || null, requiredLicence: editForm.requiredLicence || null });
+      await api.put("/api/categories/admin/update/" + id, { name: editForm.name.trim(), description: editForm.description.trim() || null, requiredLicence: editForm.requiredLicence || null, complianceType: editForm.complianceType || "GENERAL" });
       await fetchCategories();
       setEditing(null);
       setMsg({ type: "success", text: "Category updated!" });
     } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Update failed" }); }
+  };
+
+  const openStandard = async () => {
+    try {
+      const res = await api.get("/api/categories/admin/standard");
+      setStandard(res.data || []);
+    } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Could not load the recommended categories" }); }
+  };
+
+  const addStandard = async () => {
+    setAddingStandard(true);
+    try {
+      const res = await api.post("/api/categories/admin/add-standard");
+      await fetchCategories();
+      const n = res.data?.count || 0;
+      setMsg({ type: "success", text: n > 0 ? `Added ${n} categor${n === 1 ? "y" : "ies"}.` : "All recommended categories are already in the store." });
+      setStandard(null);
+    } catch (err) { setMsg({ type: "error", text: err.response?.data?.error || "Could not add the categories" }); }
+    setAddingStandard(false);
   };
 
   const confirmDelete = (cat) => setDeleteTarget(cat);
@@ -133,6 +164,7 @@ const AdminCategories = () => {
           <select aria-label="Licence sellers need" style={{ ...S.input, width: "auto", alignSelf: "flex-start" }} value={newCat.requiredLicence} onChange={(e) => setNewCat({ ...newCat, requiredLicence: e.target.value })}>
             {LICENCES.map(([c, l]) => <option key={c} value={c}>{l}</option>)}
           </select>
+          <ComplianceTypeSelect value={newCat.complianceType} onChange={(v) => setNewCat({ ...newCat, complianceType: v })} style={{ ...S.input, width: "auto", alignSelf: "flex-start" }} />
           <button onClick={handleAdd} style={{ ...S.btnP, alignSelf: "flex-start" }}>Add</button>
         </div>
         <div>
@@ -140,6 +172,15 @@ const AdminCategories = () => {
           <div style={{ fontSize: "0.7rem", color: "#94a3b8", textAlign: "right" }}>{(newCat.description || "").length}/500</div>
           {errMsg("description")}
         </div>
+      </div>
+
+      {/* Recommended categories */}
+      <div style={S.section}>
+        <h3 style={S.title}>Recommended Categories</h3>
+        <p style={{ color: "#64748B", fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
+          A ready-made list for an Indian marketplace. Goods that need a licence or a quality certificate (FSSAI, drug licence, BIS / ISI, hallmarking, Legal Metrology) get their own category, so only sellers holding it can list there. Existing categories are not changed.
+        </p>
+        <button onClick={openStandard} style={S.btnP}>Review and add recommended categories</button>
       </div>
 
       {/* Category List */}
@@ -176,17 +217,21 @@ const AdminCategories = () => {
                           <select aria-label="Licence sellers need" style={S.input} value={editForm.requiredLicence} onChange={(e) => setEditForm({ ...editForm, requiredLicence: e.target.value })}>
                             {LICENCES.map(([code, l]) => <option key={code} value={code}>{l}</option>)}
                           </select>
+                          <div style={{ marginTop: 6 }}>
+                            <ComplianceTypeSelect value={editForm.complianceType} onChange={(v) => setEditForm({ ...editForm, complianceType: v })} style={S.input} />
+                          </div>
                         </td>
                         <td style={{ padding: "10px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button onClick={() => saveEdit(c.id)} style={{ ...S.btnS, marginRight: "6px" }}>Save</button>
-                          <button onClick={cancelEdit} style={{ padding: "6px 14px", border: "1px solid #CFE8D6", borderRadius: "4px", background: "#fff", cursor: "pointer", fontSize: "0.8rem" }}>Cancel</button>
+                          <button onClick={cancelEdit} style={{ padding: "6px 14px", border: "1px solid #C4EFE6", borderRadius: "4px", background: "#fff", cursor: "pointer", fontSize: "0.8rem" }}>Cancel</button>
                         </td>
                       </>
                     ) : (
                       <>
                         <td style={{ padding: "10px", fontWeight: 500 }}>{c.name}</td>
                         <td style={{ padding: "10px", color: "#64748B" }}>{c.description || <span style={{ fontStyle: "italic", color: "#cbd5e1" }}>No description</span>}</td>
-                        <td style={{ padding: "10px", color: c.requiredLicence ? "#b45309" : "#94a3b8", fontSize: "0.85rem" }}>{c.requiredLicence ? licenceName(c.requiredLicence) : "Anyone"}</td>
+                        <td style={{ padding: "10px", color: c.requiredLicence ? "#b45309" : "#94a3b8", fontSize: "0.85rem" }}>{c.requiredLicence ? licenceName(c.requiredLicence) : "Anyone"}
+                          <div style={{ color: c.complianceType ? "#00788C" : "#94a3b8", fontSize: "0.75rem" }}>Compliance: {typeLabel(c.complianceType)}</div></td>
                         <td style={{ padding: "10px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button onClick={() => startEdit(c)} style={{ ...S.btnS, marginRight: "6px" }}>Edit</button>
                           <button onClick={() => confirmDelete(c)} style={S.btnD}>Delete</button>
@@ -201,6 +246,47 @@ const AdminCategories = () => {
         )}
       </div>
 
+      {/* Recommended categories review */}
+      {standard && (
+        <div style={S.modalOverlay} onClick={() => setStandard(null)}>
+          <div style={{ ...S.modalBox, maxWidth: "760px", maxHeight: "85vh", display: "flex", flexDirection: "column" }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "0.5rem" }}>Recommended categories</h3>
+            <p style={{ color: "#64748B", fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
+              {standard.filter((s) => !s.exists).length} will be added. Ones you already have are greyed out and left as they are. You can edit or delete any of them afterwards.
+            </p>
+            <div style={{ overflowY: "auto", flex: 1, border: "1px solid #C4EFE6", borderRadius: "6px" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+                <thead>
+                  <tr style={{ background: "#f8f8f8", position: "sticky", top: 0 }}>
+                    <th style={{ padding: "8px", textAlign: "left" }}>Category</th>
+                    <th style={{ padding: "8px", textAlign: "left" }}>Sellers need</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standard.map((s) => (
+                    <tr key={s.name} style={{ borderTop: "1px solid #E6F8F3", opacity: s.exists ? 0.45 : 1 }}>
+                      <td style={{ padding: "8px" }}>
+                        <div style={{ fontWeight: 600 }}>{s.name}{s.exists ? " (already added)" : ""}</div>
+                        <div style={{ color: "#64748B" }}>{s.description}</div>
+                      </td>
+                      <td style={{ padding: "8px", whiteSpace: "nowrap", color: s.requiredLicence ? "#b45309" : "#94a3b8" }}>
+                        {s.requiredLicence ? licenceName(s.requiredLicence) : "Anyone"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "1rem" }}>
+              <button onClick={() => setStandard(null)} style={{ padding: "8px 20px", border: "1px solid #C4EFE6", borderRadius: "6px", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>Cancel</button>
+              <button onClick={addStandard} disabled={addingStandard || standard.every((s) => s.exists)} style={{ ...S.btnP, opacity: addingStandard ? 0.6 : 1 }}>
+                {addingStandard ? "Adding..." : `Add ${standard.filter((s) => !s.exists).length} categories`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div style={S.modalOverlay} onClick={() => setDeleteTarget(null)}>
@@ -210,7 +296,7 @@ const AdminCategories = () => {
               Are you sure you want to delete <strong>"{deleteTarget.name}"</strong>?
             </p>
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-              <button onClick={() => setDeleteTarget(null)} style={{ padding: "8px 20px", border: "1px solid #CFE8D6", borderRadius: "6px", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => setDeleteTarget(null)} style={{ padding: "8px 20px", border: "1px solid #C4EFE6", borderRadius: "6px", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>Cancel</button>
               <button onClick={handleDelete} style={{ padding: "8px 20px", background: "#dc2626", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}>Delete</button>
             </div>
           </div>

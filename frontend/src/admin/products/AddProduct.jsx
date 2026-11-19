@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
-import { compressImages } from "../../utils/compressImage";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
+import SellerOrigin from "./SellerOrigin";
+import ProductImagePicker, { uploadProductImages } from "./ProductImagePicker";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -24,22 +25,21 @@ const AddProduct = () => {
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
 
   const [form, setForm] = useState({
-    name: "", brand: "", category: "", price: "", stock: "", sku: "",
+    name: "", brand: "", category: "", price: "", mrp: "", stock: "", sku: "",
     description: "", manufacturer: "", modelNumber: "", barcode: "", hsnCode: "",
     prePackagedAndLabelled: true, gstRateSelectionId: undefined,
     countryOfOrigin: "India", shortDescription: "", technicalSpecs: "",
     warranty: "1 Year", returnPolicy: "7 Days",
     billDescription: "", cessRate: "", uom: "NOS",
     metaTitle: "", metaDescription: "", keywords: "", slug: "",
-    weight: "", dimensions: "", shippingClass: "Standard", deliveryDays: "", badges: "None"
+    weight: "", dimensions: "", shippingClass: "Standard", deliveryDays: "", badges: "None",
+    sellerId: null,
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState(null);
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
   const [images, setImages] = useState([]);
-  const [imageErrors, setImageErrors] = useState([]);
-  const fileRef = useRef();
   const [commission, setCommission] = useState(null);
 
   // Sellers see what the marketplace will charge and what they will receive before they list.
@@ -81,42 +81,20 @@ const AddProduct = () => {
     return () => window.removeEventListener("category-changed", handler);
   }, []);
 
-  const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-  // Photos are resized and compressed in the browser before upload, so the limit applies to the
-  // raw file straight off a phone camera, not to what is sent.
-  const MAX_FILE_SIZE = 10 * 1024 * 1024;
-  const MAX_IMAGES = 5;
-
-  const handleFiles = (files) => {
-    const fileArr = Array.from(files);
-    const newErrors = [];
-    const valid = fileArr.filter((f) => {
-      if (!ACCEPTED_TYPES.includes(f.type)) { newErrors.push(`${f.name}: Invalid format. Use JPG, PNG, or WebP.`); return false; }
-      if (f.size > MAX_FILE_SIZE) { newErrors.push(`${f.name}: Exceeds 10MB limit.`); return false; }
-      return true;
-    });
-    const combined = [...images, ...valid].slice(0, MAX_IMAGES);
-    if (valid.length + images.length > MAX_IMAGES) {
-      newErrors.push(`Maximum ${MAX_IMAGES} images allowed.`);
-    }
-    setImages(combined);
-    setImageErrors(newErrors);
-  };
-
-  const removeImage = (idx) => {
-    setImages((prev) => prev.filter((_, i) => i !== idx));
-  };
-
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
     if (!form.category) e.category = "Choose a category";
     if (!form.price || parseFloat(form.price) <= 0) e.price = "Must be > 0";
+    if (form.mrp && parseFloat(form.mrp) <= 0) e.mrp = "Must be > 0";
+    else if (form.mrp && parseFloat(form.price) > parseFloat(form.mrp)) e.price = "Above the MRP";
     if (!form.stock || parseInt(form.stock) < 0) e.stock = "Must be >= 0";
     if (form.shortDescription && form.shortDescription.length > 150) e.shortDescription = "Max 150 chars";
     if (form.metaTitle && form.metaTitle.length > 60) e.metaTitle = "Max 60 chars";
     if (form.metaDescription && form.metaDescription.length > 160) e.metaDescription = "Max 160 chars";
     if (form.barcode && !/^\d{12,13}$/.test(form.barcode)) e.barcode = "12-13 digits required";
+    // Without a seller there is no state of origin, and checkout cannot tax the product.
+    if (!isSeller && !form.sellerId) e.sellerId = "Choose the seller";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -130,6 +108,7 @@ const AddProduct = () => {
         name: form.name, brand: form.brand,
         category: form.category ? { id: form.category } : null,
         price: parseFloat(form.price),
+        mrp: form.mrp ? parseFloat(form.mrp) : null,
         stock: parseInt(form.stock), sku: form.sku, description: form.description,
         manufacturer: form.manufacturer, modelNumber: form.modelNumber,
         barcode: form.barcode, hsnCode: form.hsnCode,
@@ -147,40 +126,35 @@ const AddProduct = () => {
         dimensions: form.dimensions, shippingClass: form.shippingClass,
         deliveryDays: form.deliveryDays ? parseInt(form.deliveryDays) : null,
         badges: form.badges !== "None" ? [form.badges] : [],
+        ...(isSeller ? {} : { sellerId: form.sellerId }),
         ...(asDraft ? { productStatus: "draft" } : {}),
       };
       const endpoint = isSeller ? "/api/seller/products" : "/api/admin/products/add";
       const res = await api.post(endpoint, data);
       const productId = res.data?.id;
+      let failed = [];
       if (productId && images.length > 0) {
-        setMsg({ type: "info", text: "Compressing images..." });
-        const compressed = await compressImages(images);
-        for (const file of compressed) {
-          const fd = new FormData();
-          fd.append("image", file);
-          fd.append("product_id", String(productId));
-          try {
-            // Process via the image pipeline (Java passthrough -> Node multer/sharp),
-            // then link the processed WebP sizes to the new product.
-            const up = await api.post("/api/uploads/upload-image", fd);
-            await api.post(`/api/admin/products/${productId}/images/url`, {
-              thumbnail_url: up.data.thumbnail_url,
-              preview_url: up.data.preview_url,
-              zoom_url: up.data.zoom_url,
-              original_url: up.data.original_url,
-            });
-          } catch (imgErr) {
-            setImageErrors((prev) => [...prev, `Failed to upload ${file.name}`]);
-          }
-        }
+        setMsg({ type: "info", text: "Uploading images..." });
+        failed = await uploadProductImages(productId, images);
+      }
+      if (failed.length > 0) {
+        // Stay on the page so the message can be read; the product itself was saved.
+        setMsg({ type: "error", text: `Product saved, but ${failed.length} image(s) could not be uploaded (${failed.join(", ")}). Add them from the product's Images page.` });
+        setSubmitting(false);
+        return;
       }
       // A seller's listing is reviewed by an admin before shoppers can see it.
       setMsg({ type: "success", text: isSeller
-        ? (asDraft
-            ? `Draft saved${images.length > 0 ? " with images" : ""}. It stays hidden until you publish it.`
-            : `Product submitted${images.length > 0 ? " with images" : ""}. It will appear in the store once an admin approves it.`)
-        : `Product created${images.length > 0 ? " with images" : ""}.` });
-      setTimeout(() => navigate(redirectPath), isSeller ? 2500 : 1000);
+        ? asDraft
+          ? `Draft saved${images.length > 0 ? " with images" : ""}. It stays hidden until you publish it.`
+          : `Product saved${images.length > 0 ? " with images" : ""}. Next, fill in its compliance details; it goes on sale once they pass and an admin approves it.`
+        : `Product created${images.length > 0 ? " with images" : ""}. Now add its compliance details; it stays off sale until they pass.` });
+      // Admins go straight to the compliance details, which decide whether it can go on sale.
+      setTimeout(() => {
+        if (!productId || asDraft) navigate(redirectPath);
+        else if (isSeller) navigate(`/seller/products/wizard/${productId}`, { state: { step: 2 } });
+        else navigate(`/admin/products/${productId}/compliance`);
+      }, isSeller ? 2000 : 1200);
     } catch (err) {
       setMsg({ type: "error", text: err.response?.data?.error || "Failed to create product." });
     }
@@ -191,19 +165,19 @@ const AddProduct = () => {
     field: { marginBottom: "0.75rem" },
     label: { display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: "3px" },
     input: {
-      width: "100%", padding: "8px 12px", border: "1px solid #CFE8D6", borderRadius: "6px",
+      width: "100%", padding: "8px 12px", border: "1px solid #C4EFE6", borderRadius: "6px",
       fontSize: "0.9rem", outline: "none", boxSizing: "border-box", background: "#fff"
     },
     select: {
-      width: "100%", padding: "8px 12px", border: "1px solid #CFE8D6", borderRadius: "6px",
+      width: "100%", padding: "8px 12px", border: "1px solid #C4EFE6", borderRadius: "6px",
       fontSize: "0.9rem", background: "#fff", outline: "none", boxSizing: "border-box"
     },
     textarea: {
-      width: "100%", padding: "8px 12px", border: "1px solid #CFE8D6", borderRadius: "6px",
+      width: "100%", padding: "8px 12px", border: "1px solid #C4EFE6", borderRadius: "6px",
       fontSize: "0.9rem", minHeight: "80px", resize: "vertical", outline: "none", boxSizing: "border-box"
     },
-    section: { background: "#fff", borderRadius: "8px", border: "1px solid #CFE8D6", padding: "1.25rem", marginBottom: "1rem" },
-    sectionTitle: { fontSize: "0.95rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #EAF7EE" },
+    section: { background: "#fff", borderRadius: "8px", border: "1px solid #C4EFE6", padding: "1.25rem", marginBottom: "1rem" },
+    sectionTitle: { fontSize: "0.95rem", fontWeight: 700, color: "#003A44", marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: "2px solid #E6F8F3" },
     counter: { fontSize: "0.7rem", color: "#94a3b8" },
     hint: { fontSize: "0.7rem", color: "#64748B", marginTop: "2px" },
     error: { color: "#dc2626", fontSize: "0.7rem", marginTop: "2px" },
@@ -240,7 +214,7 @@ const AddProduct = () => {
 
   return (
     <div style={{ maxWidth: "860px", width: "100%", margin: "0 auto", padding: "1.5rem", boxSizing: "border-box" }}>
-      <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#0B3D2E", marginBottom: "0.25rem" }}>
+      <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#003A44", marginBottom: "0.25rem" }}>
         Add Product
       </h1>
       <p style={{ color: "#64748B", marginBottom: "1rem", fontSize: "0.85rem" }}>
@@ -250,9 +224,9 @@ const AddProduct = () => {
       {msg && (
         <div style={{
           padding: "10px 14px", borderRadius: "6px", marginBottom: "1rem",
-          background: msg.type === "success" ? "#EAF7EE" : "#fef2f2",
-          color: msg.type === "success" ? "#146C43" : "#dc2626",
-          border: `1px solid ${msg.type === "success" ? "#CFE8D6" : "#fecaca"}`,
+          background: msg.type === "success" ? "#E6F8F3" : "#fef2f2",
+          color: msg.type === "success" ? "#00788C" : "#dc2626",
+          border: `1px solid ${msg.type === "success" ? "#C4EFE6" : "#fecaca"}`,
           fontSize: "0.85rem"
         }}>
           {msg.type === "success" ? "\u2713 " : "\u2717 "}{msg.text}
@@ -275,12 +249,16 @@ const AddProduct = () => {
           </div>
         </div>
         {fld("Description", "description", "textarea")}
+        {!isSeller && (
+          <SellerOrigin value={form.sellerId} onChange={(id) => set("sellerId", id)} error={errors.sellerId} />
+        )}
       </div>
 
       {/* Pricing & Inventory */}
       <div style={S.section}>
         <h3 style={S.sectionTitle}>Pricing & Inventory</h3>
         <div style={S.grid3}>
+          {fld("MRP (\u20B9)", "mrp", "number")}
           {fld("Price incl. GST (\u20B9) *", "price", "number")}
           {fld("Stock *", "stock", "number")}
           {fld("SKU", "sku")}
@@ -293,11 +271,11 @@ const AddProduct = () => {
             <div style={{ fontWeight: 700, marginBottom: 4 }}>
               If this sells in a single-item order{commission.launchOffer ? " (launch offer applied)" : ""}
             </div>
-            <div>Selling price: {"\u20B9"}{commission.price.toFixed(2)}</div>
-            <div>Commission ({commission.commissionPercent}%): {"\u2212\u20B9"}{commission.commission.toFixed(2)}</div>
-            <div>Handling fee per order: {"\u2212\u20B9"}{commission.handlingFee.toFixed(2)}</div>
-            <div>Payment gateway fees (incl. GST): {"\u2212\u20B9"}{commission.paymentFees.toFixed(2)}</div>
-            <div style={{ fontWeight: 700, marginTop: 4 }}>You receive about {"\u20B9"}{commission.sellerNet.toFixed(2)} before taxes on fees</div>
+            <div>Selling price: {"₹"}{commission.price.toFixed(2)}</div>
+            <div>Commission ({commission.commissionPercent}%): {"−₹"}{commission.commission.toFixed(2)}</div>
+            <div>Handling fee per order: {"−₹"}{commission.handlingFee.toFixed(2)}</div>
+            <div>Payment gateway fees (incl. GST): {"−₹"}{commission.paymentFees.toFixed(2)}</div>
+            <div style={{ fontWeight: 700, marginTop: 4 }}>You receive about {"₹"}{commission.sellerNet.toFixed(2)} before taxes on fees</div>
             <div style={{ color: "#64748B", fontSize: "0.75rem", marginTop: 4 }}>
               An estimate before GST on our fees and tax collected at source, which are shown on your commission invoice and tax statements. Paid {commission.payoutDelayDays} days after delivery.
             </div>
@@ -365,13 +343,13 @@ const AddProduct = () => {
             differently from the listing (e.g. "Basmati Rice 5kg" on the shelf, "rice (premium
             basmati)" on the bill). UOM prints next to the quantity; cess is a declaration and
             is only ever charged at the CBIC's published rate for the code. */}
-        <h4 style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0B3D2E", margin: "1rem 0 0.5rem" }}>
+        <h4 style={{ fontSize: "0.85rem", fontWeight: 700, color: "#003A44", margin: "1rem 0 0.5rem" }}>
           Bill &amp; Print
         </h4>
         {fld("Bill / invoice description", "billDescription", "textarea", null,
           "Printed on invoices and tax bills. Leave blank to use the product name.")}
         <div style={S.grid2}>
-          {fld("Unit of measure", "uom", null, UNITS_OF_MEASURE, "Printed beside the quantity, e.g. 5 KG. NOS means pieces.")}
+          {fld("Unit of measure", "uom", null, UNITS_OF_MEASURE, "Printed beside the quantity, e.g. 5 KG.")}
           {fld("Cess rate %", "cessRate", "number", null,
             "Declaration only — cess is charged at the CBIC rate for this code, never at this number.")}
         </div>
@@ -409,57 +387,13 @@ const AddProduct = () => {
         {fld("Shipping Class", "shippingClass", null, SHIPPING_CLASS)}
       </div>
 
-      {/* Product Images */}
-      <div style={S.section}>
-        <h3 style={S.sectionTitle}>Product Images</h3>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-          <input
-            type="file" ref={fileRef} multiple accept=".jpg,.jpeg,.png,.webp"
-            onChange={(e) => handleFiles(e.target.files)}
-            style={{ fontSize: "0.85rem" }}
-          />
-          <span style={{ fontSize: "0.75rem", color: "#64748B" }}>
-            Max {MAX_IMAGES} images, JPG/PNG/WebP, 10MB each (resized automatically)
-          </span>
-        </div>
-        {imageErrors.length > 0 && (
-          <div style={{ marginBottom: "0.5rem" }}>
-            {imageErrors.map((err, i) => (
-              <div key={i} style={{ fontSize: "0.75rem", color: "#dc2626" }}>{err}</div>
-            ))}
-          </div>
-        )}
-        {images.length > 0 ? (
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {images.map((f, i) => (
-              <div key={i} style={{ position: "relative", width: "80px", height: "80px", borderRadius: "6px", overflow: "hidden", border: "1px solid #CFE8D6" }}>
-                <img src={URL.createObjectURL(f)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                <button type="button" onClick={() => removeImage(i)}
-                  style={{ position: "absolute", top: "2px", right: "2px", width: "20px", height: "20px", borderRadius: "50%", border: "none", background: "rgba(220,38,38,0.8)", color: "#fff", cursor: "pointer", fontSize: "12px", lineHeight: "20px", padding: 0 }}>
-                  &times;
-                </button>
-              </div>
-            ))}
-            {images.length < MAX_IMAGES && (
-              <div onClick={() => fileRef.current?.click()}
-                style={{ width: "80px", height: "80px", borderRadius: "6px", border: "2px dashed #CFE8D6", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#94a3b8", fontSize: "1.5rem" }}>
-                +
-              </div>
-            )}
-          </div>
-        ) : (
-          <div onClick={() => fileRef.current?.click()}
-            style={{ padding: "1.5rem", textAlign: "center", border: "2px dashed #CFE8D6", borderRadius: "6px", cursor: "pointer", color: "#94a3b8", fontSize: "0.85rem" }}>
-            Click to upload product images
-          </div>
-        )}
-      </div>
+      <ProductImagePicker images={images} onChange={setImages} sectionStyle={S.section} titleStyle={S.sectionTitle} />
 
       {/* Actions */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "0.5rem" }}>
         <button onClick={() => navigate(redirectPath)}
           style={{
-            padding: "10px 20px", border: "1px solid #CFE8D6", borderRadius: "6px",
+            padding: "10px 20px", border: "1px solid #C4EFE6", borderRadius: "6px",
             background: "#fff", color: "#64748B", cursor: "pointer", fontWeight: 500, fontSize: "0.9rem"
           }}>
           Cancel
@@ -476,7 +410,7 @@ const AddProduct = () => {
         <button onClick={() => handleSubmit(false)} disabled={submitting}
           style={{
             padding: "10px 32px",
-            background: submitting ? "#94a3b8" : "#2E9B57",
+            background: submitting ? "#94a3b8" : "#00788C",
             color: "#fff", border: "none", borderRadius: "6px",
             cursor: submitting ? "not-allowed" : "pointer", fontWeight: 600, fontSize: "0.9rem"
           }}>

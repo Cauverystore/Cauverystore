@@ -1,7 +1,14 @@
 {
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "backend-java/Dockerfile"
+    "dockerfilePath": "backend-java/Dockerfile",
+    "watchPatterns": [
+      "/railway.json",
+      "/backend-java/**",
+      "!/backend-java/src/main/resources/master-data/cbic-source/**",
+      "!/backend-java/src/main/resources/master-data/tools/**",
+      "!/backend-java/src/test/**"
+    ]
   },
   "deploy": {
     "startCommand": "java -jar app.jar",

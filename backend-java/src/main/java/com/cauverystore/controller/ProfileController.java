@@ -25,6 +25,7 @@ public class ProfileController {
     private final ProductReviewRepository reviewRepo;
     private final WishlistRepository wishlistRepo;
     private final UserRepository userRepo;
+    private final com.cauverystore.service.AccountDeletionService accountDeletionService;
 
     private User getCurrentUser() {
         Long userId = authService.deriveUserId();
@@ -48,6 +49,22 @@ public class ProfileController {
         if (updated.getProfilePicture() != null) user.setProfilePicture(updated.getProfilePicture());
         userRepo.save(user);
         return ResponseEntity.ok(user);
+    }
+
+    /**
+     * Deletes the signed-in shopper's own account (personal details removed, order and invoice
+     * records kept as tax law requires). Body: {"password": "...", "confirm": "DELETE"}.
+     */
+    @DeleteMapping("/account")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, String>> deleteAccount(@RequestBody(required = false) Map<String, String> body) {
+        Map<String, String> req = body == null ? Map.of() : body;
+        try {
+            accountDeletionService.deleteAccount(getCurrentUser(), req.get("password"), req.get("confirm"));
+            return ResponseEntity.ok(Map.of("message", "Your account has been deleted."));
+        } catch (com.cauverystore.service.AccountDeletionService.AccountDeletionException e) {
+            return ResponseEntity.status(e.getStatus()).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/profile/picture")

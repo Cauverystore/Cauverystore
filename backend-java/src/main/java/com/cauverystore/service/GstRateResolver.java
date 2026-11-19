@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -113,17 +115,30 @@ public class GstRateResolver {
          * to the paisa.
          */
         public Split splitInclusive(double grossAmount) {
-            double base = grossAmount / (1 + (totalRate + cessRate) / 100.0);
-            double cgst = round(base * cgstRate / 100.0);
-            double sgst = round(base * sgstRate / 100.0);
-            double igst = round(base * igstRate / 100.0);
-            double cess = round(base * cessRate / 100.0);
-            double taxable = round(grossAmount - cgst - sgst - igst - cess);
-            return new Split(taxable, cgst, sgst, igst, cess);
+            // Exact decimal arithmetic: binary doubles cannot hold most paise values, and a
+            // half-paisa tie such as 0.285 can round the wrong way once it has been through one.
+            BigDecimal gross = BigDecimal.valueOf(grossAmount);
+            BigDecimal divisor = BigDecimal.ONE.add(
+                    BigDecimal.valueOf(totalRate + cessRate).divide(HUNDRED, 10, RoundingMode.HALF_UP));
+            BigDecimal base = gross.divide(divisor, 10, RoundingMode.HALF_UP);
+            BigDecimal cgst = part(base, cgstRate);
+            BigDecimal sgst = part(base, sgstRate);
+            BigDecimal igst = part(base, igstRate);
+            BigDecimal cess = part(base, cessRate);
+            BigDecimal taxable = gross.subtract(cgst).subtract(sgst).subtract(igst).subtract(cess)
+                    .setScale(2, RoundingMode.HALF_UP);
+            return new Split(taxable.doubleValue(), cgst.doubleValue(), sgst.doubleValue(),
+                    igst.doubleValue(), cess.doubleValue());
         }
 
         private static double round(double v) {
             return Math.round(v * 100.0) / 100.0;
+        }
+
+        private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+
+        private static BigDecimal part(BigDecimal base, double rate) {
+            return base.multiply(BigDecimal.valueOf(rate)).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         }
     }
 
@@ -208,7 +223,7 @@ public class GstRateResolver {
             // An inclusive price can fall between the bands: ₹2,800 is over ₹2,500 with 5% taken
             // out but under it with 18% taken out, so neither band is consistent. Both bands are
             // published, so the goods are taxable - the higher band is charged, which can never
-            // under-declare the tax. Sellers are told to price outside the gap (see gapFor).
+            // under-declare the tax. Sellers are told to price outside the gap (see priceGap).
             Optional<GstRateMaster> gap = higherBandInGap(hits, unitPrice);
             if (gap.isPresent()) {
                 log.info("Inclusive price {} under HSN {} falls between the value bands - charging "
@@ -239,6 +254,47 @@ public class GstRateResolver {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * The price gap for value-banded goods (apparel, footwear, made-ups): with prices that
+     * include GST, a price above threshold x (1 + lower rate) is too high for the lower band,
+     * yet a price up to threshold x (1 + higher rate) is too low for the higher one. At ₹2,500
+     * with 5% and 18%, that is any price over ₹2,625 and up to ₹2,950.
+     *
+     * @return {lowest band's highest price, higher band's lowest price (exclusive)} when the
+     *         price falls in the gap, otherwise empty
+     */
+    public Optional<double[]> priceGap(String hsnCode, LocalDate onDate, Double inclusivePrice) {
+        if (hsnCode == null || hsnCode.isBlank() || inclusivePrice == null) return Optional.empty();
+        String hsn = hsnCode.replaceAll("\\s", "");
+        LocalDate date = onDate != null ? onDate : LocalDate.now();
+        for (String candidate : List.of(hsn,
+                hsn.length() > 6 ? hsn.substring(0, 6) : hsn,
+                hsn.length() > 4 ? hsn.substring(0, 4) : hsn,
+                hsn.length() > 2 ? hsn.substring(0, 2) : hsn)) {
+            List<GstRateMaster> hits = rateRepo.findApplicable(candidate, GstRateMaster.STATUS_VERIFIED, date);
+            for (GstRateMaster above : hits) {
+                if (!GstRateMaster.CONDITION_VALUE_ABOVE.equals(above.getConditionType())
+                        || above.getThresholdAmount() == null) continue;
+                for (GstRateMaster upto : hits) {
+                    if (!GstRateMaster.CONDITION_VALUE_UPTO.equals(upto.getConditionType())
+                            || !above.getThresholdAmount().equals(upto.getThresholdAmount())) continue;
+                    double t = above.getThresholdAmount();
+                    double lowMax = round2(t * (1 + (upto.getGstRate() + nzCess(upto.getCessRate())) / 100.0));
+                    double highMin = round2(t * (1 + (above.getGstRate() + nzCess(above.getCessRate())) / 100.0));
+                    if (inclusivePrice > lowMax && inclusivePrice <= highMin) {
+                        return Optional.of(new double[] {lowMax, highMin});
+                    }
+                    return Optional.empty();
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static double round2(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 
     /**
@@ -284,12 +340,25 @@ public class GstRateResolver {
         // question the rate table cannot: 0901 is 5% roasted and nil green, and only they know
         // which they sell. Their answer wins over the automatic walk below.
         Optional<GstRateMaster> chosen = selectedRateRow(product, onDate);
+        Optional<GstRateMaster> rowOpt = findRateRow(hsn, onDate, unitPrice, prePackaged);
         if (chosen.isPresent()) {
             GstRateMaster row = chosen.get();
+            // A verified line published against a more precise code than the one the seller
+            // picked from says exactly what these goods are, so it wins. Example: 3002 11 00
+            // (malaria diagnostic kits) is 5%, even if the seller picked "human blood" (nil)
+            // from the 3002 heading.
+            if (rowOpt.isPresent() && rowOpt.get().getHsnCode().length() > row.getHsnCode().length()) {
+                GstRateMaster precise = rowOpt.get();
+                if (!java.util.Objects.equals(precise.getGstRate(), row.getGstRate())) {
+                    log.warn("Product '{}' (HSN {}) has a rate choice of {}% under {}, but {} is "
+                                    + "published at {}%. Charging {}%.", product.getName(), hsn,
+                            row.getGstRate(), row.getHsnCode(), precise.getHsnCode(),
+                            precise.getGstRate(), precise.getGstRate());
+                }
+                return new Resolved(precise.getGstRate(), nzCess(precise.getCessRate()), interState, hsn, true);
+            }
             return new Resolved(row.getGstRate(), nzCess(row.getCessRate()), interState, hsn, true);
         }
-
-        Optional<GstRateMaster> rowOpt = findRateRow(hsn, onDate, unitPrice, prePackaged);
 
         if (rowOpt.isPresent()) {
             GstRateMaster row = rowOpt.get();

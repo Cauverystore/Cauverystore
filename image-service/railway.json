@@ -1,7 +1,10 @@
 {
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "Dockerfile",
+    "watchPatterns": [
+      "/image-service/**"
+    ]
   },
   "deploy": {
     "startCommand": "npm start",

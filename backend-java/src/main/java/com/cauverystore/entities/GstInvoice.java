@@ -143,6 +143,15 @@ public class GstInvoice {
     private String consigneeAddress;
 
     /**
+     * The consignee's GSTIN on a bill-to / ship-to supply, or "URP" when they are not
+     * registered. The IRP has required it in the ship-to details since 1 August 2026.
+     */
+    private String consigneeGstin;
+
+    /** The consignee's state: their GSTIN's, or their PIN code's when unregistered. */
+    private String consigneeStateCode;
+
+    /**
      * True when this intra-state supply came from a Union Territory without a legislature and so
      * carried UTGST instead of SGST. The state component is still stored in the state-tax fields
      * - GSTN reports UTGST under "State/UT Tax" in every return and e-invoice - but the face of
@@ -152,6 +161,9 @@ public class GstInvoice {
 
     private String ewayBillNumber;
     private LocalDate ewayBillExpiry;
+    /** NOT_REQUIRED, REQUIRED (to be generated before the goods move) or GENERATED. */
+    private String ewayBillStatus;
+    private java.time.LocalDateTime ewayBillGeneratedAt;
 
     private String transporterName;
     private String transporterGstin;
@@ -190,6 +202,18 @@ public class GstInvoice {
     private Double discountAmount;
     private Double deliveryCharge;
     private Boolean einvoicingRequired = false;
+
+    /** GSTIN of the e-commerce operator the supply was made through (s.52), if any. */
+    private String ecoGstin;
+
+    // Set only when a credit or debit note is sent to the IRP in the shape of an invoice:
+    // the document type (INV, CRN, DBN) and the invoice it adjusts. Never stored.
+    @Transient
+    private String irpDocType = "INV";
+    @Transient
+    private String precedingInvoiceNumber;
+    @Transient
+    private LocalDate precedingInvoiceDate;
     @Column(columnDefinition = "TEXT")
     /**
      * The seller's trade type and category as they stood when this invoice was raised.
@@ -338,6 +362,10 @@ public class GstInvoice {
 
     public String getConsigneeAddress() { return consigneeAddress; }
     public void setConsigneeAddress(String consigneeAddress) { this.consigneeAddress = consigneeAddress; }
+    public String getConsigneeGstin() { return consigneeGstin; }
+    public void setConsigneeGstin(String consigneeGstin) { this.consigneeGstin = consigneeGstin; }
+    public String getConsigneeStateCode() { return consigneeStateCode; }
+    public void setConsigneeStateCode(String consigneeStateCode) { this.consigneeStateCode = consigneeStateCode; }
 
     public String getBuyerPan() { return buyerPan; }
     public void setBuyerPan(String buyerPan) { this.buyerPan = buyerPan; }
@@ -354,6 +382,10 @@ public class GstInvoice {
     public String getEwayBillNumber() { return ewayBillNumber; }
     public void setEwayBillNumber(String ewayBillNumber) { this.ewayBillNumber = ewayBillNumber; }
     public LocalDate getEwayBillExpiry() { return ewayBillExpiry; }
+    public String getEwayBillStatus() { return ewayBillStatus; }
+    public void setEwayBillStatus(String ewayBillStatus) { this.ewayBillStatus = ewayBillStatus; }
+    public java.time.LocalDateTime getEwayBillGeneratedAt() { return ewayBillGeneratedAt; }
+    public void setEwayBillGeneratedAt(java.time.LocalDateTime t) { this.ewayBillGeneratedAt = t; }
     public void setEwayBillExpiry(LocalDate ewayBillExpiry) { this.ewayBillExpiry = ewayBillExpiry; }
     public String getTransporterName() { return transporterName; }
     public void setTransporterName(String transporterName) { this.transporterName = transporterName; }
@@ -412,6 +444,14 @@ public class GstInvoice {
     public Double getDeliveryCharge() { return deliveryCharge; }
     public void setDeliveryCharge(Double deliveryCharge) { this.deliveryCharge = deliveryCharge; }
     public Boolean getEinvoicingRequired() { return einvoicingRequired; }
+    public String getEcoGstin() { return ecoGstin; }
+    public void setEcoGstin(String ecoGstin) { this.ecoGstin = ecoGstin; }
+    public String getIrpDocType() { return irpDocType; }
+    public void setIrpDocType(String irpDocType) { this.irpDocType = irpDocType; }
+    public String getPrecedingInvoiceNumber() { return precedingInvoiceNumber; }
+    public void setPrecedingInvoiceNumber(String n) { this.precedingInvoiceNumber = n; }
+    public LocalDate getPrecedingInvoiceDate() { return precedingInvoiceDate; }
+    public void setPrecedingInvoiceDate(LocalDate d) { this.precedingInvoiceDate = d; }
     public void setEinvoicingRequired(Boolean einvoicingRequired) { this.einvoicingRequired = einvoicingRequired; }
     public String getTaxComplianceStatus() { return taxComplianceStatus; }
     public void setTaxComplianceStatus(String s) { this.taxComplianceStatus = s; }

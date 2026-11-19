@@ -7,32 +7,32 @@ const statusColors = {
   PENDING: { bg: "#FEF3C7", color: "#D97706" },
   CONFIRMED: { bg: "#DBEAFE", color: "#2563EB" },
   SHIPPED: { bg: "#E0E7FF", color: "#4F46E5" },
-  RECEIVED: { bg: "#E6F7EC", color: "#2E9B57" },
+  RECEIVED: { bg: "#E6F7EC", color: "#00788C" },
   CANCELLED: { bg: "#FEE2E2", color: "#dc2626" },
 };
 
 const styles = {
   container: { padding: "24px" },
-  header: { fontSize: "28px", fontWeight: "700", color: "#0B3D2E", marginBottom: "24px" },
-  formCard: { background: "#fff", border: "1px solid #CFE8D6", borderRadius: "8px", padding: "20px", marginBottom: "24px" },
-  formTitle: { fontSize: "18px", fontWeight: "600", color: "#0B3D2E", marginBottom: "16px" },
+  header: { fontSize: "28px", fontWeight: "700", color: "#003A44", marginBottom: "24px" },
+  formCard: { background: "#fff", border: "1px solid #C4EFE6", borderRadius: "8px", padding: "20px", marginBottom: "24px" },
+  formTitle: { fontSize: "18px", fontWeight: "600", color: "#003A44", marginBottom: "16px" },
   formRow: { display: "flex", gap: "16px", marginBottom: "12px", flexWrap: "wrap", alignItems: "center" },
-  input: { flex: "1 1 200px", padding: "10px 12px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "14px", outline: "none" },
-  select: { flex: "1 1 200px", padding: "10px 12px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "14px", outline: "none", background: "#fff" },
-  textarea: { flex: "1 1 100%", padding: "10px 12px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "14px", outline: "none", resize: "vertical", minHeight: "60px" },
-  btnPrimary: { background: "#2E9B57", color: "#fff", border: "none", padding: "10px 24px", borderRadius: "6px", fontSize: "14px", fontWeight: "600", cursor: "pointer" },
-  btnSecondary: { background: "#CFE8D6", color: "#0B3D2E", border: "none", padding: "10px 24px", borderRadius: "6px", fontSize: "14px", fontWeight: "600", cursor: "pointer", marginLeft: "8px" },
-  btnAddItem: { background: "#0B3D2E", color: "#fff", border: "none", padding: "8px 16px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", cursor: "pointer" },
+  input: { flex: "1 1 200px", padding: "10px 12px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "14px", outline: "none" },
+  select: { flex: "1 1 200px", padding: "10px 12px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "14px", outline: "none", background: "#fff" },
+  textarea: { flex: "1 1 100%", padding: "10px 12px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "14px", outline: "none", resize: "vertical", minHeight: "60px" },
+  btnPrimary: { background: "#00788C", color: "#fff", border: "none", padding: "10px 24px", borderRadius: "6px", fontSize: "14px", fontWeight: "600", cursor: "pointer" },
+  btnSecondary: { background: "#C4EFE6", color: "#003A44", border: "none", padding: "10px 24px", borderRadius: "6px", fontSize: "14px", fontWeight: "600", cursor: "pointer", marginLeft: "8px" },
+  btnAddItem: { background: "#003A44", color: "#fff", border: "none", padding: "8px 16px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", cursor: "pointer" },
   btnRemoveItem: { background: "#dc2626", color: "#fff", border: "none", padding: "4px 10px", borderRadius: "4px", fontSize: "12px", fontWeight: "600", cursor: "pointer" },
-  table: { width: "100%", borderCollapse: "collapse", background: "#fff", border: "1px solid #CFE8D6", borderRadius: "8px", overflow: "hidden" },
-  th: { textAlign: "left", padding: "12px 16px", background: "#0B3D2E", color: "#fff", fontSize: "13px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" },
-  td: { padding: "12px 16px", borderBottom: "1px solid #CFE8D6", fontSize: "14px", color: "#333" },
+  table: { width: "100%", borderCollapse: "collapse", background: "#fff", border: "1px solid #C4EFE6", borderRadius: "8px", overflow: "hidden" },
+  th: { textAlign: "left", padding: "12px 16px", background: "#003A44", color: "#fff", fontSize: "13px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" },
+  td: { padding: "12px 16px", borderBottom: "1px solid #C4EFE6", fontSize: "14px", color: "#333" },
   statusBadge: (status) => {
     const c = statusColors[status] || { bg: "#E5E7EB", color: "#374151" };
     return { background: c.bg, color: c.color, padding: "4px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "600", cursor: "pointer", display: "inline-block" };
   },
   loading: { textAlign: "center", padding: "40px", color: "#666" },
-  successMsg: { background: "#E6F7EC", color: "#2E9B57", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", fontSize: "14px" },
+  successMsg: { background: "#E6F7EC", color: "#00788C", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", fontSize: "14px" },
   errorMsg: { background: "#FEE2E2", color: "#dc2626", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", fontSize: "14px" },
   itemRow: { display: "flex", gap: "8px", marginBottom: "8px", flexWrap: "wrap", alignItems: "center" },
 };
@@ -217,7 +217,7 @@ export default function AdminPurchaseOrders() {
           </div>
 
           <div style={{ marginBottom: "12px" }}>
-            <strong style={{ color: "#0B3D2E", fontSize: "15px" }}>Items</strong>
+            <strong style={{ color: "#003A44", fontSize: "15px" }}>Items</strong>
             <button type="button" style={{ ...styles.btnAddItem, marginLeft: "12px" }} onClick={addItem}>+ Add Item</button>
           </div>
           {form.items.map((item, idx) => (
@@ -277,7 +277,7 @@ export default function AdminPurchaseOrders() {
                   <td style={styles.td}>{po.expectedDelivery ? po.expectedDelivery.slice(0, 10) : "-"}</td>
                   <td style={styles.td}>${total.toFixed(2)}</td>
                   <td style={styles.td}>
-                    <button style={{ background: "#2E9B57", color: "#fff", border: "none", padding: "6px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }} onClick={() => handleEdit(po)}>Edit</button>
+                    <button style={{ background: "#00788C", color: "#fff", border: "none", padding: "6px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }} onClick={() => handleEdit(po)}>Edit</button>
                   </td>
                 </tr>
               );

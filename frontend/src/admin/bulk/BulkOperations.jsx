@@ -11,11 +11,11 @@ const tabs = [
 
 const styles = {
   container: { padding: "24px" },
-  header: { fontSize: "28px", fontWeight: "700", color: "#0B3D2E", marginBottom: "24px" },
-  tabRow: { display: "flex", gap: "4px", marginBottom: "24px", borderBottom: "2px solid #CFE8D6", paddingBottom: "0" },
+  header: { fontSize: "28px", fontWeight: "700", color: "#003A44", marginBottom: "24px" },
+  tabRow: { display: "flex", gap: "4px", marginBottom: "24px", borderBottom: "2px solid #C4EFE6", paddingBottom: "0" },
   tab: (active) => ({
-    background: active ? "#0B3D2E" : "transparent",
-    color: active ? "#fff" : "#0B3D2E",
+    background: active ? "#003A44" : "transparent",
+    color: active ? "#fff" : "#003A44",
     border: "none",
     padding: "12px 24px",
     fontSize: "14px",
@@ -23,17 +23,17 @@ const styles = {
     cursor: "pointer",
     borderRadius: "8px 8px 0 0",
   }),
-  card: { background: "#fff", border: "1px solid #CFE8D6", borderRadius: "8px", padding: "24px" },
-  label: { display: "block", fontSize: "14px", fontWeight: "600", color: "#0B3D2E", marginBottom: "8px" },
-  textarea: { width: "100%", padding: "12px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "14px", resize: "vertical", minHeight: "100px", marginBottom: "16px", outline: "none" },
-  input: { width: "100%", padding: "10px 12px", border: "1px solid #CFE8D6", borderRadius: "6px", fontSize: "14px", marginBottom: "16px", outline: "none" },
-  btnPrimary: { background: "#2E9B57", color: "#fff", border: "none", padding: "12px 32px", borderRadius: "6px", fontSize: "15px", fontWeight: "600", cursor: "pointer" },
+  card: { background: "#fff", border: "1px solid #C4EFE6", borderRadius: "8px", padding: "24px" },
+  label: { display: "block", fontSize: "14px", fontWeight: "600", color: "#003A44", marginBottom: "8px" },
+  textarea: { width: "100%", padding: "12px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "14px", resize: "vertical", minHeight: "100px", marginBottom: "16px", outline: "none" },
+  input: { width: "100%", padding: "10px 12px", border: "1px solid #C4EFE6", borderRadius: "6px", fontSize: "14px", marginBottom: "16px", outline: "none" },
+  btnPrimary: { background: "#00788C", color: "#fff", border: "none", padding: "12px 32px", borderRadius: "6px", fontSize: "15px", fontWeight: "600", cursor: "pointer" },
   btnDanger: { background: "#dc2626", color: "#fff", border: "none", padding: "12px 32px", borderRadius: "6px", fontSize: "15px", fontWeight: "600", cursor: "pointer" },
-  successMsg: { background: "#E6F7EC", color: "#2E9B57", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", fontSize: "14px" },
+  successMsg: { background: "#E6F7EC", color: "#00788C", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", fontSize: "14px" },
   errorMsg: { background: "#FEE2E2", color: "#dc2626", padding: "12px 16px", borderRadius: "6px", marginBottom: "16px", fontSize: "14px" },
   toggleRow: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" },
   toggleBtn: (active) => ({
-    background: active ? "#2E9B57" : "#CFE8D6",
+    background: active ? "#00788C" : "#C4EFE6",
     color: active ? "#fff" : "#666",
     border: "none",
     padding: "8px 20px",
@@ -201,7 +201,7 @@ export default function BulkOperations() {
               onChange={(e) => setStatusForm({ ...statusForm, ids: e.target.value })}
             />
             <div style={styles.toggleRow}>
-              <span style={{ fontSize: "14px", fontWeight: "600", color: "#0B3D2E" }}>Status:</span>
+              <span style={{ fontSize: "14px", fontWeight: "600", color: "#003A44" }}>Status:</span>
               <button style={styles.toggleBtn(statusForm.active === true)} onClick={() => setStatusForm({ ...statusForm, active: true })}>Active</button>
               <button style={styles.toggleBtn(statusForm.active === false)} onClick={() => setStatusForm({ ...statusForm, active: false })}>Inactive</button>
             </div>

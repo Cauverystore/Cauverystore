@@ -242,7 +242,7 @@ const fallbackFaqs = {
       },
 
       get a() {
-        return i18n.t("helpCenter.notAtPresentAllOrders");
+        return i18n.t("helpCenter.yesPayCashOnDelivery");
       }
     },
   ],

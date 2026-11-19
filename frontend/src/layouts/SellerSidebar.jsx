@@ -2,9 +2,10 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Package, PlusCircle, ClipboardList, ShoppingCart,
-  BarChart3, Wallet, FileText, ShieldCheck, Store, ArrowLeft, Users,
+  BarChart3, Wallet, FileText, ShieldCheck, Store, ArrowLeft, Users, Upload,
 } from "lucide-react";
 import { useSellerStore } from "../context/SellerStoreContext";
+import useAltText from "../hooks/useAltText";
 
 // perm: what a team member's role needs to see the item. ownerOnly: GST pages still read the
 // signed-in person's own records, so they are for the account owner until they are moved over.
@@ -12,6 +13,7 @@ const links = [
   { to: "/seller/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: "dashboard.view" },
   { to: "/seller/products", label: "Products", icon: Package, end: true, perm: "products.view" },
   { to: "/seller/products/add", label: "Add Product", icon: PlusCircle, perm: "products.manage" },
+  { to: "/seller/products/bulk-upload", label: "Bulk Upload", icon: Upload, perm: "products.view" },
   { to: "/seller/inventory", label: "Inventory", icon: ClipboardList, perm: "products.view" },
   { to: "/seller/orders", label: "Orders & Returns", icon: ShoppingCart, perm: "orders.view" },
   { to: "/seller/analytics", label: "Analytics", icon: BarChart3, perm: "analytics.view" },
@@ -46,6 +48,7 @@ const StoreSwitcher = () => {
 };
 
 const SellerSidebar = ({ open, onNavigate }) => {
+  const altText = useAltText();
   const { current, can } = useSellerStore();
   const visible = links.filter((l) => (l.ownerOnly ? !current || current.owner : !l.perm || can(l.perm)));
   return (
@@ -58,9 +61,9 @@ const SellerSidebar = ({ open, onNavigate }) => {
   >
     <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #1e293b" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <img src="/images/logo.jpg" alt="" style={{ height: "1.15rem", width: "auto" }} />
+        <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "1.15rem", width: "auto" }} />
         <div>
-          <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--color-primary, #0E5C5C)" }}>Cauvery Store</div>
+          <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--color-primary, #00788C)" }}>Cauvery Store</div>
           <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "1px" }}>Seller Centre</div>
         </div>
       </div>
@@ -79,7 +82,7 @@ const SellerSidebar = ({ open, onNavigate }) => {
             display: "flex", alignItems: "center", gap: "12px", padding: "10px 20px",
             color: isActive ? "#fff" : "#94a3b8", textDecoration: "none", fontSize: "0.875rem",
             background: isActive ? "#1e293b" : "transparent",
-            borderLeft: isActive ? "3px solid var(--color-primary, #0E5C5C)" : "3px solid transparent",
+            borderLeft: isActive ? "3px solid var(--color-primary, #00788C)" : "3px solid transparent",
             transition: "all 0.15s",
           })}
         >

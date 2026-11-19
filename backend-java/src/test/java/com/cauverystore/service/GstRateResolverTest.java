@@ -514,4 +514,39 @@ class GstRateResolverTest {
 
         assertEquals(18.0, resolver.resolve(product, false, LocalDate.of(2026, 8, 7)).getTotalRate());
     }
+
+    @Test
+    void resolve_shouldPreferAPreciseVerifiedLineOverTheSellersBroaderPick() {
+        // 3002 11 00 (malaria diagnostic kits) is 5%. A seller who picked "human blood" (nil)
+        // from heading 3002 must not get nil charged.
+        product.setName("Malaria test kit");
+        product.setHsnCode("30021100");
+        product.setGstRateSelectionId(7L);
+        when(rateRepo.findById(7L)).thenReturn(Optional.of(unverifiedLine(7L, "3002", 0.0)));
+        when(rateRepo.findApplicable(eq("30021100"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(rate("30021100", 5.0, LocalDate.of(2025, 9, 22), null)));
+
+        assertEquals(5.0, resolver.resolve(product, true, LocalDate.of(2026, 11, 1)).getTotalRate());
+    }
+
+    @Test
+    void priceGap_shouldFindPricesThatFitNeitherApparelBand() {
+        GstRateMaster upto = rate("61", 5.0, LocalDate.of(2025, 9, 22), null);
+        upto.setConditionType(GstRateMaster.CONDITION_VALUE_UPTO);
+        upto.setThresholdAmount(2500.0);
+        GstRateMaster above = rate("61", 18.0, LocalDate.of(2025, 9, 22), null);
+        above.setConditionType(GstRateMaster.CONDITION_VALUE_ABOVE);
+        above.setThresholdAmount(2500.0);
+        when(rateRepo.findApplicable(anyString(), eq(GstRateMaster.STATUS_VERIFIED), any())).thenReturn(List.of());
+        when(rateRepo.findApplicable(eq("61"), eq(GstRateMaster.STATUS_VERIFIED), any()))
+                .thenReturn(List.of(upto, above));
+        LocalDate d = LocalDate.of(2026, 11, 1);
+
+        double[] gap = resolver.priceGap("61091000", d, 2800.0).orElseThrow();
+        assertEquals(2625.0, gap[0], 0.001);
+        assertEquals(2950.0, gap[1], 0.001);
+        assertTrue(resolver.priceGap("61091000", d, 2625.0).isEmpty(), "top of the 5% band");
+        assertTrue(resolver.priceGap("61091000", d, 2950.01).isEmpty(), "inside the 18% band");
+        assertTrue(resolver.priceGap("61091000", d, 999.0).isEmpty());
+    }
 }

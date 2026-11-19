@@ -29,11 +29,33 @@ import java.util.*;
 @Service
 public class DebitNoteService {
 
+    // Optional so tests that build this service by hand need not supply it.
+    private GstAuditService gstAudit;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
+
+    // Optional for the same reason as gstAudit: tests build this service by hand.
+    private GstInvoiceService einvoiceQueue;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEinvoiceQueue(@org.springframework.context.annotation.Lazy GstInvoiceService s) { this.einvoiceQueue = s; }
+
+    private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
+        if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
+    }
+
     private final DebitNoteRepository debitNoteRepo;
     private final DebitNoteItemRepository debitNoteItemRepo;
     private final GstInvoiceRepository invoiceRepo;
     private final GstInvoiceItemRepository invoiceItemRepo;
     private final AuditService auditService;
+
+    /** Per-seller numbering (Rule 46 / 53). Absent only in plain unit tests, which use the old scheme. */
+    private DocumentNumberService documentNumbers;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setDocumentNumbers(DocumentNumberService documentNumbers) { this.documentNumbers = documentNumbers; }
 
     public DebitNoteService(DebitNoteRepository debitNoteRepo, DebitNoteItemRepository debitNoteItemRepo,
                             GstInvoiceRepository invoiceRepo, GstInvoiceItemRepository invoiceItemRepo,
@@ -95,9 +117,19 @@ public class DebitNoteService {
         dn.setTotalAmount(round(nz(dn.getTaxableAmount()) + nz(dn.getTotalTax())));
         dn.setItems(buildItemsFromInvoice(dn, inv, factor));
 
-        dn.setDebitNoteNumber(generateDebitNoteNumber("DN"));
+        dn.setDebitNoteNumber(documentNumbers != null && dn.getSellerGstin() != null && !dn.getSellerGstin().isBlank()
+                ? documentNumbers.next(dn.getSellerGstin(), DocumentNumberService.DEBIT_NOTE,
+                        debitNoteRepo::findMaxDebitNoteNumberByPrefix)
+                : generateDebitNoteNumber("DN"));
         dn.setStatus("GENERATED");
         DebitNote saved = debitNoteRepo.save(dn);
+        if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), false);
+        gstAudit(GstAuditService.DEBIT_NOTE_ISSUED, "DebitNote", saved.getDebitNoteNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
+                        "date", String.valueOf(saved.getDebitNoteDate()), "reason", saved.getReason(),
+                        "taxable", saved.getTaxableAmount(), "cgst", saved.getCgstAmount(),
+                        "sgst", saved.getSgstAmount(), "igst", saved.getIgstAmount(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount()));
 
         auditService.log(userId, userId != null ? "seller:" + userId : "system", "DEBIT_NOTE_GENERATED",
                 "DebitNote", saved.getId(),
@@ -190,6 +222,14 @@ public class DebitNoteService {
         rightCell.addElement(new Paragraph(dn.getDebitNoteDate() != null ? dn.getDebitNoteDate().toString() : "", normal9));
         if (dn.getOriginalInvoiceNumber() != null) {
             rightCell.addElement(new Paragraph("Against Invoice: " + dn.getOriginalInvoiceNumber(), small8));
+        }
+        if (dn.getIrn() != null && !dn.getIrn().isBlank()) {
+            boolean simulated = dn.getIrn().startsWith("SIM");
+            rightCell.addElement(new Paragraph((simulated ? "Reference (SIMULATED - not an IRP registration): "
+                    : "IRN: ") + dn.getIrn(), small8));
+            if (dn.getAckNo() != null) {
+                rightCell.addElement(new Paragraph("Ack No: " + dn.getAckNo() + "  Date: " + safeStr(dn.getAckDate()), small8));
+            }
         }
         headerTable.addCell(leftCell);
         headerTable.addCell(rightCell);
@@ -322,7 +362,7 @@ public class DebitNoteService {
         String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMM"));
         String safePrefix = prefix != null ? prefix.trim().toUpperCase().replaceAll("[^A-Z0-9]", "") : "DN";
         if (safePrefix.isEmpty()) safePrefix = "DN";
-        if (safePrefix.length() > 9) safePrefix = safePrefix.substring(0, 9);
+        if (safePrefix.length() > 6) safePrefix = safePrefix.substring(0, 6);
         String prefixPattern = safePrefix + datePart + "/";
         String maxNum = debitNoteRepo.findMaxDebitNoteNumberByPrefix(prefixPattern);
         int seq = 1;

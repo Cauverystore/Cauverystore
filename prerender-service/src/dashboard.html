@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cauvery Prerender dashboard</title>
+<style>
+  :root { --green:#1F6B45; --deep:#143D2B; --sage:#E6F0E8; --mint:#F1F7F2; --ink:#1E293B; --muted:#64748B; --line:#D3E5D8; --red:#B42318; --amber:#B54708; --card:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --mint:#0F1A14; --card:#16241C; --ink:#E2E8F0; --muted:#94A3B8; --line:#24382C; --sage:#1C3326; --deep:#CFE6D6; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--mint); color:var(--ink); font:14px/1.5 "Segoe UI", system-ui, sans-serif; }
+  main { max-width:1200px; margin:0 auto; padding:20px 16px 48px; }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:space-between; margin-bottom:16px; }
+  h1 { margin:0; font-size:1.4rem; color:var(--deep); }
+  h2 { margin:0 0 10px; font-size:1rem; color:var(--deep); }
+  .muted { color:var(--muted); }
+  .pill { display:inline-block; padding:2px 10px; border-radius:999px; font-weight:600; font-size:.8rem; background:var(--sage); color:var(--green); }
+  .pill.bad { background:#FEE4E2; color:var(--red); }
+  .pill.warn { background:#FEF0C7; color:var(--amber); }
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); margin-bottom:12px; }
+  .two { display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); margin-bottom:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; min-width:0; }
+  .num { font-size:1.6rem; font-weight:700; color:var(--deep); font-variant-numeric:tabular-nums; }
+  .label { color:var(--muted); font-size:.82rem; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  td.url { word-break:break-all; }
+  td.r, th.r { text-align:right; font-variant-numeric:tabular-nums; }
+  .scroll { max-height:360px; overflow:auto; }
+  button { font:inherit; border:1px solid var(--green); background:var(--green); color:#fff; border-radius:10px; padding:7px 14px; cursor:pointer; min-height:36px; }
+  button.ghost { background:transparent; color:var(--green); }
+  button.danger { background:transparent; color:var(--red); border-color:var(--red); }
+  button.small { padding:2px 8px; min-height:26px; font-size:.8rem; }
+  input { font:inherit; border:1px solid var(--line); border-radius:10px; padding:7px 10px; min-height:36px; background:var(--card); color:var(--ink); }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .row input { flex:1 1 260px; }
+  .bar { height:10px; background:var(--sage); border-radius:999px; overflow:hidden; margin:8px 0; }
+  .bar > div { height:100%; background:var(--green); width:0; transition:width .4s; }
+  .chart { display:flex; align-items:flex-end; gap:4px; height:120px; padding-top:8px; }
+  .chart .col { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:2px; min-width:0; }
+  .chart .stack { width:100%; display:flex; flex-direction:column-reverse; border-radius:4px 4px 0 0; overflow:hidden; }
+  .chart .lbl { font-size:.7rem; color:var(--muted); }
+  .legend span { display:inline-flex; align-items:center; gap:4px; margin-right:12px; font-size:.8rem; color:var(--muted); }
+  .sw { width:10px; height:10px; border-radius:3px; display:inline-block; }
+  #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--deep); color:var(--mint); padding:10px 16px; border-radius:10px; display:none; max-width:90vw; }
+  .ok { color:var(--green); } .bad { color:var(--red); } .warn { color:var(--amber); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Cauvery Prerender</h1>
+      <div class="muted" id="sub">Loading…</div>
+    </div>
+    <div class="row"><span id="health"></span><button class="ghost small" id="btnOut">Sign out</button></div>
+  </header>
+
+  <div class="grid">
+    <div class="card"><div class="label">Crawler visits today</div><div class="num" id="kReq">–</div></div>
+    <div class="card"><div class="label">Answered instantly (saved copy)</div><div class="num" id="kHit">–</div></div>
+    <div class="card"><div class="label">Rendered fresh</div><div class="num" id="kRen">–</div></div>
+    <div class="card"><div class="label">Failed renders today</div><div class="num" id="kFail">–</div></div>
+    <div class="card"><div class="label">Average render time</div><div class="num" id="kMs">–</div></div>
+    <div class="card"><div class="label">Saved pages</div><div class="num" id="kPages">–</div><div class="label" id="kPages2"></div></div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2>Render a page again</h2>
+      <p class="muted" style="margin:0 0 8px">Use this after you change a page, so crawlers see the new version straight away.</p>
+      <div class="row">
+        <input id="url" placeholder="https://your-site/page" autocomplete="off">
+        <button id="btnOne">Render again</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="ghost" id="btnAll">Render whole sitemap again</button>
+        <button class="danger" id="btnClear">Delete all saved pages</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Pre-loading from the sitemap</h2>
+      <div id="warmText" class="muted">–</div>
+      <div class="bar"><div id="warmBar"></div></div>
+      <div id="warmLast" class="muted"></div>
+      <div id="queueText" class="muted" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h2>Last 14 days</h2>
+      <div class="legend"><span><i class="sw" style="background:#1F6B45"></i>Saved copy</span><span><i class="sw" style="background:#8CC5A0"></i>Rendered</span><span><i class="sw" style="background:#D92D20"></i>Failed</span></div>
+      <div class="chart" id="chart"></div>
+    </div>
+    <div class="card">
+      <h2>Who visited (last 30 days)</h2>
+      <div class="scroll" style="max-height:200px"><table><thead><tr><th>Crawler</th><th class="r">Today</th><th class="r">30 days</th></tr></thead><tbody id="bots"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="row" style="justify-content:space-between"><h2>Latest requests</h2><span class="muted">Updates every 10 seconds</span></div>
+    <div class="scroll"><table><thead><tr><th>Time</th><th>Page</th><th>Device</th><th>Who</th><th>Answer</th><th class="r">Status</th><th class="r">ms</th></tr></thead><tbody id="recent"></tbody></table></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <h2>Recent failures</h2>
+    <div class="scroll" style="max-height:240px"><table><thead><tr><th>Time</th><th>Page</th><th>Device</th><th>Why</th></tr></thead><tbody id="fails"></tbody></table></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="row" style="justify-content:space-between"><h2>Saved pages</h2><input id="q" placeholder="Search saved pages" style="flex:0 1 280px"></div>
+    <div class="scroll"><table><thead><tr><th>Page</th><th>Device</th><th class="r">Status</th><th class="r">Size</th><th>Saved</th><th></th></tr></thead><tbody id="pages"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2>Alerts</h2><button class="ghost small" id="btnAlert">Send a test alert</button></div>
+    <div id="alertState" class="muted"></div>
+    <table><tbody id="alerts"></tbody></table>
+  </div>
+</main>
+<div id="toast"></div>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var last = null;
+  var fmt = function (n) { return Number(n || 0).toLocaleString(); };
+  var ago = function (iso) {
+    if (!iso) return "–";
+    var s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+    if (s < 0) { s = -s; return "in " + (s < 3600 ? Math.round(s / 60) + " min" : Math.round(s / 3600) + " h"); }
+    if (s < 60) return s + " s ago";
+    if (s < 3600) return Math.round(s / 60) + " min ago";
+    if (s < 86400) return Math.round(s / 3600) + " h ago";
+    return Math.round(s / 86400) + " days ago";
+  };
+  function el(tag, text, cls) { var e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; }
+  function row(cells) { var tr = document.createElement("tr"); cells.forEach(function (c) { tr.appendChild(c instanceof Node ? c : el("td", String(c))); }); return tr; }
+  function fill(id, rows, empty, cols) {
+    var body = $(id); body.textContent = "";
+    if (!rows.length) { var td = el("td", empty, "muted"); td.colSpan = cols; body.appendChild(row([td])); return; }
+    rows.forEach(function (r) { body.appendChild(r); });
+  }
+  function toast(msg) { var t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(function () { t.style.display = "none"; }, 4000); }
+  function call(method, path, body) {
+    // location.origin: works even if the address bar holds a password
+    return fetch(location.origin + path, { method: method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" })
+      .then(function (r) { if (r.status === 401) { location.replace(location.origin + "/dashboard"); } return r.text().then(function (t) { var j = {}; try { j = JSON.parse(t); } catch (e) { j = { error: t }; } if (!r.ok) throw new Error(j.error || r.status); return j; }); });
+  }
+  var td = function (text, cls) { return el("td", text, cls); };
+
+  function render(s) {
+    last = s;
+    var st = s.stats, day = st.days[s.now.slice(0, 10)] || { requests: 0, rendered: 0, hits: 0, stale: 0, fallbacks: 0, failed: 0, renderMs: 0, bots: {} };
+    $("sub").textContent = s.domains.join(", ") + " · version " + s.version + " · running since " + ago(st.startedAt) + " · " + s.memoryMB + " MB memory";
+    var bad = st.consecutiveFailures >= 3;
+    $("health").textContent = "";
+    $("health").appendChild(el("span", bad ? "Renders failing" : "Working", "pill" + (bad ? " bad" : "")));
+    $("kReq").textContent = fmt(day.requests);
+    $("kHit").textContent = fmt(day.hits + day.stale + day.fallbacks);
+    $("kRen").textContent = fmt(day.rendered);
+    $("kFail").textContent = fmt(day.failed);
+    $("kFail").className = "num" + (day.failed ? " bad" : "");
+    var avg = st.totals.rendered ? Math.round(st.totals.renderMs / st.totals.rendered) : 0;
+    $("kMs").textContent = avg ? (avg / 1000).toFixed(1) + " s" : "–";
+    $("kPages").textContent = fmt(s.cache.pages);
+    $("kPages2").textContent = fmt(s.cache.fresh) + " fresh · " + fmt(s.cache.stale) + " due for refresh · " + (s.cache.onDisk ? "kept on disk" : "memory only (lost on restart)");
+
+    var w = s.warmup;
+    if (!w.enabled) $("warmText").textContent = "Switched off.";
+    else if (w.running) $("warmText").textContent = "Running: " + w.done + " of " + w.total + " renders done.";
+    else $("warmText").textContent = "Idle. Sitemap: " + w.sitemap;
+    $("warmBar").style.width = (w.total ? Math.round(100 * w.done / w.total) : (w.last && !w.last.error ? 100 : 0)) + "%";
+    $("warmLast").textContent = w.last ? (w.last.error ? "Last run: " + w.last.error : "Last run " + ago(w.last.finishedAt) + ": " + w.last.ok + " saved, " + w.last.failed + " failed, " + w.last.minutes + " min.") : (w.nextAt ? "First run " + ago(w.nextAt) + "." : "");
+    var q = s.queue;
+    $("queueText").textContent = "Rendering now: " + q.rendering + " of " + q.limit + " · waiting: " + q.waiting + (q.rejected + q.timedOutInQueue ? " · turned away when busy: " + (q.rejected + q.timedOutInQueue) : "");
+
+    // 14-day chart
+    var chart = $("chart"); chart.textContent = "";
+    var days = []; for (var i = 13; i >= 0; i--) { var d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10); days.push([d, st.days[d] || { hits: 0, stale: 0, fallbacks: 0, rendered: 0, failed: 0 }]); }
+    var max = Math.max.apply(null, days.map(function (x) { var v = x[1]; return v.hits + v.stale + v.rendered + v.failed; }).concat([1]));
+    days.forEach(function (x) {
+      var v = x[1], col = el("div", undefined, "col"), stack = el("div", undefined, "stack");
+      [[v.hits + v.stale, "#1F6B45"], [v.rendered, "#8CC5A0"], [v.failed, "#D92D20"]].forEach(function (p) {
+        var b = el("div"); b.style.height = (100 * p[0] / max) + "px"; b.style.background = p[1]; stack.appendChild(b);
+      });
+      col.title = x[0] + ": " + (v.hits + v.stale) + " saved, " + v.rendered + " rendered, " + v.failed + " failed";
+      col.appendChild(stack); col.appendChild(el("div", x[0].slice(8), "lbl")); chart.appendChild(col);
+    });
+
+    // crawlers
+    var month = {};
+    Object.keys(st.days).forEach(function (d) { var b = st.days[d].bots || {}; Object.keys(b).forEach(function (k) { month[k] = (month[k] || 0) + b[k]; }); });
+    var names = Object.keys(month).sort(function (a, b) { return month[b] - month[a]; });
+    fill("bots", names.map(function (n) { return row([td(n), td(fmt((day.bots || {})[n] || 0), "r"), td(fmt(month[n]), "r")]); }), "No visits yet.", 3);
+
+    fill("recent", st.recent.slice(0, 100).map(function (r) {
+      var cls = r.cache === "hit" || r.cache === "stale" ? "ok" : (r.cache === "fallback" || r.status >= 500 ? "bad" : "");
+      var label = { hit: "saved copy", stale: "saved copy (refreshing)", fallback: "saved copy (render failed)", miss: "rendered", recache: "rendered again", busy: "busy", rejected: "refused" }[r.cache] || r.cache;
+      return row([td(new Date(r.at).toLocaleTimeString()), td(r.url, "url"), td(r.device), td(r.who), td(label, cls), td(r.status, "r"), td(fmt(r.ms), "r")]);
+    }), "Nothing yet.", 7);
+
+    fill("fails", st.failures.slice(0, 50).map(function (r) { return row([td(new Date(r.at).toLocaleString()), td(r.url, "url"), td(r.device), td(r.why, "bad")]); }), "No failures.", 4);
+
+    var a = s.alerts;
+    $("alertState").textContent = a.configured ? "Alerts are switched on." : "No alert target set. Add ALERT_WEBHOOK_URL, or TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID, to get a message when renders fail.";
+    fill("alerts", a.history.map(function (h) { return row([td(new Date(h.at).toLocaleString()), td(h.message), td(h.sent ? "sent" : "logged only", "muted")]); }), "No alerts so far.", 3);
+  }
+
+  function loadPages() {
+    call("GET", "/api/cache?q=" + encodeURIComponent($("q").value)).then(function (list) {
+      fill("pages", list.slice(0, 300).map(function (p) {
+        var actions = el("td"), again = el("button", "Render again", "ghost small"), drop = el("button", "Delete", "danger small");
+        again.onclick = function () { recache(p.url); };
+        drop.onclick = function () { call("POST", "/api/forget", { url: p.url }).then(function () { toast("Deleted."); loadPages(); }).catch(function (e) { toast(e.message); }); };
+        actions.appendChild(again); actions.appendChild(document.createTextNode(" ")); actions.appendChild(drop);
+        return row([td(p.url, "url"), td(p.device), td(p.statusCode, "r"), td(Math.round(p.bytes / 1024) + " KB", "r"), td(ago(p.savedAt) + (p.fresh ? "" : " (due)"), p.fresh ? "" : "warn"), actions]);
+      }), "No saved pages yet.", 6);
+    }).catch(function () {});
+  }
+
+  function recache(url) { call("POST", "/api/recache", { url: url }).then(function (r) { toast(r.message); setTimeout(refresh, 4000); }).catch(function (e) { toast(e.message); }); }
+  function refresh() { call("GET", "/api/status").then(render).catch(function (e) { $("sub").textContent = "Could not load: " + e.message; }); loadPages(); }
+
+  $("btnOne").onclick = function () { var u = $("url").value.trim(); if (u) recache(u); };
+  $("url").onkeydown = function (e) { if (e.key === "Enter") $("btnOne").click(); };
+  $("btnAll").onclick = function () { call("POST", "/api/recache-all").then(function (r) { toast(r.message); refresh(); }).catch(function (e) { toast(e.message); }); };
+  $("btnClear").onclick = function () { if (confirm("Delete every saved page? Crawlers will wait for fresh renders until pre-loading refills them.")) call("POST", "/api/clear").then(function (r) { toast(r.removed + " saved pages deleted."); refresh(); }).catch(function (e) { toast(e.message); }); };
+  $("btnAlert").onclick = function () { call("POST", "/api/test-alert").then(function () { toast("Test alert sent."); refresh(); }).catch(function (e) { toast(e.message); }); };
+  $("btnOut").onclick = function () { call("POST", "/api/logout").finally(function () { location.replace(location.origin + "/dashboard"); }); };
+  var qt; $("q").oninput = function () { clearTimeout(qt); qt = setTimeout(loadPages, 300); };
+  refresh();
+  setInterval(function () { call("GET", "/api/status").then(render).catch(function () {}); }, 10000);
+})();
+</script>
+</body>
+</html>

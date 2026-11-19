@@ -1,5 +1,6 @@
 package com.cauverystore.config;
 
+import com.cauverystore.util.GstComplianceUtil;
 import com.cauverystore.entities.*;
 import com.cauverystore.repository.*;
 import org.slf4j.Logger;
@@ -76,6 +77,7 @@ public class SeedDataRunner implements CommandLineRunner {
             warnAboutPublicPasswords();
         }
         applySuperAdminReset();
+        warnAboutUnverifiableSellers();
 
         if (categoryRepo.count() == 0) {
             String[][] cats = {{"Electronics","Smartphones, laptops, and gadgets"},{"Fashion","Clothing, shoes, and accessories"},{"Home & Kitchen","Furniture, appliances, and decor"},{"Books","Fiction, non-fiction, and educational"},{"Sports","Fitness equipment and sportswear"}};
@@ -137,7 +139,10 @@ public class SeedDataRunner implements CommandLineRunner {
             }
         }
 
-        if (sellerUser != null && sellerRegRepo.findByUserId(sellerUser.getId()).isEmpty()) {
+        // The demo seller's registration carries a made-up GSTIN and is created already APPROVED,
+        // so it must never be written into a database that real customers can buy from. It is
+        // seeded only together with the other demo accounts (development and tests).
+        if (seedDemoAccounts && sellerUser != null && sellerRegRepo.findByUserId(sellerUser.getId()).isEmpty()) {
             SellerRegistration reg = new SellerRegistration();
             reg.setUser(sellerUser);
             reg.setBusinessName("Cauvery Retail Store");
@@ -229,6 +234,24 @@ public class SeedDataRunner implements CommandLineRunner {
                     && passwordEncoder.matches((String) a[3], user.getPassword())) {
                 log.error("SECURITY: the built-in account '{}' ({}) still uses its starting password, "
                         + "which is published in the source code. Change it now.", a[1], a[4]);
+            }
+        }
+    }
+
+    /**
+     * Logs every approved seller whose GSTIN fails the check digit. Such a number cannot be
+     * registered on the GST portal, so tax invoices issued under it are not valid invoices.
+     * Nothing is changed automatically: a super admin suspends the seller from the approvals
+     * screen, which also takes the listings off sale and records why.
+     */
+    private void warnAboutUnverifiableSellers() {
+        for (SellerRegistration r : sellerRegRepo.findAll()) {
+            if (!"APPROVED".equals(r.getStatus())) continue;
+            String g = r.getGstin();
+            if (g == null || g.isBlank() || !GstComplianceUtil.isGstinChecksumValid(g)) {
+                log.error("GST: approved seller '{}' (registration {}) has a GSTIN that is missing or "
+                        + "fails the check digit. Suspend it or correct the GSTIN before selling.",
+                        r.getBusinessName(), r.getId());
             }
         }
     }

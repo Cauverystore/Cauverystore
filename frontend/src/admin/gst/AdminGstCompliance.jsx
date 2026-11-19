@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../../api/axios";
 import { promptText } from "../../components/ConfirmDialog";
+import GstRuleUpdates from "./GstRuleUpdates";
 
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: "1.25rem" };
 const inp = { width: "100%", padding: "0.5rem", border: "1px solid #d1d5db", borderRadius: 6, fontSize: "0.85rem" };
@@ -48,8 +49,8 @@ const AdminGstCompliance = () => {
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // CBIC's notification API needs credentials nobody here has, so this cannot be polled. The
-  // honest substitute is a named, dated check - which is what this records.
+  // The server watches CBIC's rate lists every morning, but only a person can say they have
+  // read a notification and that the rates charged match it. This records that named, dated check.
   const confirmRatesCurrent = async () => {
     const note = await promptText(
       "Confirm the GST rates are current.\n\n" +
@@ -76,7 +77,13 @@ const AdminGstCompliance = () => {
     setError("");
     setNotice("");
     try {
-      await api.post("/api/gst/configurations", { ...config, ...form });
+      // A cleared turnover box means "not known", which the server stores as no figure at all.
+      const turnover = form.annualTurnover === "" || form.annualTurnover == null
+        ? null : Number(form.annualTurnover);
+      await api.post("/api/gst/configurations", {
+        ...config, ...form, annualTurnover: turnover,
+        tcsRegistrationDate: form.tcsRegistrationDate || null,
+      });
       setNotice("Saved. Re-checking compliance…");
       await load();
     } catch (err) {
@@ -191,6 +198,8 @@ const AdminGstCompliance = () => {
         </div>
       )}
 
+      <GstRuleUpdates />
+
       {identity && (
         <div style={{ ...card, marginBottom: "1.5rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", flexWrap: "wrap" }}>
@@ -199,8 +208,8 @@ const AdminGstCompliance = () => {
             </h3>
             <span style={{
               fontSize: "0.78rem", fontWeight: 600, padding: "2px 10px", borderRadius: "12px",
-              background: identity.readyToFile ? "#EAF7EE" : "#FEF3C7",
-              color: identity.readyToFile ? "#146C43" : "#92400E",
+              background: identity.readyToFile ? "#E6F8F3" : "#FEF3C7",
+              color: identity.readyToFile ? "#00788C" : "#92400E",
             }}>
               {identity.readyToFile ? "Complete" : `${identity.outstanding} outstanding`}
             </span>
@@ -224,7 +233,7 @@ const AdminGstCompliance = () => {
                   <div key={it.field} style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
                     <span style={{
                       flexShrink: 0, width: "1.1rem", textAlign: "center", fontWeight: 700,
-                      color: ok ? "#146C43" : invalid ? "#B91C1C" : "#92400E",
+                      color: ok ? "#00788C" : invalid ? "#B91C1C" : "#92400E",
                     }}>
                       {ok ? "✓" : invalid ? "✗" : "•"}
                     </span>
@@ -275,11 +284,11 @@ const AdminGstCompliance = () => {
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: "1rem" }}>
           <div>
-            <label style={lbl}>Legal entity name</label>
+            <label style={lbl}>Legal entity name *</label>
             <input name="legalName" value={form.legalName || ""} onChange={change} style={inp} />
           </div>
           <div>
-            <label style={lbl}>GSTIN</label>
+            <label style={lbl}>GSTIN *</label>
             <input name="gstin" value={form.gstin || ""} onChange={change} style={inp} placeholder="33AABCC1234D1Z5" />
             <span style={hint}>Your regular registration. Checked against its check digit.</span>
           </div>
@@ -298,11 +307,45 @@ const AdminGstCompliance = () => {
           <div>
             <label style={lbl}>PAN</label>
             <input name="pan" value={form.pan || ""} onChange={change} style={inp} />
+            <span style={hint}>Filled from the GSTIN (characters 3-12) if left blank.</span>
           </div>
           <div>
-            <label style={lbl}>State code</label>
+            <label style={lbl}>State code *</label>
             <input name="stateCode" value={form.stateCode || ""} onChange={change} style={inp} placeholder="33" />
             <span style={hint}>Decides CGST+SGST (or UTGST for Union Territories without a legislature) vs IGST on commission invoices.</span>
+          </div>
+          <div>
+            <label style={lbl}>Trade name</label>
+            <input name="tradeName" value={form.tradeName || ""} onChange={change} style={inp} />
+            <span style={hint}>Only if the certificate shows a trade name different from the legal name.</span>
+          </div>
+          <div>
+            <label style={lbl}>TCS registration date</label>
+            <input name="tcsRegistrationDate" type="date" value={form.tcsRegistrationDate || ""} onChange={change} style={inp} />
+            <span style={hint}>From the section 52 certificate. TCS is collected from this date.</span>
+          </div>
+          <div>
+            <label style={lbl}>Invoice number prefix</label>
+            <input name="invoicePrefix" value={form.invoicePrefix || ""} onChange={change} style={inp} maxLength={6} placeholder="CS" />
+            <span style={hint}>Up to 6 letters or digits, not used by another seller. Numbers run as PREFIX + YYMM + /00001, within GST's 16-character limit. Left as CS, a code for this seller is added (for example CS1A).</span>
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={lbl}>Registered address *</label>
+            <textarea name="address" value={form.address || ""} onChange={change} rows={2}
+              style={{ ...inp, resize: "vertical" }}
+              placeholder="Door no, street, area, city, state, PIN" />
+            <span style={hint}>As on the registration certificate, ending with the 6-digit PIN. Printed on every invoice and sent to the e-invoice portal.</span>
+          </div>
+          <div>
+            <label style={lbl}>Aggregate turnover (₹, last financial year)</label>
+            <input name="annualTurnover" type="number" min="0" step="1"
+              value={form.annualTurnover ?? ""} onChange={change} style={inp} placeholder="e.g. 45000000" />
+            <span style={hint}>
+              {form.annualTurnover !== "" && form.annualTurnover != null && !Number.isNaN(Number(form.annualTurnover))
+                ? `₹${Number(form.annualTurnover).toLocaleString("en-IN")} - `
+                : ""}
+              Above ₹5 crore, e-invoicing is compulsory and HSN codes need 6 digits. Leave blank if not known.
+            </span>
           </div>
         </div>
 

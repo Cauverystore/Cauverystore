@@ -111,6 +111,34 @@ public final class CommissionPolicy {
                 gateway, transfer, net);
     }
 
+    /**
+     * One order on a seller's settlement statement: every deduction between what the customer
+     * paid and what the seller receives.
+     *
+     * @param gstOnFees  GST the marketplace charges on its commission and handling fee - billed
+     *                   to the seller on the monthly commission invoice, so it comes out of the
+     *                   payout like the fee itself
+     * @param tcs        tax collected at source under s.52, net of any reversal; the marketplace
+     *                   deposits it against the seller's GSTIN, where the seller claims it
+     */
+    public record LedgerLine(double orderValue, double commission, double handlingFee,
+                             double gstOnFees, double gatewayFee, double transferFee,
+                             double tcs, double payable) { }
+
+    /**
+     * @param gstRatePercent GST on the marketplace's fees, as on its commission invoice
+     */
+    public static LedgerLine ledgerLine(double orderValue, double commission, double handlingFee,
+                                        double gstRatePercent, double tcs) {
+        double gstOnFees = round((commission + handlingFee) * gstRatePercent / 100.0);
+        double gateway = gatewayFee(orderValue);
+        double toSeller = orderValue - commission - handlingFee - gstOnFees - tcs;
+        double transfer = transferFee(toSeller);
+        double payable = round(toSeller - gateway - transfer);
+        return new LedgerLine(round(orderValue), round(commission), round(handlingFee),
+                gstOnFees, gateway, transfer, round(tcs), payable);
+    }
+
     /** The first day a seller can be paid for an order delivered on this date. */
     public static LocalDate payableFrom(LocalDate deliveredOn) {
         return deliveredOn == null ? null : deliveredOn.plusDays(PAYOUT_DELAY_DAYS);

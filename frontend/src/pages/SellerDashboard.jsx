@@ -268,7 +268,7 @@ const SellerDashboard = () => {
         <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>GST Information</h3>
           {!gstEditing && (
-            <button style={{ ...btnBase, background: "#0E5C5C", color: "#fff", padding: "0.4rem 1rem", fontSize: "0.8rem" }} onClick={() => { setGstEditing(true); setGstForm({ ...gstInfo }); }}>Edit</button>
+            <button style={{ ...btnBase, background: "#00788C", color: "#fff", padding: "0.4rem 1rem", fontSize: "0.8rem" }} onClick={() => { setGstEditing(true); setGstForm({ ...gstInfo }); }}>Edit</button>
           )}
         </div>
         <div style={{ padding: "1rem 1.5rem" }}>
@@ -318,7 +318,7 @@ const SellerDashboard = () => {
                 </div>
               </div>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <button style={{ ...btnBase, background: "#0E5C5C", color: "#fff" }} onClick={handleGstSave} disabled={gstSaving}>{gstSaving ? "Saving..." : "Save"}</button>
+                <button style={{ ...btnBase, background: "#00788C", color: "#fff" }} onClick={handleGstSave} disabled={gstSaving}>{gstSaving ? "Saving..." : "Save"}</button>
                 <button style={{ ...btnBase, background: "#e5e7eb", color: "#374151" }} onClick={() => { setGstEditing(false); setGstForm({ ...gstInfo }); }}>Cancel</button>
               </div>
             </div>

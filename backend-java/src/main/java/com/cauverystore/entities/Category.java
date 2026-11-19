@@ -16,6 +16,21 @@ public class Category extends BaseEntity {
     @jakarta.persistence.Column(name = "required_licence", length = 30)
     private String requiredLicence;
 
+    /**
+     * Which category-specific compliance fields its products must carry: a ComplianceCategoryType
+     * name (FOOD, ELECTRONICS, COSMETICS, MEDICAL, TOYS, CLOTHING). Null means only the common fields.
+     */
+    @jakarta.persistence.Column(name = "compliance_type", length = 20)
+    private String complianceType;
+
+    public String getComplianceType() {
+        return this.complianceType;
+    }
+
+    public void setComplianceType(final String complianceType) {
+        this.complianceType = complianceType;
+    }
+
     public String getRequiredLicence() {
         return this.requiredLicence;
     }

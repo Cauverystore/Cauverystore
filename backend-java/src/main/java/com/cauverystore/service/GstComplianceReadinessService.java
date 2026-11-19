@@ -447,7 +447,8 @@ public class GstComplianceReadinessService {
         // It also raises the HSN requirement to six digits, which is why an invoice can end up
         // declaring "HSN/SAC digits: 6" over a four-digit code and contradicting itself.
         if (GstComplianceUtil.requiresEInvoice(config.getAnnualTurnover())) {
-            gaps.add("Turnover is recorded as ₹" + config.getAnnualTurnover() + ", which makes "
+            gaps.add("Turnover is recorded as "
+                    + GstComplianceUtil.formatRupees(config.getAnnualTurnover()) + ", which makes "
                     + "e-invoicing compulsory. Every invoice must carry a real IRN and QR from "
                     + "the government portal, and under rule 48(5) one that does not is not an "
                     + "invoice at all. Check this figure is right - a store below ₹5 crore should "

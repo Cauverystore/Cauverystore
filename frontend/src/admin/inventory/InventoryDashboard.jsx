@@ -4,11 +4,11 @@ import api from "../../api/axios";
 
 const styles = {
   container: { padding: "24px" },
-  header: { fontSize: "28px", fontWeight: "700", color: "#0B3D2E", marginBottom: "24px" },
+  header: { fontSize: "28px", fontWeight: "700", color: "#003A44", marginBottom: "24px" },
   cardsRow: { display: "flex", gap: "16px", marginBottom: "24px", flexWrap: "wrap" },
   card: {
     background: "#fff",
-    border: "1px solid #CFE8D6",
+    border: "1px solid #C4EFE6",
     borderRadius: "8px",
     padding: "20px",
     flex: "1 1 200px",
@@ -16,14 +16,14 @@ const styles = {
     boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
   },
   cardLabel: { fontSize: "13px", color: "#666", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" },
-  cardValue: { fontSize: "28px", fontWeight: "700", color: "#0B3D2E" },
-  sectionTitle: { fontSize: "20px", fontWeight: "600", color: "#0B3D2E", marginBottom: "12px", marginTop: "24px" },
-  table: { width: "100%", borderCollapse: "collapse", background: "#fff", border: "1px solid #CFE8D6", borderRadius: "8px", overflow: "hidden" },
-  th: { textAlign: "left", padding: "12px 16px", background: "#0B3D2E", color: "#fff", fontSize: "13px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" },
-  td: { padding: "12px 16px", borderBottom: "1px solid #CFE8D6", fontSize: "14px", color: "#333" },
-  badgeGreen: { background: "#E6F7EC", color: "#2E9B57", padding: "4px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "600" },
+  cardValue: { fontSize: "28px", fontWeight: "700", color: "#003A44" },
+  sectionTitle: { fontSize: "20px", fontWeight: "600", color: "#003A44", marginBottom: "12px", marginTop: "24px" },
+  table: { width: "100%", borderCollapse: "collapse", background: "#fff", border: "1px solid #C4EFE6", borderRadius: "8px", overflow: "hidden" },
+  th: { textAlign: "left", padding: "12px 16px", background: "#003A44", color: "#fff", fontSize: "13px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" },
+  td: { padding: "12px 16px", borderBottom: "1px solid #C4EFE6", fontSize: "14px", color: "#333" },
+  badgeGreen: { background: "#E6F7EC", color: "#00788C", padding: "4px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "600" },
   badgeRed: { background: "#FEE2E2", color: "#dc2626", padding: "4px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "600" },
-  editLink: { color: "#2E9B57", textDecoration: "none", fontWeight: "600", fontSize: "13px" },
+  editLink: { color: "#00788C", textDecoration: "none", fontWeight: "600", fontSize: "13px" },
   loading: { textAlign: "center", padding: "40px", color: "#666", fontSize: "16px" },
   error: { textAlign: "center", padding: "40px", color: "#dc2626", fontSize: "16px" },
 };
@@ -78,11 +78,11 @@ export default function InventoryDashboard() {
         </div>
         <div style={styles.card}>
           <div style={styles.cardLabel}>Out of Stock</div>
-          <div style={{ ...styles.cardValue, color: outOfStock > 0 ? "#dc2626" : "#2E9B57" }}>{outOfStock}</div>
+          <div style={{ ...styles.cardValue, color: outOfStock > 0 ? "#dc2626" : "#00788C" }}>{outOfStock}</div>
         </div>
         <div style={styles.card}>
           <div style={styles.cardLabel}>Low Stock</div>
-          <div style={{ ...styles.cardValue, color: lowStock > 0 ? "#dc2626" : "#2E9B57" }}>{lowStock}</div>
+          <div style={{ ...styles.cardValue, color: lowStock > 0 ? "#dc2626" : "#00788C" }}>{lowStock}</div>
         </div>
       </div>
 

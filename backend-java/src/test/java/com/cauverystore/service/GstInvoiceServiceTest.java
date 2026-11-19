@@ -137,6 +137,15 @@ class GstInvoiceServiceTest {
     }
 
     @Test
+    void ratePct_printsRatesWithoutTrailingZeros() {
+        // The tax breakup on the bill lists one row per rate, labelled like this.
+        assertEquals("5%", GstInvoiceService.ratePct(5.0));
+        assertEquals("18%", GstInvoiceService.ratePct(18.0));
+        assertEquals("2.5%", GstInvoiceService.ratePct(2.5));
+        assertEquals("0%", GstInvoiceService.ratePct(0.0));
+    }
+
+    @Test
     void generate_taxInclusiveOrder_shouldFootToWhatWasPaid_withDeliveryAtTheGoodsRate() {
         // A GST-inclusive order: 2 x 500 with a 100 coupon and 40 delivery - 940 paid in all.
         stubCommonRepos();
@@ -224,7 +233,10 @@ class GstInvoiceServiceTest {
         assertEquals(0.0, inv.getIgstAmount(), 0.01);
         assertEquals(127.2, inv.getTotalTax(), 0.01);
         // TCS is recorded because it has to be paid over and declared in GSTR-8...
-        assertEquals(10.4, inv.getTcsAmount(), 0.01);
+        // 0.5% of 1040, even though this configuration still says 1%: the rate is the law's on
+        // the invoice date, not whatever was saved in the configuration row.
+        assertEquals(5.2, inv.getTcsAmount(), 0.01);
+        assertEquals(0.5, inv.getTcsRate(), 0.0001);
         // ...but it is not the customer's to pay. This assertion used to expect 1177.6, which
         // was the taxable value plus GST plus TCS - so the test was pinning an overcharge of 1%
         // of the goods value on every order. The customer owes goods plus GST and nothing else.
@@ -297,7 +309,9 @@ class GstInvoiceServiceTest {
                 "ackNo", "ACK-20260806-000001",
                 "ackDate", "2026-08-06"));
 
-        Map<String, Object> result = gstService.generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN);
+        // A registered buyer: only B2B invoices are e-invoiced.
+        Map<String, Object> result = gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, BUYER_GSTIN_MH, "27");
 
         GstInvoice inv = (GstInvoice) result.get("invoice");
 
@@ -309,6 +323,20 @@ class GstInvoiceServiceTest {
         assertNotNull(inv.getAckNo());
         assertTrue(GstComplianceUtil.requiresEInvoice(config.getAnnualTurnover()));
         verify(gstnClient).generateIrn(inv);
+    }
+
+    @Test
+    void generate_consumerInvoiceAboveFiveCrore_shouldNotBeSentToTheIrp() {
+        // The IRP refuses B2C invoices; sending one would leave it PENDING_IRN for good.
+        stubCommonRepos();
+        config.setAnnualTurnover(8_00_00_000.0);
+
+        GstInvoice inv = (GstInvoice) gstService
+                .generateInvoiceFromOrder(1L, 1L, SELLER_GSTIN_TN).get("invoice");
+
+        assertFalse(Boolean.TRUE.equals(inv.getEinvoicingRequired()));
+        assertNotEquals("PENDING_IRN", inv.getStatus());
+        verify(gstnClient, never()).generateIrn(any());
     }
 
     @Test
@@ -646,6 +674,85 @@ class GstInvoiceServiceTest {
     }
 
     @Test
+    void billToShipTo_shouldCarryTheConsigneesGstinAndState() {
+        // The IRP wants the ship-to GSTIN from 1 August 2026, "URP" when there is none, and
+        // a state that matches it - the GSTIN's own, or the PIN code's for an unregistered one.
+        stubCommonRepos();
+        order.setBuyerGstin(SELLER_GSTIN_TN);
+        order.setBuyerLegalName("Chennai Traders Pvt Ltd");
+        order.setBillToShipTo(true);
+        order.setConsigneeName("Mumbai Client Ltd");
+        order.setConsigneeAddress("12 Link Road, Andheri, Mumbai, Maharashtra");
+        order.setConsigneeGstin(BUYER_GSTIN_MH);
+
+        GstInvoice registered = (GstInvoice) gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, SELLER_GSTIN_TN, "27").get("invoice");
+
+        assertEquals(BUYER_GSTIN_MH, registered.getConsigneeGstin());
+        assertEquals("27", registered.getConsigneeStateCode());
+    }
+
+    @Test
+    void billToShipTo_anUnregisteredConsigneeIsUrpWithThePinCodesState() {
+        stubCommonRepos();
+        order.setBuyerGstin(SELLER_GSTIN_TN);
+        order.setBuyerLegalName("Chennai Traders Pvt Ltd");
+        order.setBillToShipTo(true);
+        order.setConsigneeName("A Customer");
+        order.setConsigneeAddress("4 Beach Road, Mylapore, Chennai, Tamil Nadu, 600004");
+
+        GstInvoice inv = (GstInvoice) gstService.generateInvoiceFromOrder(
+                1L, 1L, SELLER_GSTIN_TN, SELLER_GSTIN_TN, "33").get("invoice");
+
+        assertEquals("URP", inv.getConsigneeGstin());
+        assertEquals("33", inv.getConsigneeStateCode(), "600004 is in Tamil Nadu");
+    }
+
+    private GstConfiguration marketplaceConfig() {
+        GstConfiguration c = new GstConfiguration();
+        c.setGstin("33ABCDE1234F1Z7"); // a valid check digit; the save refuses any other
+        c.setLegalName("Cauvery Stores Pvt Ltd");
+        c.setAddress("12 Main Road, Srirangam, Tiruchirappalli, Tamil Nadu, 620006");
+        return c;
+    }
+
+    @Test
+    void saveConfiguration_fillsStateAndPanFromTheGstin() {
+        when(configRepo.save(any(GstConfiguration.class))).thenAnswer(i -> i.getArgument(0));
+        GstConfiguration c = marketplaceConfig();
+
+        gstService.saveConfiguration(c);
+
+        assertEquals("33", c.getStateCode());
+        assertEquals("ABCDE1234F", c.getPan());
+    }
+
+    @Test
+    void saveConfiguration_refusesWhatRule46NeedsOnEveryInvoice() {
+        GstConfiguration noAddress = marketplaceConfig();
+        noAddress.setAddress(" ");
+        assertTrue(assertThrows(IllegalArgumentException.class,
+                () -> gstService.saveConfiguration(noAddress)).getMessage().contains("registered address"));
+
+        GstConfiguration noPin = marketplaceConfig();
+        noPin.setAddress("12 Main Road, Srirangam, Tiruchirappalli");
+        assertTrue(assertThrows(IllegalArgumentException.class,
+                () -> gstService.saveConfiguration(noPin)).getMessage().contains("PIN"));
+
+        GstConfiguration wrongState = marketplaceConfig();
+        wrongState.setStateCode("27");
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(wrongState));
+
+        GstConfiguration badPrefix = marketplaceConfig();
+        badPrefix.setInvoicePrefix("0CS/");
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(badPrefix));
+
+        GstConfiguration negative = marketplaceConfig();
+        negative.setAnnualTurnover(-1.0);
+        assertThrows(IllegalArgumentException.class, () -> gstService.saveConfiguration(negative));
+    }
+
+    @Test
     void anOrdinaryB2bDeliveryElsewhereIsStillInterState() {
         // Without the declaration this is 10(1)(a) - place of supply is where the goods stop.
         // The addresses are identical to the case above; only the buyer's declaration differs,
@@ -678,5 +785,91 @@ class GstInvoiceServiceTest {
         assertEquals("URP", inv.getBuyerGstin());
         assertTrue(inv.getPlaceOfSupply().startsWith("33-"),
                 "falls back to the delivery state, which here is also 33");
+    }
+
+    // ---- Printed invoice layout ----
+
+    /** An intra-state invoice carrying every optional line a real one can have. */
+    private GstInvoice fullInvoice(int itemCount) {
+        GstInvoice inv = new GstInvoice();
+        inv.setId(77L);
+        inv.setInvoiceNumber("CS2610/00001");
+        inv.setInvoiceDate(java.time.LocalDate.of(2026, 10, 31));
+        inv.setOrderId(1L);
+        inv.setInvoiceCopyType("ORIGINAL");
+        inv.setSupplyType("GOODS");
+        inv.setIsInterState(false);
+        inv.setSellerLegalName("Cauvery Retail Store");
+        inv.setSellerGstin("33ABCDE1234F1Z5");
+        inv.setSellerAddress("1, Anna Salai, Chennai, Tamil Nadu 600002");
+        inv.setBuyerName("Vijay Krishna");
+        inv.setBuyerAddress("12 Srinivasa Gardens, Ramanathapuram, Coimbatore, Tamil Nadu 641045");
+        inv.setBuyerStateCode("33");
+        inv.setDeliveryAddress("12 Srinivasa Gardens, Ramanathapuram, Coimbatore, Tamil Nadu 641045");
+        inv.setDeliveryStateCode("33");
+        inv.setPlaceOfSupply("33-TAMIL NADU");
+        inv.setInvoiceType("B2C");
+        inv.setReverseCharge(false);
+        inv.setTaxableAmount(34.74);
+        inv.setCgstRate(9.0);
+        inv.setSgstRate(9.0);
+        inv.setCgstAmount(3.13);
+        inv.setSgstAmount(3.13);
+        inv.setTotalTax(6.26);
+        inv.setTotalAmount(41.0);
+        inv.setDeliveryCharge(40.0);
+        inv.setDiscountAmount(5.0);
+        inv.setPaymentMode("UPI");
+        inv.setIrn("SIM3E5226FFE7803479782EDC6CA5A07A");
+        inv.setAckNo("ACK-20261031-000001");
+        inv.setAckDate("2026-10-31");
+        inv.setSignedBy("Cauvery Retail Store");
+        List<GstInvoiceItem> items = new java.util.ArrayList<>();
+        for (int i = 1; i <= itemCount; i++) {
+            GstInvoiceItem it = new GstInvoiceItem();
+            it.setProductName(i == itemCount ? "Delivery charges (part of the supply of goods)" : "Test Product " + i);
+            it.setHsnCode("9017");
+            it.setQuantity(1);
+            it.setUnitOfMeasure("NOS");
+            it.setUnitPrice(40.0);
+            it.setTaxableValue(33.9);
+            it.setCgstRate(9.0);
+            it.setCgstAmount(3.05);
+            it.setSgstRate(9.0);
+            it.setSgstAmount(3.05);
+            it.setTotalAmount(40.0);
+            items.add(it);
+        }
+        when(invoiceRepo.findById(77L)).thenReturn(Optional.of(inv));
+        when(itemRepo.findByInvoiceId(77L)).thenReturn(items);
+        Order o = new Order();
+        lenient().when(orderRepo.findById(1L)).thenReturn(Optional.of(o));
+        return inv;
+    }
+
+    private int pages(byte[] pdf) throws Exception {
+        com.lowagie.text.pdf.PdfReader reader = new com.lowagie.text.pdf.PdfReader(pdf);
+        try { return reader.getNumberOfPages(); } finally { reader.close(); }
+    }
+
+    @Test
+    void invoicePdf_shouldFitOnOnePageForAnOrdinaryOrder() throws Exception {
+        // A two-line order spilled its signatory line onto a second, almost empty page.
+        fullInvoice(2);
+
+        byte[] pdf = gstService.generateInvoicePdf(77L);
+        java.nio.file.Files.write(java.nio.file.Paths.get("target", "invoice-sample-2-items.pdf"), pdf);
+
+        assertEquals(1, pages(pdf));
+    }
+
+    @Test
+    void invoicePdf_shouldStillFitOnOnePageWithTenItems() throws Exception {
+        fullInvoice(10);
+
+        byte[] pdf = gstService.generateInvoicePdf(77L);
+        java.nio.file.Files.write(java.nio.file.Paths.get("target", "invoice-sample-10-items.pdf"), pdf);
+
+        assertEquals(1, pages(pdf));
     }
 }

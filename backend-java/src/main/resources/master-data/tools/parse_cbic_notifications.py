@@ -21,8 +21,11 @@ It does NOT read the amending notifications also committed alongside them:
                        18%, and omitted Schedule VII entirely.
   CTR-E-updated.pdf    Notification 01/2026, eff. 01-05-2026. Re-cut the beverage headings
                        under 2202 into eight-digit codes at 5% and 40%.
+  02-2026-CTR-eng.pdf  eff. 01-11-2026. Retreaded tractor tyres (4012) at 5%; reworded the
+                       3101 organic fertiliser entry.
+  03-2026-CTR-eng.pdf  eff. 01-11-2026. Psyllium seeds (1211 90 13) exempt.
 Those are applied to the seed directly, and their rows carry the later effectiveFrom dates.
-So a row dated 2026-02-01 or 2026-05-01 will not match anything here - that is expected, not
+So a row dated 2026-02-01, 2026-05-01 or 2026-11-01 will not match anything here - that is expected, not
 a fault in the seed. Anything else that fails to match is worth looking at.
 
 Also present but NOT a rate notification, and no business of this parser:

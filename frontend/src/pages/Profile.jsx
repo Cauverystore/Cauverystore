@@ -10,6 +10,7 @@ import "../styles/profile.css";
 import { useConfirm } from "../components/ConfirmDialog";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import useAltText from "../hooks/useAltText";
 
 const PLACEHOLDER = "/images/placeholder.svg";
 
@@ -81,12 +82,17 @@ const initialAddr = () => ({
 });
 
 const Profile = () => {
+  const altText = useAltText();
   const { t } = useTranslation();
 
   const navigate = useNavigate();
   const confirm = useConfirm();
   const { logout } = useAuth();
   const [searchParams] = useSearchParams();
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "personal");
 
   const [profile, setProfile] = useState(null);
@@ -167,6 +173,20 @@ const Profile = () => {
   }, []);
 
   useEffect(() => { loadSecurity(); }, [loadSecurity]);
+
+  const handleDeleteAccount = async () => {
+    setDeleteError("");
+    setDeleting(true);
+    try {
+      await userService.deleteAccount(deletePassword, deleteConfirm);
+      await logout();
+      navigate("/");
+    } catch (err) {
+      setDeleteError(err?.response?.data?.error || "We couldn't delete your account. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const notify = (msg, type = "success") => {
     if (type === "error") { setError(msg); setSuccess(""); }
@@ -382,7 +402,7 @@ const Profile = () => {
         {userId && <span className="profile-customer-id">{userLabel}: {userId.toString().slice(-8).toUpperCase()}</span>}
       </div>
       <div className="profile-avatar-section">
-        <img src={profilePic} alt="" width="80" height="80" className="profile-avatar"
+        <img src={profilePic} alt={altText.profilePhoto()} width="80" height="80" className="profile-avatar"
           onError={(e) => { e.target.src = PLACEHOLDER; }} />
         <div>
           <div className="profile-name-display">{profile?.fullName || profile?.name}</div>
@@ -753,7 +773,7 @@ const Profile = () => {
           {orders.map((order) => {
             const oid = order.id || order._id;
             const orderNum = order.orderId || oid?.toString().slice(-8);
-            const statusColor = order.status === "DELIVERED" ? "#0E5C5C" :
+            const statusColor = order.status === "DELIVERED" ? "#00788C" :
               order.status === "CANCELLED" ? "#dc2626" : "#f59e0b";
             return (
               <div key={oid} className="profile-order-card">
@@ -770,7 +790,7 @@ const Profile = () => {
                   <span>&#8377;{(order.totalAmount || order.total || 0).toFixed(2)}</span>
                   <span style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem" }}>{order.paymentMethod || t("orderDetail.online")}</span>
                   {(order.paymentStatus === "PAID" || order.paymentStatus === "COMPLETED") && (
-                    <span style={{ color: "#0E5C5C", fontSize: "0.8rem" }}>{t("profile.paid")}</span>
+                    <span style={{ color: "#00788C", fontSize: "0.8rem" }}>{t("profile.paid")}</span>
                   )}
                 </div>
                 <div className="profile-order-actions">
@@ -813,7 +833,7 @@ const Profile = () => {
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
                     {review.createdAt ? new Date(review.createdAt).toLocaleDateString("en-IN") : ""}
-                    {review.approved ? <span style={{ color: "#0E5C5C", marginLeft: "0.5rem" }}>{t("seller.translation.approved")}</span> :
+                    {review.approved ? <span style={{ color: "#00788C", marginLeft: "0.5rem" }}>{t("seller.translation.approved")}</span> :
                       <span style={{ color: "#f59e0b", marginLeft: "0.5rem" }}>{t("profile.pending")}</span>}
                   </div>
                 </div>
@@ -927,7 +947,7 @@ const Profile = () => {
                     {s.ipAddress ? `${s.ipAddress} · ` : ""}{t("profile.signedIn")}{" "}{s.createdAt ? new Date(s.createdAt).toLocaleString("en-IN") : ""}
                     {s.expiresAt ? ` · Expires ${new Date(s.expiresAt).toLocaleString("en-IN")}` : ""}
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#0E5C5C" }}>{s.status}</div>
+                  <div style={{ fontSize: "0.75rem", color: "#00788C" }}>{s.status}</div>
                 </div>
                 <button className="pf-btn-sm pf-btn-danger" onClick={() => handleRevokeSession(s.id)} disabled={sessionBusy === s.id}>
                   {sessionBusy === s.id ? "..." : t("profile.signOut")}
@@ -976,6 +996,22 @@ const Profile = () => {
           </label>
         </div>
         <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: "0.75rem", padding: "0.75rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)" }}>{t("profile.yourDataIsHandledIn")}</div>
+        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.5rem 0 0.75rem", color: "var(--color-danger, #b42318)" }}>Delete account</h4>
+        <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
+          This removes your personal details, saved payment methods and wishlist, and signs you out everywhere.
+          Records of past orders and invoices are kept as tax law requires. It cannot be undone. You can't delete
+          your account while an order is in progress, or within 30 days of your last order.
+        </div>
+        <input type="password" placeholder="Your password" value={deletePassword} autoComplete="current-password"
+          onChange={(e) => setDeletePassword(e.target.value)} style={{ display: "block", marginBottom: "0.5rem", width: "100%", maxWidth: 320 }} />
+        <input type="text" placeholder="Type DELETE to confirm" value={deleteConfirm}
+          onChange={(e) => setDeleteConfirm(e.target.value)} style={{ display: "block", marginBottom: "0.5rem", width: "100%", maxWidth: 320 }} />
+        {deleteError && <div role="alert" style={{ color: "var(--color-danger, #b42318)", fontSize: "0.85rem", marginBottom: "0.5rem" }}>{deleteError}</div>}
+        <button type="button" disabled={deleting || deleteConfirm.trim().toUpperCase() !== "DELETE"}
+          onClick={handleDeleteAccount}
+          style={{ background: "#b42318", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "var(--radius-sm)", cursor: "pointer", opacity: deleting || deleteConfirm.trim().toUpperCase() !== "DELETE" ? 0.5 : 1 }}>
+          {deleting ? "Deleting..." : "Delete my account"}
+        </button>
       </div>
     );
   };

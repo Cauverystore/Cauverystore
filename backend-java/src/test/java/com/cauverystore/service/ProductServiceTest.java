@@ -46,6 +46,10 @@ class ProductServiceTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
+        // Most bulk-upload sheets here leave Category empty; the store has an Others category for them.
+        com.cauverystore.entities.Category others = new com.cauverystore.entities.Category();
+        others.setName("Others");
+        lenient().when(catRepo.findByName("Others")).thenReturn(java.util.Optional.of(others));
         product = new Product();
         product.setId(1L);
         product.setName("Test Product");
@@ -516,6 +520,121 @@ class ProductServiceTest {
         assertEquals(Boolean.FALSE, captor.getValue().getPrePackagedAndLabelled());
     }
 
+    /** A sheet laid out like the current template: headings, three photo columns, then packaging. */
+    private MultipartFile currentTemplateSheet(String name, String packaged, String... imageUrls) throws Exception {
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet();
+            org.apache.poi.ss.usermodel.Row header = sheet.createRow(0);
+            header.createCell(1).setCellValue("Product Name");
+            header.createCell(25).setCellValue("Image 1 URL");
+            header.createCell(26).setCellValue("Image 2 URL");
+            header.createCell(27).setCellValue("Image 3 URL");
+            header.createCell(28).setCellValue("Pre-Packaged and Labelled");
+            header.createCell(29).setCellValue("GST Rate Line ID");
+            org.apache.poi.ss.usermodel.Row row = sheet.createRow(1);
+            row.createCell(1).setCellValue(name);
+            row.createCell(4).setCellValue("100");
+            row.createCell(5).setCellValue("5");
+            row.createCell(10).setCellValue("1006");
+            for (int i = 0; i < imageUrls.length; i++) row.createCell(25 + i).setCellValue(imageUrls[i]);
+            row.createCell(28).setCellValue(packaged);
+            wb.write(out);
+            return new org.springframework.mock.web.MockMultipartFile(
+                    "file", "products.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
+    }
+
+    @Test
+    void bulkUpload_shouldReadPackagingFromItsHeadingInTheThreePhotoTemplate() throws Exception {
+        // The photo columns grew from two to three, which moved packaging one column right.
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(currentTemplateSheet("Rice", "No"), 1L);
+
+        assertEquals(1, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertEquals(Boolean.FALSE, captor.getValue().getPrePackagedAndLabelled());
+    }
+
+    @Test
+    void bulkUpload_shouldTryEveryOneOfTheThreePhotoColumns() throws Exception {
+        // Links that cannot be fetched are reported per photo, so a failure in each column
+        // proves each column was read. The product itself is still saved.
+        when(productRepo.save(any())).thenAnswer(i -> { Product p = i.getArgument(0); p.setId(5L); return p; });
+
+        Map<String, Object> result = productService.bulkUpload(
+                currentTemplateSheet("Rice", "Yes", "not-a-link-1", "not-a-link-2", "not-a-link-3"), 1L);
+
+        assertEquals(1, result.get("total"));
+        @SuppressWarnings("unchecked")
+        List<String> imageErrors = (List<String>) result.get("imageErrors");
+        assertNotNull(imageErrors);
+        assertEquals(3, imageErrors.size());
+        assertTrue(imageErrors.get(0).contains("not-a-link-1"));
+        assertTrue(imageErrors.get(2).contains("not-a-link-3"));
+    }
+
+    private MultipartFile sheetWithCodes(String... codes) throws Exception {
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet();
+            sheet.createRow(0).createCell(0).setCellValue("Product Code (leave empty)");
+            for (int i = 0; i < codes.length; i++) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(i + 1);
+                if (codes[i] != null) row.createCell(0).setCellValue(codes[i]);
+                row.createCell(1).setCellValue("Rice " + i);
+                row.createCell(4).setCellValue("100");
+                row.createCell(5).setCellValue("5");
+                row.createCell(10).setCellValue("1006");
+            }
+            wb.write(out);
+            return new org.springframework.mock.web.MockMultipartFile(
+                    "file", "products.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
+    }
+
+    @Test
+    void bulkUpload_shouldRefuseTheWholeFileWhenAnyRowHasAProductCode() throws Exception {
+        // Codes are always generated; one typed-in code blocks the file and nothing is saved.
+        Map<String, Object> result = productService.bulkUpload(sheetWithCodes(null, "MY-CODE-1", null, "X2"), 1L);
+
+        assertNotNull(result.get("error"));
+        assertTrue(((String) result.get("error")).contains("rows 3, 5"), "should name the rows to clear");
+        assertEquals(List.of(3, 5), result.get("rowsWithProductCode"));
+        verify(productRepo, never()).save(any());
+    }
+
+    @Test
+    void bulkUpload_shouldAcceptRowsWithAnEmptyProductCode() throws Exception {
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetWithCodes(null, null), 1L);
+
+        assertNull(result.get("error"));
+        assertEquals(2, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo, times(2)).save(captor.capture());
+        captor.getAllValues().forEach(p -> assertNull(p.getProductCode(), "the store fills the code in on save"));
+    }
+
+    @Test
+    void addProduct_shouldIgnoreAProductCodeSentWithTheRequest() {
+        when(productRepo.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        Product product = new Product();
+        product.setName("Rice");
+        product.setProductCode("TYPED-IN");
+
+        Product saved = productService.addProduct(product);
+
+        assertNull(saved.getProductCode(), "left for Product#generateCode to fill");
+    }
+
     @Test
     void bulkUpload_shouldRejectAPrePackagedColumnThatIsNotYesOrNo() throws Exception {
         Map<String, Object> result = productService.bulkUpload(sheetWithPackaging("Rice", "1006", "Maybe"), 1L);
@@ -526,6 +645,145 @@ class ProductServiceTest {
         List<String> rowErrors = (List<String>) result.get("rowErrors");
         assertNotNull(rowErrors);
         assertTrue(rowErrors.get(0).contains("Yes or No"), "should explain the bad value");
+    }
+
+    /** One data row: name, category and price as given (null leaves the cell empty). */
+    private MultipartFile sheetRow(String name, String category, Object price) throws Exception {
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet();
+            sheet.createRow(0).createCell(0).setCellValue("header");
+            org.apache.poi.ss.usermodel.Row row = sheet.createRow(1);
+            if (name != null) row.createCell(1).setCellValue(name);
+            if (category != null) row.createCell(3).setCellValue(category);
+            if (price instanceof Double d) row.createCell(4).setCellValue(d);
+            else if (price != null) row.createCell(4).setCellValue(price.toString());
+            row.createCell(5).setCellValue("5");
+            row.createCell(10).setCellValue("1006");
+            wb.write(out);
+            return new org.springframework.mock.web.MockMultipartFile(
+                    "file", "products.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private String onlyRowError(Map<String, Object> result) {
+        assertEquals(0, result.get("total"));
+        List<String> rowErrors = (List<String>) result.get("rowErrors");
+        assertNotNull(rowErrors);
+        assertEquals(1, rowErrors.size());
+        return rowErrors.get(0);
+    }
+
+    @Test
+    void bulkUpload_shouldPutAnUnknownCategoryInOthersAndSaySo() throws Exception {
+        // It used to save the product with no category, so it never appeared in the shop.
+        com.cauverystore.entities.Category others = new com.cauverystore.entities.Category();
+        others.setName("Others");
+        when(catRepo.findByName("Toys & Games")).thenReturn(java.util.Optional.empty());
+        when(catRepo.findByName("Others")).thenReturn(java.util.Optional.of(others));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetRow("Robot", "Toys & Games", "100"), 1L);
+
+        assertEquals(1, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertSame(others, captor.getValue().getCategory());
+        @SuppressWarnings("unchecked")
+        List<String> notes = (List<String>) result.get("categoryNotes");
+        assertNotNull(notes);
+        assertTrue(notes.get(0).contains("Toys & Games") && notes.get(0).contains("Others"), notes.get(0));
+        assertTrue(((String) result.get("message")).contains("1 put in Others"));
+    }
+
+    @Test
+    void bulkUpload_shouldPutAnEmptyCategoryInOthers() throws Exception {
+        com.cauverystore.entities.Category others = new com.cauverystore.entities.Category();
+        others.setName("Others");
+        when(catRepo.findByName("Others")).thenReturn(java.util.Optional.of(others));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetRow("Robot", null, "100"), 1L);
+
+        assertEquals(1, result.get("total"));
+        @SuppressWarnings("unchecked")
+        List<String> notes = (List<String>) result.get("categoryNotes");
+        assertTrue(notes.get(0).contains("no category given"), notes.get(0));
+    }
+
+    @Test
+    void bulkUpload_shouldNeverCreateOthersItself() throws Exception {
+        // Without an Others category the row is refused and the message says how to fix it.
+        com.cauverystore.entities.Category electronics = new com.cauverystore.entities.Category();
+        electronics.setName("Electronics");
+        when(catRepo.findByName(any())).thenReturn(java.util.Optional.empty());
+        when(catRepo.findAll()).thenReturn(List.of(electronics));
+
+        String error = onlyRowError(productService.bulkUpload(sheetRow("Robot", "Toys & Games", "100"), 1L));
+
+        assertTrue(error.contains("Toys & Games"), error);
+        assertTrue(error.contains("Electronics"), "should list the categories that exist: " + error);
+        assertTrue(error.contains("Others"), "should say how to collect these: " + error);
+        verify(catRepo, never()).save(any());
+        verify(productRepo, never()).save(any());
+    }
+
+    @Test
+    void bulkUpload_shouldMatchACategoryWhateverItsCapitals() throws Exception {
+        com.cauverystore.entities.Category electronics = new com.cauverystore.entities.Category();
+        electronics.setName("Electronics");
+        when(catRepo.findByName("electronics")).thenReturn(java.util.Optional.empty());
+        when(catRepo.findAll()).thenReturn(List.of(electronics));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Map<String, Object> result = productService.bulkUpload(sheetRow("TV", "electronics", "100"), 1L);
+
+        assertEquals(1, result.get("total"));
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertSame(electronics, captor.getValue().getCategory());
+    }
+
+    @Test
+    void bulkUpload_shouldExplainAPriceThatIsNotANumber() throws Exception {
+        String error = onlyRowError(productService.bulkUpload(sheetRow("TV", null, "abc"), 1L));
+
+        assertTrue(error.contains("Price must be a number"), error);
+        assertTrue(error.contains("abc"), error);
+    }
+
+    @Test
+    void bulkUpload_shouldAskForTheNameInsteadOfShowingADatabaseError() throws Exception {
+        String error = onlyRowError(productService.bulkUpload(sheetRow(null, null, "100"), 1L));
+
+        assertTrue(error.contains("Product Name is required"), error);
+        verify(productRepo, never()).save(any());
+    }
+
+    @Test
+    void bulkUpload_shouldHideDatabaseDetailsFromTheRowError() throws Exception {
+        when(productRepo.save(any())).thenThrow(new org.springframework.dao.DataIntegrityViolationException(
+                "could not execute statement [ERROR: null value in column \"x\" of relation \"products\"]"));
+
+        String error = onlyRowError(productService.bulkUpload(sheetRow("TV", null, "100"), 1L));
+
+        assertFalse(error.contains("relation"), "no SQL in a seller-facing message: " + error);
+        assertTrue(error.contains("required column"), error);
+    }
+
+    @Test
+    void bulkUpload_shouldKeepThePaiseInAPriceTypedAsANumber() throws Exception {
+        // Numeric cells were cut to whole numbers, so 499.50 was saved as 499.
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        productService.bulkUpload(sheetRow("TV", null, 499.5), 1L);
+
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepo).save(captor.capture());
+        assertEquals(499.5, captor.getValue().getPrice(), 0.0001);
     }
 
     @Test

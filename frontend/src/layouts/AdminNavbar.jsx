@@ -29,6 +29,7 @@ const PAGE_TITLES = {
   "/admin/executive-dashboard": "Executive Panel",
   "/admin/settings": "Settings",
   "/admin/product-approvals": "Product Approvals",
+  "/admin/product-compliance": "Product Compliance",
   "/admin/seller-approvals": "Seller Approvals",
 };
 
@@ -62,7 +63,7 @@ const AdminNavbar = ({ onMenuClick }) => {
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <div style={{
             width: "32px", height: "32px", borderRadius: "50%",
-            background: "var(--color-primary, #0E5C5C)", color: "#fff",
+            background: "var(--color-primary, #00788C)", color: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "0.75rem", fontWeight: 700
           }}>

@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "identifier": "urn:air:cauverystore.in:site-guide",
+      "displayName": "Cauvery Store site guide for AI assistants",
+      "type": "text/markdown",
+      "url": "https://cauverystore.in/llms.txt",
+      "description": "Plain-text guide to Cauvery Store (cauverystore.in), an online marketplace of approved sellers based in Coimbatore, Tamil Nadu: delivery, payments, returns, selling on the store, key pages and the sitemap.",
+      "tags": ["ecommerce", "marketplace", "india", "tamil-nadu"],
+      "representativeQueries": [
+        "what is Cauvery Store",
+        "does Cauvery Store offer free delivery",
+        "what is the Cauvery Store return policy",
+        "how do I sell on Cauvery Store"
+      ],
+      "updatedAt": "2026-10-31"
+    }
+  ]
+}

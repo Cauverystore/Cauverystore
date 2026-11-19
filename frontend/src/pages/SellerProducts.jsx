@@ -3,6 +3,7 @@ import api from "../api/axios";
 import Pagination from "../components/Pagination";
 import { useNavigate } from "react-router-dom";
 import { imgUrl } from "../utils/images";
+import useAltText from "../hooks/useAltText";
 
 const btnBase = {
   padding: "0.55rem 1rem",
@@ -58,6 +59,7 @@ const selectStyle = {
 };
 
 const SellerProducts = () => {
+  const altText = useAltText();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -233,9 +235,11 @@ const SellerProducts = () => {
             href={`${api.defaults.baseURL || "http://localhost:9091"}/api/seller/template.xlsx`}
             style={{ ...btnBase, background: "#f3f4f6", color: "#374151", textDecoration: "none", fontSize: "0.8rem" }}
           >
-            Upload Template
+            Download Template
           </a>
-          <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/add")}>Add Product</button>
+          <button style={{ ...btnBase, background: "#6366f1", color: "#fff" }} onClick={() => navigate("/seller/products/bulk-upload")}>Bulk Upload</button>
+          <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/wizard")}>Add Product</button>
+          <button style={{ ...btnBase, background: "#f3f4f6", color: "#374151" }} onClick={() => navigate("/seller/products/add")}>Quick add (one page)</button>
         </div>
       </div>
 
@@ -292,7 +296,7 @@ const SellerProducts = () => {
         <div style={{ textAlign: "center", padding: "3rem 1rem", background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
           <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>📦</div>
           <p style={{ color: "#6b7280", marginBottom: "1rem" }}>No products yet. Start by adding your first product.</p>
-          <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/add")}>Add Product</button>
+          <button style={{ ...btnBase, background: "#3b82f6", color: "#fff" }} onClick={() => navigate("/seller/products/wizard")}>Add Product</button>
         </div>
       ) : (
         <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", overflow: "hidden" }}>
@@ -332,7 +336,7 @@ const SellerProducts = () => {
                         />
                       </td>
                       <td style={tdStyle}>
-                        <img src={imgUrl(getImageSrc(p))} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
+                        <img src={imgUrl(getImageSrc(p))} alt={altText.product(p.name)} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
                       </td>
                       <td style={{ ...tdStyle, fontWeight: 500 }}>{p.name}</td>
                       <td style={tdStyle}>{p.category?.name || "-"}</td>
@@ -346,6 +350,12 @@ const SellerProducts = () => {
                             onClick={() => navigate(`/seller/products/edit/${pid}`)}
                           >
                             Edit
+                          </button>
+                          <button
+                            style={{ ...btnBase, padding: "0.35rem 0.65rem", fontSize: "0.78rem", background: "#00788C", color: "#fff" }}
+                            onClick={() => navigate(`/seller/products/wizard/${pid}`)}
+                          >
+                            Compliance
                           </button>
                           <button
                             style={{ ...btnBase, padding: "0.35rem 0.65rem", fontSize: "0.78rem", background: "#ef4444", color: "#fff" }}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ExternalLink, Eye, FileMinus, BarChart3, FileSpreadsheet, FileJson } from "lucide-react";
+import { FileText, Plus, Search, Download, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp, Filter, ExternalLink, Eye, FileMinus, BarChart3, FileSpreadsheet, FileJson, Truck } from "lucide-react";
 import api from "../api/axios";
 import { promptText } from "../components/ConfirmDialog";
+import EwayBillPanel from "./EwayBillPanel";
 
 const GST_DASHBOARD_STYLES = `
   .gst-page { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
@@ -18,16 +19,16 @@ const GST_DASHBOARD_STYLES = `
 
   .gst-tabs { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; overflow-x: auto; }
   .gst-tab { padding: 0.7rem 1.25rem; font-size: 0.85rem; font-weight: 500; color: #64748b; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; white-space: nowrap; }
-  .gst-tab:hover { color: #0E5C5C; }
-  .gst-tab.active { color: #0E5C5C; border-bottom-color: #0E5C5C; font-weight: 600; }
+  .gst-tab:hover { color: #00788C; }
+  .gst-tab.active { color: #00788C; border-bottom-color: #00788C; font-weight: 600; }
 
   .gst-toolbar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
   .gst-search { flex: 1; min-width: 200px; padding: 0.5rem 0.75rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; outline: none; }
-  .gst-search:focus { border-color: #0E5C5C; }
+  .gst-search:focus { border-color: #00788C; }
   .gst-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
-  .gst-btn-primary { background: #0E5C5C; color: #fff; }
-  .gst-btn-primary:hover { background: #0a4a4a; }
-  .gst-btn-outline { background: transparent; color: #0E5C5C; border: 1.5px solid #0E5C5C; }
+  .gst-btn-primary { background: #00788C; color: #fff; }
+  .gst-btn-primary:hover { background: #006475; }
+  .gst-btn-outline { background: transparent; color: #00788C; border: 1.5px solid #00788C; }
   .gst-btn-outline:hover { background: #f0fdf4; }
   .gst-btn-sm { padding: 0.35rem 0.7rem; font-size: 0.78rem; }
 
@@ -47,7 +48,7 @@ const GST_DASHBOARD_STYLES = `
   .gst-field { margin-bottom: 1rem; }
   .gst-field label { display: block; font-size: 0.82rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; }
   .gst-field input, .gst-field select { width: 100%; padding: 0.55rem 0.75rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.88rem; outline: none; box-sizing: border-box; }
-  .gst-field input:focus, .gst-field select:focus { border-color: #0E5C5C; }
+  .gst-field input:focus, .gst-field select:focus { border-color: #00788C; }
 
   .gst-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   .gst-summary-item { padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; }
@@ -70,6 +71,7 @@ const TABS = [
   { id: "summary", label: "GST Summary", icon: Filter },
   { id: "gstr1", label: "GSTR-1", icon: Download },
   { id: "tcs", label: "TCS", icon: AlertTriangle },
+  { id: "ewaybill", label: "E-way bills", icon: Truck },
 ];
 
 const INDIAN_STATES = [
@@ -93,7 +95,26 @@ const INDIAN_STATES = [
   { code: "37", name: "Andhra Pradesh" }, { code: "38", name: "Ladakh" },
 ];
 
+/** Returns are filed for the month just ended, so that is the default. */
+const lastMonth = () => {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+/** "2026-10" -> { startDate: "2026-10-01", endDate: "2026-10-31" } */
+const monthRange = (month) => {
+  const [y, m] = month.split("-").map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return { startDate: `${month}-01`, endDate: `${month}-${String(last).padStart(2, "0")}` };
+};
+
+/** Tabs whose figures belong to one return period. */
+const PERIOD_TABS = ["gstr3b", "summary", "gstr1", "tcs"];
+
 const GstInvoices = () => {
+  const [returnMonth, setReturnMonth] = useState(lastMonth());
   const [activeTab, setActiveTab] = useState("dashboard");
   const [invoices, setInvoices] = useState([]);
   const [stats, setStats] = useState(null);
@@ -126,7 +147,7 @@ const GstInvoices = () => {
     else if (activeTab === "summary") fetchSummary();
     else if (activeTab === "gstr1") fetchGstr1();
     else if (activeTab === "tcs") fetchTcs();
-  }, [activeTab, page, cnPage]);
+  }, [activeTab, page, cnPage, returnMonth]);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -154,7 +175,7 @@ const GstInvoices = () => {
   const fetchSummary = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/gst/summary");
+      const res = await api.get("/api/gst/summary", { params: monthRange(returnMonth) });
       setSummary(res.data);
     } catch { setSummary(null); }
     setLoading(false);
@@ -173,7 +194,7 @@ const GstInvoices = () => {
   const fetchGstr3b = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/gst/gstr3b");
+      const res = await api.get("/api/gst/gstr3b", { params: monthRange(returnMonth) });
       setGstr3b(res.data);
     } catch { setGstr3b(null); }
     setLoading(false);
@@ -181,12 +202,13 @@ const GstInvoices = () => {
 
   const downloadExport = async (url, filename, format) => {
     try {
-      const res = await api.get(url, { params: { format }, responseType: "blob" });
+      // Every report download is for the chosen return month, and says so in its name.
+      const res = await api.get(url, { params: { format, ...monthRange(returnMonth) }, responseType: "blob" });
       const blob = new Blob([res.data]);
       const link = document.createElement("a");
       const objectUrl = window.URL.createObjectURL(blob);
       link.href = objectUrl;
-      link.download = filename;
+      link.download = url.includes("/creditnotes/") ? filename : filename.replace(/(\.\w+)$/, `-${returnMonth}$1`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -198,8 +220,8 @@ const GstInvoices = () => {
     setLoading(true);
     try {
       const [flatRes, segRes] = await Promise.allSettled([
-        api.get("/api/gst/gstr1"),
-        api.get("/api/gst/gstr1/segregated"),
+        api.get("/api/gst/gstr1", { params: monthRange(returnMonth) }),
+        api.get("/api/gst/gstr1/segregated", { params: monthRange(returnMonth) }),
       ]);
       if (flatRes.status === "fulfilled") setGstr1(flatRes.value.data || []);
       if (segRes.status === "fulfilled") setGstr1Seg(segRes.value.data);
@@ -210,7 +232,7 @@ const GstInvoices = () => {
   const fetchTcs = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/gst/tcs");
+      const res = await api.get("/api/gst/tcs", { params: monthRange(returnMonth) });
       setTcs(res.data);
     } catch { setTcs(null); }
     setLoading(false);
@@ -252,7 +274,7 @@ const GstInvoices = () => {
         <h1>GST Invoice System</h1>
         <p className="gst-subtitle" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           Generate, manage, and sync GST-compliant invoices with HSN/SAC, tax breakup, TCS, and e-invoice support.
-          <Link to="/seller/gst-compliance" style={{ fontSize: "0.8rem", fontWeight: 600, color: "#0E5C5C", textDecoration: "none", whiteSpace: "nowrap", border: "1.5px solid #0E5C5C", padding: "0.3rem 0.75rem", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+          <Link to="/seller/gst-compliance" style={{ fontSize: "0.8rem", fontWeight: 600, color: "#00788C", textDecoration: "none", whiteSpace: "nowrap", border: "1.5px solid #00788C", padding: "0.3rem 0.75rem", borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
             <BarChart3 size={13} /> Compliance Center
           </Link>
         </p>
@@ -264,6 +286,15 @@ const GstInvoices = () => {
             </button>
           ))}
         </div>
+
+        {PERIOD_TABS.includes(activeTab) && (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+            <label style={{ fontSize: "0.88rem", fontWeight: 600 }} htmlFor="gst-return-month">Return month</label>
+            <input id="gst-return-month" type="month" value={returnMonth} max={new Date().toISOString().slice(0, 7)}
+              onChange={(e) => e.target.value && setReturnMonth(e.target.value)} style={{ padding: "0.3rem 0.5rem" }} />
+            <span style={{ fontSize: "0.8rem", color: "#64748b" }}>Figures and downloads on this tab cover {monthRange(returnMonth).startDate} to {monthRange(returnMonth).endDate}.</span>
+          </div>
+        )}
 
         {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "0.6rem 1rem", fontSize: "0.85rem", color: "#991b1b", marginBottom: "1rem" }}>{error}</div>}
 
@@ -461,7 +492,7 @@ const GstInvoices = () => {
         {activeTab === "gstr3b" && (
           <>
             <div className="gst-toolbar">
-              <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>GSTR-3B Table 3.1(a) outward taxable supplies (net of credit notes) and ITC summary for the current month.</p>
+              <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>GSTR-3B outward supplies for the return month: 3.1(a), 3.1(c) and 3.2, net of credit and debit notes. Cancelled invoices are left out.</p>
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr3b/export", "gstr3b.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr3b/export", "gstr3b.json", "json")}><FileJson size={14} /> JSON</button>
             </div>
@@ -479,17 +510,33 @@ const GstInvoices = () => {
                   <div className="gst-summary-item"><div className="gst-summary-label">IGST</div><div className="gst-summary-value" style={{ color: "#d97706" }}>&#8377;{(gstr3b.table3_1_outwardSupplies?.igst || 0).toFixed(2)}</div></div>
                   <div className="gst-summary-item"><div className="gst-summary-label">Total Tax</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1_outwardSupplies?.totalTax || 0).toFixed(2)}</div></div>
                   <div className="gst-summary-item"><div className="gst-summary-label">Gross Taxable Value</div><div className="gst-summary-value">&#8377;{(gstr3b.grossTaxableValue || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Cess</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1_outwardSupplies?.cess || 0).toFixed(2)}</div></div>
                   <div className="gst-summary-item"><div className="gst-summary-label">Credit Notes (reduction)</div><div className="gst-summary-value" style={{ color: "#dc2626" }}>&#8377;{(gstr3b.grossCreditNotesValue || 0).toFixed(2)}</div></div>
-                  <div className="gst-summary-item"><div className="gst-summary-label">Invoices / Credit Notes</div><div className="gst-summary-value">{gstr3b.invoiceCount || 0} / {gstr3b.creditNoteCount || 0}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Debit Notes (addition)</div><div className="gst-summary-value">&#8377;{(gstr3b.grossDebitNotesValue || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Invoices / Credit / Debit Notes</div><div className="gst-summary-value">{gstr3b.invoiceCount || 0} / {gstr3b.creditNoteCount || 0} / {gstr3b.debitNoteCount || 0}</div></div>
+                  {gstr3b.cancelledInvoiceCount > 0 && (
+                    <div className="gst-summary-item"><div className="gst-summary-label">Cancelled (left out)</div><div className="gst-summary-value">{gstr3b.cancelledInvoiceCount}</div></div>
+                  )}
                   <div className="gst-summary-item"><div className="gst-summary-label">Period</div><div className="gst-summary-value">{gstr3b.periodStart} to {gstr3b.periodEnd}</div></div>
                 </div>
-                <h3 style={{ marginTop: "1.5rem" }}>Table 3.1(b) - ITC Eligible (B2B)</h3>
+                <h3 style={{ marginTop: "1.5rem" }}>Table 3.1(c) - Nil rated and exempted supplies</h3>
                 <div className="gst-summary-grid">
-                  <div className="gst-summary-item"><div className="gst-summary-label">Taxable Value</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1b_itc?.eligibleTaxableValue || 0).toFixed(2)}</div></div>
-                  <div className="gst-summary-item"><div className="gst-summary-label">CGST</div><div className="gst-summary-value" style={{ color: "#2563eb" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleCgst || 0).toFixed(2)}</div></div>
-                  <div className="gst-summary-item"><div className="gst-summary-label">SGST</div><div className="gst-summary-value" style={{ color: "#7c3aed" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleSgst || 0).toFixed(2)}</div></div>
-                  <div className="gst-summary-item"><div className="gst-summary-label">IGST</div><div className="gst-summary-value" style={{ color: "#d97706" }}>&#8377;{(gstr3b.table3_1b_itc?.eligibleIgst || 0).toFixed(2)}</div></div>
+                  <div className="gst-summary-item"><div className="gst-summary-label">Value</div><div className="gst-summary-value">&#8377;{(gstr3b.table3_1c_nilExempt?.taxableValue || 0).toFixed(2)}</div></div>
                 </div>
+                <h3 style={{ marginTop: "1.5rem" }}>Table 3.2 - Inter-state supplies to unregistered persons</h3>
+                {(gstr3b.table3_2_interStateUnregistered || []).length === 0 ? (
+                  <p style={{ color: "#94a3b8" }}>None in this period.</p>
+                ) : (
+                  <table className="gst-table">
+                    <thead><tr><th>Place of supply</th><th>Taxable value</th><th>IGST</th></tr></thead>
+                    <tbody>
+                      {gstr3b.table3_2_interStateUnregistered.map((r) => (
+                        <tr key={r.placeOfSupply}><td>{r.placeOfSupply}</td><td>&#8377;{Number(r.taxableValue || 0).toFixed(2)}</td><td>&#8377;{Number(r.igst || 0).toFixed(2)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {gstr3b.notProduced && <p style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "1rem" }}>{gstr3b.notProduced}</p>}
               </div>
             )}
           </>
@@ -557,7 +604,7 @@ const GstInvoices = () => {
           <>
             <div className="gst-toolbar">
               <p style={{ margin: 0, flex: 1, fontSize: "0.88rem", color: "#64748b" }}>
-                GSTR-1 for {gstr1Seg ? `${gstr1Seg.periodStart} to ${gstr1Seg.periodEnd}` : "the current month"}, segregated by filing table (4A B2B / 6A B2CL / 6B B2CS / 6C nil-rated). Export the flat ledger for filing.
+                GSTR-1 for {gstr1Seg ? `${gstr1Seg.periodStart} to ${gstr1Seg.periodEnd}` : "the return month"}, segregated by filing table (4A B2B / 6A B2CL / 6B B2CS / 6C nil-rated). Export the flat ledger for filing.
               </p>
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.csv", "csv")}><FileSpreadsheet size={14} /> Export CSV</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/export", "gstr1.json", "json")}><FileJson size={14} /> JSON</button>
@@ -569,7 +616,19 @@ const GstInvoices = () => {
               <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2b", "gstr1-b2b.csv", "csv")}><FileText size={14} /> 4A B2B</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2cl", "gstr1-b2cl.csv", "csv")}><FileText size={14} /> 5A B2CL</button>
               <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=b2cs", "gstr1-b2cs.csv", "csv")}><FileText size={14} /> 7 B2CS</button>
-              <button className="gst-btn gst-btn-outline gst-btn-sm" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn", "gstr1-hsn.csv", "csv")}><FileText size={14} /> 12 HSN</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Credit and debit notes to buyers with a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=cdn", "gstr1-cdnr.csv", "csv")}><FileText size={14} /> 9B CDNR</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Credit and debit notes against B2CL invoices (other consumer notes are netted into B2CS)" onClick={() => downloadExport("/api/gst/gstr1/filing?section=cdnur", "gstr1-cdnur.csv", "csv")}><FileText size={14} /> 9B CDNUR</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="HSN summary of supplies to buyers with a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn_b2b", "gstr1-hsn-b2b.csv", "csv")}><FileText size={14} /> 12 HSN B2B</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="HSN summary of supplies to buyers without a GSTIN" onClick={() => downloadExport("/api/gst/gstr1/filing?section=hsn_b2c", "gstr1-hsn-b2c.csv", "csv")}><FileText size={14} /> 12 HSN B2C</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Sales made through the marketplace, which collects TCS on them (empty when none)" onClick={() => downloadExport("/api/gst/gstr1/filing?section=eco", "gstr1-eco.csv", "csv")}><FileText size={14} /> 14 ECO</button>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Documents issued: first and last number of each invoice, credit note and debit note series, with cancellations" onClick={() => downloadExport("/api/gst/gstr1/filing?section=docs", "gstr1-docs.csv", "csv")}><FileText size={14} /> 13 Docs</button>
+            </div>
+            <div className="gst-toolbar" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "0.6rem 0.75rem" }}>
+              <p style={{ margin: 0, flex: 1, fontSize: "0.82rem", color: "#475569" }}>
+                <strong>Tally Prime</strong> — this month's invoices, credit notes and debit notes as accounting vouchers. In Tally, import the ledgers file first (Import → Masters), then the vouchers (Import → Transactions).
+              </p>
+              <button className="gst-btn gst-btn-outline gst-btn-sm" title="Sales, GST, round-off and customer ledgers the vouchers post to" onClick={() => downloadExport("/api/gst/tally/export?kind=ledgers", "tally-ledgers.xml", "xml")}><FileText size={14} /> 1. Ledgers</button>
+              <button className="gst-btn gst-btn-primary gst-btn-sm" onClick={() => downloadExport("/api/gst/tally/export?kind=vouchers", "tally-vouchers.xml", "xml")}><FileText size={14} /> 2. Vouchers</button>
             </div>
             {!gstr1Seg || !gstr1Seg["4A"] ? (
               <p style={{ color: "#94a3b8" }}>No invoice data available for GSTR-1.</p>
@@ -582,8 +641,8 @@ const GstInvoices = () => {
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
                         <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600, color: "#0f172a" }}>{key} · {sec.label}</h3>
                         <span style={{ fontSize: "0.78rem", color: "#64748b", background: "#f1f5f9", borderRadius: 999, padding: "0.15rem 0.6rem" }}>{sec.count} invoices</span>
-                        <span style={{ fontSize: "0.78rem", color: "#0E5C5C", background: "#f0fdfa", borderRadius: 999, padding: "0.15rem 0.6rem" }}>Taxable &#8377;{(sec.totalTaxableAmount || 0).toFixed(2)}</span>
-                        <span style={{ fontSize: "0.78rem", color: "#0E5C5C", background: "#f0fdfa", borderRadius: 999, padding: "0.15rem 0.6rem" }}>Tax &#8377;{(sec.totalTax || 0).toFixed(2)}</span>
+                        <span style={{ fontSize: "0.78rem", color: "#00788C", background: "#EFFBF7", borderRadius: 999, padding: "0.15rem 0.6rem" }}>Taxable &#8377;{(sec.totalTaxableAmount || 0).toFixed(2)}</span>
+                        <span style={{ fontSize: "0.78rem", color: "#00788C", background: "#EFFBF7", borderRadius: 999, padding: "0.15rem 0.6rem" }}>Tax &#8377;{(sec.totalTax || 0).toFixed(2)}</span>
                       </div>
                       {sec.invoices.length === 0 ? (
                         <p style={{ color: "#94a3b8", fontSize: "0.85rem" }}>No invoices in this table.</p>
@@ -620,11 +679,13 @@ const GstInvoices = () => {
           </>
         )}
 
+        {activeTab === "ewaybill" && <EwayBillPanel />}
+
         {activeTab === "tcs" && (
           <div className="gst-form" style={{ maxWidth: "100%" }}>
             <h3>TCS Summary (GSTR-8)</h3>
             <div className="static-info-box" style={{ marginBottom: "1rem" }}>
-              <strong>1% TCS</strong> is deducted on marketplace sales as per Section 52 of the CGST Act. GSTR-8 must be filed monthly.
+              <strong>TCS at {tcs?.tcsRate || "0.5%"}</strong> (0.5% since 10 July 2024, Notification 15/2024) is collected on marketplace sales under Section 52 of the CGST Act. GSTR-8 must be filed monthly.
             </div>
             {tcs ? (
               <div className="gst-summary-grid">

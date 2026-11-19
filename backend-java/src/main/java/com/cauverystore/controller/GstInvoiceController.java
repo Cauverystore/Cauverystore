@@ -25,12 +25,15 @@ public class GstInvoiceController {
 
     private final GstInvoiceService gstService;
     private final Gstr1ExportService gstr1ExportService;
+    private final com.cauverystore.service.TallyExportService tallyExportService;
     private final CreditNoteService creditNoteService;
     private final UserRepository userRepo;
 
     public GstInvoiceController(GstInvoiceService gstService, CreditNoteService creditNoteService, UserRepository userRepo,
-                                Gstr1ExportService gstr1ExportService) {
+                                Gstr1ExportService gstr1ExportService,
+                                com.cauverystore.service.TallyExportService tallyExportService) {
         this.gstr1ExportService = gstr1ExportService;
+        this.tallyExportService = tallyExportService;
         this.gstService = gstService;
         this.creditNoteService = creditNoteService;
         this.userRepo = userRepo;
@@ -111,7 +114,11 @@ public class GstInvoiceController {
         Double amount = body.get("amount") != null ? ((Number) body.get("amount")).doubleValue() : null;
         String reason = (String) body.get("reason");
         try {
-            return ResponseEntity.ok(creditNoteService.generateManualCreditNote(invoiceId, amount, reason, userId));
+            Map<String, Object> result = creditNoteService.generateManualCreditNote(invoiceId, amount, reason, userId);
+            if (Boolean.TRUE.equals(result.get("timeBarred"))) {
+                return ResponseEntity.badRequest().body(Map.of("error", result.get("message")));
+            }
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -245,7 +252,7 @@ public class GstInvoiceController {
         Long userId = getCurrentUserId();
         if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
         List<Map<String, Object>> rows = creditNoteService.getGstr3bRows(userId, startDate, endDate);
-        String[] headers = {"section", "taxableValue", "cgst", "sgst", "igst"};
+        String[] headers = {"section", "placeOfSupply", "taxableValue", "igst", "cgst", "sgst", "cess"};
         if ("json".equalsIgnoreCase(format)) {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(gstService.exportJson(creditNoteService.getGstr3bData(userId, startDate, endDate)));
         }
@@ -288,7 +295,8 @@ public class GstInvoiceController {
     /**
      * GSTR-1 in the offline utility's format, ready to upload.
      *
-     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7), cdn (9A/9B) or hsn (12). Omit
+     * `section` picks the table: b2b (4A), b2cl (5A), b2cs (7), cdn (9B registered), cdnur (9B unregistered), or the HSN summary
+     * (12) as hsn_b2b and hsn_b2c (the single "hsn" exists only for periods before May 2025). Omit
      * it to get every section as JSON, which is the quickest way to see what a month actually
      * contains before filing any of it.
      */
@@ -308,9 +316,13 @@ public class GstInvoiceController {
             return ResponseEntity.ok(sections);
         }
         List<Map<String, Object>> rows = sections.get(section.toLowerCase());
+        if (rows == null && "hsn".equalsIgnoreCase(section)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "From the May 2025 return the "
+                    + "GST portal takes the HSN summary as two lists. Download hsn_b2b and hsn_b2c."));
+        }
         if (rows == null) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Unknown GSTR-1 section '" + section + "'. Use b2b, b2cl, b2cs, cdn or hsn."));
+            return ResponseEntity.badRequest().body(Map.of("error", "Unknown GSTR-1 section '"
+                    + section + "'. Use b2b, b2cl, b2cs, cdn, cdnur, hsn_b2b, hsn_b2c, eco or docs."));
         }
         if ("json".equalsIgnoreCase(format)) return ResponseEntity.ok(rows);
 
@@ -320,6 +332,77 @@ public class GstInvoiceController {
                         "attachment; filename=gstr1-" + section.toLowerCase() + ".csv")
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(gstService.exportCsv(headers, rows));
+    }
+
+    /**
+     * Tally Prime import file for the seller's invoices and notes in a period.
+     * kind=ledgers gives the ledgers to import first; kind=vouchers the vouchers themselves.
+     */
+    @GetMapping("/tally/export")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> tallyExport(
+            @RequestParam(defaultValue = "vouchers") String kind,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        if (!"vouchers".equalsIgnoreCase(kind) && !"ledgers".equalsIgnoreCase(kind)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "kind must be ledgers or vouchers"));
+        }
+        var docs = gstService.filingDocuments(userId, startDate, endDate);
+        String xml = "ledgers".equalsIgnoreCase(kind)
+                ? tallyExportService.ledgers(docs.invoices(), docs.creditNotes(), docs.debitNotes())
+                : tallyExportService.vouchers(docs.invoices(), docs.creditNotes(), docs.debitNotes());
+        String name = "tally-" + kind.toLowerCase() + "-" + docs.from() + "-to-" + docs.to() + ".xml";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + name)
+                .contentType(MediaType.APPLICATION_XML)
+                .body(xml);
+    }
+
+    /** Invoices whose goods need an e-way bill that has not been recorded yet. */
+    @GetMapping("/ewaybill/pending")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> pendingEwayBills() {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        return ResponseEntity.ok(gstService.pendingEwayBills(userId, getCurrentUserRole()));
+    }
+
+    /** Bulk-generation JSON for the e-way bill portal, e.g. ?ids=12,13. */
+    @GetMapping("/ewaybill/bulk-json")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> ewayBillBulkJson(@RequestParam java.util.List<Long> ids) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        try {
+            String json = gstService.ewayBillBulkJson(ids, userId, getCurrentUserRole());
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=ewaybill-bulk-" + LocalDate.now() + ".json")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(json);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Records the number the portal gave: {ewayBillNumber, generatedAt?, validUpto?}. */
+    @PostMapping("/invoices/{id}/ewaybill")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> recordEwayBill(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        try {
+            Object g = body.get("generatedAt"), v = body.get("validUpto");
+            var inv = gstService.recordEwayBill(id, userId, getCurrentUserRole(),
+                    (String) body.get("ewayBillNumber"),
+                    g == null || g.toString().isBlank() ? null : java.time.LocalDateTime.parse(g.toString()),
+                    v == null || v.toString().isBlank() ? null : LocalDate.parse(v.toString()));
+            return ResponseEntity.ok(Map.of("ewayBillNumber", inv.getEwayBillNumber(),
+                    "validUpto", String.valueOf(inv.getEwayBillExpiry()), "status", inv.getEwayBillStatus()));
+        } catch (IllegalArgumentException | java.time.format.DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /** GSTR-1 rows narrowed to a trade type and/or category, for compliance segmentation. */

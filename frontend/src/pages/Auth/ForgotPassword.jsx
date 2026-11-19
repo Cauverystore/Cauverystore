@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import '../../styles/auth.css';
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
+import useAltText from "../../hooks/useAltText";
 
 const PASSWORD_REQUIREMENTS = [
   {
@@ -48,6 +49,7 @@ function isValidEmail(email) {
 }
 
 const ForgotPassword = () => {
+  const altText = useAltText();
   const { t } = useTranslation();
 
   const navigate = useNavigate();
@@ -135,8 +137,8 @@ const ForgotPassword = () => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <img src="/images/logo.jpg" alt="" className="auth-logo" style={{ height: '48px', width: 'auto' }} />
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #0E5C5C)' }}>Cauvery Store</div>
+            <img src="/images/logo.jpg" alt={altText.logo()} className="auth-logo" style={{ height: '48px', width: 'auto' }} />
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary, #00788C)' }}>Cauvery Store</div>
             <h1 className="auth-title">{step === 1 ? t("forgotPassword.forgotPassword") : t("forgotPassword.resetPassword")}</h1>
             <p className="auth-subtitle">
               {step === 1
@@ -176,7 +178,7 @@ const ForgotPassword = () => {
               <button
                 type="button"
                 className="auth-submit-btn"
-                style={{ marginTop: '0.6rem', background: 'transparent', color: 'var(--color-primary, #0E5C5C)', border: '1px solid var(--color-primary, #0E5C5C)' }}
+                style={{ marginTop: '0.6rem', background: 'transparent', color: 'var(--color-primary, #00788C)', border: '1px solid var(--color-primary, #00788C)' }}
                 onClick={handleRequestLink}
                 disabled={loading || linkLoading}
               >

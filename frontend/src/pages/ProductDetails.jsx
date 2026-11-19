@@ -13,10 +13,13 @@ import { imgUrl } from "../utils/images";
 import Breadcrumb from "../components/Breadcrumb";
 import ProductTray from "../components/ProductTray";
 import ProductRow from "../components/ProductRow";
+import ProductLabelInfo from "../components/ProductLabelInfo";
 import "../styles/productDetails.css";
 import i18n from "../i18n";
+import useAltText from "../hooks/useAltText";
 
 const ProductDetails = () => {
+  const altText = useAltText();
   const {
     t: tr
   } = useTranslation();
@@ -27,6 +30,10 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  // true only when the product could not be loaded because of a server/network problem (not "no such product")
+  const [loadError, setLoadError] = useState(false);
+  // true once a published translation of this product has been received for the current language
+  const [translated, setTranslated] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -38,13 +45,34 @@ const ProductDetails = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       setSeller(null);
+      setLoadError(false);
+      setTranslated(false);
+      // 404 (or 400 for a malformed id) is a real "no such product". Anything else (timeout, 5xx, backend
+      // waking up) is retried once, and if it still fails the page says so instead of claiming the product
+      // is gone - that claim goes to search engines as noindex + 404.
+      let res = null;
+      for (let attempt = 0; attempt < 2 && !res; attempt++) {
+        try {
+          res = await getProductById(id);
+        } catch (err) {
+          const status = err?.response?.status;
+          if (status === 404 || status === 400) break;
+          if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 1500));
+          else setLoadError(true);
+        }
+      }
+      if (!res) {
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
       try {
-        const res = await getProductById(id);
         setProduct(res.data);
         // Show the published translation when there is one; any failure leaves the original text in place.
         if (lang !== "en") {
           getLocalizedProduct(id, lang).then((r) => {
             const l = r.data || {};
+            setTranslated(Boolean(l.name));
             setProduct((p) => (p && String(p.id) === String(id) ? {
               ...p,
               name: l.name || p.name,
@@ -123,6 +151,18 @@ const ProductDetails = () => {
   const safeJsonLd = (obj) => JSON.stringify(obj, null, 2).replace(/</g, "\\u003c");
 
   if (loading) return <div style={{ textAlign: "center", padding: "3rem" }}>{tr("cartDrawer.loading")}</div>;
+  if (!product && loadError) return (
+    <div style={{ textAlign: "center", padding: "3rem" }}>
+      {/* Deliberately NO noindex and NO 404 hint: this is a temporary fault, not a missing product. */}
+      <Helmet>
+        <title>{tr("productDetails.couldNotLoadCauveryStore", "Could not load this product - Cauvery Store")}</title>
+      </Helmet>
+      <p>{tr("productDetails.couldNotLoad", "We could not load this product right now. Please try again.")}</p>
+      <button type="button" onClick={() => window.location.reload()} style={{ marginTop: "1rem", padding: "0.6rem 1.2rem", borderRadius: 999, border: "none", background: "#00788C", color: "#fff", fontWeight: 600, cursor: "pointer" }}>
+        {tr("productDetails.tryAgain", "Try again")}
+      </button>
+    </div>
+  );
   if (!product) return (
     <div style={{ textAlign: "center", padding: "3rem" }}>
       {/* Tells Prerender.io to return a real 404 to crawlers instead of a 200 "soft 404". */}
@@ -133,7 +173,9 @@ const ProductDetails = () => {
       </Helmet>{tr("productDetails.productNotFound")}</div>
   );
 
-  const canonicalUrl = canonicalFor(`/product/${id}`);
+  // A /ta/... URL only counts as its own page once the Tamil text exists. Until then it shows English
+  // product text, so it names the English page as canonical instead of competing with it.
+  const canonicalUrl = canonicalFor(`/product/${id}`, lang !== "en" && !translated ? "en" : undefined);
   // The seller's own return period; 7 days is the marketplace default. "No Returns" on the
   // product overrides it, the same way the order system decides.
   const returnDays = /no return/i.test(product.returnPolicy || "") ? 0 : (product.returnWindow ?? 7);
@@ -162,6 +204,21 @@ const ProductDetails = () => {
     : undefined;
 
   const schemaImages = [...(product.images || []), product.image].map(fullUrl).filter((u, i, all) => u && all.indexOf(u) === i);
+
+  // Delivery terms for Google, matching the Shipping Policy and the checkout charge
+  // (CartServiceImpl / OrderService): free from ₹500, otherwise a flat ₹40.
+  // Dispatch 1-2 business days, then 2-7 business days in transit.
+  const schemaPrice = Number(product.dealPrice || product.price) || 0;
+  const shippingDetails = {
+    "@type": "OfferShippingDetails",
+    "shippingRate": { "@type": "MonetaryAmount", "value": schemaPrice >= 500 ? 0 : 40, "currency": "INR" },
+    "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "IN" },
+    "deliveryTime": {
+      "@type": "ShippingDeliveryTime",
+      "handlingTime": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 2, "unitCode": "DAY" },
+      "transitTime": { "@type": "QuantitativeValue", "minValue": 2, "maxValue": 7, "unitCode": "DAY" }
+    }
+  };
 
   return (
     <div className="product-detail-page">
@@ -196,6 +253,7 @@ const ProductDetails = () => {
           "availability": (product.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           // Marketplace: name the shop that sells it, the same one shown as "Sold by".
           "seller": seller ? { "@type": "Organization", "name": seller.name } : undefined,
+          "shippingDetails": shippingDetails,
           // Mirrors the returns line shown on the page.
           "hasMerchantReturnPolicy": returnDays > 0 ? {
             "@type": "MerchantReturnPolicy",
@@ -235,7 +293,7 @@ const ProductDetails = () => {
       ]} />
       <div className="pd-main">
         <div className="product-image-section">
-          <img className="product-main-image" src={mainSrc} srcSet={mainSrcSet} sizes="(min-width: 768px) 400px, 100vw" alt={product.name} width="400" height="400" fetchPriority="high" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
+          <img className="product-main-image" src={mainSrc} srcSet={mainSrcSet} sizes="(min-width: 768px) 400px, 100vw" alt={altText.product(product.name, selectedImage + 1, (product.images || []).length)} width="400" height="400" fetchPriority="high" onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
           {(product.images || []).length > 1 && (
             <div className="product-thumbnails">
               {product.images.map((img, i) => (
@@ -248,7 +306,7 @@ const ProductDetails = () => {
                   aria-pressed={i === selectedImage}
                   style={{ border: "none", padding: 0, background: "none", cursor: "pointer" }}
                 >
-                  <img src={typeof img === "object" && img?.thumbUrl ? imgUrl(img.thumbUrl) : fullUrl(img)} alt="" width="60" height="60" loading="lazy" className={i === selectedImage ? "active" : ""} onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
+                  <img src={typeof img === "object" && img?.thumbUrl ? imgUrl(img.thumbUrl) : fullUrl(img)} alt={altText.product(product.name, i + 1, product.images.length)} width="60" height="60" loading="lazy" className={i === selectedImage ? "active" : ""} onError={(e) => { e.target.src = "/images/placeholder.svg"; }} />
                 </button>
               ))}
             </div>
@@ -332,6 +390,8 @@ const ProductDetails = () => {
           </li>
         </ul>
 
+        <ProductLabelInfo productId={id} />
+
         {(product.reviews || []).length > 0 && (
           <div className="reviews-section">
             <h3>{tr("productDetails.customerReviews")}</h3>
@@ -360,7 +420,7 @@ const ProductDetails = () => {
       </div>{/* .pd-main */}
 
       {cartMsg && (
-        <div style={{ position: "fixed", bottom: "2rem", right: "2rem", zIndex: 9999, background: "var(--color-primary, #0E5C5C)", color: "#fff", padding: "0.75rem 1.25rem", borderRadius: "10px", fontWeight: 600, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+        <div style={{ position: "fixed", bottom: "2rem", right: "2rem", zIndex: 9999, background: "var(--color-primary, #00788C)", color: "#fff", padding: "0.75rem 1.25rem", borderRadius: "10px", fontWeight: 600, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
           {cartMsg}
         </div>
       )}
@@ -380,9 +440,9 @@ const ProductDetails = () => {
       <style>{`
         .pd-assurance { list-style: none; margin: 1.25rem 0 0; padding: 0.9rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; display: grid; gap: 0.6rem; }
         .pd-assurance li { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.88rem; color: #334155; line-height: 1.45; }
-        .pd-assurance svg { flex-shrink: 0; color: #0E5C5C; margin-top: 1px; }
+        .pd-assurance svg { flex-shrink: 0; color: #00788C; margin-top: 1px; }
         .pd-assurance strong { color: #0f172a; }
-        .pd-assurance a { color: #0E5C5C; white-space: nowrap; }
+        .pd-assurance a { color: #00788C; white-space: nowrap; }
         .related-products-section { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
         .related-products-title { font-size: 1.25rem; font-weight: 700; margin: 0 0 1rem; color: #1e293b; }
       `}</style>

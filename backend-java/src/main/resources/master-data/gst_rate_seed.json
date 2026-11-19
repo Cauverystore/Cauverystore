@@ -2362,6 +2362,19 @@
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
   },
   {
+    "hsnCode": "12119013",
+    "gstRate": 0.0,
+    "effectiveFrom": "2026-11-01",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Psyllium seeds (Isobgul/Isobgol)",
+    "source": "CBIC Notif. 03/2026-CT(Rate) eff. 01-11-2026 (amends 10/2025-CT(Rate)); 57th GST Council meeting - exemption S.No 87A inserted",
+    "notes": "Exempt from 01-11-2026; was 5% under 1211 (dried). 03/2026-Integrated Tax (Rate) prints the code as 1211 90; the description limits it to psyllium seeds either way. Psyllium husk is not covered by this entry."
+  },
+  {
     "hsnCode": "1212",
     "gstRate": 0.0,
     "effectiveFrom": "2025-09-22",
@@ -5422,6 +5435,19 @@
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
   },
   {
+    "hsnCode": "30021100",
+    "gstRate": 5.0,
+    "effectiveFrom": "2025-09-22",
+    "effectiveTo": null,
+    "status": "VERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Malaria diagnostic kits (modified immunological products of heading 3002)",
+    "source": "Notif. 09/2025-CT(Rate) Schedule I S. No. 231",
+    "notes": "Tariff line 3002 11 00. Only human blood and its components (10/2025 S. No. 114) is nil under 3002; diagnostic kits are not blood components."
+  },
+  {
     "hsnCode": "3003",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
@@ -5503,7 +5529,7 @@
     "hsnCode": "3101",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
-    "effectiveTo": null,
+    "effectiveTo": "2026-10-31",
     "status": "UNVERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
@@ -5511,6 +5537,19 @@
     "conditionText": "All goods i.e. animal or vegetable fertilisers or organic fertilisers pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
     "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. "
+  },
+  {
+    "hsnCode": "3101",
+    "gstRate": 5.0,
+    "effectiveFrom": "2026-11-01",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "All goods i.e. animal or vegetable fertilisers or organic fertilisers pre-packaged and labelled. Explanation: includes sea-weed extract based bio-stimulants, as registered under Schedule VI to the Fertiliser (Inorganic, Organic or Mixed) (Control) Order, 1985",
+    "source": "CBIC Notif. 02/2026-CT(Rate) eff. 01-11-2026 (amends 09/2025-CT(Rate)); 57th GST Council meeting - Schedule I S.No 237 substituted",
+    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. Rate unchanged at 5%; only the wording changed."
   },
   {
     "hsnCode": "3102",
@@ -7468,7 +7507,7 @@
     "hsnCode": "4012",
     "gstRate": 18.0,
     "effectiveFrom": "2025-09-22",
-    "effectiveTo": null,
+    "effectiveTo": "2026-10-31",
     "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
@@ -7476,6 +7515,32 @@
     "conditionText": "Retreaded or used pneumatic tyres of rubber; solid or cushion tyres, tyre treads and tyre flaps, of rubber",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
     "notes": ""
+  },
+  {
+    "hsnCode": "4012",
+    "gstRate": 18.0,
+    "effectiveFrom": "2026-11-01",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Retreaded or used pneumatic tyres of rubber (other than retreaded tractor tyres); solid or cushion tyres, tyre treads and tyre flaps, of rubber",
+    "source": "CBIC Notif. 02/2026-CT(Rate) eff. 01-11-2026 (amends 09/2025-CT(Rate)); 57th GST Council meeting - Schedule II S.No 138 substituted",
+    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. Retreaded tractor tyres are 5% from 01-11-2026 (Schedule I S.No 272A)."
+  },
+  {
+    "hsnCode": "4012",
+    "gstRate": 5.0,
+    "effectiveFrom": "2026-11-01",
+    "effectiveTo": null,
+    "status": "UNVERIFIED",
+    "conditionType": "NONE",
+    "thresholdAmount": null,
+    "thresholdUnit": null,
+    "conditionText": "Retreaded tractor tyres",
+    "source": "CBIC Notif. 02/2026-CT(Rate) eff. 01-11-2026 (amends 09/2025-CT(Rate)); 57th GST Council meeting - Schedule I S.No 272A inserted",
+    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. Only retreaded tractor tyres; every other 4012 good stays 18%."
   },
   {
     "hsnCode": "4013",
@@ -9662,39 +9727,39 @@
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
-    "status": "UNVERIFIED",
+    "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods [other than coconut coir fibre] including yarn of flax, jute, other textile bast fibres, other vegetable textile fibres; paper yarn including coir pith compost pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. | Written from the schedule entry '5305 to 5308', which the extraction had collapsed onto 5305 alone. Without this the heading fell through to its chapter and took a rate published for other goods."
+    "notes": "Only line in force for this heading: 09/2025-CT(Rate) Sch. I S. No. 338 (5305 to 5308) at 5%. The nil entries in 10/2025 cover 5303, 5305 and coir pith compost, not this heading. Verified 2026-11-01."
   },
   {
     "hsnCode": "5307",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
-    "status": "UNVERIFIED",
+    "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods [other than coconut coir fibre] including yarn of flax, jute, other textile bast fibres, other vegetable textile fibres; paper yarn including coir pith compost pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. | Written from the schedule entry '5305 to 5308', which the extraction had collapsed onto 5305 alone. Without this the heading fell through to its chapter and took a rate published for other goods."
+    "notes": "Only line in force for this heading: 09/2025-CT(Rate) Sch. I S. No. 338 (5305 to 5308) at 5%. The nil entries in 10/2025 cover 5303, 5305 and coir pith compost, not this heading. Verified 2026-11-01."
   },
   {
     "hsnCode": "5308",
     "gstRate": 5.0,
     "effectiveFrom": "2025-09-22",
     "effectiveTo": null,
-    "status": "UNVERIFIED",
+    "status": "VERIFIED",
     "conditionType": "NONE",
     "thresholdAmount": null,
     "thresholdUnit": null,
     "conditionText": "All goods [other than coconut coir fibre] including yarn of flax, jute, other textile bast fibres, other vegetable textile fibres; paper yarn including coir pith compost pre-packaged and labelled",
     "source": "CBIC GST Ready Reckoner as on 22-09-2025 (Notif. 09/2025 & 10/2025-CT(Rate))",
-    "notes": "This heading carries more than one rate depending on the goods; pick the correct one before verifying. | Written from the schedule entry '5305 to 5308', which the extraction had collapsed onto 5305 alone. Without this the heading fell through to its chapter and took a rate published for other goods."
+    "notes": "Only line in force for this heading: 09/2025-CT(Rate) Sch. I S. No. 338 (5305 to 5308) at 5%. The nil entries in 10/2025 cover 5303, 5305 and coir pith compost, not this heading. Verified 2026-11-01."
   },
   {
     "hsnCode": "5309",

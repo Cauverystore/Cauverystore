@@ -25,7 +25,9 @@ public class PaymentController {
     @PostMapping("/verify")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, String>> verifyPayment(@RequestBody Map<String, String> body) {
-        paymentService.verifyPayment(body);
-        return ResponseEntity.ok(Map.of("message", "Payment verified successfully"));
+        com.cauverystore.entities.Payment payment = paymentService.verifyPayment(body);
+        boolean cod = payment.getStatus() != null && payment.getStatus().startsWith("COD");
+        return ResponseEntity.ok(Map.of("message", "Payment verified successfully",
+                "method", cod ? "cod" : "online"));
     }
 }

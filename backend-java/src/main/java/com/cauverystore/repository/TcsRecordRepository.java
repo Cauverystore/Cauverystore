@@ -26,6 +26,8 @@ public interface TcsRecordRepository extends JpaRepository<TcsRecord, Long> {
     Page<TcsRecord> findBySellerIdOrderByTransactionDateDesc(Long sellerId, Pageable pageable);
     List<TcsRecord> findBySellerIdOrderByTransactionDateDesc(Long sellerId);
     List<TcsRecord> findBySellerIdAndPeriod(Long sellerId, String period);
+    /** Every seller's rows in a date range, for the financial-year 194-O report. */
+    List<TcsRecord> findByTransactionDateBetween(LocalDate start, LocalDate end);
     List<TcsRecord> findBySellerGstinAndTransactionDateBetween(String gstin, LocalDate start, LocalDate end);
     List<TcsRecord> findBySellerGstinAndPeriod(String gstin, String period);
     List<TcsRecord> findBySellerGstinAndFilingStatus(String gstin, String filingStatus);

@@ -4,8 +4,10 @@ import api from "../../api/axios";
 import { imgUrl } from "../../utils/images";
 import { compressImages } from "../../utils/compressImage";
 import { confirmAction } from "../../components/ConfirmDialog";
+import useAltText from "../../hooks/useAltText";
 
 const ManageImages = () => {
+  const altText = useAltText();
   const { id } = useParams();
   const navigate = useNavigate();
   const [images, setImages] = useState([]);
@@ -117,7 +119,7 @@ const ManageImages = () => {
     <div style={{ maxWidth: "860px", width: "100%", margin: "0 auto", padding: "1.5rem", boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <div>
-          <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#0B3D2E", margin: 0 }}>Manage Images</h1>
+          <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#003A44", margin: 0 }}>Manage Images</h1>
           <p style={{ color: "#64748B", fontSize: "0.85rem", margin: "4px 0 0" }}>Product ID: {id}</p>
         </div>
         <button onClick={() => navigate("/admin/products")}
@@ -129,9 +131,9 @@ const ManageImages = () => {
       {msg && (
         <div style={{
           padding: "10px 14px", borderRadius: "6px", marginBottom: "1rem",
-          background: msg.type === "success" ? "#d5f2f0" : msg.type === "info" ? "#dbeafe" : "#fbe2df",
-          color: msg.type === "success" ? "#0E5C5C" : msg.type === "info" ? "#2563eb" : "#D93A2A",
-          border: `1px solid ${msg.type === "success" ? "#a8e3e0" : msg.type === "info" ? "#93c5fd" : "#f5b8b1"}`,
+          background: msg.type === "success" ? "#CCEDF1" : msg.type === "info" ? "#dbeafe" : "#fbe2df",
+          color: msg.type === "success" ? "#00788C" : msg.type === "info" ? "#2563eb" : "#D93A2A",
+          border: `1px solid ${msg.type === "success" ? "#99DBE3" : msg.type === "info" ? "#93c5fd" : "#f5b8b1"}`,
           fontSize: "0.85rem"
         }}>
           {msg.type === "success" ? "\u2713 " : msg.type === "info" ? "\u2139 " : "\u2717 "}{msg.text}
@@ -140,7 +142,7 @@ const ManageImages = () => {
 
       {/* Upload area */}
       <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0d9cc", padding: "1.25rem", marginBottom: "1rem" }}>
-        <h3 style={{ fontSize: "0.95rem", fontWeight: 700, color: "#0E5C5C", margin: "0 0 0.75rem" }}>Upload Images</h3>
+        <h3 style={{ fontSize: "0.95rem", fontWeight: 700, color: "#00788C", margin: "0 0 0.75rem" }}>Upload Images</h3>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           <input type="file" ref={fileRef} multiple accept="image/*" onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
             style={{ fontSize: "0.85rem" }} />
@@ -160,7 +162,7 @@ const ManageImages = () => {
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
             {selectedFiles.map((f, i) => (
               <div key={i} style={{ position: "relative", width: "72px", height: "72px", borderRadius: "6px", overflow: "hidden", border: "1px solid #e0d9cc" }}>
-                <img src={URL.createObjectURL(f)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={URL.createObjectURL(f)} alt={altText.uploadPreview(i + 1)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 <button onClick={() => removeSelected(i)}
                   style={{ position: "absolute", top: "2px", right: "2px", width: "20px", height: "20px", borderRadius: "50%", border: "none", background: "rgba(217,58,42,0.8)", color: "#fff", cursor: "pointer", fontSize: "12px", lineHeight: "20px", padding: 0 }}>
                   &times;
@@ -173,7 +175,7 @@ const ManageImages = () => {
 
       {/* Image grid with drag-drop */}
       <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0d9cc", padding: "1.25rem" }}>
-        <h3 style={{ fontSize: "0.95rem", fontWeight: 700, color: "#0E5C5C", margin: "0 0 0.75rem" }}>
+        <h3 style={{ fontSize: "0.95rem", fontWeight: 700, color: "#00788C", margin: "0 0 0.75rem" }}>
           Product Images ({images.length})
           {images.length > 1 && <span style={{ fontSize: "0.7rem", fontWeight: 400, color: "#94a3b8", marginLeft: "8px" }}>Drag to reorder</span>}
         </h3>
@@ -188,18 +190,18 @@ const ManageImages = () => {
                 onDragOver={(e) => handleDragOver(e, idx)}
                 onDragEnd={handleDragEnd}
                 style={{
-                  border: `2px solid ${img.main ? "#0E5C5C" : "#e0d9cc"}`,
-                  borderRadius: "8px", overflow: "hidden", position: "relative", background: "#F5F1EA",
+                  border: `2px solid ${img.main ? "#00788C" : "#e0d9cc"}`,
+                  borderRadius: "8px", overflow: "hidden", position: "relative", background: "#EFFBF7",
                   cursor: "grab",
                   opacity: dragIdx === idx ? 0.5 : 1,
                   transition: "opacity 0.15s",
                 }}>
-                <img src={imgUrl(img.url)} alt=""
+                <img src={imgUrl(img.url)} alt={altText.product(null, idx + 1, images.length)}
                   style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block" }}
                   onError={(e) => { e.target.style.display = "none"; }} />
                 {img.main && (
                   <span style={{
-                    position: "absolute", top: "6px", left: "6px", background: "#0E5C5C", color: "#fff",
+                    position: "absolute", top: "6px", left: "6px", background: "#00788C", color: "#fff",
                     fontSize: "0.65rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px"
                   }}>
                     MAIN

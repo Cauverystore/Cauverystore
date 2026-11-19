@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Store, Lock, CreditCard, Mail, Receipt } from 'lucide-react';
+import { Store, Lock, CreditCard, Mail, Receipt, Banknote } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../admin/context/ToastContext';
 
@@ -7,25 +7,124 @@ const TABS = [
   { id: 'store', label: 'Store Settings', icon: <Store size={18} /> },
   { id: 'security', label: 'Security', icon: <Lock size={18} /> },
   { id: 'payment', label: 'Payment', icon: <CreditCard size={18} /> },
+  { id: 'cod', label: 'Cash on Delivery', icon: <Banknote size={18} /> },
   { id: 'email', label: 'Email', icon: <Mail size={18} /> },
   { id: 'tax', label: 'Tax / GST', icon: <Receipt size={18} /> },
 ];
+
+const SECTION_NAMES = { store: 'Store', security: 'Security', payment: 'Payment', cod: 'Cash on delivery', email: 'Email', tax: 'Tax / GST' };
 
 const initialSettings = {
   store: { name: 'Cauvery Store', description: '', currency: 'INR', timezone: 'Asia/Kolkata', contactEmail: '', phone: '', address: '' },
   security: { minPasswordLength: 8, maxLoginAttempts: 5, sessionTimeout: 60, requireOtp: false },
   payment: { razorpayKeyId: '', enableCod: true, enableOnlinePayments: true, currency: 'INR' },
+  cod: { minOrderValue: 1000, maxOrderValue: 3000 },
   email: { fromName: '', fromEmail: '', smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '' },
   tax: { gstRate: 18, enableTax: true, taxCalculationMethod: 'inclusive', hsnRequired: false },
 };
 
+// The server stores every value as text, so "false" must not be treated as true.
+const BOOLEAN_KEYS = {
+  security: ['requireOtp'],
+  payment: ['enableCod', 'enableOnlinePayments'],
+  tax: ['enableTax', 'hsnRequired'],
+};
+const NUMBER_KEYS = {
+  security: ['minPasswordLength', 'maxLoginAttempts', 'sessionTimeout'],
+  cod: ['minOrderValue', 'maxOrderValue'],
+  email: ['smtpPort'],
+  tax: ['gstRate'],
+};
+const toBool = (v) => v === true || String(v).trim().toLowerCase() === 'true';
+
+const normalise = (section, values) => {
+  const out = { ...values };
+  (BOOLEAN_KEYS[section] || []).forEach(k => { out[k] = toBool(out[k]); });
+  (NUMBER_KEYS[section] || []).forEach(k => {
+    const n = Number(out[k]);
+    out[k] = out[k] === '' || Number.isNaN(n) ? initialSettings[section][k] : n;
+  });
+  return out;
+};
+
+// Returns an error message, or '' when the section is fine to save.
+const validateSection = (section, v) => {
+  for (const k of NUMBER_KEYS[section] || []) {
+    const n = Number(v[k]);
+    if (v[k] === '' || Number.isNaN(n) || n < 0) return 'Enter a number, 0 or more, in every number field.';
+  }
+  if (section === 'cod' && Number(v.maxOrderValue) > 0 && Number(v.minOrderValue) > Number(v.maxOrderValue)) {
+    return 'The cash on delivery minimum cannot be more than the maximum.';
+  }
+  if (section === 'tax' && Number(v.gstRate) > 100) return 'GST rate cannot be more than 100%.';
+  if (section === 'security' && Number(v.minPasswordLength) < 6) return 'Minimum password length must be at least 6.';
+  if (section === 'email' && v.fromEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.fromEmail)) return 'From Email is not a valid email address.';
+  if (section === 'store' && v.contactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.contactEmail)) return 'Contact Email is not a valid email address.';
+  return '';
+};
+
+// An on/off switch. Read-only (greyed, not clickable) until the section is being edited.
+const ToggleSwitch = ({ checked, onChange, disabled, label }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      style={{
+        position: 'relative',
+        width: '44px',
+        height: '24px',
+        padding: 0,
+        border: 'none',
+        borderRadius: '999px',
+        background: checked ? '#0f766e' : '#cbd5e1',
+        opacity: disabled ? 0.6 : 1,
+        cursor: disabled ? 'default' : 'pointer',
+        transition: 'background 0.15s',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: '3px',
+          left: checked ? '23px' : '3px',
+          width: '18px',
+          height: '18px',
+          borderRadius: '50%',
+          background: '#fff',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+          transition: 'left 0.15s',
+        }}
+      />
+    </button>
+    <span style={{ fontSize: '0.9rem', color: checked ? '#0f766e' : '#64748b', fontWeight: 500 }}>
+      {checked ? 'Enabled' : 'Disabled'}
+    </span>
+  </div>
+);
+
 const SettingField = ({ label, value, onChange, type = 'text', editing, options, placeholder }) => {
+  if (type === 'boolean') {
+    return (
+      <div className="admin-form-group">
+        <label className="admin-form-label">{label}</label>
+        <div style={{ padding: editing ? 0 : '4px 0' }}>
+          <ToggleSwitch checked={!!value} onChange={onChange} disabled={!editing} label={label} />
+        </div>
+      </div>
+    );
+  }
+
   if (!editing) {
     return (
       <div className="admin-form-group">
         <label className="admin-form-label">{label}</label>
         <div style={{ padding: '8px 0', fontSize: '0.9rem', color: '#1f2937' }}>
-          {type === 'boolean' ? (value ? 'Yes' : 'No') : type === 'password' ? '••••••••' : value || '-'}
+          {type === 'password' ? '••••••••' : value || '-'}
         </div>
       </div>
     );
@@ -34,25 +133,20 @@ const SettingField = ({ label, value, onChange, type = 'text', editing, options,
   return (
     <div className="admin-form-group">
       <label className="admin-form-label">{label}</label>
-      {type === 'boolean' ? (
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-          <input type="checkbox" checked={value} onChange={e => onChange(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: '#f59e0b' }} />
-          {value ? 'Enabled' : 'Disabled'}
-        </label>
-      ) : type === 'select' ? (
+      {type === 'select' ? (
         <select className="admin-form-select" value={value} onChange={e => onChange(e.target.value)}>
           {options?.map(o => <option key={o.value || o} value={o.value || o}>{o.label || o}</option>)}
         </select>
       ) : type === 'textarea' ? (
         <textarea className="admin-form-textarea" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
       ) : (
-        <input className="admin-form-input" type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+        <input className="admin-form-input" type={type} value={value} min={type === 'number' ? 0 : undefined} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
       )}
     </div>
   );
 };
 
-const SettingsSection = ({ title, fields, editing, setEditing, onSave, saving }) => (
+const SettingsSection = ({ title, fields, children, editing, setEditing, onSave, saving }) => (
   <div className="admin-chart-card" style={{ marginBottom: '24px' }}>
     <div className="admin-chart-header">
       <div className="admin-chart-title">{title}</div>
@@ -68,6 +162,7 @@ const SettingsSection = ({ title, fields, editing, setEditing, onSave, saving })
       </div>
     </div>
     {fields}
+    {children}
   </div>
 );
 
@@ -78,11 +173,12 @@ const PlatformSettings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [editState, setEditState] = useState({ store: false, security: false, payment: false, email: false, tax: false });
+  const [snapshot, setSnapshot] = useState({});
+  const [editState, setEditState] = useState({ store: false, security: false, payment: false, cod: false, email: false, tax: false });
 
   const flatToNested = (flat) => {
-    if (!flat || !Array.isArray(flat)) return initialSettings;
-    const grouped = { store: {}, security: {}, payment: {}, email: {}, tax: {} };
+    if (!flat || !Array.isArray(flat)) return flatToNested([]);
+    const grouped = { store: {}, security: {}, payment: {}, cod: {}, email: {}, tax: {} };
     flat.forEach(item => {
       const key = item.settingKey || item.key || '';
       const value = item.settingValue || item.value || '';
@@ -96,6 +192,9 @@ const PlatformSettings = () => {
       } else if (key.startsWith('payment.') || cat === 'payment') {
         const k = key.replace('payment.', '');
         if (k) grouped.payment[k] = value;
+      } else if (key.startsWith('cod.') || cat === 'cod') {
+        const k = key.replace('cod.', '');
+        if (k) grouped.cod[k] = value;
       } else if (key.startsWith('email.') || cat === 'email') {
         const k = key.replace('email.', '');
         if (k) grouped.email[k] = value;
@@ -105,11 +204,12 @@ const PlatformSettings = () => {
       }
     });
     return {
-      store: { ...initialSettings.store, ...grouped.store },
-      security: { ...initialSettings.security, ...grouped.security },
-      payment: { ...initialSettings.payment, ...grouped.payment },
-      email: { ...initialSettings.email, ...grouped.email },
-      tax: { ...initialSettings.tax, ...grouped.tax },
+      store: normalise('store', { ...initialSettings.store, ...grouped.store }),
+      security: normalise('security', { ...initialSettings.security, ...grouped.security }),
+      payment: normalise('payment', { ...initialSettings.payment, ...grouped.payment }),
+      cod: normalise('cod', { ...initialSettings.cod, ...grouped.cod }),
+      email: normalise('email', { ...initialSettings.email, ...grouped.email }),
+      tax: normalise('tax', { ...initialSettings.tax, ...grouped.tax }),
     };
   };
 
@@ -131,7 +231,23 @@ const PlatformSettings = () => {
     setSettings(prev => ({ ...prev, [section]: { ...prev[section], [key]: value } }));
   };
 
+  const startEditing = (section, on) => {
+    if (on) {
+      setSnapshot(prev => ({ ...prev, [section]: settings[section] }));
+    } else {
+      // Cancel: put back what was saved, so abandoned edits do not linger on screen.
+      setSettings(prev => ({ ...prev, [section]: snapshot[section] || prev[section] }));
+      setError('');
+    }
+    setEditState(prev => ({ ...prev, [section]: on }));
+  };
+
   const handleSave = async (section) => {
+    const problem = validateSection(section, settings[section]);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -140,12 +256,14 @@ const PlatformSettings = () => {
       Object.entries(sectionData).forEach(([key, value]) => {
         flat[`${section}.${key}`] = String(value);
       });
-      await api.put('/api/super-admin/settings', flat);
+      const res = await api.put('/api/super-admin/settings', flat);
+      setSettings(flatToNested(res.data));
       setEditState(prev => ({ ...prev, [section]: false }));
-      showToast(`${section} settings saved`, 'success');
+      showToast(`${SECTION_NAMES[section]} settings saved`, 'success');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save settings');
-      showToast('Failed to save settings', 'error');
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to save settings';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -162,7 +280,7 @@ const PlatformSettings = () => {
   }
 
   const renderStoreSettings = () => (
-    <SettingsSection title="Store Settings" editing={editState.store} setEditing={(v) => setEditState(p => ({...p, store: v}))} onSave={() => handleSave('store')} saving={saving}>
+    <SettingsSection title="Store Settings" editing={editState.store} setEditing={(v) => startEditing('store', v)} onSave={() => handleSave('store')} saving={saving}>
       <SettingField label="Store Name" value={settings.store.name} onChange={updateSetting('store', 'name')} editing={editState.store} />
       <SettingField label="Description" value={settings.store.description} onChange={updateSetting('store', 'description')} editing={editState.store} type="textarea" />
       <div className="admin-form-row">
@@ -178,7 +296,7 @@ const PlatformSettings = () => {
   );
 
   const renderSecuritySettings = () => (
-    <SettingsSection title="Security Settings" editing={editState.security} setEditing={(v) => setEditState(p => ({...p, security: v}))} onSave={() => handleSave('security')} saving={saving}>
+    <SettingsSection title="Security Settings" editing={editState.security} setEditing={(v) => startEditing('security', v)} onSave={() => handleSave('security')} saving={saving}>
       <div className="admin-form-row">
         <SettingField label="Min Password Length" value={settings.security.minPasswordLength} onChange={updateSetting('security', 'minPasswordLength')} editing={editState.security} type="number" />
         <SettingField label="Max Login Attempts" value={settings.security.maxLoginAttempts} onChange={updateSetting('security', 'maxLoginAttempts')} editing={editState.security} type="number" />
@@ -191,7 +309,11 @@ const PlatformSettings = () => {
   );
 
   const renderPaymentSettings = () => (
-    <SettingsSection title="Payment Configuration" editing={editState.payment} setEditing={(v) => setEditState(p => ({...p, payment: v}))} onSave={() => handleSave('payment')} saving={saving}>
+    <SettingsSection title="Payment Configuration" editing={editState.payment} setEditing={(v) => startEditing('payment', v)} onSave={() => handleSave('payment')} saving={saving}>
+      <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 12px' }}>
+        Switch cash on delivery or online payment off to stop offering it on the website, the app and the server straight after saving.
+        At least one of them must stay on. The cash on delivery order range is on the Cash on Delivery tab.
+      </p>
       <SettingField label="Razorpay Key ID" value={settings.payment.razorpayKeyId} onChange={updateSetting('payment', 'razorpayKeyId')} editing={editState.payment} type={editState.payment ? 'text' : 'password'} />
       <div className="admin-form-row">
         <SettingField label="Enable COD" value={settings.payment.enableCod} onChange={updateSetting('payment', 'enableCod')} editing={editState.payment} type="boolean" />
@@ -201,8 +323,21 @@ const PlatformSettings = () => {
     </SettingsSection>
   );
 
+  const renderCodSettings = () => (
+    <SettingsSection title="Cash on Delivery Limits" editing={editState.cod} setEditing={(v) => startEditing('cod', v)} onSave={() => handleSave('cod')} saving={saving}>
+      <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 12px' }}>
+        Cash on delivery is offered only when the order total is between these two amounts (inclusive); other orders must be paid online.
+        Enter 0 as the maximum for no upper limit. Applies to the website, the app and the server straight after saving.
+      </p>
+      <div className="admin-form-row">
+        <SettingField label="Minimum order value (₹)" value={settings.cod.minOrderValue} onChange={updateSetting('cod', 'minOrderValue')} editing={editState.cod} type="number" />
+        <SettingField label="Maximum order value (₹)" value={settings.cod.maxOrderValue} onChange={updateSetting('cod', 'maxOrderValue')} editing={editState.cod} type="number" />
+      </div>
+    </SettingsSection>
+  );
+
   const renderEmailSettings = () => (
-    <SettingsSection title="Email Configuration" editing={editState.email} setEditing={(v) => setEditState(p => ({...p, email: v}))} onSave={() => handleSave('email')} saving={saving}>
+    <SettingsSection title="Email Configuration" editing={editState.email} setEditing={(v) => startEditing('email', v)} onSave={() => handleSave('email')} saving={saving}>
       <div className="admin-form-row">
         <SettingField label="From Name" value={settings.email.fromName} onChange={updateSetting('email', 'fromName')} editing={editState.email} />
         <SettingField label="From Email" value={settings.email.fromEmail} onChange={updateSetting('email', 'fromEmail')} editing={editState.email} type="email" />
@@ -219,7 +354,7 @@ const PlatformSettings = () => {
   );
 
   const renderTaxSettings = () => (
-    <SettingsSection title="Tax / GST Configuration" editing={editState.tax} setEditing={(v) => setEditState(p => ({...p, tax: v}))} onSave={() => handleSave('tax')} saving={saving}>
+    <SettingsSection title="Tax / GST Configuration" editing={editState.tax} setEditing={(v) => startEditing('tax', v)} onSave={() => handleSave('tax')} saving={saving}>
       <div className="admin-form-row">
         <SettingField label="GST Rate (%)" value={settings.tax.gstRate} onChange={updateSetting('tax', 'gstRate')} editing={editState.tax} type="number" />
         <SettingField label="Enable Tax" value={settings.tax.enableTax} onChange={updateSetting('tax', 'enableTax')} editing={editState.tax} type="boolean" />
@@ -235,6 +370,7 @@ const PlatformSettings = () => {
     store: renderStoreSettings(),
     security: renderSecuritySettings(),
     payment: renderPaymentSettings(),
+    cod: renderCodSettings(),
     email: renderEmailSettings(),
     tax: renderTaxSettings(),
   };
@@ -249,7 +385,7 @@ const PlatformSettings = () => {
         {TABS.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => { setActiveTab(tab.id); setError(''); }}
             style={{
               padding: '10px 20px',
               background: activeTab === tab.id ? '#0f172a' : 'transparent',

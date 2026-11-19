@@ -6,6 +6,7 @@ Disallow: /account
 Disallow: /profile
 Disallow: /orders
 Disallow: /wishlist
+Allow: /seller/register
 Disallow: /seller/
 Disallow: /admin/
 Disallow: /super-admin/

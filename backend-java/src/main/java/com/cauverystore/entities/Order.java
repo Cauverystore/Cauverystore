@@ -72,6 +72,12 @@ public class Order extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String consigneeAddress;
 
+    /**
+     * The consignee's GSTIN on a bill-to / ship-to supply, or "URP" when they are not
+     * registered. The IRP has required it in the ship-to details since 1 August 2026.
+     */
+    private String consigneeGstin;
+
     /** Shiprocket's own ids for this order once it has been booked there (null until then). */
     private Long shiprocketOrderId;
     private Long shiprocketShipmentId;
@@ -191,6 +197,8 @@ public class Order extends BaseEntity {
     public void setConsigneeName(String consigneeName) { this.consigneeName = consigneeName; }
     public String getConsigneeAddress() { return this.consigneeAddress; }
     public void setConsigneeAddress(String consigneeAddress) { this.consigneeAddress = consigneeAddress; }
+    public String getConsigneeGstin() { return consigneeGstin; }
+    public void setConsigneeGstin(String consigneeGstin) { this.consigneeGstin = consigneeGstin; }
 
     public String getBuyerGstin() {
         return this.buyerGstin;

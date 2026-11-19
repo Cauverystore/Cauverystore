@@ -105,6 +105,35 @@ class GstMasterDataLoaderTest {
     }
 
     @Test
+    void shouldVerifyAnExistingRowTheSeedNowSettles() {
+        // 5306 (flax yarn) carries only the 5% line; the seed was corrected to VERIFIED, and a
+        // database loaded earlier must pick that up, not keep asking sellers to choose.
+        GstRateMaster waiting = autoVerified("5306", 5.0);
+        waiting.setStatus(GstRateMaster.STATUS_UNVERIFIED);
+        waiting.setVerifiedBy(null);
+        waiting.setVerifiedAt(null);
+        when(rateRepo.findAll()).thenReturn(List.of(waiting));
+
+        runAndCaptureSaves();
+
+        assertEquals(GstRateMaster.STATUS_VERIFIED, waiting.getStatus());
+        assertEquals("CBIC master data import", waiting.getVerifiedBy());
+    }
+
+    @Test
+    void shouldNotVerifyARowThatStillNeedsAChoice() {
+        // 3002 still carries nil and 5% lines, so neither may be verified automatically.
+        GstRateMaster blood = autoVerified("3002", 0.0);
+        blood.setStatus(GstRateMaster.STATUS_UNVERIFIED);
+        blood.setVerifiedBy(null);
+        when(rateRepo.findAll()).thenReturn(List.of(blood));
+
+        ReflectionTestUtils.invokeMethod(loader, "loadGstRates");
+
+        assertEquals(GstRateMaster.STATUS_UNVERIFIED, blood.getStatus());
+    }
+
+    @Test
     void shouldLeaveHumanVerifiedRatesAlone() {
         // A CA's sign-off outranks the generator's guess and must survive a restart.
         GstRateMaster humanApproved = autoVerified("64", 5.0);
@@ -228,6 +257,34 @@ class GstMasterDataLoaderTest {
         assertEquals(LocalDate.of(2026, 4, 30), superseded.getEffectiveTo());
         assertTrue(superseded.getNotes() != null && superseded.getNotes().contains("Closed off"),
                 "the reason has to be on the row, not only in the log");
+    }
+
+    @Test
+    void shouldApplyThe57thCouncilGoodsChangesFromNovember2026() {
+        // 02/2026-CT(Rate): retreaded tractor tyres to 5%, the rest of 4012 stays 18% under new
+        // wording. 03/2026-CT(Rate): psyllium seeds exempt. Both from 01-11-2026.
+        GstRateMaster tyresBefore = autoVerified("4012", 18.0);
+        when(rateRepo.findAll()).thenReturn(List.of(tyresBefore));
+
+        List<GstRateMaster> saved = runAndCaptureSaves();
+
+        assertEquals(LocalDate.of(2026, 10, 31), tyresBefore.getEffectiveTo(),
+                "the old 4012 wording ends the day before 02/2026 takes effect");
+        List<GstRateMaster> tyresAfter = saved.stream()
+                .filter(r -> "4012".equals(r.getHsnCode())
+                        && LocalDate.of(2026, 11, 1).equals(r.getEffectiveFrom()))
+                .toList();
+        assertEquals(2, tyresAfter.size(), "4012 now has a 5% and an 18% line");
+        assertTrue(tyresAfter.stream().anyMatch(r -> r.getGstRate() == 5.0
+                && r.getConditionText().contains("tractor")));
+        assertTrue(tyresAfter.stream().noneMatch(GstRateMaster::isVerified),
+                "two rates on one heading need a person to pick per product");
+
+        GstRateMaster psyllium = saved.stream()
+                .filter(r -> "12119013".equals(r.getHsnCode())).findFirst().orElseThrow();
+        assertEquals(0.0, psyllium.getGstRate());
+        assertEquals(LocalDate.of(2026, 11, 1), psyllium.getEffectiveFrom());
+        assertTrue(psyllium.isVerified(), "a single nil rate at eight digits is decidable");
     }
 
     @Test

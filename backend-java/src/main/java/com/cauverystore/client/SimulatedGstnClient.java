@@ -156,9 +156,10 @@ public class SimulatedGstnClient implements GstnClient {
             case "GSTR-8":
                 return first.plusMonths(1).withDayOfMonth(10);
             case "GSTR-9":
-                return LocalDate.of(first.getYear() + 1, 12, 31);
             case "GSTR-9C":
-                return LocalDate.of(first.getYear() + 1, 12, 31);
+                // Annual forms fall due on 31 December after the financial year ends in March.
+                // A January-March period belongs to the year that ends that same March.
+                return LocalDate.of(first.getMonthValue() >= 4 ? first.getYear() + 1 : first.getYear(), 12, 31);
             default:
                 return first.plusMonths(1).withDayOfMonth(15);
         }

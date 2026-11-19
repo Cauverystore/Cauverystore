@@ -30,6 +30,7 @@ import com.cauverystore.repository.TcsRecordRepository;
 import com.cauverystore.repository.CreditNoteRepository;
 import com.cauverystore.repository.DebitNoteRepository;
 import com.cauverystore.util.GstComplianceUtil;
+import com.cauverystore.util.InvoiceDocumentType;
 import com.cauverystore.util.PdfBrandingUtil;
 import com.cauverystore.util.ExcelExportUtil;
 import com.lowagie.text.Document;
@@ -37,6 +38,7 @@ import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
 import com.lowagie.text.Image;
+import com.lowagie.text.Chunk;
 import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
@@ -62,6 +64,16 @@ import java.util.stream.Collectors;
 @Service
 public class GstInvoiceService {
 
+    // Optional so tests that build this service by hand need not supply it.
+    private GstAuditService gstAudit;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
+
+    private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
+        if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
+    }
+
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(GstInvoiceService.class);
 
@@ -84,6 +96,12 @@ public class GstInvoiceService {
 
 
     private final GstRateResolver gstRateResolver;
+
+    /** Per-seller numbering (Rule 46 / 53). Absent only in plain unit tests, which use the old scheme. */
+    private DocumentNumberService documentNumbers;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setDocumentNumbers(DocumentNumberService documentNumbers) { this.documentNumbers = documentNumbers; }
     private final Gstr1ExportService gstr1ExportService;
 
     public GstInvoiceService(GstInvoiceRepository invoiceRepo, GstInvoiceItemRepository itemRepo,
@@ -304,6 +322,12 @@ public class GstInvoiceService {
                 : buyerStateCode;
         inv.setBuyerStateCode(buyerStateCode);
         inv.setDeliveryStateCode(resolvedDeliveryStateCode);
+        if (inv.isBillToShipTo() && isB2b) {
+            String consigneeGstin = order.getConsigneeGstin();
+            inv.setConsigneeGstin(consigneeGstin == null || consigneeGstin.isBlank()
+                    ? "URP" : consigneeGstin);
+            inv.setConsigneeStateCode(consigneeStateCode(inv));
+        }
 
         // Place of supply is normally the destination - section 10(1)(a), where the movement of
         // goods terminates for delivery.
@@ -333,7 +357,9 @@ public class GstInvoiceService {
         inv.setUtgstApplied(GstComplianceUtil.isUtgstState(sellerStateCode)
                 && !Boolean.TRUE.equals(inv.getIsInterState()));
 
-        String invoiceNumber = generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS");
+        String invoiceNumber = documentNumbers != null
+                ? documentNumbers.next(gstin, DocumentNumberService.INVOICE, invoiceRepo::findMaxInvoiceNumberByPrefix)
+                : generateInvoiceNumber(config != null ? config.getInvoicePrefix() : "CS");
         GstComplianceUtil.validateInvoiceNumber(invoiceNumber);
         inv.setInvoiceNumber(invoiceNumber);
         inv.setStatus("PENDING_DISPATCH");
@@ -558,7 +584,6 @@ public class GstInvoiceService {
 
         inv.setItems(items);
         inv.setTaxableAmount(Math.round(taxableAmount * 100.0) / 100.0);
-        inv.setB2cLarge(GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTaxableAmount()));
         inv.setTotalTax(Math.round((totalCgst + totalSgst + totalIgst) * 100.0) / 100.0);
         inv.setTotalCess(Math.round(totalCess * 100.0) / 100.0);
         inv.setCgstAmount(Math.round(totalCgst * 100.0) / 100.0);
@@ -575,8 +600,13 @@ public class GstInvoiceService {
         inv.setSupplyType(deliveryCharge > 0 && !inclusive ? "GOODS AND SERVICES" : "GOODS");
         inv.setInvoiceCopyType("ORIGINAL");
 
-        boolean einvoicingApplicable = GstComplianceUtil.requiresEInvoice(annualTurnover);
+        // Only supplies to a registered buyer are e-invoiced. The IRP refuses a consumer (B2C)
+        // invoice outright, so sending one would leave it stuck as PENDING_IRN for good.
+        boolean einvoicingApplicable = GstComplianceUtil.requiresEInvoice(annualTurnover) && isB2b;
         inv.setEinvoicingRequired(einvoicingApplicable);
+        // Sold through the marketplace: its TCS GSTIN goes on the e-invoice (EcmGstin).
+        GstConfiguration operator = marketplaceFor(inv.getSellerGstin());
+        if (operator != null) inv.setEcoGstin(operator.resolveTcsGstin().orElse(null));
 
         // Generate IRN and QR code if e-invoicing applies (turnover >= 5Cr)
         if (einvoicingApplicable) {
@@ -598,19 +628,19 @@ public class GstInvoiceService {
             }
         }
 
-        // Generate e-way bill when the consignment value exceeds ₹50,000 (Rule 138).
-        if (GstComplianceUtil.requiresEWayBill(taxableAmount)) {
-            Map<String, Object> ewbResp = gstnClient.generateEwayBill(inv);
-            inv.setEwayBillNumber((String) ewbResp.get("ewayBillNumber"));
-            Object validUpto = ewbResp.get("validUpto");
-            if (validUpto != null) {
-                inv.setEwayBillExpiry(LocalDate.parse(validUpto.toString()));
-            }
-        }
+        // Rule 138: goods worth more than the threshold (value plus tax, exempt goods and
+        // services left out) need an e-way bill before they move. It is generated by the seller
+        // on the portal and recorded back; nothing here invents a number. This used to call the
+        // GSTN client, whose simulator printed a made-up number on real invoices and whose live
+        // client threw - which would have failed every order over the limit.
+        inv.setEwayBillStatus(EwayBillService.isRequired(inv)
+                ? EwayBillService.REQUIRED : EwayBillService.NOT_REQUIRED);
 
-        // 0.5% since Notification 15/2024-CT. The fallback matters: it is what applies
-        // when no configuration row exists, and at 1.0% it withheld double from sellers.
-        double tcsRate = config != null && config.getTcsRate() != null ? config.getTcsRate() : 0.5;
+        // The s.52 rate in force on the invoice date, from master-data/statutory_rates.json -
+        // not the configuration row, which held whatever was typed or defaulted when it was saved
+        // (a stale 1.0% there once withheld double from sellers).
+        double tcsRate = com.cauverystore.util.StatutoryRates.tcsRateOn(
+                inv.getInvoiceDate() != null ? inv.getInvoiceDate() : LocalDate.now());
         double tcsAmount = Math.round(taxableAmount * tcsRate / 100 * 100.0) / 100.0;
         inv.setTcsAmount(tcsAmount);
         inv.setTcsRate(tcsRate);
@@ -631,6 +661,7 @@ public class GstInvoiceService {
         // the total must include it or the bill and the payment would disagree.
         inv.setTotalAmount(Math.round((taxableAmount + inv.getTotalTax()
                 + nz(inv.getTotalCess())) * 100.0) / 100.0);
+        inv.setB2cLarge(GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTotalAmount()));
 
         // Supplier signature (Req 11): bind supplier GSTIN + fiscal identity + amounts with a digest
         // so the invoice cannot be altered without invalidating the recorded signature.
@@ -653,8 +684,16 @@ public class GstInvoiceService {
         });
 
         GstInvoice saved = invoiceRepo.save(inv);
+        gstAudit(GstAuditService.INVOICE_ISSUED, "GstInvoice", saved.getInvoiceNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "orderId", orderId,
+                        "invoiceDate", String.valueOf(saved.getInvoiceDate()),
+                        "sellerGstin", saved.getSellerGstin(), "buyerGstin", saved.getBuyerGstin(),
+                        "placeOfSupply", saved.getPlaceOfSupply(), "taxable", saved.getTaxableAmount(),
+                        "cgst", saved.getCgstAmount(), "sgst", saved.getSgstAmount(),
+                        "igst", saved.getIgstAmount(), "cess", saved.getTotalCess(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount(), "irn", saved.getIrn()));
 
-        // Record TCS for GSTR-8 (1% TCS on taxable value under Section 52)
+        // Record TCS for GSTR-8 (s.52, at the rate on the invoice date)
         if (tcsAmount > 0) {
             TcsRecord tcs = new TcsRecord();
             tcs.setSellerGstin(saved.getSellerGstin());
@@ -816,6 +855,8 @@ public class GstInvoiceService {
         inv.setStatus("SYNCED");
         inv.setLastSyncAttempt(LocalDateTime.now());
         invoiceRepo.save(inv);
+        gstAudit(GstAuditService.IRN_GENERATED, "GstInvoice", inv.getInvoiceNumber(), inv.getSellerId(),
+                GstAuditService.payload("irn", irn, "ackNo", ackNo, "ackDate", ackDate));
 
         List<GstSyncQueue> queueItems = syncRepo.findByInvoiceIdAndSyncType(invoiceId, "GENERATE_EINVOICE");
         for (GstSyncQueue q : queueItems) {
@@ -838,6 +879,8 @@ public class GstInvoiceService {
         inv.setSyncAttempts(inv.getSyncAttempts() != null ? inv.getSyncAttempts() + 1 : 1);
         inv.setLastSyncAttempt(LocalDateTime.now());
         invoiceRepo.save(inv);
+        gstAudit(GstAuditService.IRN_FAILED, "GstInvoice", inv.getInvoiceNumber(), inv.getSellerId(),
+                GstAuditService.payload("error", error, "attempts", inv.getSyncAttempts()));
         return Map.of("invoice", inv, "message", "Sync failed recorded");
     }
 
@@ -850,39 +893,295 @@ public class GstInvoiceService {
         syncRepo.save(q);
     }
 
-    @Transactional
+    // ------------------------------------------------------------------ e-invoice retry queue
+
+    public static final String SYNC_INVOICE = "GENERATE_EINVOICE";
+    public static final String SYNC_CREDIT_NOTE = "EINVOICE_CRN";
+    public static final String SYNC_DEBIT_NOTE = "EINVOICE_DBN";
+    static final int MAX_IRN_ATTEMPTS = 12;
+
+    /**
+     * Registers queued invoices and notes with the IRP, oldest first.
+     *
+     * This used to relabel rows "QUEUED_FOR_GSTN" without calling anything, so an invoice whose
+     * IRN failed at checkout was never registered. Each row is now one real attempt:
+     *   - nothing to do (consumer sale, already registered, cancelled) -> SKIPPED / COMPLETED
+     *   - registered -> COMPLETED, and the IRN, ack and signed QR are stored on the document
+     *   - refused for a reason a retry cannot fix (bad data, the 30-day limit) -> FAILED
+     *   - anything else (the portal down, a timeout) -> back to PENDING, tried again after a
+     *     wait that doubles each time, until MAX_IRN_ATTEMPTS.
+     * Not one transaction: each document is saved as it is done, so one failure does not undo
+     * the registrations before it.
+     */
     public int processSyncQueue(int batchSize) {
-        List<GstSyncQueue> pending = syncRepo.findByStatusOrderByCreatedAtAsc("PENDING");
-        int processed = 0;
-        for (GstSyncQueue q : pending) {
-            if (processed >= batchSize) break;
+        List<GstSyncQueue> rows = syncRepo.findByStatusInOrderByCreatedAtAsc(
+                List.of("PENDING", "QUEUED_FOR_GSTN"));
+        int attempted = 0;
+        LocalDateTime now = LocalDateTime.now();
+        for (GstSyncQueue q : rows) {
+            if (attempted >= batchSize) break;
+            int tries = q.getRetryCount() == null ? 0 : q.getRetryCount();
+            if (tries > 0 && q.getLastAttemptAt() != null
+                    && q.getLastAttemptAt().plusMinutes(retryDelayMinutes(tries)).isAfter(now)) {
+                continue;
+            }
             try {
-                q.setStatus("PROCESSING");
-                q.setLastAttemptAt(LocalDateTime.now());
-                syncRepo.save(q);
-
-                GstInvoice inv = invoiceRepo.findById(q.getInvoiceId()).orElse(null);
-                if (inv == null) {
-                    q.setStatus("FAILED");
-                    q.setErrorMessage("Invoice not found");
-                    syncRepo.save(q);
-                    continue;
-                }
-
-                q.setRequestPayload("Invoice: " + inv.getInvoiceNumber());
-                q.setStatus("QUEUED_FOR_GSTN");
-                q.setResponsePayload("Queued for GSTN e-invoice API submission");
-                syncRepo.save(q);
-                processed++;
-            } catch (Exception e) {
-                q.setStatus("FAILED");
-                q.setErrorMessage(e.getMessage());
-                q.setRetryCount(q.getRetryCount() != null ? q.getRetryCount() + 1 : 1);
-                syncRepo.save(q);
+                if (syncOne(q, now)) attempted++;
+            } catch (RuntimeException e) {
+                log.error("E-invoice queue row {} failed unexpectedly: {}", q.getId(), e.toString());
+                finish(q, "FAILED", null, e.getMessage());
             }
         }
-        return processed;
+        return attempted;
     }
+
+    /** 5, 10, 20, 40 ... minutes, at most a day. */
+    static long retryDelayMinutes(int tries) {
+        return Math.min(24 * 60L, 5L << Math.min(Math.max(tries, 1) - 1, 10));
+    }
+
+    /** One queue row. True when the IRP was actually called. */
+    private boolean syncOne(GstSyncQueue q, LocalDateTime now) {
+        String type = q.getSyncType() == null ? SYNC_INVOICE : q.getSyncType();
+
+        if (SYNC_CREDIT_NOTE.equals(type) || SYNC_DEBIT_NOTE.equals(type)) {
+            boolean credit = SYNC_CREDIT_NOTE.equals(type);
+            Object note = credit ? creditNoteRepo.findById(q.getInvoiceId()).orElse(null)
+                                 : debitNoteRepo.findById(q.getInvoiceId()).orElse(null);
+            if (note == null) { finish(q, "FAILED", null, "Note not found"); return false; }
+            NoteView n = credit ? NoteView.of((CreditNote) note) : NoteView.of((DebitNote) note);
+            if (!blank(n.irn())) { finish(q, "COMPLETED", "Already registered: " + n.irn(), null); return false; }
+            GstInvoice original = n.invoiceId() == null ? null : invoiceRepo.findById(n.invoiceId()).orElse(null);
+            if (original == null || !Boolean.TRUE.equals(original.getEinvoicingRequired())) {
+                n.setStatus("NOT_REQUIRED", null);
+                saveNote(note);
+                finish(q, "SKIPPED", "The invoice it adjusts was not e-invoiced", null);
+                return false;
+            }
+            GstInvoice doc = credit ? asIrpDocument((CreditNote) note, original)
+                                    : asIrpDocument((DebitNote) note, original);
+            return attemptNote(q, now, note, n, doc, credit);
+        }
+
+        GstInvoice inv = invoiceRepo.findById(q.getInvoiceId()).orElse(null);
+        if (inv == null) { finish(q, "FAILED", null, "Invoice not found"); return false; }
+        if (!blank(inv.getIrn())) { finish(q, "COMPLETED", "Already registered: " + inv.getIrn(), null); return false; }
+        if (!Boolean.TRUE.equals(inv.getEinvoicingRequired()) || "CANCELLED".equals(inv.getStatus())) {
+            finish(q, "SKIPPED", "Not an e-invoice", null);
+            return false;
+        }
+        String late = tooLateForIrp(inv.getInvoiceDate(), inv.getSellerId(), now.toLocalDate());
+        if (late != null) {
+            inv.setStatus("IRN_TOO_LATE");
+            inv.setSyncError(late);
+            invoiceRepo.save(inv);
+            gstAudit(GstAuditService.IRN_FAILED, "GstInvoice", inv.getInvoiceNumber(), inv.getSellerId(),
+                    GstAuditService.payload("error", late, "permanent", true));
+            finish(q, "FAILED", null, late);
+            return false;
+        }
+        q.setLastAttemptAt(now);
+        try {
+            Map<String, Object> r = gstnClient.generateIrn(inv);
+            markSyncedToGstn(inv.getId(), (String) r.get("irn"), (String) r.get("qrCode"),
+                    (String) r.get("ackNo"), (String) r.get("ackDate"));
+            finish(q, "COMPLETED", "IRN: " + r.get("irn"), null);
+        } catch (RuntimeException e) {
+            markSyncFailed(inv.getId(), e.getMessage());
+            retryOrFail(q, e);
+        }
+        return true;
+    }
+
+    private boolean attemptNote(GstSyncQueue q, LocalDateTime now, Object note, NoteView n,
+                                GstInvoice doc, boolean credit) {
+        String entity = credit ? "CreditNote" : "DebitNote";
+        String number = doc.getInvoiceNumber();
+        Long sellerId = doc.getSellerId();
+        String late = tooLateForIrp(doc.getInvoiceDate(), sellerId, now.toLocalDate());
+        if (late != null) {
+            n.setStatus("FAILED", late);
+            saveNote(note);
+            gstAudit(GstAuditService.IRN_FAILED, entity, number, sellerId,
+                    GstAuditService.payload("error", late, "permanent", true));
+            finish(q, "FAILED", null, late);
+            return false;
+        }
+        q.setLastAttemptAt(now);
+        try {
+            Map<String, Object> r = gstnClient.generateIrn(doc);
+            n.registered((String) r.get("irn"), (String) r.get("ackNo"), (String) r.get("ackDate"),
+                    (String) r.get("qrCode"));
+            saveNote(note);
+            gstAudit(GstAuditService.IRN_GENERATED, entity, number, sellerId,
+                    GstAuditService.payload("irn", r.get("irn"), "ackNo", r.get("ackNo"), "ackDate", r.get("ackDate")));
+            finish(q, "COMPLETED", "IRN: " + r.get("irn"), null);
+        } catch (RuntimeException e) {
+            n.setStatus("PENDING", e.getMessage());
+            saveNote(note);
+            gstAudit(GstAuditService.IRN_FAILED, entity, number, sellerId,
+                    GstAuditService.payload("error", e.getMessage()));
+            retryOrFail(q, e);
+        }
+        return true;
+    }
+
+    /** A refusal that names something to fix in the document is not retried; anything else is. */
+    private void retryOrFail(GstSyncQueue q, RuntimeException e) {
+        int tries = (q.getRetryCount() == null ? 0 : q.getRetryCount()) + 1;
+        q.setRetryCount(tries);
+        String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+        boolean needsFixing = msg.contains("cannot be e-invoiced yet") || msg.contains("The IRP refused");
+        boolean givenUp = tries >= (q.getMaxRetries() != null && q.getMaxRetries() > 0
+                ? q.getMaxRetries() : MAX_IRN_ATTEMPTS);
+        finish(q, needsFixing || givenUp ? "FAILED" : "PENDING", null, msg);
+    }
+
+    private void finish(GstSyncQueue q, String status, String response, String error) {
+        q.setStatus(status);
+        if (response != null) q.setResponsePayload(response);
+        q.setErrorMessage(error);
+        if (q.getLastAttemptAt() == null) q.setLastAttemptAt(LocalDateTime.now());
+        syncRepo.save(q);
+    }
+
+    /**
+     * Why the IRP would refuse this document as reported too late, or null if it would not.
+     * A taxpayer at or above the turnover in statutory_rates.json must report within 30 days of
+     * the document date; past that no retry can succeed, and the fix is a fresh document.
+     */
+    String tooLateForIrp(LocalDate docDate, Long sellerId, LocalDate today) {
+        if (docDate == null) return null;
+        var limit = com.cauverystore.util.StatutoryRates.periodOn(
+                com.cauverystore.util.StatutoryRates.EINVOICE_30_DAY_LIMIT_AATO, today);
+        if (limit.isEmpty()) return null;
+        Double aato = configRepo.findBySellerId(sellerId).map(GstConfiguration::getAnnualTurnover).orElse(null);
+        if (aato == null || aato < limit.get().rate()) return null;
+        if (!docDate.isBefore(today.minusDays(30))) return null;
+        return "Dated " + docDate + ", more than 30 days ago: the IRP no longer accepts it from a "
+                + "taxpayer with turnover of " + GstComplianceUtil.formatRupees(limit.get().rate())
+                + " or more. Issue a fresh document instead.";
+    }
+
+    /** Queues a credit or debit note for e-invoicing; the queue decides whether it needs it. */
+    public void queueNoteForEinvoice(Long noteId, boolean credit) {
+        addToSyncQueue(noteId, credit ? SYNC_CREDIT_NOTE : SYNC_DEBIT_NOTE);
+    }
+
+    private void saveNote(Object note) {
+        if (note instanceof CreditNote c) creditNoteRepo.save(c);
+        else if (note instanceof DebitNote d) debitNoteRepo.save(d);
+    }
+
+    /** The parts of a credit or debit note the queue reads and writes, whichever it is. */
+    private record NoteView(String irn, Long invoiceId,
+                            java.util.function.BiConsumer<String, String> status,
+                            Registrar registrar) {
+        interface Registrar { void set(String irn, String ackNo, String ackDate, String qr); }
+
+        static NoteView of(CreditNote c) {
+            return new NoteView(c.getIrn(), c.getInvoiceId(),
+                    (s, err) -> { c.setEinvoiceStatus(s); c.setEinvoiceError(err); },
+                    (irn, ack, dt, qr) -> { c.setIrn(irn); c.setAckNo(ack); c.setAckDate(dt); c.setQrCode(qr);
+                                            c.setEinvoiceStatus("REGISTERED"); c.setEinvoiceError(null); });
+        }
+
+        static NoteView of(DebitNote d) {
+            return new NoteView(d.getIrn(), d.getInvoiceId(),
+                    (s, err) -> { d.setEinvoiceStatus(s); d.setEinvoiceError(err); },
+                    (irn, ack, dt, qr) -> { d.setIrn(irn); d.setAckNo(ack); d.setAckDate(dt); d.setQrCode(qr);
+                                            d.setEinvoiceStatus("REGISTERED"); d.setEinvoiceError(null); });
+        }
+
+        void setStatus(String s, String err) { status.accept(s, err); }
+        void registered(String irn, String ack, String dt, String qr) { registrar.set(irn, ack, dt, qr); }
+    }
+
+    /**
+     * A credit note in the shape the IRP client sends: document type CRN, its own number, date
+     * and lines, with the parties and place of supply of the invoice it adjusts.
+     */
+    static GstInvoice asIrpDocument(CreditNote cn, GstInvoice original) {
+        GstInvoice d = noteShell(original, "CRN", cn.getCreditNoteNumber(), cn.getCreditNoteDate());
+        List<GstInvoiceItem> lines = new ArrayList<>();
+        if (cn.getItems() != null) {
+            for (com.cauverystore.entities.CreditNoteItem i : cn.getItems()) {
+                lines.add(line(i.getProductName(), i.getHsnCode(), i.getSacCode(), i.getUnitOfMeasure(),
+                        i.getQuantity(), i.getTaxableValue(), i.getCgstRate(), i.getCgstAmount(),
+                        i.getSgstRate(), i.getSgstAmount(), i.getIgstRate(), i.getIgstAmount()));
+            }
+        }
+        d.setItems(lines);
+        totals(d, cn.getTaxableAmount(), cn.getCgstAmount(), cn.getSgstAmount(), cn.getIgstAmount(), cn.getTotalAmount());
+        return d;
+    }
+
+    static GstInvoice asIrpDocument(DebitNote dn, GstInvoice original) {
+        GstInvoice d = noteShell(original, "DBN", dn.getDebitNoteNumber(), dn.getDebitNoteDate());
+        List<GstInvoiceItem> lines = new ArrayList<>();
+        if (dn.getItems() != null) {
+            for (com.cauverystore.entities.DebitNoteItem i : dn.getItems()) {
+                lines.add(line(i.getProductName(), i.getHsnCode(), i.getSacCode(), i.getUnitOfMeasure(),
+                        i.getQuantity(), i.getTaxableValue(), i.getCgstRate(), i.getCgstAmount(),
+                        i.getSgstRate(), i.getSgstAmount(), i.getIgstRate(), i.getIgstAmount()));
+            }
+        }
+        d.setItems(lines);
+        totals(d, dn.getTaxableAmount(), dn.getCgstAmount(), dn.getSgstAmount(), dn.getIgstAmount(), dn.getTotalAmount());
+        return d;
+    }
+
+    private static GstInvoice noteShell(GstInvoice original, String type, String number, LocalDate date) {
+        GstInvoice d = new GstInvoice();
+        d.setIrpDocType(type);
+        d.setInvoiceNumber(number);
+        d.setInvoiceDate(date);
+        d.setPrecedingInvoiceNumber(original.getInvoiceNumber());
+        d.setPrecedingInvoiceDate(original.getInvoiceDate());
+        d.setOrderId(original.getOrderId());
+        d.setSellerId(original.getSellerId());
+        d.setSellerGstin(original.getSellerGstin());
+        d.setSellerLegalName(original.getSellerLegalName());
+        d.setSellerAddress(original.getSellerAddress());
+        d.setBuyerGstin(original.getBuyerGstin());
+        d.setBuyerName(original.getBuyerName());
+        d.setBuyerAddress(original.getBuyerAddress());
+        d.setBuyerStateCode(original.getBuyerStateCode());
+        d.setPlaceOfSupply(original.getPlaceOfSupply());
+        d.setIsInterState(original.getIsInterState());
+        d.setDeliveryAddress(original.getDeliveryAddress());
+        d.setDeliveryStateCode(original.getDeliveryStateCode());
+        d.setEcoGstin(original.getEcoGstin());
+        d.setEinvoicingRequired(true);
+        return d;
+    }
+
+    private static GstInvoiceItem line(String name, String hsn, String sac, String unit, Integer qty,
+                                       Double taxable, Double cr, Double ca, Double sr, Double sa,
+                                       Double ir, Double ia) {
+        GstInvoiceItem i = new GstInvoiceItem();
+        i.setProductName(name);
+        i.setHsnCode(hsn);
+        i.setSacCode(sac);
+        i.setUnitOfMeasure(unit);
+        i.setQuantity(qty);
+        i.setTaxableValue(taxable);
+        i.setCgstRate(cr); i.setCgstAmount(ca);
+        i.setSgstRate(sr); i.setSgstAmount(sa);
+        i.setIgstRate(ir); i.setIgstAmount(ia);
+        return i;
+    }
+
+    private static void totals(GstInvoice d, Double taxable, Double cgst, Double sgst, Double igst, Double total) {
+        d.setTaxableAmount(taxable);
+        d.setCgstAmount(cgst);
+        d.setSgstAmount(sgst);
+        d.setIgstAmount(igst);
+        d.setTotalCess(0.0);
+        d.setTotalAmount(total);
+    }
+
+    private static boolean blank(String s) { return s == null || s.isBlank(); }
 
     public Map<String, Object> getGstSummary(Long sellerId, LocalDate startDate, LocalDate endDate) {
         String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
@@ -934,14 +1233,70 @@ public class GstInvoiceService {
                                                                    LocalDate endDate) {
         String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
+        FilingDocuments docs = filingDocuments(sellerId, startDate, endDate);
+        LocalDate from = docs.from();
+        List<GstInvoice> invoices = docs.invoices();
+        List<CreditNote> creditNotes = docs.creditNotes();
+        List<DebitNote> debitNotes = docs.debitNotes();
+        GstConfiguration operator = marketplaceFor(sellerGstin);
+        return gstr1ExportService.allSections(invoices, creditNotes, debitNotes, from,
+                operator == null ? null : operator.getTcsGstin(),
+                operator == null ? null : operator.getLegalName(),
+                earlierB2clInvoices(creditNotes, debitNotes));
+    }
+
+    /**
+     * Invoice numbers, from any period, that went out as B2CL and have a consumer note
+     * against them in this one. Those notes are listed in CDNUR rather than netted into B2CS.
+     */
+    private Set<String> earlierB2clInvoices(List<CreditNote> creditNotes, List<DebitNote> debitNotes) {
+        Set<Long> ids = new HashSet<>();
+        for (CreditNote cn : creditNotes) if (cn.getInvoiceId() != null) ids.add(cn.getInvoiceId());
+        for (DebitNote dn : debitNotes) if (dn.getInvoiceId() != null) ids.add(dn.getInvoiceId());
+        Set<String> out = new HashSet<>();
+        if (ids.isEmpty()) return out;
+        for (GstInvoice inv : invoiceRepo.findAllById(ids)) {
+            boolean consumer = Gstr1ExportService.unregistered(inv.getBuyerGstin());
+            if (consumer && GstComplianceUtil.isB2cLarge(inv.getIsInterState(), inv.getTotalAmount())) {
+                out.add(inv.getInvoiceNumber());
+            }
+        }
+        return out;
+    }
+
+    /** A seller's invoices and notes for a period: what GSTR-1 and the Tally export read. */
+    public record FilingDocuments(LocalDate from, LocalDate to, List<GstInvoice> invoices,
+                                  List<CreditNote> creditNotes, List<DebitNote> debitNotes) { }
+
+    /** Defaults to the current month to date when no dates are given. */
+    public FilingDocuments filingDocuments(Long sellerId, LocalDate startDate, LocalDate endDate) {
+        String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
+                .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
         LocalDate from = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate to = endDate != null ? endDate : LocalDate.now();
-        List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, from, to);
-        List<CreditNote> creditNotes = creditNoteRepo
-                .findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to);
-        List<DebitNote> debitNotes = debitNoteRepo
-                .findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to);
-        return gstr1ExportService.allSections(invoices, creditNotes, debitNotes);
+        return new FilingDocuments(from, to,
+                invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, from, to),
+                creditNoteRepo.findBySellerGstinAndCreditNoteDateBetween(sellerGstin, from, to),
+                debitNoteRepo.findBySellerGstinAndDebitNoteDateBetween(sellerGstin, from, to));
+    }
+
+    /**
+     * The marketplace configuration whose TCS registration covers this seller, or null.
+     *
+     * Sellers report the operator's TCS GSTIN against sales made through it (B2CS type E and
+     * Table 14), and the portal only accepts one from the seller's own state. When the
+     * marketplace has no TCS registration in that state, or the seller is the marketplace
+     * itself, there is none to report and the sales go out as ordinary (OE) supplies.
+     */
+    private GstConfiguration marketplaceFor(String sellerGstin) {
+        if (sellerGstin == null || sellerGstin.length() < 2) return null;
+        String state = sellerGstin.substring(0, 2);
+        for (GstConfiguration c : configRepo.findByIsActiveTrue()) {
+            java.util.Optional<String> tcs = c.resolveTcsGstin();
+            if (tcs.isEmpty() || sellerGstin.equalsIgnoreCase(c.getGstin())) continue;
+            if (tcs.get().startsWith(state)) return c;
+        }
+        return null;
     }
 
     /**
@@ -1129,9 +1484,8 @@ public class GstInvoiceService {
         Map<String, Object> summary = getGstSummary(sellerId, startDate, endDate);
         Map<String, Object> tcs = new LinkedHashMap<>();
         tcs.put("totalTcsCollected", summary.get("totalTcs"));
-        Double configured = configRepo.findBySellerId(sellerId)
-                .map(GstConfiguration::getTcsRate).orElse(null);
-        double tcsRate = configured != null ? configured : 0.5;
+        double tcsRate = com.cauverystore.util.StatutoryRates.tcsRateOn(
+                endDate != null ? endDate : LocalDate.now());
         tcs.put("tcsRate", String.format("%.2f", tcsRate) + "%");
         tcs.put("totalInvoices", summary.get("totalInvoices"));
         tcs.put("totalTaxableAmount", summary.get("totalTaxableAmount"));
@@ -1172,10 +1526,16 @@ public class GstInvoiceService {
      */
     public Map<String, Object> saveConfiguration(GstConfiguration config) {
         validateConfiguration(config);
-        if (config.getTcsRate() == null) config.setTcsRate(0.5);
+        // Kept for display; invoices take the rate from StatutoryRates by their own date.
+        config.setTcsRate(com.cauverystore.util.StatutoryRates.tcsRateOn(LocalDate.now()));
         if (config.getInvoicePrefix() == null) config.setInvoicePrefix("CS");
         config.setIsActive(true);
         GstConfiguration saved = configRepo.save(config);
+        gstAudit(GstAuditService.REGISTRATION_SAVED, "GstConfiguration", String.valueOf(saved.getId()),
+                saved.getSellerId(), GstAuditService.payload("gstin", saved.getGstin(),
+                        "legalName", saved.getLegalName(), "stateCode", saved.getStateCode(),
+                        "tcsGstin", saved.getTcsGstin(), "tcsRate", saved.getTcsRate(),
+                        "annualTurnover", saved.getAnnualTurnover(), "invoicePrefix", saved.getInvoicePrefix()));
         auditService.log(null, "admin", "GST_CONFIG_SAVED", "GstConfiguration", saved.getId(),
                 "GSTIN " + saved.getGstin() + " configured", null);
         return Map.of("configuration", saved, "message", "GST configuration saved");
@@ -1193,6 +1553,48 @@ public class GstInvoiceService {
         }
         config.setGstin(config.getGstin().trim().toUpperCase());
 
+        // Rule 46(a): every tax invoice carries the supplier's name, address and GSTIN. The
+        // e-invoice also needs the address's PIN code, so an address without one is refused.
+        if (isBlank(config.getLegalName())) {
+            throw new IllegalArgumentException("The legal name, exactly as on the GST "
+                    + "registration certificate, is required. It is printed on every invoice.");
+        }
+        if (isBlank(config.getAddress())) {
+            throw new IllegalArgumentException("The registered address is required. Rule 46 "
+                    + "puts it on every invoice the marketplace issues.");
+        }
+        if (!config.getAddress().matches("(?s).*(?<!\\d)[1-9]\\d{5}(?!\\d).*")) {
+            throw new IllegalArgumentException("The registered address has no 6-digit PIN code. "
+                    + "Write it as 'street, city, state, PIN' - the e-invoice portal needs the PIN.");
+        }
+        // The state code and PAN are both inside the GSTIN, so a blank one is filled from it
+        // rather than left for someone to mistype.
+        String fromGstin = config.getGstin().substring(0, 2);
+        if (isBlank(config.getStateCode())) config.setStateCode(fromGstin);
+        if (!config.getStateCode().trim().equals(fromGstin)) {
+            throw new IllegalArgumentException("State code " + config.getStateCode().trim()
+                    + " does not match the GSTIN, which is registered in state " + fromGstin + ".");
+        }
+        if (isBlank(config.getPan())) config.setPan(config.getGstin().substring(2, 12));
+        if (!isBlank(config.getInvoicePrefix())
+                && !config.getInvoicePrefix().trim().matches("[A-Za-z][A-Za-z0-9]{0,5}")) {
+            throw new IllegalArgumentException("The invoice prefix must be 1 to 6 letters or "
+                    + "digits, starting with a letter. GST caps the whole invoice number at 16 "
+                    + "characters, and the prefix is followed by the month and a 5-digit number.");
+        }
+        // Each seller GSTIN needs its own invoice series (Rule 46), so a custom prefix can't be
+        // one another seller already uses. "CS" is the default and gets a per-seller code added.
+        if (!isBlank(config.getInvoicePrefix())
+                && !"CS".equalsIgnoreCase(config.getInvoicePrefix().trim())) {
+            String mine = config.getGstin().trim();
+            boolean taken = configRepo.findByInvoicePrefixIgnoreCase(config.getInvoicePrefix().trim()).stream()
+                    .anyMatch(other -> other.getGstin() != null && !other.getGstin().trim().equalsIgnoreCase(mine));
+            if (taken) {
+                throw new IllegalArgumentException("Another seller already uses the invoice prefix "
+                        + config.getInvoicePrefix().trim().toUpperCase() + ". Choose a different one.");
+            }
+        }
+
         if (!isBlank(config.getTcsGstin())) {
             GstComplianceUtil.validateGstin(config.getTcsGstin());
             if (!GstComplianceUtil.hasValidCheckDigit(config.getTcsGstin())) {
@@ -1209,6 +1611,10 @@ public class GstInvoiceService {
             }
         }
 
+        if (config.getAnnualTurnover() != null && config.getAnnualTurnover() < 0) {
+            throw new IllegalArgumentException("Turnover cannot be negative. Leave it blank if it "
+                    + "is not known yet.");
+        }
         if (!isBlank(config.getCin()) && !GstComplianceUtil.isValidCin(config.getCin())) {
             throw new IllegalArgumentException("'" + config.getCin() + "' is not a valid CIN. It is "
                     + "21 characters: L or U, 5-digit industry code, 2-letter state, 4-digit year, "
@@ -1282,8 +1688,8 @@ public class GstInvoiceService {
         String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMM"));
         String safePrefix = prefix != null ? prefix.trim().toUpperCase().replaceAll("[^A-Z0-9]", "") : "CS";
         if (safePrefix.isEmpty()) safePrefix = "CS";
-        // GSTIN invoice numbers must not exceed 16 chars: prefix (<=9) + yyMM (4) + "/" (1) + seq (5) = 16
-        if (safePrefix.length() > 9) safePrefix = safePrefix.substring(0, 9);
+        // GST invoice numbers must not exceed 16 chars: prefix (<=6) + yyMM (4) + "/" (1) + seq (5) = 16
+        if (safePrefix.length() > 6) safePrefix = safePrefix.substring(0, 6);
         String prefixPattern = safePrefix + datePart + "/";
         String maxNum = invoiceRepo.findMaxInvoiceNumberByPrefix(prefixPattern);
         int seq = 1;
@@ -1360,6 +1766,24 @@ public class GstInvoiceService {
             }
             throw stateUnresolvable;
         }
+    }
+
+    /**
+     * Where the consignee is: their GSTIN's state when registered, otherwise the state of the
+     * PIN code in the ship-to address (their own address, or the delivery address when they
+     * gave none). Null when neither settles it; the IRP check then names it.
+     */
+    private String consigneeStateCode(GstInvoice inv) {
+        String gstin = inv.getConsigneeGstin();
+        if (gstin != null && gstin.length() == 15) return gstin.substring(0, 2);
+        String address = inv.getConsigneeAddress() != null && !inv.getConsigneeAddress().isBlank()
+                ? inv.getConsigneeAddress() : inv.getDeliveryAddress();
+        if (address == null) return null;
+        java.util.regex.Matcher pin = java.util.regex.Pattern
+                .compile("(?<!\\d)([1-9]\\d{5})(?!\\d)").matcher(address);
+        String last = null;
+        while (pin.find()) last = pin.group(1);
+        return stateCodeFromPincode(last);
     }
 
     /**
@@ -1451,8 +1875,65 @@ public class GstInvoiceService {
     }
 
     @Transactional
+    // ------------------------------------------------------------------ e-way bills
+
+    private static boolean isAdmin(String role) {
+        return "ADMIN".equals(role) || "SUPER_ADMIN".equals(role);
+    }
+
+    private GstInvoice ownedInvoice(Long invoiceId, Long userId, String role) {
+        GstInvoice inv = invoiceRepo.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
+        if (!isAdmin(role) && !Objects.equals(inv.getSellerId(), userId)) {
+            throw new IllegalArgumentException("Invoice not found: " + invoiceId);
+        }
+        return inv;
+    }
+
+    /** Invoices whose goods need an e-way bill that has not been recorded yet, oldest first. */
+    public List<Map<String, Object>> pendingEwayBills(Long userId, String role) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (GstInvoice inv : invoiceRepo.findByEwayBillStatusOrderByInvoiceDateAsc(EwayBillService.REQUIRED)) {
+            if (!isAdmin(role) && !Objects.equals(inv.getSellerId(), userId)) continue;
+            if ("CANCELLED".equals(inv.getStatus())) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", inv.getId());
+            m.put("invoiceNumber", inv.getInvoiceNumber());
+            m.put("invoiceDate", inv.getInvoiceDate());
+            m.put("orderId", inv.getOrderId());
+            m.put("buyerName", inv.getBuyerName());
+            m.put("consignmentValue", EwayBillService.consignmentValue(inv));
+            m.put("status", inv.getStatus());
+            out.add(m);
+        }
+        return out;
+    }
+
+    public String ewayBillBulkJson(List<Long> invoiceIds, Long userId, String role) {
+        List<GstInvoice> list = new ArrayList<>();
+        for (Long id : invoiceIds) list.add(ownedInvoice(id, userId, role));
+        return new EwayBillService().bulkJson(list);
+    }
+
+    @Transactional
+    public GstInvoice recordEwayBill(Long invoiceId, Long userId, String role, String number,
+                                     LocalDateTime generatedAt, LocalDate validUpto) {
+        GstInvoice inv = ownedInvoice(invoiceId, userId, role);
+        String before = inv.getEwayBillNumber();
+        EwayBillService.record(inv, number, generatedAt, validUpto);
+        invoiceRepo.save(inv);
+        gstAudit("EWAY_BILL_RECORDED", "GstInvoice", inv.getInvoiceNumber(), inv.getSellerId(),
+                GstAuditService.payload("ewayBillNumber", inv.getEwayBillNumber(), "replaced", before,
+                        "generatedAt", String.valueOf(inv.getEwayBillGeneratedAt()),
+                        "validUpto", String.valueOf(inv.getEwayBillExpiry())));
+        return inv;
+    }
+
     public void updateInvoiceStatusByOrderId(Long orderId, String dispatchStatus) {
         invoiceRepo.findByOrderId(orderId).ifPresent(inv -> {
+            String before = inv.getStatus();
+            gstAudit(GstAuditService.INVOICE_STATUS_CHANGED, "GstInvoice", inv.getInvoiceNumber(), inv.getSellerId(),
+                    GstAuditService.payload("from", before, "to", dispatchStatus));
             inv.setStatus(dispatchStatus);
             if ("DISPATCHED".equals(dispatchStatus) || "DELIVERED".equals(dispatchStatus)) {
                 inv.setInvoiceStatus("FINALIZED");
@@ -1468,7 +1949,10 @@ public class GstInvoiceService {
         inv.setItems(items);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document doc = new Document(PageSize.A4, 36, 36, 36, 36);
+        // A4, one page for an ordinary order. Blank paragraphs between sections each took a
+        // full 9pt line plus leading; small fixed gaps keep the sections apart without pushing
+        // the signatory line onto a second, almost empty page.
+        Document doc = new Document(PageSize.A4, 30, 30, 26, 26);
         PdfWriter.getInstance(doc, baos);
         doc.open();
 
@@ -1484,9 +1968,9 @@ public class GstInvoiceService {
         String stateLabel = utgst ? "UTGST" : "SGST";
 
         // Brand header (logo + "Cauvery Store - Everyday Essentials, Delivered")
-        doc.add(PdfBrandingUtil.buildBrandHeader());
+        doc.add(PdfBrandingUtil.buildBrandHeader(44f, 15f, 8f));
         doc.add(PdfBrandingUtil.buildDivider());
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Header
         PdfPTable headerTable = new PdfPTable(2);
@@ -1494,7 +1978,8 @@ public class GstInvoiceService {
         headerTable.setWidths(new float[]{60, 40});
         PdfPCell leftCell = new PdfPCell();
         leftCell.setBorder(Rectangle.NO_BORDER);
-        leftCell.addElement(new Paragraph("Tax Invoice", bold14));
+        // Rule 49: a document with no tax on any line is a bill of supply, not a tax invoice.
+        leftCell.addElement(new Paragraph(InvoiceDocumentType.titleFor(inv.getItems()), bold14));
         leftCell.addElement(new Paragraph(
                 (inv.getInvoiceCopyType() != null && inv.getInvoiceCopyType().equals("ORIGINAL") ? "Original for Recipient" :
                  "ORIGINAL".equals(inv.getInvoiceCopyType()) ? "Original for Recipient" :
@@ -1505,20 +1990,27 @@ public class GstInvoiceService {
         PdfPCell rightCell = new PdfPCell();
         rightCell.setBorder(Rectangle.NO_BORDER);
         rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        rightCell.addElement(new Paragraph("Invoice No.", small8));
-        rightCell.addElement(new Paragraph(safeStr(inv.getInvoiceNumber()), bold12));
-        rightCell.addElement(new Paragraph("Invoice Date", small8));
-        rightCell.addElement(new Paragraph(inv.getInvoiceDate() != null ? inv.getInvoiceDate().toString() : "", normal9));
+        // Label and value share a line; one line each made this block the tallest on the page.
+        Paragraph invNo = new Paragraph();
+        invNo.add(new Chunk("Invoice No.  ", small8));
+        invNo.add(new Chunk(safeStr(inv.getInvoiceNumber()), bold12));
+        rightCell.addElement(invNo);
+        Paragraph invDate = new Paragraph();
+        invDate.add(new Chunk("Invoice Date  ", small8));
+        invDate.add(new Chunk(inv.getInvoiceDate() != null ? inv.getInvoiceDate().toString() : "", normal9));
+        rightCell.addElement(invDate);
         // The customer knows their purchase by its order number, not the invoice serial, so the
         // order is named here the way the big marketplaces do.
         if (inv.getOrderId() != null) {
-            rightCell.addElement(new Paragraph("Order No.", small8));
             String orderLine = String.valueOf(inv.getOrderId());
             Order order = orderRepo.findById(inv.getOrderId()).orElse(null);
             if (order != null && order.getCreatedAt() != null) {
                 orderLine += "  |  Ordered " + order.getCreatedAt().toLocalDate();
             }
-            rightCell.addElement(new Paragraph(orderLine, normal9));
+            Paragraph orderPara = new Paragraph();
+            orderPara.add(new Chunk("Order No.  ", small8));
+            orderPara.add(new Chunk(orderLine, normal9));
+            rightCell.addElement(orderPara);
         }
         // Workflow states like PENDING_DISPATCH are internal and mean nothing to the buyer. Only
         // a cancellation changes what the document is, so that is the one state printed.
@@ -1529,7 +2021,7 @@ public class GstInvoiceService {
         headerTable.addCell(rightCell);
         doc.add(headerTable);
 
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Seller / Buyer info
         PdfPTable parties = new PdfPTable(2);
@@ -1537,7 +2029,7 @@ public class GstInvoiceService {
         parties.setWidths(new float[]{50, 50});
 
         PdfPCell sellCell = new PdfPCell();
-        sellCell.setPadding(8);
+        sellCell.setPadding(5);
         sellCell.addElement(new Paragraph("Seller (Supplier)", bold10));
         sellCell.addElement(new Paragraph(safeStr(inv.getSellerLegalName()), normal9));
         sellCell.addElement(new Paragraph("GSTIN: " + safeStr(inv.getSellerGstin()), normal9));
@@ -1555,11 +2047,14 @@ public class GstInvoiceService {
         parties.addCell(sellCell);
 
         PdfPCell buyCell = new PdfPCell();
-        buyCell.setPadding(8);
+        buyCell.setPadding(5);
         buyCell.addElement(new Paragraph("Buyer / Recipient", bold10));
         buyCell.addElement(new Paragraph(safeStr(inv.getBuyerName()), normal9));
-        buyCell.addElement(new Paragraph("GSTIN: " + (inv.getBuyerGstin() != null ? inv.getBuyerGstin() : "URP")
-                + (inv.getBuyerGstin() != null && !"URP".equals(inv.getBuyerGstin()) ? " (ITC Eligible: Yes - B2B)" : " (URP)"), normal9));
+        boolean registeredBuyer = inv.getBuyerGstin() != null && !inv.getBuyerGstin().isBlank()
+                && !"URP".equalsIgnoreCase(inv.getBuyerGstin().trim());
+        buyCell.addElement(new Paragraph("GSTIN: " + (registeredBuyer
+                ? inv.getBuyerGstin() + " (ITC Eligible: Yes - B2B)"
+                : "Unregistered (URP)"), normal9));
         buyCell.addElement(new Paragraph("Address: " + safeStr(inv.getBuyerAddress()), small8));
         buyCell.addElement(new Paragraph("State Code: " + safeStr(inv.getBuyerStateCode()), small8));
         if (inv.getDeliveryAddress() != null) {
@@ -1571,6 +2066,8 @@ public class GstInvoiceService {
                     ? "Ship To (Consignee - delivered on the buyer's direction):" : "Ship To (Delivery):", bold10));
             if (inv.isBillToShipTo() && inv.getConsigneeName() != null) {
                 buyCell.addElement(new Paragraph(safeStr(inv.getConsigneeName()), small8));
+                buyCell.addElement(new Paragraph("GSTIN: " + (inv.getConsigneeGstin() == null
+                        ? "URP" : inv.getConsigneeGstin()), small8));
             }
             buyCell.addElement(new Paragraph(safeStr(inv.isBillToShipTo() && inv.getConsigneeAddress() != null
                     ? inv.getConsigneeAddress() : inv.getDeliveryAddress()), small8));
@@ -1584,7 +2081,7 @@ public class GstInvoiceService {
         parties.addCell(buyCell);
         doc.add(parties);
 
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Identifiers section
         PdfPTable idTable = new PdfPTable(4);
@@ -1601,14 +2098,14 @@ public class GstInvoiceService {
         };
         for (String[] row : idData) {
             PdfPCell c = new PdfPCell();
-            c.setPadding(4);
+            c.setPadding(3);
             c.addElement(new Paragraph(row[0], small8));
             c.addElement(new Paragraph(row[1], bold9));
             idTable.addCell(c);
         }
         doc.add(idTable);
 
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Items table - match web view columns (separate CGST/SGST)
         int numColumns = Boolean.TRUE.equals(inv.getIsInterState()) ? 8 : 9;
@@ -1616,7 +2113,7 @@ public class GstInvoiceService {
         table.setWidthPercentage(100);
         float[] colWidths = Boolean.TRUE.equals(inv.getIsInterState())
             ? new float[]{4, 10, 26, 7, 10, 13, 13, 17}
-            : new float[]{4, 9, 22, 6, 9, 12, 11, 11, 16};
+            : new float[]{4, 10, 21, 6, 9, 12, 11, 11, 16};
         table.setWidths(colWidths);
 
         String[] hdrs;
@@ -1652,12 +2149,11 @@ public class GstInvoiceService {
             table.addCell(new Phrase("Rs. " + String.format("%.2f", item.getTotalAmount() != null ? item.getTotalAmount() : 0), bold9));
         }
         doc.add(table);
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
 
         // Tax Breakup section
         PdfPTable breakupTable = new PdfPTable(4);
-        breakupTable.setWidthPercentage(65);
-        breakupTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        breakupTable.setWidthPercentage(100);
         float[] bw = {25, 25, 25, 25};
         breakupTable.setWidths(bw);
 
@@ -1668,44 +2164,51 @@ public class GstInvoiceService {
         double ttax = inv.getTotalTax() != null ? inv.getTotalTax() : 0;
         double cess = inv.getTotalCess() != null ? inv.getTotalCess() : 0;
         double total = inv.getTotalAmount() != null ? inv.getTotalAmount() : 0;
-        double cgstRate = inv.getCgstRate() != null ? inv.getCgstRate() : 0;
-        double sgstRate = inv.getSgstRate() != null ? inv.getSgstRate() : 0;
-        double igstRate = !items.isEmpty() && items.get(0).getIgstRate() != null ? items.get(0).getIgstRate() : 0;
 
         // Header row
         PdfPCell bh = new PdfPCell(new Phrase("Tax Breakup", bold10));
         bh.setColspan(4);
         bh.setBackgroundColor(PdfBrandingUtil.TEAL);
-        bh.setPadding(6);
+        bh.setPadding(4);
         bh.setHorizontalAlignment(Element.ALIGN_CENTER);
         breakupTable.addCell(bh);
 
-        // The taxable amount already has the coupon discount taken off and the delivery line
-        // added in (delivery is an item above). Listing either again beside it made the rows
-        // add up to more than the Total Amount, so they are stated once, in the note below.
-        addBreakupCell(breakupTable, "Taxable Amount", "Rs. " + String.format("%.2f", tx), normal9);
-        if (interState) {
-            addBreakupCell(breakupTable, "IGST @ " + igstRate + "%", "Rs. " + String.format("%.2f", igst), normal9);
-        } else {
-            addBreakupCell(breakupTable, "CGST @ " + cgstRate + "%", "Rs. " + String.format("%.2f", cgst), normal9);
-            addBreakupCell(breakupTable, stateLabel + " @ " + sgstRate + "%", "Rs. " + String.format("%.2f", sgst), normal9);
+        // One row per GST rate. A bill can mix rates (5% rice, 18% tools), so a single
+        // "CGST @ 2.5%" label next to the whole CGST total gave the wrong rate for the rest.
+        // The taxable amount already has the coupon taken off and includes the delivery line,
+        // so the rows add up to the same Total Tax as the summary beside this box.
+        String taxHead1 = interState ? "IGST" : "CGST";
+        String taxHead2 = interState ? "Total Tax" : stateLabel;
+        for (String h : new String[]{"GST Rate", "Taxable Value", taxHead1, taxHead2}) {
+            addBreakupHead(breakupTable, h);
         }
+        java.util.TreeMap<Double, double[]> byRate = new java.util.TreeMap<>();
+        for (GstInvoiceItem it : items) {
+            double rate = interState ? nz(it.getIgstRate()) : nz(it.getCgstRate()) + nz(it.getSgstRate());
+            double[] row = byRate.computeIfAbsent(Math.round(rate * 100) / 100.0, r -> new double[3]);
+            row[0] += nz(it.getTaxableValue());
+            row[1] += interState ? nz(it.getIgstAmount()) : nz(it.getCgstAmount());
+            row[2] += interState ? nz(it.getIgstAmount()) : nz(it.getSgstAmount());
+        }
+        for (java.util.Map.Entry<Double, double[]> e : byRate.entrySet()) {
+            double[] r = e.getValue();
+            addBreakupRow(breakupTable, normal9, ratePct(e.getKey()), rs(r[0]), rs(r[1]), rs(r[2]));
+        }
+        addBreakupRow(breakupTable, bold9, "Total", rs(tx), rs(interState ? igst : cgst), rs(interState ? igst : sgst));
         // Cess is a charge on the goods like GST but collected separately; a buyer checking the
         // total against the payment needs to see it, and it is not part of the "Total Tax".
         if (cess > 0) {
-            addBreakupCell(breakupTable, "Cess", "Rs. " + String.format("%.2f", cess), normal9);
+            PdfPCell cessCell = new PdfPCell(new Phrase("Cess: " + rs(cess), normal9));
+            cessCell.setColspan(4);
+            cessCell.setPadding(3);
+            breakupTable.addCell(cessCell);
         }
-        addBreakupCell(breakupTable, "Total Tax", "Rs. " + String.format("%.2f", ttax), normal9);
         // TCS is deliberately not in this breakup. It is not a tax on this supply and the
         // customer does not pay it - printing it beside CGST and SGST read as though they did.
-        doc.add(breakupTable);
-
-        doc.add(new Paragraph(" "));
 
         // Summary table
         PdfPTable sumTable = new PdfPTable(2);
-        sumTable.setWidthPercentage(40);
-        sumTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        sumTable.setWidthPercentage(100);
 
         // Every row here sums to the Total Amount; see the breakup above for why delivery and
         // discount are not rows of their own.
@@ -1730,9 +2233,24 @@ public class GstInvoiceService {
         totalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         totalVal.setBorder(Rectangle.TOP);
         sumTable.addCell(totalVal);
-        doc.add(sumTable);
 
-        doc.add(new Paragraph(" "));
+        PdfPTable totals = new PdfPTable(3);
+        totals.setWidthPercentage(100);
+        totals.setWidths(new float[]{56, 4, 40});
+        PdfPCell breakupHolder = new PdfPCell(breakupTable);
+        breakupHolder.setBorder(Rectangle.NO_BORDER);
+        breakupHolder.setPadding(0);
+        totals.addCell(breakupHolder);
+        PdfPCell spacer = new PdfPCell();
+        spacer.setBorder(Rectangle.NO_BORDER);
+        totals.addCell(spacer);
+        PdfPCell sumHolder = new PdfPCell(sumTable);
+        sumHolder.setBorder(Rectangle.NO_BORDER);
+        sumHolder.setPadding(0);
+        totals.addCell(sumHolder);
+        doc.add(totals);
+
+        doc.add(gap(5));
         doc.add(new Paragraph("Amount in Words: " + numberToWordsPdf(total), bold9));
         boolean hasDelivery = inv.getDeliveryCharge() != null && inv.getDeliveryCharge() > 0;
         boolean hasDiscount = inv.getDiscountAmount() != null && inv.getDiscountAmount() > 0;
@@ -1766,13 +2284,16 @@ public class GstInvoiceService {
             boolean simulated = inv.getIrn().startsWith("SIM");
             doc.add(new Paragraph((simulated ? "Reference (SIMULATED - not an IRP registration): "
                     : "IRN: ") + inv.getIrn(), small8));
-            if (inv.getEwayBillNumber() != null) {
-                doc.add(new Paragraph("E-Way Bill: " + inv.getEwayBillNumber() + (inv.getEwayBillExpiry() != null ? " (exp: " + inv.getEwayBillExpiry() + ")" : ""), small8));
-            }
             if (inv.getAckNo() != null) doc.add(new Paragraph("Ack No: " + inv.getAckNo() + "  Date: " + safeStr(inv.getAckDate()), small8));
         }
+        // Printed whether or not the invoice has an IRN (most will not), and only when it is a
+        // real 12-digit portal number: older invoices carry made-up "EWB..." numbers from the
+        // simulator, which must not appear on a tax document.
+        if (inv.getEwayBillNumber() != null && inv.getEwayBillNumber().matches("\\d{12}")) {
+            doc.add(new Paragraph("E-Way Bill: " + inv.getEwayBillNumber() + (inv.getEwayBillExpiry() != null ? " (valid upto " + inv.getEwayBillExpiry() + ")" : ""), small8));
+        }
 
-        doc.add(new Paragraph(" "));
+        doc.add(gap(5));
         doc.add(new Paragraph("Declaration (Rule 46 CGST Rules, 2017): We declare that this invoice shows the actual price of the goods/services described and that all particulars are true and correct.", small8));
         doc.add(new Paragraph("- This is a computer-generated " + (inv.getInvoiceCopyType() != null ? inv.getInvoiceCopyType().toLowerCase() : "original") + " invoice for " + (inv.getSupplyType() != null && inv.getSupplyType().equals("GOODS") ? "goods" : "services") + " as per Rule 46.", small8));
         doc.add(new Paragraph("- " + (interState ? "IGST charged (inter-state supply)."
@@ -1801,7 +2322,7 @@ public class GstInvoiceService {
             doc.add(new Paragraph("- Registered on the e-invoice portal (IRN " + inv.getIrn()
                     + "). Digitally signed by the portal; no physical signature is required.", small8));
         } else if (signatureImage != null && !signatureImage.isBlank()) {
-            doc.add(new Paragraph(" "));
+            doc.add(gap(5));
             try {
                 Image signature = Image.getInstance(new java.net.URL(signatureImage));
                 signature.scaleToFit(140f, 55f);
@@ -1825,8 +2346,7 @@ public class GstInvoiceService {
             // logged here; the space above the signatory line is left for a hand signature.
             log.warn("Invoice {} printed without a signature: seller {} has none on file. Rule 46 "
                     + "requires one unless the invoice is e-invoiced.", inv.getInvoiceNumber(), inv.getSellerId());
-            doc.add(new Paragraph(" "));
-            doc.add(new Paragraph(" "));
+            doc.add(gap(28));
             Paragraph signatory = new Paragraph("For " + safeStr(inv.getSignedBy())
                     + ", Authorised Signatory", bold9);
             signatory.setAlignment(Element.ALIGN_RIGHT);
@@ -1862,13 +2382,36 @@ public class GstInvoiceService {
         });
     }
 
-    private void addBreakupCell(PdfPTable table, String label, String value, Font font) {
-        PdfPCell c = new PdfPCell();
-        c.setPadding(4);
+    /** A blank vertical gap of the given height in points. */
+    private static Paragraph gap(float points) {
+        Paragraph p = new Paragraph(" ", FontFactory.getFont(FontFactory.HELVETICA, 1));
+        p.setLeading(points);
+        return p;
+    }
+
+    private void addBreakupHead(PdfPTable table, String text) {
+        PdfPCell c = new PdfPCell(new Phrase(text, new Font(Font.HELVETICA, 8)));
+        c.setPadding(3);
         c.setHorizontalAlignment(Element.ALIGN_CENTER);
-        c.addElement(new Paragraph(label, new Font(Font.HELVETICA, 8)));
-        c.addElement(new Paragraph(value, font));
         table.addCell(c);
+    }
+
+    private void addBreakupRow(PdfPTable table, Font font, String... values) {
+        for (int i = 0; i < values.length; i++) {
+            PdfPCell c = new PdfPCell(new Phrase(values[i], font));
+            c.setPadding(3);
+            c.setHorizontalAlignment(i == 0 ? Element.ALIGN_CENTER : Element.ALIGN_RIGHT);
+            table.addCell(c);
+        }
+    }
+
+    private static String rs(double v) {
+        return "Rs. " + String.format("%.2f", v);
+    }
+
+    /** 5.0 -> "5%", 2.5 -> "2.5%". */
+    static String ratePct(double rate) {
+        return java.math.BigDecimal.valueOf(rate).stripTrailingZeros().toPlainString() + "%";
     }
 
     private String safeStr(String s) {

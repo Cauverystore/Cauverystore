@@ -434,7 +434,7 @@ public class OrderService {
         m.put("id", order.getId());
         m.put("status", order.getStatus());
         m.put("paymentMethod", order.getPaymentMethod());
-        m.put("paymentStatus", order.isPaid() ? "PAID" : "PENDING");
+        m.put("paymentStatus", paymentStatusOf(order));
         m.put("totalAmount", order.getTotalAmount());
         m.put("subTotal", order.getSubTotal());
         m.put("tax", order.getTax());
@@ -597,6 +597,11 @@ public class OrderService {
         }
 
         order.setStatus(status);
+        if ("DELIVERED".equals(status)) {
+            // Same moment as markDelivered: stamp the delivery and, for cash on delivery, record the cash.
+            if (order.getDeliveredAt() == null) order.setDeliveredAt(LocalDateTime.now());
+            collectCodOnDelivery(order);
+        }
 
         OrderTimeline timeline = new OrderTimeline();
         timeline.setOrder(order);
@@ -792,6 +797,14 @@ public class OrderService {
             throw new RuntimeException("Tell us who is receiving the goods. Rule 46(o) requires "
                     + "the consignee's name and address when they are not the buyer.");
         }
+        // The e-invoice and e-way bill need the consignee's GSTIN on a bill-to / ship-to
+        // supply, or "URP" when they have none. A blank answer means unregistered.
+        String consigneeGstin = (String) body.get("consigneeGstin");
+        consigneeGstin = consigneeGstin == null || consigneeGstin.isBlank()
+                ? "URP" : consigneeGstin.trim().toUpperCase();
+        if (billToShipTo && !"URP".equals(consigneeGstin)) {
+            GstComplianceUtil.validateGstin(consigneeGstin);
+        }
 
         if (wantsB2b) {
             order.setBuyerGstin(buyerGstin.trim().toUpperCase());
@@ -802,6 +815,7 @@ public class OrderService {
             if (billToShipTo) {
                 order.setConsigneeName(consigneeName.trim());
                 order.setConsigneeAddress((String) body.get("consigneeAddress"));
+                order.setConsigneeGstin(consigneeGstin);
             }
             orderRepo.save(order);
         }
@@ -830,10 +844,42 @@ public class OrderService {
                 if (payment.getOrderId() == null) {
                     payment.setOrderId(order.getId());
                     paymentRepo.save(payment);
-                    order.setPaid(true);
+                    if ("COD_PENDING".equals(payment.getStatus())) {
+                        // The customer chose cash on delivery inside Razorpay's checkout. Nothing
+                        // has been paid yet: the order stays unpaid until the cash is collected.
+                        order.setPaymentMethod("COD");
+                    } else {
+                        order.setPaid(true);
+                        // The COD button opens Razorpay, where the customer may still pay online.
+                        // Whatever actually happened decides the method, not the button pressed.
+                        if (isCodOrder(order)) order.setPaymentMethod("ONLINE");
+                    }
                     orderRepo.save(order);
                 }
             }
+        }
+
+        // Only cash on delivery may be placed without a verified online payment. Anything else
+        // that arrives unpaid (no payment sent, or one already used for another order) is
+        // refused; this method is transactional, so the order and its stock deduction roll back.
+        if (codLimitService != null) {
+            if (isCodOrder(order) && !codLimitService.codEnabled()) {
+                throw new RuntimeException("Cash on delivery is currently unavailable. Please pay online for this order.");
+            }
+            if (!isCodOrder(order) && !codLimitService.onlineEnabled()) {
+                throw new RuntimeException("Online payment is currently unavailable. Please choose cash on delivery.");
+            }
+        }
+        if (isCodOrder(order)) {
+            CodLimitService.Limits limits = codLimits();
+            if (!limits.allows(order.getTotalAmount())) {
+                throw new RuntimeException("Cash on delivery is available for orders from Rs "
+                        + Math.round(limits.min()) + (limits.max() > 0 ? " to Rs " + Math.round(limits.max()) : " upwards")
+                        + ". Please pay online for this order.");
+            }
+        }
+        if (!isCodOrder(order) && !order.isPaid()) {
+            throw new RuntimeException("Payment has not been verified for this order, so it cannot be placed.");
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -843,6 +889,73 @@ public class OrderService {
         return result;
     }
 
+    /** Cash on delivery: the order was placed with the COD payment method. */
+    /** Edited in Platform Settings; null only in unit tests, where the property defaults below apply. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CodLimitService codLimitService;
+
+    @org.springframework.beans.factory.annotation.Value("${cod.min-order-value:0}")
+    private double codMinOrderValue;
+
+    @org.springframework.beans.factory.annotation.Value("${cod.max-order-value:0}")
+    private double codMaxOrderValue;
+
+    private CodLimitService.Limits codLimits() {
+        return codLimitService != null
+                ? codLimitService.current()
+                : new CodLimitService.Limits(codMinOrderValue, codMaxOrderValue);
+    }
+
+    private static boolean isCodOrder(Order order) {
+        return order.getPaymentMethod() != null
+                && order.getPaymentMethod().toUpperCase(java.util.Locale.ROOT).contains("COD");
+    }
+
+    /**
+     * What the customer sees as the payment state. A COD order is not "pending payment" in the
+     * usual sense - nothing is owed online - so it reads COD_PENDING (pay the courier at the door)
+     * until delivery, and COD_COLLECTED once the cash has been recorded.
+     */
+    private static String paymentStatusOf(Order order) {
+        if (isCodOrder(order)) {
+            if (order.isPaid()) return "COD_COLLECTED";
+            return "CANCELLED".equals(order.getStatus()) ? "CANCELLED" : "COD_PENDING";
+        }
+        return order.isPaid() ? "PAID" : "PENDING";
+    }
+
+    /**
+     * A COD order stays unpaid while it is on its way; the cash is collected at the door, so
+     * delivery is the moment it becomes paid. This records that collection once: an order that is
+     * already paid, or that already has a payment row, is left exactly as it is, so a repeated
+     * delivery update cannot book the cash twice. The payment row has no Razorpay id, which is
+     * how a later return is recognised as needing a manual refund (see PaymentService).
+     */
+    private void collectCodOnDelivery(Order order) {
+        if (!isCodOrder(order) || order.isPaid()) return;
+        Optional<Payment> existing = paymentRepo.findByOrderId(order.getId());
+        if (existing.isPresent()) {
+            // Cash on delivery chosen in Razorpay's checkout: its pending record is settled now.
+            Payment pending = existing.get();
+            if ("COD_PENDING".equals(pending.getStatus())) {
+                pending.setStatus("COD_COLLECTED");
+                pending.setPaidAt(LocalDateTime.now());
+                paymentRepo.save(pending);
+                order.setPaid(true);
+            }
+            return;
+        }
+        Payment payment = new Payment();
+        payment.setOrderId(order.getId());
+        payment.setAmount(order.getTotalAmount());
+        payment.setCurrency("INR");
+        payment.setStatus("COD_COLLECTED");
+        payment.setReceipt("COD-" + order.getId());
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepo.save(payment);
+        order.setPaid(true);
+    }
+
     public void autoGenerateGstInvoice(Long orderId) {
         try {
             Order order = orderRepo.findById(orderId).orElse(null);
@@ -850,16 +963,10 @@ public class OrderService {
                 return;
             }
             Long sellerId = order.getSellerId();
-            String sellerGstin = null;
-            Optional<GstConfiguration> gstConfig = gstConfigRepo.findBySellerId(sellerId);
-            if (gstConfig.isPresent()) {
-                sellerGstin = gstConfig.get().getGstin();
-            } else {
-                Optional<SellerRegistration> sellerReg = sellerRegRepo.findByUserId(sellerId);
-                if (sellerReg.isPresent() && sellerReg.get().getGstin() != null && !sellerReg.get().getGstin().isBlank()) {
-                    sellerGstin = sellerReg.get().getGstin();
-                }
-            }
+            // Seller's own GST config, then their registration; products the store lists
+            // itself go out under the store's own registration.
+            String sellerGstin = new SellerGstinResolver(gstConfigRepo, sellerRegRepo, userRepo)
+                    .gstinOf(sellerId).orElse(null);
             if (sellerGstin != null) {
                 // Pass the buyer GSTIN captured at checkout so auto-generated invoices for B2B
                 // supplies are classified as B2B (ITC-eligible) instead of defaulting to B2C/URP.
@@ -1074,8 +1181,14 @@ public class OrderService {
         if ("CANCELLED".equals(order.getStatus()) || "REFUNDED".equals(order.getStatus())) {
             throw new RuntimeException("Cannot deliver an order that is " + order.getStatus());
         }
+        if ("DELIVERED".equals(order.getStatus())) {
+            // Already delivered: a repeat (a courier retry, a second click) must not send the
+            // notifications again or collect the cash a second time.
+            return order;
+        }
         order.setStatus("DELIVERED");
         order.setDeliveredAt(LocalDateTime.now());
+        collectCodOnDelivery(order);
 
         OrderTimeline timeline = new OrderTimeline();
         timeline.setOrder(order);

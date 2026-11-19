@@ -1,7 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!\\.well-known/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
   ],
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "react-scripts build",
@@ -10,7 +24,7 @@
   "proxy": {
     "entrypoint": "proxy.js",
     "matcher": [
-      "/((?!api|static|favicon.ico|manifest.json|robots.txt|service-worker.js|.*\\.(?:png|jpg|jpeg|svg|ico|css|js|map|json|webp|woff2?)).*)"
+      "/((?!api|static|favicon.ico|manifest.json|robots.txt|llms.txt|service-worker.js|.*\\.(?:png|jpg|jpeg|svg|ico|css|js|map|json|webp|woff2?)).*)"
     ]
   }
 }

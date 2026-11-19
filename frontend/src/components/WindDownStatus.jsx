@@ -23,7 +23,7 @@ const WindDownStatus = ({ data, compact = false }) => {
   const openReturns = data.openReturns || 0;
 
   if (data.complete) {
-    return (<div style={{ fontSize: compact ? '0.72rem' : '0.8rem', color: '#146C43', marginTop: '4px', fontWeight: 500 }}>{t("windDownStatus.nothingOutstandingSafeToClose")}</div>);
+    return (<div style={{ fontSize: compact ? '0.72rem' : '0.8rem', color: '#00788C', marginTop: '4px', fontWeight: 500 }}>{t("windDownStatus.nothingOutstandingSafeToClose")}</div>);
   }
 
   const parts = [];

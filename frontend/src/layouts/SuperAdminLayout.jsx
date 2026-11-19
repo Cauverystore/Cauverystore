@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/admin.css';
 import '../styles/design-system.css';
 import { ToastProvider } from '../admin/context/ToastContext';
+import useAltText from "../hooks/useAltText";
 
 const menuItems = [
   { to: '/super-admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -21,6 +22,7 @@ const bottomItems = [
 ];
 
 const SuperAdminLayout = () => {
+  const altText = useAltText();
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -33,7 +35,7 @@ const SuperAdminLayout = () => {
   };
 
   const sidebarWidth = collapsed ? '64px' : '260px';
-  const accentColor = 'var(--color-primary, #0E5C5C)';
+  const accentColor = 'var(--color-primary, #00788C)';
 
   const linkStyle = ({ isActive }) => ({
     display: 'flex',
@@ -97,7 +99,7 @@ const SuperAdminLayout = () => {
           </div>
           {!collapsed && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <img src="/images/logo.jpg" alt="" style={{ height: "0.95rem", width: "auto" }} />
+              <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "0.95rem", width: "auto" }} />
               <div>
                 <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>Cauvery Store</div>
                 <div style={{ fontSize: '0.7rem', color: accentColor, marginTop: '1px' }}>Super Admin</div>
@@ -223,7 +225,7 @@ const SuperAdminLayout = () => {
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            background: hoveredToggle ? 'var(--color-primary-hover, #0a4a4a)' : 'var(--color-primary, #0E5C5C)',
+            background: hoveredToggle ? 'var(--color-primary-hover, #006475)' : 'var(--color-primary, #00788C)',
             color: '#fff',
             border: '2px solid #1e293b',
             display: 'flex',
@@ -232,7 +234,7 @@ const SuperAdminLayout = () => {
             cursor: 'pointer',
             zIndex: 101,
             transition: 'all 0.2s',
-            boxShadow: hoveredToggle ? '0 0 12px rgba(14, 92, 92, 0.6)' : '0 2px 6px rgba(0,0,0,0.3)',
+            boxShadow: hoveredToggle ? '0 0 12px rgba(0, 120, 140, 0.6)' : '0 2px 6px rgba(0,0,0,0.3)',
             transform: hoveredToggle ? 'scale(1.1)' : 'scale(1)',
           }}
         >

@@ -1,0 +1,24 @@
+# Self-hosted Prerender: Node + headless Chromium.
+FROM node:20-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends chromium ca-certificates fonts-liberation tini \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV NODE_ENV=production \
+    CHROME_LOCATION=/usr/bin/chromium
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY src ./src
+
+# Saved pages live here (or on a volume mounted at /data).
+RUN mkdir -p /app/cache && chown node:node /app/cache
+
+# Run as the unprivileged "node" user.
+USER node
+EXPOSE 3000
+# tini cleans up dead Chrome processes, so a crashed Chrome cannot keep its port.
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["node", "src/server.js"]

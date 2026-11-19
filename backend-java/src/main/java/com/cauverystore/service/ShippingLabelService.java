@@ -78,6 +78,7 @@ public class ShippingLabelService {
         Font bold11 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
         Font bold9 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font normal9 = FontFactory.getFont(FontFactory.HELVETICA, 9);
+        Font normal10 = FontFactory.getFont(FontFactory.HELVETICA, 10);
         Font small8 = FontFactory.getFont(FontFactory.HELVETICA, 8);
 
         doc.add(PdfBrandingUtil.buildBrandHeader(34f, 12f, 7.5f));
@@ -88,8 +89,9 @@ public class ShippingLabelService {
             PdfPTable codBadge = new PdfPTable(1);
             codBadge.setWidthPercentage(100);
             codBadge.setSpacingBefore(4);
-            PdfPCell codCell = new PdfPCell(new Phrase("CASH ON DELIVERY",
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, Color.WHITE)));
+            PdfPCell codCell = new PdfPCell(new Phrase(
+                    String.format("CASH ON DELIVERY - COLLECT Rs. %.2f", order.getTotalAmount()),
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10f, Color.WHITE)));
             codCell.setBackgroundColor(PdfBrandingUtil.RED);
             codCell.setHorizontalAlignment(Element.ALIGN_CENTER);
             codCell.setPadding(3);
@@ -105,7 +107,7 @@ public class ShippingLabelService {
 
         PdfPTable addresses = new PdfPTable(2);
         addresses.setWidthPercentage(100);
-        addresses.setWidths(new float[]{50, 50});
+        addresses.setWidths(new float[]{38, 62}); // the recipient gets the wider column
         addresses.setSpacingBefore(4);
 
         PdfPCell fromCell = new PdfPCell();
@@ -125,10 +127,12 @@ public class ShippingLabelService {
         toCell.setPadding(3);
         toCell.addElement(p("SHIP TO", bold9));
         if (addr != null) {
-            toCell.addElement(p(safe(addr.getFullName()), bold11));
-            toCell.addElement(p(safe(addr.getStreet()), normal9));
-            toCell.addElement(p(safe(addr.getCity()) + ", " + safe(addr.getState()) + " - " + safe(addr.getPincode()), normal9));
-            toCell.addElement(p("Ph: " + safe(addr.getPhone()), small8));
+            toCell.addElement(p(safe(addr.getFullName()), bold13));
+            toCell.addElement(p(safe(addr.getStreet()), normal10));
+            toCell.addElement(p(safe(addr.getCity()) + ", " + safe(addr.getState()), normal10));
+            // The pincode is what a sorting hub reads first, so it gets its own large line.
+            toCell.addElement(p("PIN " + safe(addr.getPincode()), bold13));
+            toCell.addElement(p("Ph: " + safe(addr.getPhone()), normal9));
         } else {
             toCell.addElement(p("Address not available", normal9));
         }
@@ -277,21 +281,25 @@ public class ShippingLabelService {
     private PdfPCell buildBarcodeCell(PdfContentByte cb, String label, String code, Font labelFont, Font smallFont) {
         Barcode128 barcode = new Barcode128();
         barcode.setCode(code);
-        barcode.setBarHeight(16f);
-        barcode.setSize(4.5f);
-        barcode.setBaseline(4f);
+        barcode.setBarHeight(28f);
+        barcode.setSize(6f);
+        barcode.setBaseline(7f);
         barcode.setTextAlignment(Element.ALIGN_CENTER);
         Image barcodeImage = barcode.createImageWithBarcode(cb, null, null);
 
+        // Placed as a block image under the heading, not as an inline Chunk: an inline image sits
+        // on the text baseline and was drawn over the "ORDER BARCODE" / "COURIER" heading.
+        barcodeImage.scaleToFit(125f, 40f);
+        barcodeImage.setAlignment(Image.ALIGN_CENTER);
+        barcodeImage.setSpacingBefore(4f);
+
         PdfPCell cell = new PdfPCell();
-        cell.setPadding(3);
+        cell.setPadding(5);
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        cell.addElement(p(label, labelFont));
-        com.lowagie.text.Chunk imageChunk = new com.lowagie.text.Chunk(barcodeImage, 0, 0);
-        Paragraph imgParagraph = new Paragraph();
-        imgParagraph.add(imageChunk);
-        imgParagraph.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(imgParagraph);
+        Paragraph heading = p(label, labelFont);
+        heading.setAlignment(Element.ALIGN_CENTER);
+        cell.addElement(heading);
+        cell.addElement(barcodeImage);
         return cell;
     }
 

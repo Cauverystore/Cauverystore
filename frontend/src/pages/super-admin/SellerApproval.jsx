@@ -288,7 +288,7 @@ const SellerApproval = () => {
               </button>
             )}
             {canSuspend && reg.status === 'SUSPENDED' && (
-              <button className="admin-btn admin-btn-sm admin-btn-outline" onClick={() => handleReinstate(regId)} disabled={actioning === regId} style={{ color: '#146C43', borderColor: '#CFE8D6' }}>
+              <button className="admin-btn admin-btn-sm admin-btn-outline" onClick={() => handleReinstate(regId)} disabled={actioning === regId} style={{ color: '#00788C', borderColor: '#C4EFE6' }}>
                 <RotateCcw size={14} style={{ verticalAlign: 'middle' }} /> Reinstate
               </button>
             )}
@@ -414,7 +414,7 @@ const SellerApproval = () => {
         </span>
       </div>
 
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '1rem', borderBottom: '2px solid #EAF7EE', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '1rem', borderBottom: '2px solid #E6F8F3', overflowX: 'auto' }}>
         {TABS.map(t => (
           <button
             key={t.key}
@@ -422,9 +422,9 @@ const SellerApproval = () => {
             style={{
               padding: '8px 16px', border: 'none', cursor: 'pointer', fontWeight: 600,
               fontSize: '0.85rem', whiteSpace: 'nowrap',
-              background: statusTab === t.key ? '#EAF7EE' : 'transparent',
-              color: statusTab === t.key ? '#146C43' : '#64748B',
-              borderBottom: statusTab === t.key ? '2px solid #2E9B57' : '2px solid transparent',
+              background: statusTab === t.key ? '#E6F8F3' : 'transparent',
+              color: statusTab === t.key ? '#00788C' : '#64748B',
+              borderBottom: statusTab === t.key ? '2px solid #00788C' : '2px solid transparent',
             }}
           >
             {t.label}
@@ -518,7 +518,7 @@ const SellerApproval = () => {
                           className="admin-btn admin-btn-sm admin-btn-outline"
                           disabled={actioning === r.registrationId}
                           onClick={() => handleReinstate(r.registrationId)}
-                          style={{ color: '#146C43', borderColor: '#CFE8D6' }}
+                          style={{ color: '#00788C', borderColor: '#C4EFE6' }}
                         >
                           <RotateCcw size={14} style={{ verticalAlign: 'middle' }} /> Reinstate
                         </button>

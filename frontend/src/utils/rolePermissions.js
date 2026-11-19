@@ -52,6 +52,8 @@ export function canAccessModule(role, module) {
     refunds: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     // Matches the backend: recording money sent to sellers is for admins only.
     sellerPayouts: ['ADMIN', 'SUPER_ADMIN'],
+    // Matches the backend: the ERP link is for admins only.
+    erpSync: ['ADMIN', 'SUPER_ADMIN'],
     returns: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     inventory: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],
     products: ['ADMIN', 'EXECUTIVE', 'SUPER_ADMIN'],

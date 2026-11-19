@@ -30,6 +30,22 @@ import java.util.*;
 @Service
 public class CreditNoteService {
 
+    // Optional so tests that build this service by hand need not supply it.
+    private GstAuditService gstAudit;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setGstAuditService(GstAuditService gstAudit) { this.gstAudit = gstAudit; }
+
+    // Optional for the same reason as gstAudit: tests build this service by hand.
+    private GstInvoiceService einvoiceQueue;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEinvoiceQueue(@org.springframework.context.annotation.Lazy GstInvoiceService s) { this.einvoiceQueue = s; }
+
+    private void gstAudit(String event, String entityType, String ref, Long sellerId, java.util.Map<String, ?> payload) {
+        if (gstAudit != null) gstAudit.record(event, entityType, ref, sellerId, payload);
+    }
+
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(CreditNoteService.class);
 
@@ -44,6 +60,12 @@ public class CreditNoteService {
     private final UserRepository userRepo;
     private final AuditService auditService;
     private final GstRateResolver gstRateResolver;
+
+    /** Per-seller numbering (Rule 46 / 53). Absent only in plain unit tests, which use the old scheme. */
+    private DocumentNumberService documentNumbers;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setDocumentNumbers(DocumentNumberService documentNumbers) { this.documentNumbers = documentNumbers; }
 
     private static final Map<String, String> STATE_CODES = new LinkedHashMap<>();
     static {
@@ -99,6 +121,8 @@ public class CreditNoteService {
             return Map.of("creditNote", existing.get(), "message", "Credit note already exists for this order");
         }
         GstInvoice inv = invoiceRepo.findByOrderId(orderId).orElse(null);
+        Optional<Map<String, Object>> barred = timeBarred(inv);
+        if (barred.isPresent()) return barred.get();
 
         CreditNote cn = new CreditNote();
         cn.setOrderId(orderId);
@@ -155,9 +179,16 @@ public class CreditNoteService {
             cn.setItems(items);
         }
 
-        cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
+        cn.setCreditNoteNumber(nextCreditNoteNumber(cn.getSellerGstin()));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
+        gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
+                        "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
+                        "taxable", saved.getTaxableAmount(), "cgst", saved.getCgstAmount(),
+                        "sgst", saved.getSgstAmount(), "igst", saved.getIgstAmount(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount()));
         writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(null, actorEmail != null ? actorEmail : "system", "CREDIT_NOTE_GENERATED",
@@ -252,6 +283,8 @@ public class CreditNoteService {
         Order order = rr.getOrder();
         if (order == null) throw new RuntimeException("Return request has no linked order");
         GstInvoice inv = invoiceRepo.findByOrderId(order.getId()).orElse(null);
+        Optional<Map<String, Object>> barred = timeBarred(inv);
+        if (barred.isPresent()) return barred.get();
 
         CreditNote cn = new CreditNote();
         cn.setOrderId(order.getId());
@@ -304,9 +337,16 @@ public class CreditNoteService {
         cn.setTotalAmount(round(taxable + cn.getTotalTax()));
         cn.setItems(items);
 
-        cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
+        cn.setCreditNoteNumber(nextCreditNoteNumber(cn.getSellerGstin()));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
+        gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
+                        "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
+                        "taxable", saved.getTaxableAmount(), "cgst", saved.getCgstAmount(),
+                        "sgst", saved.getSgstAmount(), "igst", saved.getIgstAmount(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount()));
         writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(null, actorEmail != null ? actorEmail : "system", "CREDIT_NOTE_GENERATED",
@@ -322,6 +362,8 @@ public class CreditNoteService {
     public Map<String, Object> generateManualCreditNote(Long invoiceId, Double amount, String reason, Long userId) {
         GstInvoice inv = invoiceRepo.findById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
+        Optional<Map<String, Object>> barred = timeBarred(inv);
+        if (barred.isPresent()) return barred.get();
         Optional<CreditNote> existing = creditNoteRepo.findByOrderIdAndNoteType(inv.getOrderId(), "CREDIT");
         if (existing.isPresent()) {
             return Map.of("creditNote", existing.get(), "message", "Credit note already exists for this order");
@@ -371,9 +413,16 @@ public class CreditNoteService {
         cn.setTotalAmount(round(cn.getTaxableAmount() + cn.getTotalTax()));
         cn.setItems(buildItemsFromInvoice(cn, inv, factor));
 
-        cn.setCreditNoteNumber(generateCreditNoteNumber("CN"));
+        cn.setCreditNoteNumber(nextCreditNoteNumber(cn.getSellerGstin()));
         cn.setStatus("GENERATED");
         CreditNote saved = creditNoteRepo.save(cn);
+        if (einvoiceQueue != null) einvoiceQueue.queueNoteForEinvoice(saved.getId(), true);
+        gstAudit(GstAuditService.CREDIT_NOTE_ISSUED, "CreditNote", saved.getCreditNoteNumber(), saved.getSellerId(),
+                GstAuditService.payload("id", saved.getId(), "against", saved.getOriginalInvoiceNumber(),
+                        "date", String.valueOf(saved.getCreditNoteDate()), "reason", saved.getReason(),
+                        "taxable", saved.getTaxableAmount(), "cgst", saved.getCgstAmount(),
+                        "sgst", saved.getSgstAmount(), "igst", saved.getIgstAmount(),
+                        "total", saved.getTotalAmount(), "tcs", saved.getTcsAmount()));
         writeTcsReversal(saved, saved.getOrderId());
 
         auditService.log(userId, userId != null ? "seller:" + userId : "system", "CREDIT_NOTE_GENERATED",
@@ -421,7 +470,21 @@ public class CreditNoteService {
         throw new RuntimeException("Access denied: you do not have permission to view this credit note");
     }
 
-    /** GSTR-3B Table 3.1(a) outward supplies (net of credit notes) + ITC summary for the period. */
+    private DebitNoteRepository debitNoteRepo;
+    private DebitNoteItemRepository debitNoteItemRepo;
+
+    /** Debit notes count in GSTR-3B; optional so older tests can build the service without them. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setDebitNoteRepositories(DebitNoteRepository debitNoteRepo, DebitNoteItemRepository debitNoteItemRepo) {
+        this.debitNoteRepo = debitNoteRepo;
+        this.debitNoteItemRepo = debitNoteItemRepo;
+    }
+
+    /**
+     * GSTR-3B outward supplies for the period: 3.1(a), 3.1(c) and 3.2, net of credit and debit
+     * notes, leaving out cancelled invoices. See {@link Gstr3bBuilder} for what is and is not
+     * produced.
+     */
     public Map<String, Object> getGstr3bData(Long sellerId, LocalDate startDate, LocalDate endDate) {
         String sellerGstin = configRepo.findBySellerId(sellerId).map(GstConfiguration::getGstin)
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
@@ -430,75 +493,53 @@ public class CreditNoteService {
 
         List<GstInvoice> invoices = invoiceRepo.findBySellerGstinAndInvoiceDateBetween(sellerGstin, start, end);
         List<CreditNote> creditNotes = creditNoteRepo.findBySellerGstinAndCreditNoteDateBetween(sellerGstin, start, end);
-
-        double taxable = 0, cgst = 0, sgst = 0, igst = 0;
-        double cnTaxable = 0, cnCgst = 0, cnSgst = 0, cnIgst = 0;
-        double itcEligibleTaxable = 0, itcEligibleCgst = 0, itcEligibleSgst = 0, itcEligibleIgst = 0;
-        int invoiceCount = 0, creditNoteCount = 0, b2bCount = 0, b2cCount = 0;
-
-        for (GstInvoice inv : invoices) {
-            taxable += nz(inv.getTaxableAmount());
-            cgst += nz(inv.getCgstAmount());
-            sgst += nz(inv.getSgstAmount());
-            igst += nz(inv.getIgstAmount());
-            invoiceCount++;
-            if (Boolean.TRUE.equals(inv.getItcEligible())) {
-                itcEligibleTaxable += nz(inv.getTaxableAmount());
-                itcEligibleCgst += nz(inv.getCgstAmount());
-                itcEligibleSgst += nz(inv.getSgstAmount());
-                itcEligibleIgst += nz(inv.getIgstAmount());
+        for (CreditNote cn : creditNotes) cn.setItems(creditNoteItemRepo.findByCreditNoteId(cn.getId()));
+        List<DebitNote> debitNotes = new ArrayList<>();
+        if (debitNoteRepo != null) {
+            debitNotes = debitNoteRepo.findBySellerGstinAndDebitNoteDateBetween(sellerGstin, start, end);
+            if (debitNoteItemRepo != null) {
+                for (DebitNote dn : debitNotes) dn.setItems(debitNoteItemRepo.findByDebitNoteId(dn.getId()));
             }
-            if ("B2B".equals(inv.getInvoiceType())) b2bCount++; else b2cCount++;
         }
-        for (CreditNote cn : creditNotes) {
-            cnTaxable += nz(cn.getTaxableAmount());
-            cnCgst += nz(cn.getCgstAmount());
-            cnSgst += nz(cn.getSgstAmount());
-            cnIgst += nz(cn.getIgstAmount());
-            creditNoteCount++;
-        }
-
-        Map<String, Object> table3 = new LinkedHashMap<>();
-        table3.put("taxableValue", round(taxable - cnTaxable));
-        table3.put("cgst", round(cgst - cnCgst));
-        table3.put("sgst", round(sgst - cnSgst));
-        table3.put("igst", round(igst - cnIgst));
-        table3.put("totalTax", round((cgst - cnCgst) + (sgst - cnSgst) + (igst - cnIgst)));
-
-        Map<String, Object> itc = new LinkedHashMap<>();
-        itc.put("eligibleTaxableValue", round(itcEligibleTaxable));
-        itc.put("eligibleCgst", round(itcEligibleCgst));
-        itc.put("eligibleSgst", round(itcEligibleSgst));
-        itc.put("eligibleIgst", round(itcEligibleIgst));
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("gstin", sellerGstin);
-        result.put("periodStart", start.toString());
-        result.put("periodEnd", end.toString());
-        result.put("table3_1_outwardSupplies", table3);
-        result.put("table3_1b_itc", itc);
-        result.put("invoiceCount", invoiceCount);
-        result.put("creditNoteCount", creditNoteCount);
-        result.put("b2bCount", b2bCount);
-        result.put("b2cCount", b2cCount);
-        result.put("grossTaxableValue", round(taxable));
-        result.put("grossCreditNotesValue", round(cnTaxable));
-        return result;
+        return Gstr3bBuilder.build(sellerGstin, start, end, invoices, creditNotes, debitNotes);
     }
 
+    /** The same figures as rows, one per GSTR-3B table line, for the CSV export. */
+    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getGstr3bRows(Long sellerId, LocalDate startDate, LocalDate endDate) {
-        Map<String, Object> summary = getGstr3bData(sellerId, startDate, endDate);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> t3 = (Map<String, Object>) summary.get("table3_1_outwardSupplies");
+        return gstr3bRows(getGstr3bData(sellerId, startDate, endDate));
+    }
+
+    @SuppressWarnings("unchecked")
+    static List<Map<String, Object>> gstr3bRows(Map<String, Object> summary) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("section", "3.1(a) Outward taxable supplies");
-        row.put("taxableValue", t3.get("taxableValue"));
-        row.put("cgst", t3.get("cgst"));
-        row.put("sgst", t3.get("sgst"));
-        row.put("igst", t3.get("igst"));
-        rows.add(row);
+        Map<String, Object> t31a = (Map<String, Object>) summary.get("table3_1_outwardSupplies");
+        rows.add(gstr3bRow("3.1(a) Outward taxable supplies (other than zero rated, nil rated and exempted)", "",
+                t31a.get("taxableValue"), t31a.get("igst"), t31a.get("cgst"), t31a.get("sgst"), t31a.get("cess")));
+        rows.add(gstr3bRow("3.1(b) Outward taxable supplies (zero rated)", "", 0.0, 0.0, 0.0, 0.0, 0.0));
+        Map<String, Object> t31c = (Map<String, Object>) summary.get("table3_1c_nilExempt");
+        rows.add(gstr3bRow("3.1(c) Other outward supplies (nil rated, exempted)", "",
+                t31c.get("taxableValue"), 0.0, 0.0, 0.0, 0.0));
+        rows.add(gstr3bRow("3.1(d) Inward supplies (liable to reverse charge)", "", 0.0, 0.0, 0.0, 0.0, 0.0));
+        rows.add(gstr3bRow("3.1(e) Non-GST outward supplies", "", 0.0, 0.0, 0.0, 0.0, 0.0));
+        for (Map<String, Object> r : (List<Map<String, Object>>) summary.get("table3_2_interStateUnregistered")) {
+            rows.add(gstr3bRow("3.2 Supplies made to unregistered persons", r.get("placeOfSupply"),
+                    r.get("taxableValue"), r.get("igst"), "", "", ""));
+        }
         return rows;
+    }
+
+    private static Map<String, Object> gstr3bRow(String section, Object pos, Object taxable, Object igst,
+                                                 Object cgst, Object sgst, Object cess) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("section", section);
+        row.put("placeOfSupply", pos);
+        row.put("taxableValue", taxable);
+        row.put("igst", igst);
+        row.put("cgst", cgst);
+        row.put("sgst", sgst);
+        row.put("cess", cess);
+        return row;
     }
 
     public byte[] generateCreditNotePdf(Long id) throws DocumentException {
@@ -547,6 +588,14 @@ public class CreditNoteService {
         rightCell.addElement(new Paragraph(cn.getCreditNoteDate() != null ? cn.getCreditNoteDate().toString() : "", normal9));
         if (cn.getOriginalInvoiceNumber() != null) {
             rightCell.addElement(new Paragraph("Against Invoice: " + cn.getOriginalInvoiceNumber(), small8));
+        }
+        if (cn.getIrn() != null && !cn.getIrn().isBlank()) {
+            boolean simulated = cn.getIrn().startsWith("SIM");
+            rightCell.addElement(new Paragraph((simulated ? "Reference (SIMULATED - not an IRP registration): "
+                    : "IRN: ") + cn.getIrn(), small8));
+            if (cn.getAckNo() != null) {
+                rightCell.addElement(new Paragraph("Ack No: " + cn.getAckNo() + "  Date: " + safeStr(cn.getAckDate()), small8));
+            }
         }
         headerTable.addCell(leftCell);
         headerTable.addCell(rightCell);
@@ -897,11 +946,40 @@ public class CreditNoteService {
         return (rawSubtotal - coupon) / rawSubtotal;
     }
 
+    /**
+     * Section 34(2): GST can be reduced by a credit note only up to 30 November after the end of
+     * the invoice's financial year. After that no GST credit note is issued. The refund itself
+     * still goes ahead; the seller can give a commercial credit note with no GST on it.
+     * Returned as a result rather than thrown, so a refund running in the same transaction is
+     * not rolled back.
+     */
+    private Optional<Map<String, Object>> timeBarred(GstInvoice inv) {
+        if (inv == null || inv.getInvoiceDate() == null) return Optional.empty();
+        LocalDate today = LocalDate.now();
+        if (!GstComplianceUtil.creditNoteTimeBarred(inv.getInvoiceDate(), today)) return Optional.empty();
+        LocalDate deadline = GstComplianceUtil.creditNoteDeadline(inv.getInvoiceDate());
+        log.warn("No GST credit note for invoice {}: the s.34(2) deadline was {}.", inv.getInvoiceNumber(), deadline);
+        return Optional.of(Map.of(
+                "timeBarred", true,
+                "deadline", deadline.toString(),
+                "message", "A GST credit note can't be issued for invoice " + inv.getInvoiceNumber()
+                        + ". Section 34(2) allows one only up to " + deadline + " (30 November after "
+                        + "the financial year of the sale). Refund the buyer without a GST credit note."));
+    }
+
+    private String nextCreditNoteNumber(String sellerGstin) {
+        if (documentNumbers != null && sellerGstin != null && !sellerGstin.isBlank()) {
+            return documentNumbers.next(sellerGstin, DocumentNumberService.CREDIT_NOTE,
+                    creditNoteRepo::findMaxCreditNoteNumberByPrefix);
+        }
+        return generateCreditNoteNumber("CN");
+    }
+
     private String generateCreditNoteNumber(String prefix) {
         String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMM"));
         String safePrefix = prefix != null ? prefix.trim().toUpperCase().replaceAll("[^A-Z0-9]", "") : "CN";
         if (safePrefix.isEmpty()) safePrefix = "CN";
-        if (safePrefix.length() > 9) safePrefix = safePrefix.substring(0, 9);
+        if (safePrefix.length() > 6) safePrefix = safePrefix.substring(0, 6);
         String prefixPattern = safePrefix + datePart + "/";
         String maxNum = creditNoteRepo.findMaxCreditNoteNumberByPrefix(prefixPattern);
         int seq = 1;

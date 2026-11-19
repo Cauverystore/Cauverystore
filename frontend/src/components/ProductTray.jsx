@@ -10,6 +10,7 @@ import { variantNoun } from "../utils/variant";
 import "../styles/product-tray.css";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import useAltText from "../hooks/useAltText";
 
 /*
  * The Cauvery Store product card. One standard for every list on the site:
@@ -56,6 +57,7 @@ const LoadingSkeleton = () => (
 );
 
 const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, quickActions = true }) => {
+  const altText = useAltText();
   const {
     t: tr
   } = useTranslation();
@@ -226,7 +228,7 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
           src={imgSrc}
           srcSet={srcSet}
           sizes="(min-width: 960px) 240px, 45vw"
-          alt={name}
+          alt={altText.product(product?.name)}
           width="240" height="240"
           className={`pt-image ${imgLoaded ? "loaded" : ""}`}
           loading="lazy"

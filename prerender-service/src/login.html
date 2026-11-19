@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Cauvery Prerender</title>
+<style>
+  :root { --green:#1F6B45; --deep:#143D2B; --mint:#F1F7F2; --line:#D3E5D8; --ink:#1E293B; --muted:#64748B; --card:#fff; --red:#B42318; }
+  @media (prefers-color-scheme: dark) { :root { --mint:#0F1A14; --card:#16241C; --ink:#E2E8F0; --muted:#94A3B8; --line:#24382C; --deep:#CFE6D6; } }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100dvh; display:grid; place-items:center; background:var(--mint); color:var(--ink); font:15px/1.5 "Segoe UI", system-ui, sans-serif; padding:16px; }
+  form { width:100%; max-width:360px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px; }
+  h1 { margin:0 0 4px; font-size:1.3rem; color:var(--deep); }
+  p { margin:0 0 16px; color:var(--muted); }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input { width:100%; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--ink); min-height:44px; }
+  button { width:100%; margin-top:14px; font:inherit; font-weight:600; border:0; border-radius:10px; padding:10px; min-height:44px; background:var(--green); color:#fff; cursor:pointer; }
+  #err { color:var(--red); min-height:1.5em; margin-top:10px; }
+</style>
+</head>
+<body>
+<form id="f">
+  <h1>Cauvery Prerender</h1>
+  <p>Sign in to see the dashboard.</p>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="current-password" autofocus required>
+  <button type="submit">Sign in</button>
+  <div id="err" role="alert"></div>
+</form>
+<script>
+document.getElementById("f").onsubmit = function (e) {
+  e.preventDefault();
+  var err = document.getElementById("err");
+  err.textContent = "";
+  fetch(location.origin + "/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
+    body: JSON.stringify({ password: document.getElementById("pw").value }) })
+    .then(function (r) { return r.text().then(function (t) { if (r.ok) location.replace(location.origin + "/dashboard"); else { try { err.textContent = JSON.parse(t).error; } catch (x) { err.textContent = t; } } }); })
+    .catch(function () { err.textContent = "Could not reach the service."; });
+};
+</script>
+</body>
+</html>

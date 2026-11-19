@@ -204,7 +204,11 @@ public class ComplianceService {
     @Transactional
     public List<FilingDeadline> syncDeadlines(Long sellerId, String period) {
         String sellerGstin = resolveGstin(sellerId);
-        String[] forms = {"GSTR-1", "GSTR-3B", "GSTR-8"};
+        // GSTR-8 is the e-commerce operator's return. A seller on the marketplace files GSTR-1
+        // and GSTR-3B; only the operator's own TCS registration gets a GSTR-8 deadline.
+        String[] forms = isTcsOperator(sellerGstin)
+                ? new String[] {"GSTR-1", "GSTR-3B", "GSTR-8"}
+                : new String[] {"GSTR-1", "GSTR-3B"};
         List<FilingDeadline> result = new ArrayList<>();
         for (String form : forms) {
             LocalDate due = gstnClient.getFilingDueDate(form, period);
@@ -226,15 +230,33 @@ public class ComplianceService {
 
     public List<FilingDeadline> listDeadlines(Long sellerId) {
         String sellerGstin = resolveGstin(sellerId);
-        return deadlineRepo.findBySellerGstinOrderByDueDateAsc(sellerGstin);
+        return visibleDeadlines(sellerGstin, deadlineRepo.findBySellerGstinOrderByDueDateAsc(sellerGstin));
+    }
+
+    /** True when this GSTIN is the marketplace's own TCS registration (the GSTR-8 filer). */
+    private boolean isTcsOperator(String gstin) {
+        if (gstin == null || gstin.isBlank()) return false;
+        return configRepo.findAll().stream().findFirst()
+                .flatMap(GstConfiguration::resolveTcsGstin)
+                .map(t -> t.trim().equalsIgnoreCase(gstin.trim())).orElse(false);
+    }
+
+    /** Hides GSTR-8 rows created earlier for sellers who are not the TCS operator. */
+    private List<FilingDeadline> visibleDeadlines(String gstin, List<FilingDeadline> all) {
+        if (isTcsOperator(gstin)) return all;
+        List<FilingDeadline> out = new ArrayList<>();
+        for (FilingDeadline d : all) if (!"GSTR-8".equals(d.getForm())) out.add(d);
+        return out;
     }
 
     public Map<String, Object> getComplianceDashboard(Long sellerId, String period) {
         String sellerGstin = resolveGstin(sellerId);
-        List<FilingDeadline> deadlines = deadlineRepo.findBySellerGstinOrderByDueDateAsc(sellerGstin);
+        List<FilingDeadline> deadlines = visibleDeadlines(sellerGstin,
+                deadlineRepo.findBySellerGstinOrderByDueDateAsc(sellerGstin));
         if (deadlines.isEmpty() && period != null) {
             syncDeadlines(sellerId, period);
-            deadlines = deadlineRepo.findBySellerGstinOrderByDueDateAsc(sellerGstin);
+            deadlines = visibleDeadlines(sellerGstin,
+                    deadlineRepo.findBySellerGstinOrderByDueDateAsc(sellerGstin));
         }
 
         List<Map<String, Object>> deadlineRows = new ArrayList<>();
@@ -274,6 +296,9 @@ public class ComplianceService {
         dashboard.put("gstnAdapter", gstnClient.getName());
         dashboard.put("simulated", gstnClient.isSimulated());
         dashboard.put("deadlines", deadlineRows);
+        dashboard.put("deadlineNote", "Due dates follow the standard monthly schedule. They do not "
+                + "reflect QRMP quarterly filing, government extensions or holidays - confirm on gst.gov.in "
+                + "before relying on them.");
         dashboard.put("deadlineSummary", Map.of(
                 "total", deadlines.size(),
                 "filed", filed,
@@ -309,11 +334,9 @@ public class ComplianceService {
                 .orElseGet(() -> sellerRegRepo.findByUserId(sellerId).map(SellerRegistration::getGstin).orElse(""));
     }
 
-    /** The marketplace's configured TCS rate, defaulting to the 0.5% prescribed by s.52. */
+    /** The s.52 TCS rate in force today (see master-data/statutory_rates.json). */
     public double resolveTcsRate(Long sellerId) {
-        Double rate = configRepo.findBySellerId(sellerId)
-                .map(GstConfiguration::getTcsRate).orElse(null);
-        return rate != null ? rate : 0.5;
+        return com.cauverystore.util.StatutoryRates.tcsRateOn(LocalDate.now());
     }
 
     public static String currentPeriod() {

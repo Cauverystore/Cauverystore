@@ -102,6 +102,9 @@ public class SitemapService {
         addUrl(xml, base, "/terms-and-conditions", POLICIES_LAST_UPDATED, langs);
         addUrl(xml, base, "/shipping-policy", POLICIES_LAST_UPDATED, langs);
         addUrl(xml, base, "/refund-policy", POLICIES_LAST_UPDATED, langs);
+        // The public "Sell on Cauvery Store" page. English only: it is not translated yet, and every
+        // language version points its canonical at the English address.
+        addUrl(xml, base, "/seller/register", null, List.of());
 
         // The all-products listing only counts once it actually lists something.
         if (!liveProducts.isEmpty()) {

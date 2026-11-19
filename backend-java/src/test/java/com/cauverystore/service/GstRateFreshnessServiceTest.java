@@ -168,6 +168,28 @@ class GstRateFreshnessServiceTest {
     }
 
     @Test
+    void shouldSeedTheNovember2026SetExactlyAsCbicListsIt() {
+        // The detector matches numbers as text. A seeded number that differs from CBIC's by a
+        // space would be recorded again as pending and its changes drafted a second time.
+        when(sourceRepo.findByNotificationNumber(any())).thenReturn(Optional.empty());
+        List<GstRateSource> saved = new ArrayList<>();
+        when(sourceRepo.save(any())).thenAnswer(i -> { saved.add(i.getArgument(0)); return i.getArgument(0); });
+
+        service.seedKnownSources();
+
+        List<String> numbers = saved.stream().map(GstRateSource::getNotificationNumber).toList();
+        assertEquals(4 + 27, numbers.size());
+        assertTrue(numbers.contains("02/2026-Central Tax (Rate)"));
+        assertTrue(numbers.contains("03/2026-Integrated Tax (Rate)"));
+        assertTrue(numbers.contains("06/2026- Integrated Tax (Rate)"));
+        assertTrue(numbers.contains("10/2026-Union Territory Tax (Rate)"));
+        assertTrue(saved.stream().allMatch(s -> Boolean.TRUE.equals(s.getApplied())));
+
+        when(sourceRepo.findAll()).thenReturn(saved);
+        assertEquals(LocalDate.of(2026, 11, 1), service.newestApplied().orElseThrow().getEffectiveFrom());
+    }
+
+    @Test
     void theDailyChaseShouldNeverThrow() {
         // It runs unattended; a failure to report must not take the scheduler down with it.
         when(sourceRepo.findAll()).thenThrow(new RuntimeException("database down"));

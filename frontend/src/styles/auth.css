@@ -50,7 +50,7 @@
   font-weight: var(--font-weight-medium);
   letter-spacing: -0.02em;
   margin-bottom: var(--spacing-1);
-  color: #14302f;
+  color: #004F5C;
 }
 
 .auth-subtitle {
@@ -346,7 +346,6 @@
 
 .auth-forgot-link {
   text-align: right;
-  margin-top: -var(--spacing-3);
   margin-bottom: var(--spacing-1);
 }
 
