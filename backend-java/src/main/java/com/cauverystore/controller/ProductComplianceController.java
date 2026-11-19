@@ -34,6 +34,7 @@ public class ProductComplianceController {
     private final ProductService productService;
     private final AuthorizationService auth;
     private final SellerAccessService sellerAccess;
+    private final ComplianceBulkService bulk;
 
     private Product accessibleProduct(Long productId) {
         Product p = productRepo.findById(productId)
@@ -169,6 +170,35 @@ public class ProductComplianceController {
     public ResponseEntity<List<ProductComplianceEvent>> history(@PathVariable Long productId) {
         accessibleProduct(productId);
         return ResponseEntity.ok(workflow.history(productId));
+    }
+
+    /**
+     * Spreadsheet of compliance details, one row per product, to fill in many products at
+     * once. scope=notLive (default) lists only products shoppers cannot see yet; scope=all lists all.
+     */
+    @GetMapping("/bulk/template.xlsx")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<byte[]> bulkTemplate(@RequestParam(defaultValue = "notLive") String scope) throws Exception {
+        byte[] file = bulk.template(!"all".equalsIgnoreCase(scope));
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=compliance-details.xlsx")
+                .contentType(org.springframework.http.MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file);
+    }
+
+    /** Saves the filled-in spreadsheet; publish=true also puts every product that now passes on sale. */
+    @PostMapping("/bulk/import")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<Map<String, Object>> bulkImport(@RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+                                                          @RequestParam(defaultValue = "false") boolean publish) throws Exception {
+        try {
+            Map<String, Object> result = bulk.importFile(file, publish);
+            productService.evictProductCache();
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /** Admin compliance dashboard: totals and one row per product. */
