@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import api from "../../api/axios";
 import writeExcelFile from "write-excel-file/universal";
 import { showMessage } from "../../components/ConfirmDialog";
+import { buildSalesSheet, buildProductSheet } from "./reportExcel";
 
 const AdminReports = () => {
   const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate()-30); return d.toISOString().split("T")[0]; });
@@ -38,19 +39,10 @@ const AdminReports = () => {
     URL.revokeObjectURL(url);
   };
 
-  const downloadExcel = async (data, filename) => {
-    if (!data || data.length === 0) return;
-    // One header row of every column that appears, then a row per record. A value that is not a
-    // plain string, number, boolean or date (an object or list) is written as text.
-    const columns = [];
-    data.forEach((row) => Object.keys(row).forEach((k) => { if (!columns.includes(k)) columns.push(k); }));
-    const cell = (v) => {
-      if (v === null || v === undefined || v === "") return null;
-      if (v instanceof Date || ["string", "number", "boolean"].includes(typeof v)) return v;
-      return JSON.stringify(v);
-    };
-    const rows = [columns, ...data.map((row) => columns.map((k) => cell(row[k])))];
-    const blob = await writeExcelFile(rows, { sheet: "Report" }).toBlob();
+  // Formatted workbook: title, period, labelled figures in rupees (see reportExcel.js).
+  const downloadExcel = async (sheet, filename) => {
+    const { data, ...options } = sheet;
+    const blob = await writeExcelFile(data, options, { fontFamily: "Calibri", fontSize: 11 }).toBlob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
@@ -88,7 +80,7 @@ const AdminReports = () => {
               </div>
               <div style={{ display:"flex", gap:"0.5rem" }}>
                 <button onClick={() => downloadCSV([salesReport], `sales-report-${from}-to-${to}.csv`)} style={{ padding:"0.4rem 1rem", background:"#16a34a", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>CSV</button>
-                <button onClick={() => downloadExcel([salesReport], `sales-report-${from}-to-${to}.xlsx`)} style={{ padding:"0.4rem 1rem", background:"#2563eb", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>Excel</button>
+                <button onClick={() => downloadExcel(buildSalesSheet(salesReport), `sales-report-${from}-to-${to}.xlsx`)} style={{ padding:"0.4rem 1rem", background:"#2563eb", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>Excel</button>
               </div>
             </div>
           )}
@@ -118,7 +110,7 @@ const AdminReports = () => {
               </div>
               <div style={{ display:"flex", gap:"0.5rem" }}>
                 <button onClick={() => downloadCSV(productReport, `product-report-${new Date().toISOString().split("T")[0]}.csv`)} style={{ padding:"0.4rem 1rem", background:"#16a34a", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>CSV</button>
-                <button onClick={() => downloadExcel(productReport, `product-report-${new Date().toISOString().split("T")[0]}.xlsx`)} style={{ padding:"0.4rem 1rem", background:"#2563eb", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>Excel</button>
+                <button onClick={() => downloadExcel(buildProductSheet(productReport), `product-report-${new Date().toISOString().split("T")[0]}.xlsx`)} style={{ padding:"0.4rem 1rem", background:"#2563eb", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>Excel</button>
               </div>
             </div>
           )}
