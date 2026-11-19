@@ -4,7 +4,9 @@ import { compressImages } from "../../utils/compressImage";
 import useAltText from "../../hooks/useAltText";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_SIZE = 2 * 1024 * 1024;
+// Photos are resized and compressed before upload, so the limit applies to the raw file
+// straight off a phone camera, not to what is sent.
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 export const MAX_IMAGES = 5;
 
 /**
@@ -51,7 +53,7 @@ export default function ProductImagePicker({ images, onChange, sectionStyle, tit
     const newErrors = [];
     const valid = Array.from(files).filter((f) => {
       if (!ACCEPTED_TYPES.includes(f.type)) { newErrors.push(`${f.name}: Invalid format. Use JPG, PNG, or WebP.`); return false; }
-      if (f.size > MAX_FILE_SIZE) { newErrors.push(`${f.name}: Exceeds 2MB limit.`); return false; }
+      if (f.size > MAX_FILE_SIZE) { newErrors.push(`${f.name}: Exceeds 10MB limit.`); return false; }
       return true;
     });
     if (valid.length + images.length > MAX_IMAGES) newErrors.push(`Maximum ${MAX_IMAGES} images allowed.`);
@@ -73,7 +75,7 @@ export default function ProductImagePicker({ images, onChange, sectionStyle, tit
           style={{ fontSize: "0.85rem" }}
         />
         <span style={{ fontSize: "0.75rem", color: "#64748B" }}>
-          Max {MAX_IMAGES} images, JPG/PNG/WebP, 2MB each
+          Max {MAX_IMAGES} images, JPG/PNG/WebP, 10MB each (resized automatically)
         </span>
       </div>
       {errors.length > 0 && (

@@ -27,8 +27,8 @@ test("picker accepts photos and rejects wrong type and big files", () => {
   const onChange = jest.fn();
   const { container } = render(<ProductImagePicker images={[]} onChange={onChange} />);
   expect(screen.getByText("Product Images")).toBeTruthy();
-  fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file("ok.jpg"), file("doc.pdf", "application/pdf"), file("huge.jpg", "image/jpeg", 3 * 1024 * 1024)] } });
+  fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file("ok.jpg"), file("doc.pdf", "application/pdf"), file("huge.jpg", "image/jpeg", 11 * 1024 * 1024)] } });
   expect(onChange.mock.calls[0][0].map((f) => f.name)).toEqual(["ok.jpg"]);
   expect(screen.getByText(/doc.pdf: Invalid format/)).toBeTruthy();
-  expect(screen.getByText(/huge.jpg: Exceeds 2MB/)).toBeTruthy();
+  expect(screen.getByText(/huge.jpg: Exceeds 10MB/)).toBeTruthy();
 });

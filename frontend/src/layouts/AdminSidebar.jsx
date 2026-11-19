@@ -29,6 +29,7 @@ const allLinks = [
   { to: "/admin/bulk-operations", label: "Bulk Operations", icon: Zap, module: "bulkOperations" },
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart, module: "orders" },
   { to: "/admin/refunds", label: "Refunds", icon: CreditCard, module: "refunds" },
+  { to: "/admin/finance", label: "Finance", icon: Wallet, module: "sellerPayouts" },
   { to: "/admin/seller-payouts", label: "Seller Payouts", icon: Wallet, module: "sellerPayouts" },
   { to: "/admin/erp-sync", label: "ERP Sync", icon: RefreshCw, module: "erpSync" },
   { to: "/admin/customers", label: "Customers", icon: Users, module: "customers" },

@@ -40,6 +40,20 @@ const AddProduct = () => {
   const [msg, setMsg] = useState(null);
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
   const [images, setImages] = useState([]);
+  const [commission, setCommission] = useState(null);
+
+  // Sellers see what the marketplace will charge and what they will receive before they list.
+  useEffect(() => {
+    if (!isSeller) return undefined;
+    const price = parseFloat(form.price);
+    if (!form.category || !price || price <= 0) { setCommission(null); return undefined; }
+    const t = setTimeout(() => {
+      api.get("/api/seller/commission-preview", { params: { categoryId: form.category, price } })
+        .then((r) => setCommission(r.data))
+        .catch(() => setCommission(null));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [isSeller, form.category, form.price]);
 
   const set = (k, v) => {
     const updated = { ...form, [k]: v };
@@ -53,8 +67,9 @@ const AddProduct = () => {
       const data = Array.isArray(res.data) ? res.data : [];
       if (data.length > 0) {
         const normalized = data.map((c) => (typeof c === "string" ? { id: null, name: c } : { id: c.id, name: c.name }));
+        // No category is preselected: the category decides the commission tier and the GST
+        // treatment, so the seller must choose it rather than inherit the first one in the list.
         setCategories(normalized);
-        setForm((f) => (f.category ? f : { ...f, category: normalized[0]?.id ?? "" }));
       }
     } catch {}
   };
@@ -69,6 +84,7 @@ const AddProduct = () => {
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
+    if (!form.category) e.category = "Choose a category";
     if (!form.price || parseFloat(form.price) <= 0) e.price = "Must be > 0";
     if (form.mrp && parseFloat(form.mrp) <= 0) e.mrp = "Must be > 0";
     else if (form.mrp && parseFloat(form.price) > parseFloat(form.mrp)) e.price = "Above the MRP";
@@ -83,7 +99,7 @@ const AddProduct = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (asDraft = false) => {
     if (!validate()) return;
     setSubmitting(true);
     setMsg(null);
@@ -111,6 +127,7 @@ const AddProduct = () => {
         deliveryDays: form.deliveryDays ? parseInt(form.deliveryDays) : null,
         badges: form.badges !== "None" ? [form.badges] : [],
         ...(isSeller ? {} : { sellerId: form.sellerId }),
+        ...(asDraft ? { productStatus: "draft" } : {}),
       };
       const endpoint = isSeller ? "/api/seller/products" : "/api/admin/products/add";
       const res = await api.post(endpoint, data);
@@ -128,11 +145,13 @@ const AddProduct = () => {
       }
       // A seller's listing is reviewed by an admin before shoppers can see it.
       setMsg({ type: "success", text: isSeller
-        ? `Product saved${images.length > 0 ? " with images" : ""}. Next, fill in its compliance details; it goes on sale once they pass and an admin approves it.`
+        ? asDraft
+          ? `Draft saved${images.length > 0 ? " with images" : ""}. It stays hidden until you publish it.`
+          : `Product saved${images.length > 0 ? " with images" : ""}. Next, fill in its compliance details; it goes on sale once they pass and an admin approves it.`
         : `Product created${images.length > 0 ? " with images" : ""}. Now add its compliance details; it stays off sale until they pass.` });
       // Admins go straight to the compliance details, which decide whether it can go on sale.
       setTimeout(() => {
-        if (!productId) navigate(redirectPath);
+        if (!productId || asDraft) navigate(redirectPath);
         else if (isSeller) navigate(`/seller/products/wizard/${productId}`, { state: { step: 2 } });
         else navigate(`/admin/products/${productId}/compliance`);
       }, isSeller ? 2000 : 1200);
@@ -226,6 +245,7 @@ const AddProduct = () => {
               <option value="">Select category</option>
               {categories.map(c => <option key={c.id ?? c.name} value={c.id ?? ""}>{c.name}{c.requiredLicence ? ` (needs ${c.requiredLicence === "FSSAI" ? "FSSAI" : c.requiredLicence.replace("_", " ").toLowerCase()} licence)` : ""}</option>)}
             </select>
+            {errors.category && <div style={S.error}>{errors.category}</div>}
           </div>
         </div>
         {fld("Description", "description", "textarea")}
@@ -243,6 +263,27 @@ const AddProduct = () => {
           {fld("Stock *", "stock", "number")}
           {fld("SKU", "sku")}
         </div>
+        {isSeller && !form.category && form.price && (
+          <div style={S.hint}>Choose a category to see the commission and what you will receive.</div>
+        )}
+        {isSeller && commission?.available && (
+          <div style={{ marginTop: "0.75rem", padding: "0.75rem 1rem", background: "#EAF7EE", border: "1px solid #CFE8D6", borderRadius: 6, fontSize: "0.85rem", color: "#0B3D2E" }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>
+              If this sells in a single-item order{commission.launchOffer ? " (launch offer applied)" : ""}
+            </div>
+            <div>Selling price: {"₹"}{commission.price.toFixed(2)}</div>
+            <div>Commission ({commission.commissionPercent}%): {"−₹"}{commission.commission.toFixed(2)}</div>
+            <div>Handling fee per order: {"−₹"}{commission.handlingFee.toFixed(2)}</div>
+            <div>Payment gateway fees (incl. GST): {"−₹"}{commission.paymentFees.toFixed(2)}</div>
+            <div style={{ fontWeight: 700, marginTop: 4 }}>You receive about {"₹"}{commission.sellerNet.toFixed(2)} before taxes on fees</div>
+            <div style={{ color: "#64748B", fontSize: "0.75rem", marginTop: 4 }}>
+              An estimate before GST on our fees and tax collected at source, which are shown on your commission invoice and tax statements. Paid {commission.payoutDelayDays} days after delivery.
+            </div>
+          </div>
+        )}
+        {isSeller && commission && commission.available === false && form.category && form.price && (
+          <div style={S.hint}>No commission rate is set for this category yet, so we cannot show an estimate. Ask support before listing.</div>
+        )}
       </div>
 
       {/* Product Details */}
@@ -357,14 +398,23 @@ const AddProduct = () => {
           }}>
           Cancel
         </button>
-        <button onClick={handleSubmit} disabled={submitting}
+        {isSeller && (
+          <button onClick={() => handleSubmit(true)} disabled={submitting}
+            style={{
+              padding: "10px 20px", border: "1px solid #2E9B57", borderRadius: "6px",
+              background: "#fff", color: "#2E9B57", cursor: submitting ? "not-allowed" : "pointer", fontWeight: 600, fontSize: "0.9rem"
+            }}>
+            Save as draft
+          </button>
+        )}
+        <button onClick={() => handleSubmit(false)} disabled={submitting}
           style={{
             padding: "10px 32px",
             background: submitting ? "#94a3b8" : "#00788C",
             color: "#fff", border: "none", borderRadius: "6px",
             cursor: submitting ? "not-allowed" : "pointer", fontWeight: 600, fontSize: "0.9rem"
           }}>
-          {submitting ? "Creating..." : "Create Product"}
+          {submitting ? "Saving..." : (isSeller ? "Submit for approval" : "Create Product")}
         </button>
       </div>
     </div>

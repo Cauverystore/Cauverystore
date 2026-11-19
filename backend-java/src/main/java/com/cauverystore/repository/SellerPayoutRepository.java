@@ -15,4 +15,9 @@ public interface SellerPayoutRepository extends JpaRepository<SellerPayout, Long
 
     /** The same bank reference entered twice for one seller is a double entry, not two payments. */
     boolean existsBySellerIdAndReferenceIgnoreCaseAndVoidedFalse(Long sellerId, String reference);
+
+    /** For matching a bank statement line back to the payment that caused it. */
+    List<SellerPayout> findByReferenceIgnoreCaseAndVoidedFalse(String reference);
+
+    List<SellerPayout> findByVoidedFalseAndReconciledAtIsNull();
 }

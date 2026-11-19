@@ -24,8 +24,9 @@ const SellerStore = () => {
         storeSlug: data.storeSlug || "",
         description: data.description || "",
         address: data.address || "",
-        contactPhone: data.contactPhone || "",
-        contactEmail: data.contactEmail || "",
+        // New stores start with empty contact fields; offer the account's own details as a starting point.
+        contactPhone: data.contactPhone || data.phone || "",
+        contactEmail: data.contactEmail || data.email || "",
         returnPolicy: data.returnPolicy || "",
         shippingPolicy: data.shippingPolicy || "",
       });
@@ -161,7 +162,10 @@ const SellerStore = () => {
             </div>
             <div>
               <span style={labelStyle}>Store Status</span>
-              <div style={{ padding: "0.5rem 0", color: store?.status === "ACTIVE" ? "#22c55e" : "#ef4444", fontSize: "0.875rem", fontWeight: 600 }}>{store?.status || "N/A"}</div>
+              <div style={{ padding: "0.5rem 0", color: store?.status === "ACTIVE" ? "#22c55e" : store?.status === "PENDING" ? "#d97706" : "#ef4444", fontSize: "0.875rem", fontWeight: 600 }}>{store?.status === "PENDING" ? "Pending approval" : store?.status || "N/A"}</div>
+              {store?.status === "PENDING" && (
+                <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>An admin reviews new stores before products go on sale.</div>
+              )}
             </div>
           </div>
         </div>
