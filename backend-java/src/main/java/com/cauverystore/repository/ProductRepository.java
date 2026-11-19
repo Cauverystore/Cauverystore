@@ -89,6 +89,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByApprovalStatus(String approvalStatus);
 
+    /** Whether another product already uses this SKU (compliance spreadsheet refuses duplicates). */
+    boolean existsBySkuIgnoreCaseAndIdNot(String sku, Long id);
+
     @Query("SELECT p.sellerId, COUNT(p) FROM Product p GROUP BY p.sellerId")
     List<Object[]> countBySellerGrouped();
 
