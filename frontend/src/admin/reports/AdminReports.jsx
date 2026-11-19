@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import api from "../../api/axios";
 import writeExcelFile from "write-excel-file/universal";
 import { showMessage } from "../../components/ConfirmDialog";
-import { buildSalesSheet, buildProductSheet } from "./reportExcel";
+import { buildSalesSheet, buildProductSheet, buildCategorySheet, buildItemsSheet } from "./reportExcel";
 
 const AdminReports = () => {
   const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate()-30); return d.toISOString().split("T")[0]; });
@@ -40,12 +40,37 @@ const AdminReports = () => {
   };
 
   // Formatted workbook: title, period, labelled figures in rupees (see reportExcel.js).
+  // One sheet, or several (an array) written into one workbook.
   const downloadExcel = async (sheet, filename) => {
-    const { data, ...options } = sheet;
-    const blob = await writeExcelFile(data, options, { fontFamily: "Calibri", fontSize: 11 }).toBlob();
+    const font = { fontFamily: "Calibri", fontSize: 11 };
+    let blob;
+    if (Array.isArray(sheet)) {
+      blob = await writeExcelFile(sheet, font).toBlob();
+    } else {
+      const { data, ...options } = sheet;
+      blob = await writeExcelFile(data, options, font).toBlob();
+    }
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Sales workbook: summary, sales by category, and every item sold grouped by category.
+  const downloadSalesExcel = async () => {
+    let items = [];
+    try {
+      const res = await api.get(`/api/admin/reports/sales/items?from=${from}&to=${to}`);
+      items = Array.isArray(res.data) ? res.data : [];
+    } catch {
+      showMessage("Could not load the order items, so the file has the summary only.");
+      await downloadExcel(buildSalesSheet(salesReport), `sales-report-${from}-to-${to}.xlsx`);
+      return;
+    }
+    await downloadExcel([
+      buildSalesSheet(salesReport),
+      buildCategorySheet(salesReport, items),
+      buildItemsSheet(salesReport, items),
+    ], `sales-report-${from}-to-${to}.xlsx`);
   };
 
   const inp = { padding:"0.4rem 0.5rem", border:"1px solid #d1d5db", borderRadius:5, fontSize:"0.85rem" };
@@ -80,7 +105,7 @@ const AdminReports = () => {
               </div>
               <div style={{ display:"flex", gap:"0.5rem" }}>
                 <button onClick={() => downloadCSV([salesReport], `sales-report-${from}-to-${to}.csv`)} style={{ padding:"0.4rem 1rem", background:"#16a34a", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>CSV</button>
-                <button onClick={() => downloadExcel(buildSalesSheet(salesReport), `sales-report-${from}-to-${to}.xlsx`)} style={{ padding:"0.4rem 1rem", background:"#2563eb", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>Excel</button>
+                <button onClick={downloadSalesExcel} style={{ padding:"0.4rem 1rem", background:"#2563eb", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontSize:"0.8rem" }}>Excel</button>
               </div>
             </div>
           )}

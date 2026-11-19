@@ -1,7 +1,10 @@
 package com.cauverystore.service;
 
 import com.cauverystore.repository.*;
+import com.cauverystore.entities.Order;
+import com.cauverystore.entities.OrderItem;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -22,6 +25,48 @@ public class ReportService {
         this.orderRepo = orderRepo; this.orderItemRepo = orderItemRepo;
         this.productRepo = productRepo; this.userRepo = userRepo;
         this.refundRepo = refundRepo; this.couponRepo = couponRepo;
+    }
+
+    /**
+     * Every item sold in orders placed between {@code from} and {@code to} (inclusive), for the
+     * itemised sheets of the sales report: sorted by category, then order date and order.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getSalesItems(LocalDate from, LocalDate to) {
+        return itemRows(orderRepo.findByCreatedAtBetween(from.atStartOfDay(), to.plusDays(1).atStartOfDay()));
+    }
+
+    static final String NO_CATEGORY = "Uncategorised";
+
+    static List<Map<String, Object>> itemRows(Collection<Order> orders) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Order o : orders) {
+            if (o == null || o.getItems() == null) continue;
+            for (OrderItem item : o.getItems()) {
+                var product = item.getProduct();
+                String category = product != null && product.getCategory() != null
+                        && product.getCategory().getName() != null && !product.getCategory().getName().isBlank()
+                        ? product.getCategory().getName() : NO_CATEGORY;
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("orderId", o.getId());
+                m.put("orderDate", o.getCreatedAt() != null ? o.getCreatedAt().toLocalDate().toString() : null);
+                m.put("orderStatus", o.getStatus());
+                m.put("category", category);
+                m.put("productId", product != null ? product.getId() : null);
+                m.put("productName", product != null ? product.getName() : "(deleted product)");
+                m.put("sku", product != null ? product.getSku() : null);
+                m.put("quantity", item.getQuantity());
+                m.put("unitPrice", item.getPrice());
+                m.put("lineTotal", Math.round(item.getPrice() * item.getQuantity() * 100.0) / 100.0);
+                rows.add(m);
+            }
+        }
+        rows.sort(Comparator
+                .comparing((Map<String, Object> r) -> NO_CATEGORY.equals(r.get("category")) ? 1 : 0)
+                .thenComparing(r -> ((String) r.get("category")).toLowerCase())
+                .thenComparing(r -> r.get("orderDate") == null ? "" : (String) r.get("orderDate"))
+                .thenComparing(r -> r.get("orderId") == null ? 0L : ((Number) r.get("orderId")).longValue()));
+        return rows;
     }
 
     public Map<String, Object> getSalesReport(LocalDate from, LocalDate to) {
