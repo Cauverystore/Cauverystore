@@ -53,6 +53,7 @@ class ComplianceBulkServiceTest {
     void downloadedSheetReadsBackWithTheTypedDetails() throws Exception {
         byte[] file = filledSheet(s -> {
             set(s, 1, ComplianceBulkService.MRP, 599);
+            set(s, 1, ComplianceBulkService.SKU, "CS-HK-0001");
             set(s, 1, ComplianceBulkService.NET, 2);
             set(s, 1, ComplianceBulkService.UNIT, "pcs");
             set(s, 1, ComplianceBulkService.GROSS, 750);
@@ -66,6 +67,7 @@ class ComplianceBulkServiceTest {
         ComplianceBulkService.Changes c = ((ComplianceBulkService.RowOf) rows.get(0)).changes();
         assertEquals(101L, c.productId());
         assertEquals(599.0, c.mrp());
+        assertEquals("CS-HK-0001", c.sku());
         assertEquals(0, new BigDecimal("2").compareTo(c.net()));
         assertEquals("N (number)", c.unit());
         assertEquals("Example Plastics", c.manufacturer());
@@ -114,7 +116,7 @@ class ComplianceBulkServiceTest {
         c.setManufacturerName("Kept Ltd");
         c.setNetQuantity(new BigDecimal("4"));
         ComplianceBulkService.apply(new ComplianceBulkService.Changes(1L, null, null, "set", null, null,
-                "New address", null, null, null, null, null, null, null, null, null, null), c);
+                "New address", null, null, null, null, null, null, null, null, null, null, null), c);
         assertEquals("Kept Ltd", c.getManufacturerName());
         assertEquals(0, new BigDecimal("4").compareTo(c.getNetQuantity()));
         assertEquals("set", c.getQuantityUnit());
@@ -145,7 +147,7 @@ class ComplianceBulkServiceTest {
 
     private static ComplianceBulkService.Changes changes(Double mrp) {
         return new ComplianceBulkService.Changes(101L, mrp, new BigDecimal("1"), "N (number)", new BigDecimal("300"),
-                "Maker", "Address", true, null, null, null, null, null, null, null, null, null);
+                "Maker", "Address", true, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Test
@@ -155,6 +157,31 @@ class ComplianceBulkServiceTest {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> s.service().importRow(changes(199.0), false));
         assertTrue(e.getMessage().contains("below the selling price"));
         verify(s.productService(), never()).updateProduct(anyLong(), any());
+    }
+
+    @Test
+    void anSkuAnotherProductUsesIsRefused() {
+        Setup s = setup();
+        when(s.products().findById(101L)).thenReturn(Optional.of(product(101, 289)));
+        when(s.products().existsBySkuIgnoreCaseAndIdNot("CS-1", 101L)).thenReturn(true);
+        var ch = new ComplianceBulkService.Changes(101L, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, "CS-1");
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> s.service().importRow(ch, false));
+        assertTrue(e.getMessage().contains("already used"));
+        verify(s.productService(), never()).updateProduct(anyLong(), any());
+    }
+
+    @Test
+    void aNewSkuIsSavedOnTheProduct() {
+        Setup s = setup();
+        Product p = product(101, 289);
+        when(s.products().findById(101L)).thenReturn(Optional.of(p));
+        when(s.productService().updateProduct(eq(101L), any())).thenReturn(p);
+        when(s.engine().check(101L)).thenReturn(result(false));
+        var ch = new ComplianceBulkService.Changes(101L, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, "CS-2");
+        s.service().importRow(ch, false);
+        verify(s.productService()).updateProduct(eq(101L), argThat(x -> "CS-2".equals(x.getSku()) && x.getMrp() == null));
     }
 
     @Test

@@ -37,6 +37,7 @@ public class ComplianceBulkService {
     static final String CODE = "Product Code";
     static final String NAME = "Product Name";
     static final String PRICE = "Selling Price (Rs)";
+    static final String SKU = "SKU";
     static final String MRP = "MRP (Rs)";
     static final String NET = "Net Quantity";
     static final String UNIT = "Unit";
@@ -55,7 +56,7 @@ public class ComplianceBulkService {
     static final String MAX_QTY = "Max Order Qty";
     static final String MISSING = "Still missing (when downloaded)";
 
-    static final List<String> HEADERS = List.of(ID, CODE, NAME, PRICE, MRP, NET, UNIT, GROSS, MFR, MFR_ADDR,
+    static final List<String> HEADERS = List.of(ID, CODE, NAME, PRICE, SKU, MRP, NET, UNIT, GROSS, MFR, MFR_ADDR,
             PACKER_SAME, PACKER, PACKER_ADDR, IMPORTER, IMPORTER_ADDR, STATE, CARE_PHONE, CARE_EMAIL,
             MIN_QTY, MAX_QTY, MISSING);
 
@@ -120,7 +121,7 @@ public class ComplianceBulkService {
     static Object[] rowFor(Product p, ProductCompliance c, String missing) {
         boolean has = c != null;
         return new Object[]{
-                p.getId(), p.getProductCode(), p.getName(), p.getPrice(), p.getMrp(),
+                p.getId(), p.getProductCode(), p.getName(), p.getPrice(), p.getSku(), p.getMrp(),
                 has ? c.getNetQuantity() : null, has ? c.getQuantityUnit() : null, has ? c.getGrossQuantity() : null,
                 has && c.getManufacturerName() != null ? c.getManufacturerName() : p.getManufacturer(),
                 has ? c.getManufacturerAddress() : null,
@@ -166,7 +167,7 @@ public class ComplianceBulkService {
                     if (infoCols.contains(i)) cell.setCellStyle(locked);
                 }
             }
-            int[] widths = {14, 14, 40, 12, 10, 10, 8, 10, 28, 44, 16, 24, 40, 24, 40, 16, 18, 26, 10, 10, 60};
+            int[] widths = {14, 14, 40, 12, 22, 10, 10, 8, 10, 28, 44, 16, 24, 40, 24, 40, 16, 18, 26, 10, 10, 60};
             for (int i = 0; i < widths.length; i++) sheet.setColumnWidth(i, widths[i] * 256);
             sheet.createFreezePane(3, 1);
 
@@ -180,6 +181,7 @@ public class ComplianceBulkService {
                     "Fill in one row per product on the first sheet. Grey columns are for reference and are not read.",
                     "Leave a cell empty to keep what the product already has. Nothing is ever cleared by an empty cell.",
                     "Do not change Product ID: it decides which product a row updates.",
+                    "SKU: your own stock code for the product. Each product needs a different one.",
                     "MRP: the maximum retail price printed on the pack, in rupees. It must be at least the selling price.",
                     "Net Quantity + Unit: what is in the pack, e.g. 2 and N (number) for two pieces, or 500 and ml.",
                     "Units: N (number) = pieces, pair, set, g, kg, ml, l, mm, cm, m, sq m.",
@@ -210,7 +212,7 @@ public class ComplianceBulkService {
     record Changes(Long productId, Double mrp, BigDecimal net, String unit, BigDecimal gross,
                    String manufacturer, String manufacturerAddress, Boolean packerSame, String packer,
                    String packerAddress, String importer, String importerAddress, String state,
-                   String carePhone, String careEmail, Integer minQty, Integer maxQty) {
+                   String carePhone, String careEmail, Integer minQty, Integer maxQty, String sku) {
         boolean empty() {
             return mrp == null && net == null && unit == null && gross == null && manufacturer == null
                     && manufacturerAddress == null && packerSame == null && packer == null && packerAddress == null
@@ -289,7 +291,7 @@ public class ComplianceBulkService {
                 text(cell(row, cols, PACKER)), text(cell(row, cols, PACKER_ADDR)),
                 text(cell(row, cols, IMPORTER)), text(cell(row, cols, IMPORTER_ADDR)),
                 text(cell(row, cols, STATE)), phone(row, cols), text(cell(row, cols, CARE_EMAIL)),
-                whole(row, cols, MIN_QTY), whole(row, cols, MAX_QTY));
+                whole(row, cols, MIN_QTY), whole(row, cols, MAX_QTY), text(cell(row, cols, SKU)));
     }
 
     /** Copies the filled-in details onto the record; empty cells leave the record alone. */
@@ -384,14 +386,20 @@ public class ComplianceBulkService {
     Outcome saveRow(Changes ch) {
         Product p = productRepo.findById(ch.productId())
                 .orElseThrow(() -> new IllegalArgumentException("No product with ID " + ch.productId() + "."));
-        if (ch.mrp() != null) {
-            if (p.getPrice() != null && ch.mrp() < p.getPrice()) {
-                throw new IllegalArgumentException("MRP " + ch.mrp() + " is below the selling price " + p.getPrice()
-                        + ". The MRP must be at least the price the customer pays.");
-            }
+        boolean newSku = ch.sku() != null && !ch.sku().equals(p.getSku());
+        if (newSku && productRepo.existsBySkuIgnoreCaseAndIdNot(ch.sku(), p.getId())) {
+            throw new IllegalArgumentException("SKU '" + ch.sku() + "' is already used by another product. "
+                    + "Each product needs its own SKU.");
+        }
+        if (ch.mrp() != null && p.getPrice() != null && ch.mrp() < p.getPrice()) {
+            throw new IllegalArgumentException("MRP " + ch.mrp() + " is below the selling price " + p.getPrice()
+                    + ". The MRP must be at least the price the customer pays.");
+        }
+        if (ch.mrp() != null || newSku) {
             Product change = new Product();
             change.setActive(p.isActive());   // a bare Product is active; never flip it from here
-            change.setMrp(ch.mrp());
+            if (ch.mrp() != null) change.setMrp(ch.mrp());
+            if (newSku) change.setSku(ch.sku());
             p = productService.updateProduct(p.getId(), change);
         }
         if (!ch.empty()) {
