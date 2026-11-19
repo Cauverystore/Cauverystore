@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { ScoreBadge } from "./ComplianceEditor";
+import ComplianceBulkExcel from "./ComplianceBulkExcel";
 import { CATEGORY_TYPES, STATUS_LABEL } from "./complianceFields";
 
 /*
@@ -77,6 +78,8 @@ const ComplianceDashboard = () => {
       </div>
 
       {error && <div style={{ ...card, background: "#fef2f2", color: "#b91c1c", marginBottom: "1rem" }}>{error}</div>}
+
+      <ComplianceBulkExcel onDone={load} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.6rem", marginBottom: "1rem" }}>
         <Tile label="Total products" value={t.total} active={quick === "all"} onClick={() => setQuick("all")} />
