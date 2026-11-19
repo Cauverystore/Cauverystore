@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import api from "../../api/axios";
-import * as XLSX from "xlsx";
+import writeExcelFile from "write-excel-file/universal";
 import { showMessage } from "../../components/ConfirmDialog";
 
 const AdminReports = () => {
@@ -38,12 +38,22 @@ const AdminReports = () => {
     URL.revokeObjectURL(url);
   };
 
-  const downloadExcel = (data, filename) => {
+  const downloadExcel = async (data, filename) => {
     if (!data || data.length === 0) return;
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Report");
-    XLSX.writeFile(wb, filename);
+    // One header row of every column that appears, then a row per record. A value that is not a
+    // plain string, number, boolean or date (an object or list) is written as text.
+    const columns = [];
+    data.forEach((row) => Object.keys(row).forEach((k) => { if (!columns.includes(k)) columns.push(k); }));
+    const cell = (v) => {
+      if (v === null || v === undefined || v === "") return null;
+      if (v instanceof Date || ["string", "number", "boolean"].includes(typeof v)) return v;
+      return JSON.stringify(v);
+    };
+    const rows = [columns, ...data.map((row) => columns.map((k) => cell(row[k])))];
+    const blob = await writeExcelFile(rows, { sheet: "Report" }).toBlob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
   };
 
   const inp = { padding:"0.4rem 0.5rem", border:"1px solid #d1d5db", borderRadius:5, fontSize:"0.85rem" };
