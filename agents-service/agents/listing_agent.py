@@ -115,6 +115,7 @@ def run(store: StoreClient, ai: AiClient, batch_size: int, max_minutes: int = 45
         if categories is None:
             categories = store.categories()
         jid = job["id"]
+        log.info("Job %s: drafting %s", jid, job.get("sourceUrl", ""))
         try:
             draft = draft_one(job, ai, categories)
             store.send_draft(jid, draft)

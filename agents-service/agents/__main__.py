@@ -67,7 +67,7 @@ def main(argv: list[str]) -> int:
             log.error("Could not talk to the store: %s", e)
             return 1
         except Exception as e:
-            log.error("Could not reach the store: %s", e)
+            log.error("The run stopped with an unexpected problem: %s", e)
             return 1
         log.info("Listing Agent finished: %s", summary)
         return 0 if summary["errors"] == 0 else 1

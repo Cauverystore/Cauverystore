@@ -9,9 +9,14 @@ the provider is chosen only by AI_BASE_URL / AI_API_KEY / AI_MODEL:
 """
 
 import json
+import logging
 import re
+import time
 
 from .http import HttpError, request_json
+
+
+log = logging.getLogger("agents")
 
 
 class AiError(Exception):
@@ -39,6 +44,7 @@ class AiClient:
         body = {
             "model": self.model,
             "temperature": 0.4,
+            "max_tokens": 1200,  # a listing never needs more; stops a slow model rambling on
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -47,7 +53,16 @@ class AiClient:
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
-        res = request_json("POST", f"{self.base_url}/chat/completions", body, headers, timeout=self.timeout)
+        started = time.monotonic()
+        try:
+            res = request_json("POST", f"{self.base_url}/chat/completions", body, headers, timeout=self.timeout)
+        except HttpError:
+            raise
+        except (TimeoutError, OSError) as e:  # socket timeout or connection error from the AI itself
+            if "timed out" in str(e).lower() or isinstance(e, TimeoutError):
+                raise AiError(f"The AI brain took longer than {self.timeout // 60} minutes to answer.") from None
+            raise AiError(f"Could not reach the AI brain: {e}") from None
+        log.info("AI answered in %.0f seconds.", time.monotonic() - started)
         try:
             content = res["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
