@@ -35,7 +35,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.security.SecureRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -121,6 +121,40 @@ public class AuthService {
      */
     private static final int LOCKOUT_MINUTES = 15;
 
+    /** For one-time codes. java.util.Random is predictable and must not be used for these. */
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    static String newSixDigitCode() {
+        return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+    }
+
+    /**
+     * Counts one more wrong password or authenticator code against the account and starts the
+     * lockout once the limit is reached. Returns how many attempts are left (0 once locked).
+     */
+    private int recordFailedAttempt(User user) {
+        user.setFailedLoginAttempts(user.getFailedLoginAttempts() != null
+                ? user.getFailedLoginAttempts() + 1 : 1);
+        int remaining = MAX_LOGIN_ATTEMPTS - user.getFailedLoginAttempts();
+        if (remaining <= 0) {
+            user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCKOUT_MINUTES));
+        }
+        userRepo.save(user);
+        auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
+        return Math.max(0, remaining);
+    }
+
+    private void refuseIfLocked(User user) {
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            long minutes = Math.max(1, java.time.Duration.between(
+                    LocalDateTime.now(), user.getLockedUntil()).toMinutes() + 1);
+            auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
+            throw new AuthenticationFailedException("Account locked due to too many failed "
+                    + "attempts. Try again in " + minutes + " minute(s), or reset your password "
+                    + "to unlock it now.");
+        }
+    }
+
     public AuthResponse authenticate(LoginRequest request) {
         return authenticate(request, null, null);
     }
@@ -158,14 +192,7 @@ public class AuthService {
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            user.setFailedLoginAttempts(user.getFailedLoginAttempts() != null
-                    ? user.getFailedLoginAttempts() + 1 : 1);
-            int remaining = MAX_LOGIN_ATTEMPTS - user.getFailedLoginAttempts();
-            if (remaining <= 0) {
-                user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCKOUT_MINUTES));
-            }
-            userRepo.save(user);
-            auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
+            int remaining = recordFailedAttempt(user);
             if (remaining <= 0) {
                 throw new AuthenticationFailedException("Account locked due to too many failed "
                         + "attempts. Try again in " + LOCKOUT_MINUTES + " minutes, or reset your "
@@ -198,8 +225,14 @@ public class AuthService {
             }
         }
 
-        user.setFailedLoginAttempts(0);
-        user.setLockedUntil(null);
+        // With an authenticator code still to come, the password alone is not a successful
+        // sign-in: the failed-attempt count carries on into the code step, so alternating
+        // a correct password with code guesses never resets it.
+        boolean codeStillToCome = Boolean.TRUE.equals(user.getMfaEnabled());
+        if (!codeStillToCome) {
+            user.setFailedLoginAttempts(0);
+            user.setLockedUntil(null);
+        }
         user.setLastLoginAt(LocalDateTime.now());
 
         passwordPolicyService.applyExpiry(user);
@@ -234,6 +267,7 @@ public class AuthService {
         response.setRole(roles.get(0));
         response.setRoles(roles);
         response.setUserId(user.getId());
+        response.setMfaToken(jwtUtil.generateMfaToken(user.getId(), user.getTokenVersion(), roles.get(0)));
         response.setMessage("Two-factor verification required. Enter the code from your authenticator app.");
         return response;
     }
@@ -514,7 +548,10 @@ public class AuthService {
         String email = normalizeEmail(rawEmail);
         User user = userRepo.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("User not found with email: " + email);
+            // Same reply as for a real account, so this form cannot be used to find out
+            // which email addresses have an account here.
+            log.info("Password reset code requested for an email with no account");
+            return;
         }
 
         EmailOtp emailOtp = emailOtpRepo.findByEmailAndPurpose(email, "PASSWORD_RESET");
@@ -523,7 +560,7 @@ public class AuthService {
             throw new AuthenticationFailedException("Please wait a minute before requesting another code.");
         }
 
-        String otp = String.format("%06d", new Random().nextInt(999999));
+        String otp = newSixDigitCode();
         if (emailOtp == null) {
             emailOtp = new EmailOtp();
             emailOtp.setEmail(email);
@@ -543,7 +580,7 @@ public class AuthService {
         String email = normalizeEmail(rawEmail);
         User user = userRepo.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("User not found");
+            throw new AuthenticationFailedException("Invalid OTP");
         }
         log.info("Password reset: id={}, email={}, failedLoginAttemptsBefore={}", user.getId(), user.getEmail(), user.getFailedLoginAttempts());
         EmailOtp emailOtp = emailOtpRepo.findByEmailAndPurpose(email, "PASSWORD_RESET");
@@ -565,11 +602,13 @@ public class AuthService {
             emailOtpRepo.save(emailOtp);
             throw new AuthenticationFailedException("Invalid OTP");
         }
-        emailOtp.setUsed(true);
-        emailOtpRepo.save(emailOtp);
-
+        // Check the new password before using up the code: a password that is too weak
+        // should mean "try another password", not "start over and wait for a new email".
         passwordPolicyService.validateComplexity(newPassword);
         passwordPolicyService.checkHistory(user, newPassword);
+
+        emailOtp.setUsed(true);
+        emailOtpRepo.save(emailOtp);
         passwordPolicyService.recordNewPassword(user, newPassword);
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
@@ -586,7 +625,8 @@ public class AuthService {
         String email = normalizeEmail(rawEmail);
         User user = userRepo.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("User not found with email: " + email);
+            log.info("Password reset link requested for an email with no account");
+            return;
         }
 
         PasswordResetToken resetToken = passwordResetTokenRepo.findByEmail(email);
@@ -631,13 +671,16 @@ public class AuthService {
             throw new AuthenticationFailedException("Invalid or expired reset link");
         }
 
-        resetToken.setUsed(true);
-        passwordResetTokenRepo.save(resetToken);
-
+        // As with the emailed code: check the new password before using up the link.
         passwordPolicyService.validateComplexity(newPassword);
         passwordPolicyService.checkHistory(user, newPassword);
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepo.save(resetToken);
         passwordPolicyService.recordNewPassword(user, newPassword);
         user.setFailedLoginAttempts(0);
+        // The lockout message promises that resetting the password unlocks the account.
+        user.setLockedUntil(null);
         user.setMustResetPassword(false);
         user.invalidateSessions();
         sessionService.revokeAllForUser(user.getId());
@@ -692,20 +735,46 @@ public class AuthService {
         return Map.of("enabled", false, "message", "Two-factor authentication disabled");
     }
 
-    public AuthResponse loginMfa(String rawEmail, String otp, String ipAddress, String userAgent) {
-        String email = normalizeEmail(rawEmail);
-        User user = userRepo.findByEmail(email);
-        if (user == null) {
-            throw new AuthenticationFailedException("Invalid request");
+    /**
+     * Second step of a sign-in for an account with an authenticator app. It needs the ticket
+     * handed out by a correct password in the first step - the code never replaces the
+     * password - and wrong codes count towards the same lockout as wrong passwords.
+     */
+    public AuthResponse loginMfa(String mfaToken, String otp, String ipAddress, String userAgent) {
+        io.jsonwebtoken.Claims ticket = jwtUtil.parseMfaToken(mfaToken);
+        if (ticket == null) {
+            throw new AuthenticationFailedException(
+                    "Your sign-in has expired. Please enter your password again.");
+        }
+        Long userId = ticket.get("userId", Long.class);
+        User user = userId != null ? userRepo.findById(userId).orElse(null) : null;
+        Integer ticketVersion = ticket.get("tokenVersion", Integer.class);
+        int currentVersion = user != null && user.getTokenVersion() != null ? user.getTokenVersion() : 0;
+        if (user == null || (ticketVersion != null ? ticketVersion : 0) != currentVersion) {
+            throw new AuthenticationFailedException(
+                    "Your sign-in has expired. Please enter your password again.");
         }
         if (!Boolean.TRUE.equals(user.getMfaEnabled())) {
             throw new AuthenticationFailedException("Two-factor authentication is not enabled for this account");
         }
-        if (!totpService.verify(otp, cryptoUtil.decrypt(user.getMfaSecret()))) {
+        refuseIfLocked(user);
+        boolean windingDown = "SUSPENDED".equals(user.getStatus());
+        if ((!"ACTIVE".equals(user.getStatus()) && !windingDown) || (!user.isActive() && !windingDown)) {
             auditService.logLogin(user.getEmail(), user.getRole() != null ? user.getRole().name() : "UNKNOWN", false);
-            throw new AuthenticationFailedException("Invalid authenticator code");
+            throw new AuthenticationFailedException("Account is not active");
         }
-        return issueTokens(user, null, ipAddress, userAgent);
+        if (otp == null || !totpService.verify(otp.trim(), cryptoUtil.decrypt(user.getMfaSecret()))) {
+            int remaining = recordFailedAttempt(user);
+            if (remaining <= 0) {
+                throw new AuthenticationFailedException("Account locked due to too many failed "
+                        + "attempts. Try again in " + LOCKOUT_MINUTES + " minutes, or reset your "
+                        + "password to unlock it now.");
+            }
+            throw new AuthenticationFailedException("Invalid authenticator code. "
+                    + remaining + " attempt(s) remaining.");
+        }
+        user.setLockedUntil(null);
+        return issueTokens(user, ticket.get("preferredRole", String.class), ipAddress, userAgent);
     }
 
     // ---- Sessions ----

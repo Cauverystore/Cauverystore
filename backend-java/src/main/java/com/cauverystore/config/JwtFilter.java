@@ -45,6 +45,12 @@ public class JwtFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7);
             try {
                 Claims claims = jwtUtil.extractAllClaims(token);
+                // Single-purpose tickets (such as the one between the password and the
+                // authenticator-code steps) are never a sign-in in their own right.
+                if (claims.get("purpose") != null) {
+                    sendError(response, "Invalid or expired token");
+                    return;
+                }
                 String username = claims.get("username", String.class);
                 String role = claims.get("role", String.class);
                 @SuppressWarnings("unchecked")
