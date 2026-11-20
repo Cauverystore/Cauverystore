@@ -832,4 +832,55 @@ class ProductServiceTest {
         assertEquals("published", saved.getProductStatus(),
                 "nothing is wrong with this one; it must stay on sale");
     }
+
+    // ---- main photo: a batch of photos must leave exactly one main photo
+
+    @Test
+    void attachImageUrls_onlyTheFirstPhotoIsMain_evenWithAStaleCachedProduct() {
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product)); // product.getImages() stays empty
+        when(productImageRepo.save(any(ProductImage.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(productImageRepo.countByProduct_Id(1L)).thenReturn(0L, 1L, 2L);
+
+        ProductImage first = productService.attachImageUrls(1L, "/uploads/a.webp", null, null, null);
+        ProductImage second = productService.attachImageUrls(1L, "/uploads/b.webp", null, null, null);
+        ProductImage third = productService.attachImageUrls(1L, "/uploads/c.webp", null, null, null);
+
+        assertTrue(first.isMain());
+        assertFalse(second.isMain(), "the cached product still had no photos; the database count decides");
+        assertFalse(third.isMain());
+    }
+
+    @Test
+    void setMainImage_clearsEveryOtherPhotoFromTheDatabase() {
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product)); // stale: no photos listed
+        List<ProductImage> stored = new ArrayList<>();
+        for (long id = 10; id < 15; id++) {
+            ProductImage img = new ProductImage();
+            img.setId(id);
+            img.setMain(true); // the broken state: all five marked main
+            stored.add(img);
+        }
+        when(productImageRepo.findByProduct_Id(1L)).thenReturn(stored);
+        when(productImageRepo.findById(12L)).thenReturn(Optional.of(stored.get(2)));
+
+        productService.setMainImage(1L, 12L);
+
+        assertEquals(1, stored.stream().filter(ProductImage::isMain).count());
+        assertTrue(stored.get(2).isMain());
+    }
+
+    @Test
+    void deleteImage_ofTheMainPhoto_makesTheNextPhotoMain() {
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product)); // stale: no photos listed
+        ProductImage main = new ProductImage(); main.setId(20L); main.setMain(true); main.setSortOrder(0);
+        ProductImage b = new ProductImage(); b.setId(21L); b.setSortOrder(1);
+        ProductImage c = new ProductImage(); c.setId(22L); c.setSortOrder(null);
+        when(productImageRepo.findById(20L)).thenReturn(Optional.of(main));
+        when(productImageRepo.findByProduct_Id(1L)).thenReturn(new ArrayList<>(List.of(main, b, c)));
+
+        productService.deleteImage(1L, 20L);
+
+        assertTrue(c.isMain() ^ b.isMain(), "exactly one remaining photo becomes main");
+        assertTrue(c.isMain(), "lowest sort order (null counts as 0) wins");
+    }
 }

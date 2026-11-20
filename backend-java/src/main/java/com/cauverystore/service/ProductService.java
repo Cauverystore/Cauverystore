@@ -945,7 +945,9 @@ public class ProductService {
         image.setZoomUrl(zoomUrl);
         image.setOriginalUrl(originalUrl);
         image.setSortOrder(nextOrder);
-        if (p.getImages().isEmpty()) {
+        // Count from the database, not p.getImages(): p may be a cached copy that predates the
+        // photos added a moment ago, which made every photo of a batch the main one.
+        if (nextOrder == 0) {
             image.setMain(true);
         }
         return productImageRepo.save(image);
@@ -995,7 +997,7 @@ public class ProductService {
             image.setThumbUrl("/uploads/" + thumbFilename);
         }
         image.setSortOrder(nextOrder);
-        if (p.getImages().isEmpty()) {
+        if (nextOrder == 0) { // database count, not a possibly cached p.getImages()
             image.setMain(true);
         }
         return productImageRepo.save(image);
@@ -1059,9 +1061,10 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public ProductImage setMainImage(Long productId, Long imageId) {
-        Product p = getProductById(productId);
-        for (ProductImage img : p.getImages()) {
+        getProductById(productId); // the product must exist
+        for (ProductImage img : productImageRepo.findByProduct_Id(productId)) {
             img.setMain(img.getId().equals(imageId));
             productImageRepo.save(img);
         }
@@ -1070,6 +1073,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public void deleteImage(Long productId, Long imageId) {
         ProductImage img = productImageRepo.findById(imageId).orElse(null);
         if (img != null) {
@@ -1090,9 +1094,14 @@ public class ProductService {
             }
             p.getImages().remove(img);
             productImageRepo.delete(img);
-            if (wasMain && p.getImages().size() > 0) {
-                p.getImages().get(0).setMain(true);
-                productImageRepo.save(p.getImages().get(0));
+            // Keep exactly one main photo, judged from the database (p may be a stale cached copy).
+            List<ProductImage> left = productImageRepo.findByProduct_Id(productId).stream()
+                    .filter(i -> !Objects.equals(i.getId(), imageId))
+                    .sorted(Comparator.comparingInt(i -> i.getSortOrder() == null ? 0 : i.getSortOrder()))
+                    .toList();
+            if (!left.isEmpty() && left.stream().noneMatch(ProductImage::isMain)) {
+                left.get(0).setMain(true);
+                productImageRepo.save(left.get(0));
             }
         }
     }
