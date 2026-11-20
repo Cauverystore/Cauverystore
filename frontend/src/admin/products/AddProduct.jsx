@@ -5,7 +5,7 @@ import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
 import GstPreview from "./GstPreview";
 import SellerOrigin from "./SellerOrigin";
-import ProductImagePicker, { uploadProductImages } from "./ProductImagePicker";
+import ProductImagePicker, { uploadProductImages, MAX_IMAGES } from "./ProductImagePicker";
 
 const FALLBACK_CATEGORIES = ["Electronics","Fashion","Home & Kitchen","Grocery","Beauty","Appliances","Books","Sports & Fitness","Toys & Games"].map((name, i) => ({ id: null, name }));
 const COUNTRIES = ["India","USA","China","Japan","South Korea","Germany","Vietnam","Taiwan","Other"];
@@ -18,6 +18,18 @@ const UNITS_OF_MEASURE = ["NOS","KG","G","ML","L","M","SQ.M","CBM","PAIR","PCS",
 function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 80);
 }
+
+// Photo hosts the Listing Agent's suppliers use (Shopify stores). Anything else is not fetched.
+const SUPPLIER_PHOTO_HOSTS = ["cdn.shopify.com", "deodap.in", "www.deodap.in", "baapstore.com", "www.baapstore.com"];
+const PHOTO_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const isSupplierPhoto = (u) => {
+  try {
+    const x = new URL(u);
+    return x.protocol === "https:" && SUPPLIER_PHOTO_HOSTS.includes(x.hostname);
+  } catch {
+    return false;
+  }
+};
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -44,6 +56,8 @@ const AddProduct = () => {
   const [msg, setMsg] = useState(null);
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
   const [images, setImages] = useState([]);
+  // Supplier photos for an agent draft: "loading" | { added, failed } | null
+  const [photoNote, setPhotoNote] = useState(null);
   const [commission, setCommission] = useState(null);
 
   useEffect(() => {
@@ -71,6 +85,33 @@ const AddProduct = () => {
       countryOfOrigin: COUNTRIES.includes(d.countryOfOrigin) ? d.countryOfOrigin : f.countryOfOrigin,
       badges: "New Arrival",
     }));
+  }, []);
+
+  // Agent draft: download the supplier's photos into the picker, so Create stores our own copies
+  // (resized, on the store's image server) instead of linking to the supplier's site.
+  useEffect(() => {
+    const urls = (agentJob?.draft?.imageUrls || []).filter(isSupplierPhoto).slice(0, MAX_IMAGES);
+    if (!urls.length) return;
+    let cancelled = false;
+    setPhotoNote("loading");
+    Promise.all(urls.map(async (url, i) => {
+      try {
+        const res = await fetch(url, { mode: "cors", credentials: "omit", referrerPolicy: "no-referrer" });
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        const type = blob.type.split(";")[0];
+        if (!PHOTO_TYPES[type] || blob.size > 10 * 1024 * 1024) return null;
+        return new File([blob], `supplier-photo-${i + 1}.${PHOTO_TYPES[type]}`, { type });
+      } catch {
+        return null;
+      }
+    })).then((files) => {
+      if (cancelled) return;
+      const ok = files.filter(Boolean);
+      setImages((cur) => [...ok, ...cur].slice(0, MAX_IMAGES));
+      setPhotoNote({ added: ok.length, failed: urls.length - ok.length });
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Sellers see what the marketplace will charge and what they will receive before they list.
@@ -278,7 +319,16 @@ const AddProduct = () => {
           {agentJob.draft.hsnCode && agentJob.draft.hsnReason && (
             <div>HSN {agentJob.draft.hsnCode}: {agentJob.draft.hsnReason}</div>
           )}
-          <div>Stock is set to 10 and the badge to New Arrival. Add the MRP and your own photos (supplier photos need their permission).</div>
+          <div>Stock is set to 10 and the badge to New Arrival. Add the MRP.</div>
+          {photoNote === "loading" && <div>Downloading the supplier's photos…</div>}
+          {photoNote && photoNote !== "loading" && (
+            <div>
+              {photoNote.added > 0
+                ? `${photoNote.added} supplier photo(s) added under Product Images; they are copied to our own image server when you press Create. Remove any with the supplier's logo or that do not match.`
+                : "The supplier's photos could not be downloaded. Save them from the source page and add them under Product Images."}
+              {photoNote.added > 0 && photoNote.failed > 0 && ` ${photoNote.failed} could not be downloaded.`}
+            </div>
+          )}
           {!agentJob.draft.countryOfOrigin && (
             <div>The supplier does not state the country of origin. Check it; the form shows India only by default.</div>
           )}
