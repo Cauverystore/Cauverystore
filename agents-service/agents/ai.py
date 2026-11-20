@@ -19,10 +19,11 @@ class AiError(Exception):
 
 
 class AiClient:
-    def __init__(self, base_url: str, api_key: str, model: str):
+    def __init__(self, base_url: str, api_key: str, model: str, timeout: int = 120):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
+        self.timeout = timeout
 
     def complete_json(self, system: str, user: str) -> dict:
         try:
@@ -46,7 +47,7 @@ class AiClient:
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
-        res = request_json("POST", f"{self.base_url}/chat/completions", body, headers, timeout=120)
+        res = request_json("POST", f"{self.base_url}/chat/completions", body, headers, timeout=self.timeout)
         try:
             content = res["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
@@ -66,6 +67,7 @@ class AiClient:
 
 def parse_json_object(text: str) -> dict:
     """Pulls the JSON object out of an answer, even if it is wrapped in code fences or prose."""
+    text = re.sub(r"(?s)<think>.*?</think>", "", text)  # open models may "think" aloud first
     cleaned = re.sub(r"^```[a-zA-Z]*\s*|\s*```\s*$", "", text.strip())
     start, end = cleaned.find("{"), cleaned.rfind("}")
     if start < 0 or end <= start:

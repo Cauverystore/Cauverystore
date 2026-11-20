@@ -9,6 +9,7 @@ The store, not this agent, decides the selling price and checks the category and
 """
 
 import logging
+import time
 
 from . import supplier
 from .ai import AiClient, AiError
@@ -95,17 +96,24 @@ def draft_one(job: dict, ai: AiClient, categories: list[dict]) -> dict:
     return draft
 
 
-def run(store: StoreClient, ai: AiClient, batch_size: int) -> dict:
-    """One run: take queued jobs, draft each, report back. Returns a small summary."""
-    summary = {"taken": 0, "drafted": 0, "failed": 0, "errors": 0}
-    jobs = store.take_jobs(AGENT_NAME, batch_size)
-    summary["taken"] = len(jobs)
-    if not jobs:
-        log.info("No queued supplier links. Nothing to do.")
-        return summary
-    categories = store.categories()
+def run(store: StoreClient, ai: AiClient, batch_size: int, max_minutes: int = 45) -> dict:
+    """One run: take queued jobs one at a time, draft each, report back.
 
-    for job in jobs:
+    Jobs are taken singly (not all at once) so none sits claimed while a slow model works through
+    the others, and no new job is started after max_minutes, so runs never overlap.
+    """
+    summary = {"taken": 0, "drafted": 0, "failed": 0, "errors": 0}
+    deadline = time.monotonic() + max_minutes * 60
+    categories = None
+
+    while summary["taken"] < batch_size and time.monotonic() < deadline:
+        jobs = store.take_jobs(AGENT_NAME, 1)
+        if not jobs:
+            break
+        job = jobs[0]
+        summary["taken"] += 1
+        if categories is None:
+            categories = store.categories()
         jid = job["id"]
         try:
             draft = draft_one(job, ai, categories)
@@ -128,4 +136,6 @@ def run(store: StoreClient, ai: AiClient, batch_size: int) -> dict:
                 store.send_failure(jid, f"The store did not accept the draft: {e}")
             except HttpError:
                 pass
+    if summary["taken"] == 0:
+        log.info("No queued supplier links. Nothing to do.")
     return summary

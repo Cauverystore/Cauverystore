@@ -34,7 +34,8 @@ class FakeStore:
         self.drafts, self.failures = {}, {}
 
     def take_jobs(self, agent, limit):
-        return self.jobs[:limit]
+        taken, self.jobs = self.jobs[:limit], self.jobs[limit:]
+        return taken
 
     def categories(self):
         return [{"id": 3, "name": "Home & Kitchen"}]
@@ -85,6 +86,22 @@ class ListingAgentTests(unittest.TestCase):
         self.assertEqual(ai.prompts, [])
 
 
+    def test_takes_jobs_one_at_a_time_up_to_the_batch_size(self):
+        jobs = [{"id": i, "sourceUrl": "https://deodap.in/products/x"} for i in range(1, 6)]
+        store, ai = FakeStore(jobs), FakeAi(GOOD)
+        with mock.patch.object(supplier, "fetch", return_value=product()):
+            summary = listing_agent.run(store, ai, 3)
+        self.assertEqual(summary["drafted"], 3)
+        self.assertEqual(len(store.jobs), 2)    # the other two stay queued for the next run
+
+    def test_stops_starting_jobs_after_the_time_budget(self):
+        store, ai = FakeStore([{"id": 1, "sourceUrl": "https://deodap.in/products/x"}]), FakeAi(GOOD)
+        with mock.patch.object(listing_agent.time, "monotonic", side_effect=[0, 10_000]):
+            summary = listing_agent.run(store, ai, 10, max_minutes=1)
+        self.assertEqual(summary["taken"], 0)
+        self.assertEqual(len(store.jobs), 1)
+
+
 class SupplierTests(unittest.TestCase):
     def test_only_supplier_product_links(self):
         self.assertEqual(supplier.product_js_url("https://www.deodap.in/products/abc?variant=2"),
@@ -103,6 +120,7 @@ class JsonTests(unittest.TestCase):
     def test_parses_fenced_json(self):
         self.assertEqual(parse_json_object('```json\n{"a": 1}\n```'), {"a": 1})
         self.assertEqual(parse_json_object('Here you go: {"a": 1} thanks'), {"a": 1})
+        self.assertEqual(parse_json_object('<think>maybe {"x": 0}?</think> {"a": 1}'), {"a": 1})
         with self.assertRaises(AiError):
             parse_json_object("no json here")
 

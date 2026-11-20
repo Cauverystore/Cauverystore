@@ -25,7 +25,7 @@ def main(argv: list[str]) -> int:
         return 2
 
     store = StoreClient(s.store_api_url, s.agents_token)
-    ai = AiClient(s.ai_base_url, s.ai_api_key, s.ai_model)
+    ai = AiClient(s.ai_base_url, s.ai_api_key, s.ai_model, s.ai_timeout)
 
     if cmd == "check":
         ok = True
@@ -48,7 +48,7 @@ def main(argv: list[str]) -> int:
 
     if cmd == "run":
         try:
-            summary = listing_agent.run(store, ai, s.batch_size)
+            summary = listing_agent.run(store, ai, s.batch_size, s.max_minutes)
         except HttpError as e:
             log.error("Could not talk to the store: %s", e)
             return 1

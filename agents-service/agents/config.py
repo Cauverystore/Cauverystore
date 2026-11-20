@@ -25,6 +25,8 @@ class Settings:
     ai_api_key: str
     ai_model: str
     batch_size: int         # how many jobs one run takes
+    ai_timeout: int         # seconds to wait for one AI answer (a model on a plain CPU is slow)
+    max_minutes: int        # stop starting new jobs after this long, so runs never overlap
 
     def missing(self) -> list[str]:
         names = {
@@ -38,10 +40,12 @@ class Settings:
 
 def load() -> Settings:
     _load_dotenv()
-    try:
-        batch = int(os.environ.get("AGENT_BATCH_SIZE", "10"))
-    except ValueError:
-        batch = 10
+    def num(name: str, default: int) -> int:
+        try:
+            return int(os.environ.get(name, str(default)))
+        except ValueError:
+            return default
+    batch = num("AGENT_BATCH_SIZE", 10)
     return Settings(
         store_api_url=os.environ.get("STORE_API_URL", "").rstrip("/"),
         agents_token=os.environ.get("AGENTS_TOKEN", ""),
@@ -49,4 +53,6 @@ def load() -> Settings:
         ai_api_key=os.environ.get("AI_API_KEY", ""),
         ai_model=os.environ.get("AI_MODEL", ""),
         batch_size=max(1, min(batch, 50)),
+        ai_timeout=max(30, num("AI_TIMEOUT", 120)),
+        max_minutes=max(1, num("AGENT_MAX_MINUTES", 45)),
     )

@@ -1,0 +1,30 @@
+# The store's own AI brain: an open model runs INSIDE this container, so no outside AI company
+# (and no API key) is involved. Each scheduled run starts the model, does the agents' work, and
+# the container exits - so the server is only paid for while it is working.
+#
+# Model: Qwen3 4B Instruct (Apache 2.0 licence, fine for commercial use). It answers directly
+# without a long "thinking" phase, which keeps it practical on a plain CPU server.
+FROM ollama/ollama:0.40.13
+
+ARG MODEL=qwen3:4b-instruct
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Bake the model into the image so a run does not download ~2.5 GB every time.
+RUN (ollama serve > /tmp/ollama.log 2>&1 &) \
+ && for i in $(seq 1 60); do curl -sf http://127.0.0.1:11434/api/tags > /dev/null && break; sleep 1; done \
+ && ollama pull "$MODEL"
+
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 \
+    AI_MODEL=$MODEL \
+    OLLAMA_CONTEXT_LENGTH=8192 \
+    OLLAMA_KEEP_ALIVE=30m
+
+COPY agents/ ./agents/
+COPY own_brain.sh ./own_brain.sh
+
+ENTRYPOINT []
+CMD ["sh", "/app/own_brain.sh"]
