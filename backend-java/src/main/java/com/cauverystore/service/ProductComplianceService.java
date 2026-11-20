@@ -73,6 +73,17 @@ public class ProductComplianceService {
     private final SellerRegistrationRepository sellerRegRepo;
     private final PlatformSettingsService settings;
 
+    // Store-wide defaults: details that are the same for every product, so nobody types them 300
+    // times. They only fill blanks; anything saved on a product's own Compliance form wins.
+    @org.springframework.beans.factory.annotation.Value("${compliance.defaults.care-email:}")
+    String defaultCareEmail = "";
+    @org.springframework.beans.factory.annotation.Value("${compliance.defaults.care-phone:}")
+    String defaultCarePhone = "";
+    @org.springframework.beans.factory.annotation.Value("${compliance.defaults.min-order-qty:0}")
+    int defaultMinOrderQty;
+    @org.springframework.beans.factory.annotation.Value("${compliance.defaults.max-order-qty:0}")
+    int defaultMaxOrderQty;
+
     public ProductComplianceService(ProductRepository productRepo, ProductComplianceRepository complianceRepo,
                                     HsnClassificationService hsnClassification, ListingEligibilityService listingEligibility,
                                     GstConfigurationRepository gstConfigRepo, SellerRegistrationRepository sellerRegRepo,
@@ -131,9 +142,23 @@ public class ProductComplianceService {
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + productId));
         ProductCompliance record = recordFor(product);
+        fillDefaults(record);
         Result result = evaluate(product, record);
         store(record, result);
         return result;
+    }
+
+    /** Fills the blank store-wide details (customer care, order limits). Returns true if it changed anything. */
+    boolean fillDefaults(ProductCompliance c) {
+        boolean changed = false;
+        if (!has(c.getCustomerCareEmail()) && has(defaultCareEmail)) { c.setCustomerCareEmail(defaultCareEmail.trim()); changed = true; }
+        if (!has(c.getCustomerCarePhone()) && has(defaultCarePhone)) { c.setCustomerCarePhone(defaultCarePhone.trim()); changed = true; }
+        if (c.getMinOrderQty() == null && defaultMinOrderQty > 0) { c.setMinOrderQty(defaultMinOrderQty); changed = true; }
+        if (c.getMaxOrderQty() == null && defaultMaxOrderQty > 0
+                && defaultMaxOrderQty >= (c.getMinOrderQty() == null ? 0 : c.getMinOrderQty())) {
+            c.setMaxOrderQty(defaultMaxOrderQty); changed = true;
+        }
+        return changed;
     }
 
     void store(ProductCompliance record, Result result) {

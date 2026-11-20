@@ -220,6 +220,9 @@ public class AgentJobService {
         Double mrp = asDouble(body.get("supplierMrp"));
         if (mrp != null && mrp > 0) d.put("supplierMrp", mrp);
 
+        // The supplier's own item code, so the product can be matched to the supplier's stock later.
+        d.put("sku", clip(str(body.get("supplierSku")).replaceAll("[^A-Za-z0-9_./-]", ""), 60));
+
         Object images = body.get("imageUrls");
         if (images instanceof List<?> list) {
             d.put("imageUrls", list.stream().map(String::valueOf).filter(s -> s.startsWith("https://")).limit(8).toList());

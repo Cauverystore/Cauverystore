@@ -28,6 +28,7 @@ class SupplierProduct:
     compare_at_price: float | None = None
     available: bool = False
     image_urls: list = field(default_factory=list)
+    sku: str = ""                       # the supplier's own item code (first variant)
 
 
 def product_js_url(link: str) -> str:
@@ -89,4 +90,6 @@ def fetch(link: str) -> SupplierProduct:
         compare_at_price=_rupees(p.get("compare_at_price")),
         available=bool(p.get("available")),
         image_urls=images[:8],
+        sku=next((str(v.get("sku")).strip() for v in (p.get("variants") or [])
+                  if isinstance(v, dict) and v.get("sku")), ""),
     )
