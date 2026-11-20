@@ -35,3 +35,13 @@ def request_json(method: str, url: str, body=None, headers=None, timeout: int = 
     except urllib.error.HTTPError as e:
         raise HttpError(e.code, e.read().decode("utf-8", errors="replace")) from None
     return json.loads(raw) if raw.strip() else None
+
+
+def request_text(url: str, timeout: int = 30, max_bytes: int = 3_000_000) -> str:
+    """GET a web page as text (no redirects followed), reading at most max_bytes."""
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; StoreAgents/1.0)"})
+    try:
+        with _opener.open(req, timeout=timeout) as res:
+            return res.read(max_bytes).decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        raise HttpError(e.code, "") from None

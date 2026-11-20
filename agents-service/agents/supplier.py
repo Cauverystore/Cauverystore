@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
-from .http import HttpError, request_json
+from .http import HttpError, request_json, request_text
 
 ALLOWED_HOSTS = {"deodap.in", "www.deodap.in", "baapstore.com", "www.baapstore.com"}
 _HANDLE = re.compile(r"/products/([A-Za-z0-9\-_%.]+?)(?:\.js|\.json)?/?$")
@@ -29,6 +29,7 @@ class SupplierProduct:
     available: bool = False
     image_urls: list = field(default_factory=list)
     sku: str = ""                       # the supplier's own item code (first variant)
+    country_of_origin: str = ""         # as stated on the supplier's product page, e.g. "India"
 
 
 def product_js_url(link: str) -> str:
@@ -50,6 +51,16 @@ def html_to_text(s: str) -> str:
     s = re.sub(r"[ \t]+", " ", s)
     s = re.sub(r"\s*\n\s*", "\n", s).strip()
     return s[:6000]
+
+
+_ORIGIN = re.compile(r"(?i)country\s+of\s+origin\s*[:\-]*\s*([A-Za-z][A-Za-z .]{1,30}?)\s*(?:GST|HSN|MRP|View|Net|Manufactur|Pack|Import|\||$)")
+
+
+def origin_from_page(page_html: str) -> str:
+    """Finds "Country Of Origin :- India" on a supplier's product page. Returns "" if not stated."""
+    text = html.unescape(re.sub(r"<[^>]+>", " ", re.sub(r"(?is)<(script|style)\b.*?</\1>", " ", page_html or "")))
+    m = _ORIGIN.search(re.sub(r"\s+", " ", text))
+    return m.group(1).strip().rstrip(".").title() if m else ""
 
 
 def _rupees(paise) -> float | None:
@@ -92,4 +103,14 @@ def fetch(link: str) -> SupplierProduct:
         image_urls=images[:8],
         sku=next((str(v.get("sku")).strip() for v in (p.get("variants") or [])
                   if isinstance(v, dict) and v.get("sku")), ""),
+        country_of_origin=_page_origin(url[:-3]),
     )
+
+
+def _page_origin(page_url: str) -> str:
+    """The product page shows details the data feed leaves out (country of origin). Optional:
+    if the page cannot be read, the draft simply has no origin and the admin fills it in."""
+    try:
+        return origin_from_page(request_text(page_url, timeout=30))
+    except Exception:
+        return ""
