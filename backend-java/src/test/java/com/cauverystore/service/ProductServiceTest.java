@@ -868,4 +868,19 @@ class ProductServiceTest {
         assertEquals(1, stored.stream().filter(ProductImage::isMain).count());
         assertTrue(stored.get(2).isMain());
     }
+
+    @Test
+    void deleteImage_ofTheMainPhoto_makesTheNextPhotoMain() {
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product)); // stale: no photos listed
+        ProductImage main = new ProductImage(); main.setId(20L); main.setMain(true); main.setSortOrder(0);
+        ProductImage b = new ProductImage(); b.setId(21L); b.setSortOrder(1);
+        ProductImage c = new ProductImage(); c.setId(22L); c.setSortOrder(null);
+        when(productImageRepo.findById(20L)).thenReturn(Optional.of(main));
+        when(productImageRepo.findByProduct_Id(1L)).thenReturn(new ArrayList<>(List.of(main, b, c)));
+
+        productService.deleteImage(1L, 20L);
+
+        assertTrue(c.isMain() ^ b.isMain(), "exactly one remaining photo becomes main");
+        assertTrue(c.isMain(), "lowest sort order (null counts as 0) wins");
+    }
 }

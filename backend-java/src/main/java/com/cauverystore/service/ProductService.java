@@ -1073,6 +1073,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public void deleteImage(Long productId, Long imageId) {
         ProductImage img = productImageRepo.findById(imageId).orElse(null);
         if (img != null) {
@@ -1093,9 +1094,14 @@ public class ProductService {
             }
             p.getImages().remove(img);
             productImageRepo.delete(img);
-            if (wasMain && p.getImages().size() > 0) {
-                p.getImages().get(0).setMain(true);
-                productImageRepo.save(p.getImages().get(0));
+            // Keep exactly one main photo, judged from the database (p may be a stale cached copy).
+            List<ProductImage> left = productImageRepo.findByProduct_Id(productId).stream()
+                    .filter(i -> !Objects.equals(i.getId(), imageId))
+                    .sorted(Comparator.comparingInt(i -> i.getSortOrder() == null ? 0 : i.getSortOrder()))
+                    .toList();
+            if (!left.isEmpty() && left.stream().noneMatch(ProductImage::isMain)) {
+                left.get(0).setMain(true);
+                productImageRepo.save(left.get(0));
             }
         }
     }
