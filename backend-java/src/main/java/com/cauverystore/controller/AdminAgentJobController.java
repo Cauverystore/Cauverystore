@@ -18,9 +18,25 @@ import java.util.Map;
 public class AdminAgentJobController {
 
     private final AgentJobService jobs;
+    private final com.cauverystore.service.SupplierPhotoService photos;
 
-    public AdminAgentJobController(AgentJobService jobs) {
+    public AdminAgentJobController(AgentJobService jobs, com.cauverystore.service.SupplierPhotoService photos) {
         this.jobs = jobs;
+        this.photos = photos;
+    }
+
+    /** How many supplier photos the agent saved for this product (0 if it did not come from a draft). */
+    @GetMapping("/photos")
+    public Map<String, Object> photoCount(@RequestParam Long productId) {
+        return Map.of("available", photos.photosFor(productId).size());
+    }
+
+    /** Copies those supplier photos onto the product, on the server. */
+    @PostMapping("/photos/import")
+    public ResponseEntity<?> importPhotos(@RequestBody Map<String, Object> body) {
+        Object p = body.get("productId");
+        if (!(p instanceof Number n)) return ResponseEntity.badRequest().body(Map.of("error", "productId is required."));
+        return ResponseEntity.ok(photos.importFor(n.longValue()));
     }
 
     @GetMapping

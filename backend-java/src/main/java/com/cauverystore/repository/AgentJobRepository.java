@@ -21,4 +21,6 @@ public interface AgentJobRepository extends JpaRepository<AgentJob, Long> {
     long countByAgentNameAndStatus(String agentName, String status);
 
     long countByAgentNameAndStatusAndUpdatedAtBefore(String agentName, String status, LocalDateTime before);
+
+    java.util.Optional<AgentJob> findFirstByProductIdOrderByIdDesc(Long productId);
 }
