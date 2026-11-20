@@ -30,6 +30,7 @@ const PAGE_TITLES = {
   "/admin/settings": "Settings",
   "/admin/product-approvals": "Product Approvals",
   "/admin/product-compliance": "Product Compliance",
+  "/admin/agent-drafts": "Agent Drafts",
   "/admin/seller-approvals": "Seller Approvals",
 };
 

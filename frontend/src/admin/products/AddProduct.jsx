@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../api/axios";
 import HsnPicker from "./HsnPicker";
 import GstRateChoice from "./GstRateChoice";
@@ -23,6 +23,10 @@ const AddProduct = () => {
   const navigate = useNavigate();
   const isSeller = window.location.pathname.startsWith("/seller");
   const redirectPath = isSeller ? "/seller/products" : "/admin/products";
+  // A draft from the Listing Agent (Admin -> Agent Drafts). It only pre-fills this form; the
+  // product is created when the admin presses Create, as with any other product.
+  const location = useLocation();
+  const agentJob = !isSeller ? location.state?.agentJob || null : null;
 
   const [form, setForm] = useState({
     name: "", brand: "", category: "", price: "", mrp: "", stock: "", sku: "",
@@ -41,6 +45,33 @@ const AddProduct = () => {
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
   const [images, setImages] = useState([]);
   const [commission, setCommission] = useState(null);
+
+  useEffect(() => {
+    const d = agentJob?.draft;
+    if (!d) return;
+    const text = (v) => (typeof v === "string" ? v : "");
+    setForm((f) => ({
+      ...f,
+      name: text(d.name),
+      brand: text(d.brand),
+      category: d.categoryId != null ? String(d.categoryId) : "",
+      price: d.suggestedPrice != null ? String(d.suggestedPrice) : "",
+      stock: "10",
+      description: text(d.description),
+      shortDescription: text(d.shortDescription).slice(0, 150),
+      technicalSpecs: text(d.technicalSpecs),
+      metaTitle: text(d.metaTitle).slice(0, 60),
+      metaDescription: text(d.metaDescription).slice(0, 160),
+      keywords: text(d.keywords),
+      slug: slugify(text(d.name)),
+      hsnCode: text(d.hsnCode),
+      uom: text(d.uom) || "NOS",
+      weight: d.weightKg != null ? String(d.weightKg) : "",
+      dimensions: text(d.dimensions),
+      countryOfOrigin: COUNTRIES.includes(d.countryOfOrigin) ? d.countryOfOrigin : f.countryOfOrigin,
+      badges: "New Arrival",
+    }));
+  }, []);
 
   // Sellers see what the marketplace will charge and what they will receive before they list.
   useEffect(() => {
@@ -132,6 +163,10 @@ const AddProduct = () => {
       const endpoint = isSeller ? "/api/seller/products" : "/api/admin/products/add";
       const res = await api.post(endpoint, data);
       const productId = res.data?.id;
+      if (agentJob && productId) {
+        // Close the draft so it is not used twice; the product is saved either way.
+        api.put(`/api/admin/agent-jobs/${agentJob.id}/used`, { productId }).catch(() => {});
+      }
       let failed = [];
       if (productId && images.length > 0) {
         setMsg({ type: "info", text: "Uploading images..." });
@@ -230,6 +265,28 @@ const AddProduct = () => {
           fontSize: "0.85rem"
         }}>
           {msg.type === "success" ? "\u2713 " : "\u2717 "}{msg.text}
+        </div>
+      )}
+
+      {agentJob?.draft && (
+        <div style={{ padding: "10px 14px", borderRadius: "6px", marginBottom: "1rem", background: "#FFF8E6", border: "1px solid #F5D78E", fontSize: "0.82rem", color: "#5B4300" }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Filled in by the Listing Agent. Check every field before you press Create.</div>
+          <div>
+            Source: <a href={agentJob.sourceUrl} target="_blank" rel="noopener noreferrer">{agentJob.sourceUrl}</a>
+            {agentJob.draft.supplierCost != null && <> · supplier cost ₹{agentJob.draft.supplierCost} → price ₹{agentJob.draft.suggestedPrice} (cost × 2, ending in 9)</>}
+          </div>
+          {agentJob.draft.hsnCode && agentJob.draft.hsnReason && (
+            <div>HSN {agentJob.draft.hsnCode}: {agentJob.draft.hsnReason}</div>
+          )}
+          <div>Stock is set to 10 and the badge to New Arrival. Add the MRP and your own photos (supplier photos need their permission).</div>
+          {!agentJob.draft.countryOfOrigin && (
+            <div>The supplier does not state the country of origin. Check it; the form shows India only by default.</div>
+          )}
+          {Array.isArray(agentJob.draft.warnings) && agentJob.draft.warnings.length > 0 && (
+            <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+              {agentJob.draft.warnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          )}
         </div>
       )}
 
