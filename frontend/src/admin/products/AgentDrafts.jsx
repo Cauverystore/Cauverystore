@@ -160,7 +160,7 @@ function Row({ row, onOpen, onAct }) {
     <div style={box}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
         {Array.isArray(d.imageUrls) && d.imageUrls[0] && (
-          <img src={d.imageUrls[0]} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.line}` }} />
+          <img src={d.imageUrls[0]} alt={d.name ? `Supplier photo of ${d.name}` : "Supplier product photo"} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.line}` }} />
         )}
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ fontWeight: 700, color: C.dark, fontSize: "0.95rem" }}>{d.name || row.sourceUrl}</div>
