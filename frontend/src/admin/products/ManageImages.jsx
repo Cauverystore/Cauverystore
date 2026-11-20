@@ -16,6 +16,9 @@ const ManageImages = () => {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState(null);
   const [dragIdx, setDragIdx] = useState(null);
+  // Photos the Listing Agent saved from the supplier for this product (0 if none).
+  const [supplierPhotos, setSupplierPhotos] = useState(0);
+  const [copying, setCopying] = useState(false);
   const fileRef = useRef();
 
   const loadImages = async () => {
@@ -30,6 +33,29 @@ const ManageImages = () => {
   };
 
   useEffect(() => { loadImages(); }, [id]);
+
+  useEffect(() => {
+    api.get("/api/admin/agent-jobs/photos", { params: { productId: id } })
+      .then((r) => setSupplierPhotos(r.data?.available || 0))
+      .catch(() => setSupplierPhotos(0));
+  }, [id]);
+
+  // The store's server downloads the supplier's photos and stores its own resized copies.
+  const copySupplierPhotos = async () => {
+    setCopying(true);
+    setMsg({ type: "info", text: "Copying the supplier's photos..." });
+    try {
+      const r = await api.post("/api/admin/agent-jobs/photos/import", { productId: Number(id) });
+      const { added = 0, failed = [] } = r.data || {};
+      setMsg(added > 0
+        ? { type: "success", text: `${added} supplier photo${added === 1 ? "" : "s"} added. Remove any with the supplier's logo, and publish only with the supplier's permission.${failed.length ? ` ${failed.length} could not be copied.` : ""}` }
+        : { type: "error", text: `No photos could be copied.${failed.length ? ` ${failed.join("; ")}` : ""}` });
+      loadImages();
+    } catch (e) {
+      setMsg({ type: "error", text: e.response?.data?.error || "The supplier's photos could not be copied." });
+    }
+    setCopying(false);
+  };
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return;
@@ -157,6 +183,12 @@ const ManageImages = () => {
             }}>
             {uploading ? "Uploading..." : `Upload${selectedFiles.length > 0 ? ` (${selectedFiles.length})` : ""}`}
           </button>
+          {supplierPhotos > 0 && (
+            <button onClick={copySupplierPhotos} disabled={copying}
+              style={{ padding: "8px 16px", background: copying ? "#e0d9cc" : "#00788C", color: copying ? "#94a3b8" : "#fff", border: "none", borderRadius: "6px", cursor: copying ? "wait" : "pointer", fontWeight: 600, fontSize: "0.85rem" }}>
+              {copying ? "Copying..." : `Copy supplier photos (${supplierPhotos})`}
+            </button>
+          )}
         </div>
         {selectedFiles.length > 0 && (
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
