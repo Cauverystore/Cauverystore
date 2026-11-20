@@ -136,6 +136,16 @@ public class AgentJobService {
         return out;
     }
 
+    /**
+     * How many jobs are waiting for this agent, without taking any. The agents service asks this
+     * first so it only starts its AI model (and pays for the server) when there is work. Jobs an
+     * agent took and never finished count too, since the next run will pick them up again.
+     */
+    public long pendingCount(String agentName) {
+        return jobs.countByAgentNameAndStatus(agentName, AgentJob.QUEUED)
+                + jobs.countByAgentNameAndStatusAndUpdatedAtBefore(agentName, AgentJob.WORKING, LocalDateTime.now().minusMinutes(30));
+    }
+
     /** Store-side context the agent needs to write a draft: the category list. */
     public List<Map<String, Object>> categoryList() {
         List<Map<String, Object>> out = new ArrayList<>();
