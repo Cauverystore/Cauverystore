@@ -2,6 +2,15 @@
 # Starts the built-in model, runs the agents once, then stops. Used by Dockerfile.ownbrain.
 set -u
 
+# First ask the store whether anything is queued. Starting the model costs a minute or two of
+# server time, so on a quiet day the run ends here and costs almost nothing.
+python3 -m agents pending
+case $? in
+  0) ;;                                                      # work waiting: carry on
+  3) echo "Nothing queued, so the AI model was not started."; exit 0 ;;
+  *) echo "Could not reach the store, so the AI model was not started."; exit 1 ;;
+esac
+
 ollama serve > /tmp/ollama.log 2>&1 &
 OLLAMA_PID=$!
 

@@ -13,6 +13,11 @@ class StoreClient:
         res = request_json("GET", f"{self.base_url}/api/agent/{agent}/jobs?limit={limit}", headers=self.headers)
         return (res or {}).get("jobs", [])
 
+    def pending(self, agent: str) -> int:
+        """How many jobs wait for this agent, without taking any."""
+        res = request_json("GET", f"{self.base_url}/api/agent/{agent}/pending", headers=self.headers)
+        return int((res or {}).get("pending", 0))
+
     def categories(self) -> list[dict]:
         return request_json("GET", f"{self.base_url}/api/agent/categories", headers=self.headers) or []
 
