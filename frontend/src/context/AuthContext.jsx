@@ -124,7 +124,8 @@ export const AuthProvider = ({ children }) => {
     const data = res.data;
 
     if (data.mfaRequired) {
-      setPendingMfa({ email, preferredRole: userRole, rememberMe });
+      // The ticket proves the password was right; the code step is refused without it.
+      setPendingMfa({ email, preferredRole: userRole, rememberMe, mfaToken: data.mfaToken });
       return data;
     }
 
@@ -136,7 +137,7 @@ export const AuthProvider = ({ children }) => {
   const completeMfaLogin = useCallback(async (otp) => {
     if (!pendingMfa) throw new Error('Two-factor verification is required before login');
     setError('');
-    const res = await API.post('/api/auth/login-2fa', { email: pendingMfa.email, otp });
+    const res = await API.post('/api/auth/login-2fa', { mfaToken: pendingMfa.mfaToken, otp });
     const data = res.data;
     const fallbackUser = { email: pendingMfa.email, fullName: data.username || pendingMfa.email };
     persistAuth(data, fallbackUser, pendingMfa.rememberMe);

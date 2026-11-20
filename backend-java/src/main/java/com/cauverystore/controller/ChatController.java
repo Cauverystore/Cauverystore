@@ -29,7 +29,7 @@ public class ChatController {
         String message = body != null && body.get("message") != null
                 ? String.valueOf(body.get("message"))
                 : "";
-        return ResponseEntity.ok(chatService.respond(authHeader, message, history(body), http.getRemoteAddr(), shownProducts(body)));
+        return ResponseEntity.ok(chatService.respond(authHeader, message, history(body), com.cauverystore.util.ClientIp.of(http), shownProducts(body)));
     }
 
     /** Products in the chat's last list, in order: {"context": {"productIds": [12, 7, ...]}}. */

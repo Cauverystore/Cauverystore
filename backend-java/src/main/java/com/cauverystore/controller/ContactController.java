@@ -49,7 +49,7 @@ public class ContactController {
             return ResponseEntity.badRequest().body(Map.of("error", "Your message is too long. Please shorten it."));
         }
         // Five messages per address per hour is plenty for a person and stops a script.
-        if (!rateLimiter.allow("contact:ip:" + http.getRemoteAddr(), 5, 3_600_000L)) {
+        if (!rateLimiter.allow("contact:ip:" + com.cauverystore.util.ClientIp.of(http), 5, 3_600_000L)) {
             return ResponseEntity.status(429).body(Map.of("error", "Too many messages. Please try again later."));
         }
 

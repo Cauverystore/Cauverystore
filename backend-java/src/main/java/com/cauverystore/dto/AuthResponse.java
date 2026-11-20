@@ -11,6 +11,7 @@ public class AuthResponse {
     private Long userId;
     private Boolean mfaRequired = false;
     private String mfaMethod;
+    private String mfaToken;
     private String message;
     private Boolean profileIncomplete = false;
 
@@ -122,5 +123,13 @@ public class AuthResponse {
     @java.lang.SuppressWarnings("all")
     public void setProfileIncomplete(final Boolean profileIncomplete) {
         this.profileIncomplete = profileIncomplete;
+    }
+
+    public String getMfaToken() {
+        return this.mfaToken;
+    }
+
+    public void setMfaToken(final String mfaToken) {
+        this.mfaToken = mfaToken;
     }
 }

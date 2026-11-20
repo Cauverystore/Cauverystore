@@ -439,4 +439,183 @@ class AuthServiceTest {
         assertEquals(0, user.getFailedLoginAttempts());
         assertNull(user.getLockedUntil());
     }
+
+    // ---- Two-step sign-in: the authenticator code never replaces the password ----
+
+    private io.jsonwebtoken.Claims mfaTicket(Long userId, Integer tokenVersion, String preferredRole) {
+        io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.claims();
+        claims.put("purpose", "mfa");
+        claims.put("userId", userId);
+        claims.put("tokenVersion", tokenVersion);
+        claims.put("preferredRole", preferredRole);
+        return claims;
+    }
+
+    private void giveUserAuthenticator() {
+        user.setMfaEnabled(true);
+        user.setMfaSecret("encrypted-secret");
+        user.setTokenVersion(0);
+    }
+
+    @Test
+    void authenticate_withAuthenticator_returnsTicketAndKeepsTheFailureCount() {
+        giveUserAuthenticator();
+        user.setFailedLoginAttempts(3);
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
+        when(jwtUtil.generateMfaToken(eq(1L), any(), anyString())).thenReturn("mfa-ticket");
+
+        AuthResponse response = authService.authenticate(loginReq);
+
+        assertTrue(response.getMfaRequired());
+        assertEquals("mfa-ticket", response.getMfaToken());
+        assertNull(response.getAccessToken(), "no sign-in before the code is checked");
+        assertEquals(3, user.getFailedLoginAttempts(),
+                "a correct password alone must not reset the count the code step adds to");
+    }
+
+    @Test
+    void loginMfa_refusesWithoutATicketFromThePasswordStep() {
+        when(jwtUtil.parseMfaToken(any())).thenReturn(null);
+
+        assertThrows(AuthenticationFailedException.class,
+                () -> authService.loginMfa(null, "123456", null, null));
+        verify(totpService, never()).verify(anyString(), anyString());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), anyLong(), anyString(), anyList(), any());
+    }
+
+    @Test
+    void loginMfa_refusesATicketFromBeforeTheSessionsWereReset() {
+        giveUserAuthenticator();
+        user.setTokenVersion(2);
+        when(jwtUtil.parseMfaToken("t")).thenReturn(mfaTicket(1L, 1, "CUSTOMER"));
+        when(userRepo.findById(1L)).thenReturn(java.util.Optional.of(user));
+
+        assertThrows(AuthenticationFailedException.class,
+                () -> authService.loginMfa("t", "123456", null, null));
+        verify(totpService, never()).verify(anyString(), anyString());
+    }
+
+    @Test
+    void loginMfa_wrongCodesCountTowardsTheLockout() {
+        giveUserAuthenticator();
+        user.setFailedLoginAttempts(4);
+        when(jwtUtil.parseMfaToken("t")).thenReturn(mfaTicket(1L, 0, "CUSTOMER"));
+        when(userRepo.findById(1L)).thenReturn(java.util.Optional.of(user));
+        when(cryptoUtil.decrypt("encrypted-secret")).thenReturn("SECRET");
+        when(totpService.verify("000000", "SECRET")).thenReturn(false);
+
+        AuthenticationFailedException ex = assertThrows(AuthenticationFailedException.class,
+                () -> authService.loginMfa("t", "000000", null, null));
+
+        assertEquals(5, user.getFailedLoginAttempts());
+        assertNotNull(user.getLockedUntil());
+        assertTrue(ex.getMessage().contains("locked"));
+    }
+
+    @Test
+    void loginMfa_refusesWhileLockedEvenWithTheRightCode() {
+        giveUserAuthenticator();
+        user.setLockedUntil(LocalDateTime.now().plusMinutes(10));
+        when(jwtUtil.parseMfaToken("t")).thenReturn(mfaTicket(1L, 0, "CUSTOMER"));
+        when(userRepo.findById(1L)).thenReturn(java.util.Optional.of(user));
+
+        assertThrows(AuthenticationFailedException.class,
+                () -> authService.loginMfa("t", "123456", null, null));
+        verify(totpService, never()).verify(anyString(), anyString());
+    }
+
+    @Test
+    void loginMfa_signsInWithTheRightCodeAndClearsTheCount() {
+        giveUserAuthenticator();
+        user.setFailedLoginAttempts(2);
+        when(jwtUtil.parseMfaToken("t")).thenReturn(mfaTicket(1L, 0, "CUSTOMER"));
+        when(userRepo.findById(1L)).thenReturn(java.util.Optional.of(user));
+        when(cryptoUtil.decrypt("encrypted-secret")).thenReturn("SECRET");
+        when(totpService.verify("123456", "SECRET")).thenReturn(true);
+        when(jwtUtil.generateAccessToken(anyString(), anyLong(), anyString(), anyList(), any()))
+                .thenReturn("access-token");
+        when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
+
+        AuthResponse response = authService.loginMfa("t", " 123456 ", null, null);
+
+        assertEquals("access-token", response.getAccessToken());
+        assertEquals(0, user.getFailedLoginAttempts());
+    }
+
+    // ---- Password reset ----
+
+    @Test
+    void requestPasswordReset_saysNothingAboutAnEmailWithNoAccount() {
+        when(userRepo.findByEmail("nobody@test.com")).thenReturn(null);
+
+        assertDoesNotThrow(() -> authService.requestPasswordReset("nobody@test.com"));
+        assertDoesNotThrow(() -> authService.requestPasswordResetLink("nobody@test.com"));
+        verify(emailOtpRepo, never()).save(any());
+        verify(passwordResetTokenRepo, never()).save(any());
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void resetPassword_aTooWeakPasswordDoesNotUseUpTheCode() {
+        EmailOtp otp = new EmailOtp();
+        otp.setEmail("customer@test.com");
+        otp.setOtp("123456");
+        otp.setUsed(false);
+        otp.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(emailOtpRepo.findByEmailAndPurpose("customer@test.com", "PASSWORD_RESET")).thenReturn(otp);
+        doThrow(new RuntimeException("Password too weak")).when(passwordPolicyService).validateComplexity("weak");
+
+        assertThrows(RuntimeException.class,
+                () -> authService.resetPassword("customer@test.com", "123456", "weak"));
+        assertFalse(otp.isUsed(), "the person should be able to try a stronger password with the same code");
+    }
+
+    private com.cauverystore.entities.PasswordResetToken validLink() {
+        com.cauverystore.entities.PasswordResetToken token = new com.cauverystore.entities.PasswordResetToken();
+        token.setEmail("customer@test.com");
+        token.setToken("link-token");
+        token.setUsed(false);
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(20));
+        return token;
+    }
+
+    @Test
+    void resetPasswordWithLink_aTooWeakPasswordDoesNotUseUpTheLink() {
+        com.cauverystore.entities.PasswordResetToken token = validLink();
+        when(passwordResetTokenRepo.findByToken("link-token")).thenReturn(token);
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        doThrow(new RuntimeException("Password too weak")).when(passwordPolicyService).validateComplexity("weak");
+
+        assertThrows(RuntimeException.class, () -> authService.resetPasswordWithLink("link-token", "weak"));
+        assertFalse(token.isUsed());
+    }
+
+    @Test
+    void resetPasswordWithLink_unlocksALockedAccount() {
+        // The lockout message tells people that resetting the password unlocks the account.
+        user.setFailedLoginAttempts(5);
+        user.setLockedUntil(LocalDateTime.now().plusMinutes(10));
+        com.cauverystore.entities.PasswordResetToken token = validLink();
+        when(passwordResetTokenRepo.findByToken("link-token")).thenReturn(token);
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+
+        authService.resetPasswordWithLink("link-token", "Str0ng!Passw0rd");
+
+        assertTrue(token.isUsed());
+        assertNull(user.getLockedUntil());
+        assertEquals(0, user.getFailedLoginAttempts());
+    }
+
+    @Test
+    void resetCodes_areSixDigitsAndVary() {
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int i = 0; i < 50; i++) {
+            String code = AuthService.newSixDigitCode();
+            assertTrue(code.matches("\\d{6}"), code);
+            seen.add(code);
+        }
+        assertTrue(seen.size() > 40);
+    }
 }

@@ -50,6 +50,40 @@ public class JwtUtil {
                 .compact();
     }
 
+    /** How long someone has, after a correct password, to type their authenticator code. */
+    public static final long MFA_TOKEN_EXPIRY = 5 * 60 * 1000L;
+    public static final String PURPOSE_MFA = "mfa";
+
+    /**
+     * A short-lived ticket handed out after a correct password when the account also needs an
+     * authenticator code. The code step must present it, so the code can never stand in for the
+     * password. It carries a "purpose" claim, which JwtFilter refuses, so it can never be used
+     * as an access token either.
+     */
+    public String generateMfaToken(Long userId, Integer tokenVersion, String preferredRole) {
+        return Jwts.builder()
+                .claim("purpose", PURPOSE_MFA)
+                .claim("userId", userId)
+                .claim("tokenVersion", tokenVersion != null ? tokenVersion : 0)
+                .claim("preferredRole", preferredRole)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + MFA_TOKEN_EXPIRY))
+                .setId(UUID.randomUUID().toString())
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /** Returns the claims of a valid, unexpired MFA ticket, or null for anything else. */
+    public Claims parseMfaToken(String token) {
+        if (token == null || token.isBlank()) return null;
+        try {
+            Claims claims = extractAllClaims(token);
+            return PURPOSE_MFA.equals(claims.get("purpose", String.class)) ? claims : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public boolean validateToken(String token) {
         try {
             extractAllClaims(token);

@@ -11,6 +11,7 @@ import com.cauverystore.exception.RateLimitExceededException;
 import com.cauverystore.service.AuthService;
 import com.cauverystore.service.OtpService;
 import com.cauverystore.service.RateLimiterService;
+import com.cauverystore.util.ClientIp;
 import com.cauverystore.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -73,23 +74,23 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest http) {
-        enforceRateLimit("register:ip:" + http.getRemoteAddr(), registerIpMax, 600_000L, "Too many registration attempts. Try again later.");
+        enforceRateLimit("register:ip:" + ClientIp.of(http), registerIpMax, 600_000L, "Too many registration attempts. Try again later.");
         String message = authService.register(request);
         return ResponseEntity.ok(Map.of("message", message));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest http, HttpServletResponse response) {
-        enforceRateLimit("login:ip:" + http.getRemoteAddr(), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
-        AuthResponse authResponse = authService.authenticate(request, http.getRemoteAddr(), http.getHeader("User-Agent"));
+        enforceRateLimit("login:ip:" + ClientIp.of(http), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
+        AuthResponse authResponse = authService.authenticate(request, ClientIp.of(http), http.getHeader("User-Agent"));
         applyRefreshCookie(response, authResponse);
         return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/user/login")
     public ResponseEntity<AuthResponse> userLogin(@Valid @RequestBody LoginRequest request, HttpServletRequest http, HttpServletResponse response) {
-        enforceRateLimit("login:ip:" + http.getRemoteAddr(), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
-        AuthResponse authResponse = authService.authenticate(request, http.getRemoteAddr(), http.getHeader("User-Agent"));
+        enforceRateLimit("login:ip:" + ClientIp.of(http), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
+        AuthResponse authResponse = authService.authenticate(request, ClientIp.of(http), http.getHeader("User-Agent"));
         authService.validateUserRole(authResponse.getEmail(), Role.CUSTOMER);
         applyRefreshCookie(response, authResponse);
         return ResponseEntity.ok(authResponse);
@@ -97,8 +98,8 @@ public class AuthController {
 
     @PostMapping("/seller/login")
     public ResponseEntity<AuthResponse> sellerLogin(@Valid @RequestBody LoginRequest request, HttpServletRequest http, HttpServletResponse response) {
-        enforceRateLimit("login:ip:" + http.getRemoteAddr(), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
-        AuthResponse authResponse = authService.authenticate(request, http.getRemoteAddr(), http.getHeader("User-Agent"));
+        enforceRateLimit("login:ip:" + ClientIp.of(http), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
+        AuthResponse authResponse = authService.authenticate(request, ClientIp.of(http), http.getHeader("User-Agent"));
         authService.validateUserRole(authResponse.getEmail(), Role.SELLER);
         applyRefreshCookie(response, authResponse);
         return ResponseEntity.ok(authResponse);
@@ -106,15 +107,16 @@ public class AuthController {
 
     @PostMapping("/admin/login")
     public ResponseEntity<AuthResponse> adminLogin(@Valid @RequestBody LoginRequest request, HttpServletRequest http, HttpServletResponse response) {
-        enforceRateLimit("login:ip:" + http.getRemoteAddr(), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
-        AuthResponse authResponse = authService.authenticate(request, http.getRemoteAddr(), http.getHeader("User-Agent"));
+        enforceRateLimit("login:ip:" + ClientIp.of(http), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
+        AuthResponse authResponse = authService.authenticate(request, ClientIp.of(http), http.getHeader("User-Agent"));
         authService.validateAdminOrSuperAdmin(authResponse.getEmail());
         applyRefreshCookie(response, authResponse);
         return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/google")
-    public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> body, HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> body, HttpServletRequest http, HttpServletResponse response) {
+        enforceRateLimit("login:ip:" + ClientIp.of(http), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
         AuthResponse authResponse = authService.authenticateWithGoogle(body.get("credential"));
         applyRefreshCookie(response, authResponse);
         return ResponseEntity.ok(authResponse);
@@ -125,7 +127,7 @@ public class AuthController {
         String bodyToken = request != null ? request.getRefreshToken() : null;
         RefreshTokenRequest effective = new RefreshTokenRequest();
         effective.setRefreshToken(resolveRefreshToken(http, bodyToken));
-        AuthResponse authResponse = authService.refreshAccessToken(effective, http.getRemoteAddr(), http.getHeader("User-Agent"));
+        AuthResponse authResponse = authService.refreshAccessToken(effective, ClientIp.of(http), http.getHeader("User-Agent"));
         applyRefreshCookie(response, authResponse);
         return ResponseEntity.ok(authResponse);
     }
@@ -188,20 +190,23 @@ public class AuthController {
     }
 
     @PostMapping("/request-password-reset")
-    public ResponseEntity<Map<String, String>> requestPasswordReset(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> requestPasswordReset(@RequestBody Map<String, String> body, HttpServletRequest http) {
+        enforceRateLimit("reset-request:ip:" + ClientIp.of(http), resetEmailMax * 2, 600_000L, "Too many password reset requests. Try again later.");
         enforceRateLimit("reset:email:" + body.get("email"), resetEmailMax, 600_000L, "Too many password reset requests. Try again later.");
         authService.requestPasswordReset(body.get("email"));
-        return ResponseEntity.ok(Map.of("message", "OTP sent to email"));
+        return ResponseEntity.ok(Map.of("message", "If an account exists for that email, a reset code has been sent to it."));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody PasswordResetRequest request, HttpServletRequest http) {
+        enforceRateLimit("reset-submit:ip:" + ClientIp.of(http), 10, 600_000L, "Too many attempts. Try again later.");
         authService.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
     }
 
     @PostMapping("/complete-forced-reset")
-    public ResponseEntity<AuthResponse> completeForcedReset(@RequestBody Map<String, String> body, HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> completeForcedReset(@RequestBody Map<String, String> body, HttpServletRequest http, HttpServletResponse response) {
+        enforceRateLimit("login:ip:" + ClientIp.of(http), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
         AuthResponse authResponse = authService.completeForcedPasswordReset(
                 body.get("email"), body.get("oldPassword"), body.get("newPassword"));
         applyRefreshCookie(response, authResponse);
@@ -209,14 +214,16 @@ public class AuthController {
     }
 
     @PostMapping("/request-password-reset-link")
-    public ResponseEntity<Map<String, String>> requestPasswordResetLink(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> requestPasswordResetLink(@RequestBody Map<String, String> body, HttpServletRequest http) {
+        enforceRateLimit("reset-request:ip:" + ClientIp.of(http), resetEmailMax * 2, 600_000L, "Too many password reset requests. Try again later.");
         enforceRateLimit("resetlink:email:" + body.get("email"), resetEmailMax, 600_000L, "Too many password reset requests. Try again later.");
         authService.requestPasswordResetLink(body.get("email"));
-        return ResponseEntity.ok(Map.of("message", "Reset link sent to email"));
+        return ResponseEntity.ok(Map.of("message", "If an account exists for that email, a reset link has been sent to it."));
     }
 
     @PostMapping("/reset-password-link")
-    public ResponseEntity<Map<String, String>> resetPasswordWithLink(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> resetPasswordWithLink(@RequestBody Map<String, String> body, HttpServletRequest http) {
+        enforceRateLimit("reset-submit:ip:" + ClientIp.of(http), 10, 600_000L, "Too many attempts. Try again later.");
         authService.resetPasswordWithLink(body.get("token"), body.get("newPassword"));
         return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
     }
@@ -228,7 +235,7 @@ public class AuthController {
         String email = body.get("email");
         String purpose = body.getOrDefault("purpose", "EMAIL_VERIFICATION");
         enforceRateLimit("otp:email:" + email, otpEmailMax, 600_000L, "Too many OTP requests. Try again later.");
-        enforceRateLimit("otp:ip:" + http.getRemoteAddr(), otpIpMax, 60_000L, "Too many OTP requests. Try again later.");
+        enforceRateLimit("otp:ip:" + ClientIp.of(http), otpIpMax, 60_000L, "Too many OTP requests. Try again later.");
         otpService.sendEmailOtp(email, purpose);
         return ResponseEntity.ok(Map.of("message", "OTP sent to email"));
     }
@@ -266,7 +273,8 @@ public class AuthController {
 
     @PostMapping("/login-2fa")
     public ResponseEntity<AuthResponse> login2fa(@RequestBody Map<String, String> body, HttpServletRequest http, HttpServletResponse response) {
-        AuthResponse authResponse = authService.loginMfa(body.get("email"), body.get("otp"), http.getRemoteAddr(), http.getHeader("User-Agent"));
+        enforceRateLimit("login:ip:" + ClientIp.of(http), loginIpMax, 60_000L, "Too many login attempts. Try again later.");
+        AuthResponse authResponse = authService.loginMfa(body.get("mfaToken"), body.get("otp"), ClientIp.of(http), http.getHeader("User-Agent"));
         applyRefreshCookie(response, authResponse);
         return ResponseEntity.ok(authResponse);
     }

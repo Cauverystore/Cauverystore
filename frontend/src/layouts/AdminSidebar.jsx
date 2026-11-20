@@ -1,74 +1,73 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { canAccessModule } from "../utils/rolePermissions";
-import {
-  LayoutDashboard, BarChart3, Package, Tags, Building2, LayoutList,
-  TrendingDown, Warehouse, Truck, FileText, Undo2, Zap,
-  ShoppingCart, CreditCard, Users, ClipboardList, Ticket, Ship, Percent,
-  Star, HelpCircle, FileEdit, Bell, FileSpreadsheet, FolderArchive,
-  Image, Mail, Trophy, ArrowUpDown, ShieldCheck, Settings, Shield,
-  BookOpen, MapPin, Wallet, Inbox, Receipt, RefreshCw, Upload, Bot,
-} from "lucide-react";
 import useAltText from "../hooks/useAltText";
+import { HOME_LINK, sectionForPath, visibleSections } from "./adminNav";
 
-const allLinks = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true, module: null },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart3, module: "analytics" },
-  { to: "/admin/products", label: "Products", icon: Package, module: "products" },
-  { to: "/admin/products/bulk-upload", label: "Bulk Upload", icon: Upload, module: "products" },
-  { to: "/admin/agent-drafts", label: "Agent Drafts", icon: Bot, module: "products" },
-  { to: "/admin/categories", label: "Categories", icon: Tags, module: "categories" },
-  { to: "/admin/brands", label: "Brands", icon: Building2, module: "brands" },
-  { to: "/admin/product-dashboard", label: "Product Dashboard", icon: LayoutList, module: "productDashboard" },
-  { to: "/admin/product-compliance", label: "Product Compliance", icon: ShieldCheck, module: "productDashboard" },
-  { to: "/admin/inventory-dashboard", label: "Inventory Dashboard", icon: TrendingDown, module: "inventoryDashboard" },
-  { to: "/admin/warehouses", label: "Warehouses", icon: Warehouse, module: "warehouses" },
-  { to: "/admin/suppliers", label: "Suppliers", icon: Truck, module: "suppliers" },
-  { to: "/admin/purchase-orders", label: "Purchase Orders", icon: FileText, module: "purchaseOrders" },
-  { to: "/admin/returns", label: "Returns", icon: Undo2, module: "returns" },
-  { to: "/admin/bulk-operations", label: "Bulk Operations", icon: Zap, module: "bulkOperations" },
-  { to: "/admin/orders", label: "Orders", icon: ShoppingCart, module: "orders" },
-  { to: "/admin/refunds", label: "Refunds", icon: CreditCard, module: "refunds" },
-  { to: "/admin/finance", label: "Finance", icon: Wallet, module: "sellerPayouts" },
-  { to: "/admin/seller-payouts", label: "Seller Payouts", icon: Wallet, module: "sellerPayouts" },
-  { to: "/admin/erp-sync", label: "ERP Sync", icon: RefreshCw, module: "erpSync" },
-  { to: "/admin/customers", label: "Customers", icon: Users, module: "customers" },
-  { to: "/admin/addresses", label: "Addresses", icon: MapPin, module: "addresses" },
-  { to: "/admin/inventory", label: "Inventory", icon: ClipboardList, module: "inventory" },
-  { to: "/admin/coupons", label: "Coupons", icon: Ticket, module: "coupons" },
-  { to: "/admin/gst-rates", label: "GST Rates", icon: Percent, module: "gstRates" },
-  { to: "/admin/gst-compliance", label: "GST Compliance", icon: ShieldCheck, module: "gstRates" },
-  { to: "/admin/gst-masters", label: "GST Masters", icon: BookOpen, module: "gstRates" },
-  { to: "/admin/tds-194o", label: "TDS on Sellers", icon: Receipt, module: "gstRates" },
-  { to: "/admin/shipping", label: "Shipping", icon: Ship, module: "shipping" },
-  { to: "/admin/reviews", label: "Reviews", icon: Star, module: "reviews" },
-  { to: "/admin/qna", label: "Q&A", icon: HelpCircle, module: "qna" },
-  { to: "/admin/content", label: "Content", icon: FileEdit, module: "content" },
-  { to: "/admin/notifications", label: "Notifications", icon: Bell, module: "notifications" },
-  { to: "/admin/reports", label: "Reports", icon: FileSpreadsheet, module: "reports" },
-  { to: "/admin/audit", label: "Audit Logs", icon: FolderArchive, module: "audit" },
-  { to: "/admin/banners", label: "Banners", icon: Image, module: "banners" },
-  { to: "/admin/faq", label: "FAQs", icon: HelpCircle, module: "faq" },
-  { to: "/admin/inbox", label: "Inbox", icon: Inbox, module: "support" },
-  { to: "/admin/support-tickets", label: "Support Tickets", icon: Ticket, module: "support" },
-  { to: "/admin/newsletter", label: "Newsletter", icon: Mail, module: "newsletter" },
-  { to: "/admin/loyalty", label: "Loyalty", icon: Trophy, module: "loyalty" },
-  { to: "/admin/stock-movements", label: "Stock Movements", icon: ArrowUpDown, module: "stockMovements" },
-  { to: "/admin/executive-dashboard", label: "Executive Panel", icon: ShieldCheck, module: "executiveDashboard" },
-  { to: "/admin/settings", label: "Settings", icon: Settings, module: "settings" },
-  { to: "/super-admin", label: "Super Admin", icon: Shield, module: "superAdmin" },
-];
+const HomeIcon = HOME_LINK.icon;
+
+const OPEN_SECTIONS_KEY = "admin_nav_open_sections";
+
+const readOpenSections = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(OPEN_SECTIONS_KEY) || "[]");
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveOpenSections = (ids) => {
+  try { localStorage.setItem(OPEN_SECTIONS_KEY, JSON.stringify(ids)); } catch { /* storage unavailable */ }
+};
+
+const linkStyle = ({ isActive }) => ({
+  display: "flex", alignItems: "center", gap: "12px", padding: "8px 20px 8px 28px",
+  color: isActive ? "#fff" : "#94a3b8", textDecoration: "none", fontSize: "0.85rem",
+  background: isActive ? "#1e293b" : "transparent",
+  borderLeft: isActive ? "3px solid var(--color-primary, #00788C)" : "3px solid transparent",
+  transition: "all 0.15s",
+});
 
 const AdminSidebar = ({ open, onNavigate }) => {
   const altText = useAltText();
   const { role } = useAuth();
-  const links = allLinks.filter(l => !l.module || canAccessModule(role, l.module));
+  const { pathname } = useLocation();
+  const [query, setQuery] = useState("");
+  const [openIds, setOpenIds] = useState(readOpenSections);
+
+  const canAccess = (module) => canAccessModule(role, module);
+  const sections = useMemo(() => visibleSections(canAccess, query), [role, query]); // eslint-disable-line react-hooks/exhaustive-deps
+  const showHome = !query.trim() || HOME_LINK.label.toLowerCase().includes(query.trim().toLowerCase());
+  const searching = query.trim().length > 0;
   const labelText = role === "EXECUTIVE" ? "Executive Panel" : role === "SUPER_ADMIN" ? "Super Admin" : "Admin Panel";
+
+  // The section holding the page being viewed always opens.
+  useEffect(() => {
+    const current = sectionForPath(pathname);
+    if (current && !openIds.includes(current)) {
+      const next = [...openIds, current];
+      setOpenIds(next);
+      saveOpenSections(next);
+    }
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggle = (id) => {
+    const next = openIds.includes(id) ? openIds.filter((x) => x !== id) : [...openIds, id];
+    setOpenIds(next);
+    saveOpenSections(next);
+  };
+
+  const handleNavigate = () => {
+    setQuery("");
+    if (onNavigate) onNavigate();
+  };
 
   return (
   <aside className={`cd-admin-sidebar${open ? " cd-open" : ""}`} style={{ position: "fixed", top: 0, left: 0, width: "240px", height: "100vh", background: "#0f172a", color: "#fff", display: "flex", flexDirection: "column", zIndex: 100 }}>
-    <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #1e293b" }}>
+    <div style={{ padding: "20px 20px 12px", borderBottom: "1px solid #1e293b" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <img src="/images/logo.jpg" alt={altText.logo()} style={{ height: "1.15rem", width: "auto" }} />
         <div>
@@ -76,25 +75,63 @@ const AdminSidebar = ({ open, onNavigate }) => {
           <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "1px" }}>{labelText}</div>
         </div>
       </div>
+      <div style={{ position: "relative", marginTop: "12px" }}>
+        <Search size={14} aria-hidden="true" style={{ position: "absolute", left: "9px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
+          placeholder="Find a page"
+          aria-label="Find an admin page"
+          style={{ width: "100%", boxSizing: "border-box", padding: "7px 28px 7px 28px", background: "#1e293b", border: "1px solid #334155", borderRadius: "6px", color: "#e2e8f0", fontSize: "0.8rem" }}
+        />
+        {searching && (
+          <button type="button" onClick={() => setQuery("")} aria-label="Clear search" style={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: "2px", display: "flex" }}>
+            <X size={14} />
+          </button>
+        )}
+      </div>
     </div>
-    <nav style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-      {links.map(l => (
-        <NavLink
-          key={l.to}
-          to={l.to}
-          end={l.end}
-          onClick={onNavigate}
-          style={({ isActive }) => ({
-            display: "flex", alignItems: "center", gap: "12px", padding: "10px 20px",
-            color: isActive ? "#fff" : "#94a3b8", textDecoration: "none", fontSize: "0.875rem",
-            background: isActive ? "#1e293b" : "transparent", borderLeft: isActive ? "3px solid var(--color-primary, #00788C)" : "3px solid transparent",
-            transition: "all 0.15s",
-          })}
-        >
-          <l.icon size={18} />
-          <span>{l.label}</span>
+    <nav aria-label="Admin pages" style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+      {showHome && (
+        <NavLink to={HOME_LINK.to} end onClick={handleNavigate} style={(s) => ({ ...linkStyle(s), paddingLeft: "20px" })}>
+          <HomeIcon size={18} />
+          <span>{HOME_LINK.label}</span>
         </NavLink>
-      ))}
+      )}
+      {sections.map((section) => {
+        const expanded = searching || openIds.includes(section.id);
+        const panelId = `admin-nav-${section.id}`;
+        return (
+          <div key={section.id} style={{ marginTop: "4px" }}>
+            <button
+              type="button"
+              onClick={() => toggle(section.id)}
+              aria-expanded={expanded}
+              aria-controls={panelId}
+              disabled={searching}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "8px 20px", background: "none", border: "none", color: "#cbd5e1", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", cursor: searching ? "default" : "pointer" }}
+            >
+              <span>{section.label}</span>
+              {!searching && (expanded ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />)}
+            </button>
+            {expanded && (
+              <div id={panelId}>
+                {section.links.map((l) => (
+                  <NavLink key={l.to} to={l.to} end={l.end} onClick={handleNavigate} style={linkStyle}>
+                    <l.icon size={16} />
+                    <span>{l.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {searching && sections.length === 0 && !showHome && (
+        <div style={{ padding: "12px 20px", fontSize: "0.8rem", color: "#64748b" }}>No page matches "{query.trim()}".</div>
+      )}
     </nav>
     <div style={{ padding: "12px 20px", borderTop: "1px solid #1e293b", fontSize: "0.75rem", color: "#475569" }}>
       v1.0.0

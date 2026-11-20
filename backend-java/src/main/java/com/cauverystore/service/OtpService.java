@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Random;
 
 /**
  * Purpose-scoped email OTPs for account/email verification and password reset.
@@ -15,6 +14,8 @@ import java.util.Random;
  */
 @Service
 public class OtpService {
+
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
 
     private static final long OTP_REQUEST_COOLDOWN_SECONDS = 60;
     private static final int MAX_OTP_VERIFY_ATTEMPTS = 5;
@@ -39,7 +40,7 @@ public class OtpService {
                 && existing.getLastRequestedAt().isAfter(LocalDateTime.now().minusSeconds(OTP_REQUEST_COOLDOWN_SECONDS))) {
             throw new RuntimeException("Please wait a minute before requesting another code.");
         }
-        String otp = String.format("%06d", new Random().nextInt(999999));
+        String otp = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
         EmailOtp record = existing != null ? existing : new EmailOtp();
         record.setEmail(email);
         record.setPurpose(purpose);
