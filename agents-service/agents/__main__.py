@@ -2,6 +2,8 @@
 
     python -m agents run       one run of every agent (what the Railway schedule calls)
     python -m agents check     checks the settings and that the store and AI can be reached
+    python -m agents pending   asks the store if any work is waiting (no AI needed):
+                               exit 0 = work waiting, 3 = nothing to do, 1 = store not reachable
 """
 
 import logging
@@ -18,6 +20,18 @@ def main(argv: list[str]) -> int:
     log = logging.getLogger("agents")
     cmd = argv[1] if len(argv) > 1 else "run"
     s = config.load()
+
+    if cmd == "pending":
+        if not s.store_api_url or not s.agents_token:
+            log.error("Not set up yet. Missing settings: STORE_API_URL and/or AGENTS_TOKEN")
+            return 1
+        try:
+            n = StoreClient(s.store_api_url, s.agents_token).pending(listing_agent.AGENT_NAME)
+        except Exception as e:
+            log.error("Could not ask the store for work: %s", e)
+            return 1
+        log.info("%d supplier link(s) waiting for the Listing Agent.", n)
+        return 0 if n > 0 else 3
 
     missing = s.missing()
     if missing:

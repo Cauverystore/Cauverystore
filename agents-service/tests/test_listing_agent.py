@@ -102,6 +102,23 @@ class ListingAgentTests(unittest.TestCase):
         self.assertEqual(len(store.jobs), 1)
 
 
+class PendingCommandTests(unittest.TestCase):
+    def _run(self, pending=None, error=None):
+        from agents import __main__ as cli, config
+        env = config.Settings("http://store", "tok", "", "", "", 10, 120, 45)
+        with mock.patch.object(config, "load", return_value=env),              mock.patch("agents.store.StoreClient.pending", side_effect=error, return_value=pending):
+            return cli.main(["agents", "pending"])
+
+    def test_work_waiting_without_any_ai_settings(self):
+        self.assertEqual(self._run(pending=2), 0)
+
+    def test_nothing_waiting(self):
+        self.assertEqual(self._run(pending=0), 3)
+
+    def test_store_unreachable(self):
+        self.assertEqual(self._run(error=OSError("down")), 1)
+
+
 class SupplierTests(unittest.TestCase):
     def test_only_supplier_product_links(self):
         self.assertEqual(supplier.product_js_url("https://www.deodap.in/products/abc?variant=2"),

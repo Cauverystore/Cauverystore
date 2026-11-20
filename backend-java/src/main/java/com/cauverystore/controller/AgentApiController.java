@@ -50,6 +50,14 @@ public class AgentApiController {
         return ResponseEntity.ok(Map.of("jobs", jobs.claim(agentName, limit)));
     }
 
+    @GetMapping("/{agentName}/pending")
+    public ResponseEntity<?> pending(@RequestHeader(value = "X-Agent-Token", required = false) String t,
+                                     @PathVariable String agentName) {
+        ResponseEntity<?> no = refuse(t);
+        if (no != null) return no;
+        return ResponseEntity.ok(Map.of("pending", jobs.pendingCount(agentName)));
+    }
+
     @GetMapping("/categories")
     public ResponseEntity<?> categories(@RequestHeader(value = "X-Agent-Token", required = false) String t) {
         ResponseEntity<?> no = refuse(t);

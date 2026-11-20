@@ -12,6 +12,8 @@ everything in Cauvery Admin.
   `Dockerfile.ownbrain`.
 - **How a run works:** each scheduled run starts the model, the agents do their work, and the
   container stops. The server is only busy, and only paid for, while it is working.
+- **Quiet days:** each run first asks the store whether anything is queued. If nothing is, the
+  model is never started and the run ends in seconds.
 - **Speed:** it runs on an ordinary server processor (CPU). Expect roughly one to a few minutes
   per product. A run stops starting new products after 45 minutes (`AGENT_MAX_MINUTES`).
 - **Memory:** about 4–5 GB while running.

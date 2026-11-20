@@ -17,4 +17,8 @@ public interface AgentJobRepository extends JpaRepository<AgentJob, Long> {
     boolean existsBySourceUrlAndStatusIn(String sourceUrl, Collection<String> statuses);
 
     List<AgentJob> findByStatusAndUpdatedAtBefore(String status, LocalDateTime before);
+
+    long countByAgentNameAndStatus(String agentName, String status);
+
+    long countByAgentNameAndStatusAndUpdatedAtBefore(String agentName, String status, LocalDateTime before);
 }
