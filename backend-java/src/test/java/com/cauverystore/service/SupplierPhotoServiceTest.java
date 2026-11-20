@@ -32,7 +32,8 @@ class SupplierPhotoServiceTest {
         List<String> links = SupplierPhotoService.photoLinks(j);
         assertEquals(5, links.size());
         assertFalse(links.contains("https://evil.example/x.jpg"));
-        assertEquals("https://cdn.shopify.com/1.jpg", links.get(0));
+        assertEquals("https://cdn.shopify.com/2.jpg", links.get(0), "the clean second photo becomes the main one");
+        assertEquals("https://cdn.shopify.com/1.jpg", links.get(4), "the supplier's cover photo goes last");
     }
 
     @Test
@@ -53,5 +54,12 @@ class SupplierPhotoServiceTest {
         assertEquals("image/jpeg", p.type());
         assertTrue(p.bytes().length > 10_000);
         System.out.println("LIVE: downloaded " + p.bytes().length + " bytes, " + p.type());
+    }
+
+    @Test
+    void coverPhotoGoesLast() {
+        assertEquals(List.of("b", "c", "a"), SupplierPhotoService.coverLast(List.of("a", "b", "c")));
+        assertEquals(List.of("a"), SupplierPhotoService.coverLast(List.of("a")));
+        assertEquals(List.of("b", "c", "d", "e", "a"), SupplierPhotoService.coverLast(List.of("a", "b", "c", "d", "e", "f", "g")));
     }
 }
