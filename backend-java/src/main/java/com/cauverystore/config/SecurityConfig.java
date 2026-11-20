@@ -79,6 +79,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/payment/webhook").permitAll()
                 // Resend inbound-email webhook - checked against its Svix signature in InboundEmailService.
                 .requestMatchers(HttpMethod.POST, "/api/email/inbound").permitAll()
+                // Separate agents service - checked against AGENTS_TOKEN in AgentApiController.
+                .requestMatchers("/api/agent/**").permitAll()
                 .requestMatchers("/api/support-tickets/**").authenticated()
                 .requestMatchers("/api/payment-methods/**").authenticated()
                 .requestMatchers("/error").permitAll()
