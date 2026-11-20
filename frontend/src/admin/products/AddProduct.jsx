@@ -78,6 +78,7 @@ const AddProduct = () => {
       metaDescription: text(d.metaDescription).slice(0, 160),
       keywords: text(d.keywords),
       slug: slugify(text(d.name)),
+      sku: text(d.sku),
       hsnCode: text(d.hsnCode),
       uom: text(d.uom) || "NOS",
       weight: d.weightKg != null ? String(d.weightKg) : "",
