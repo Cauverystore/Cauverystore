@@ -74,10 +74,23 @@ public class SupplierPhotoService {
         try {
             Map<String, Object> d = JSON.readValue(j.getDraftJson(), Map.class);
             if (!(d.get("imageUrls") instanceof List<?> l)) return List.of();
-            return l.stream().map(String::valueOf).filter(SupplierPhotoService::allowed).distinct().limit(MAX_PHOTOS).toList();
+            return coverLast(l.stream().map(String::valueOf).filter(SupplierPhotoService::allowed).distinct().toList());
         } catch (Exception e) {
             return List.of();
         }
+    }
+
+    /**
+     * Suppliers' first photo is usually a decorated "cover": their item code in a corner, small
+     * inset pictures of the box, or marketing text. Their second photo is usually a clean shot.
+     * So the second photo comes first (and becomes the main photo) and the cover goes last, where
+     * it is easy to delete. At most MAX_PHOTOS are kept.
+     */
+    static List<String> coverLast(List<String> links) {
+        if (links.size() < 2) return links;
+        List<String> out = new ArrayList<>(links.subList(1, Math.min(links.size(), MAX_PHOTOS)));
+        out.add(links.get(0));
+        return out;
     }
 
     static boolean allowed(String link) {
