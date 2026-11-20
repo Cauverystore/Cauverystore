@@ -945,7 +945,9 @@ public class ProductService {
         image.setZoomUrl(zoomUrl);
         image.setOriginalUrl(originalUrl);
         image.setSortOrder(nextOrder);
-        if (p.getImages().isEmpty()) {
+        // Count from the database, not p.getImages(): p may be a cached copy that predates the
+        // photos added a moment ago, which made every photo of a batch the main one.
+        if (nextOrder == 0) {
             image.setMain(true);
         }
         return productImageRepo.save(image);
@@ -995,7 +997,7 @@ public class ProductService {
             image.setThumbUrl("/uploads/" + thumbFilename);
         }
         image.setSortOrder(nextOrder);
-        if (p.getImages().isEmpty()) {
+        if (nextOrder == 0) { // database count, not a possibly cached p.getImages()
             image.setMain(true);
         }
         return productImageRepo.save(image);
@@ -1059,9 +1061,10 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public ProductImage setMainImage(Long productId, Long imageId) {
-        Product p = getProductById(productId);
-        for (ProductImage img : p.getImages()) {
+        getProductById(productId); // the product must exist
+        for (ProductImage img : productImageRepo.findByProduct_Id(productId)) {
             img.setMain(img.getId().equals(imageId));
             productImageRepo.save(img);
         }
