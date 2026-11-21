@@ -475,6 +475,23 @@ class AuthServiceTest {
     }
 
     @Test
+    void forcedPasswordChange_stillNeedsTheAuthenticatorCode() {
+        giveUserAuthenticator();
+        user.setMustResetPassword(true);
+        user.setFailedLoginAttempts(3);
+        when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+        when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
+        when(jwtUtil.generateMfaToken(eq(1L), any(), anyString())).thenReturn("mfa-ticket");
+
+        AuthResponse response = authService.completeForcedPasswordReset("customer@test.com", "admin123", "NewPassw0rd!x");
+
+        assertTrue(response.getMfaRequired());
+        assertEquals("mfa-ticket", response.getMfaToken());
+        assertNull(response.getAccessToken(), "no sign-in before the code is checked");
+        assertEquals(3, user.getFailedLoginAttempts());
+    }
+
+    @Test
     void loginMfa_refusesWithoutATicketFromThePasswordStep() {
         when(jwtUtil.parseMfaToken(any())).thenReturn(null);
 

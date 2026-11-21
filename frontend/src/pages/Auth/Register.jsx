@@ -119,6 +119,7 @@ const Register = () => {
     setError('');
     try {
       const data = await loginWithGoogle(response.credential, false);
+      if (data.mfaRequired) { navigate('/login'); return; }
       navigate(data.profileIncomplete ? '/complete-profile' : '/');
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || t("register.googleSignUpFailedPlease"));
@@ -130,6 +131,7 @@ const Register = () => {
     try {
       const result = await GoogleAuthNative.signIn();
       const data = await loginWithGoogle(result.idToken, false);
+      if (data.mfaRequired) { navigate('/login'); return; }
       navigate(data.profileIncomplete ? '/complete-profile' : '/');
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || t("register.googleSignUpFailedPlease"));

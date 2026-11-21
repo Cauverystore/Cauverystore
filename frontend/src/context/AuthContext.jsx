@@ -167,6 +167,10 @@ export const AuthProvider = ({ children }) => {
     setError('');
     const res = await API.post('/api/auth/google', { credential });
     const data = res.data;
+    if (data.mfaRequired) {
+      setPendingMfa({ email: data.email, preferredRole: null, rememberMe, mfaToken: data.mfaToken });
+      return data;
+    }
 
     const accessToken = data.accessToken || data.token;
     const userData = data.user || { email: data.email, fullName: data.username || data.email };
@@ -219,6 +223,10 @@ export const AuthProvider = ({ children }) => {
     setError('');
     const res = await API.post('/api/auth/complete-forced-reset', { email, oldPassword, newPassword });
     const data = res.data;
+    if (data.mfaRequired) {
+      setPendingMfa({ email: data.email || email, preferredRole: null, rememberMe, mfaToken: data.mfaToken });
+      return data;
+    }
 
     const accessToken = data.accessToken || data.token;
     const userData = data.user || { email: data.email, fullName: data.username || data.email };
