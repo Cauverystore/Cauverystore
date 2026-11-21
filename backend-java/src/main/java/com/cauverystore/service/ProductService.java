@@ -80,6 +80,17 @@ public class ProductService {
         else if (!wasVisible && ProductComplianceService.visibleToShoppers(saved)) complianceWorkflow.markPublished(saved, "saved_live");
     }
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private StockMovementService stockMovements;
+
+    private Integer liveStock(Long productId) {
+        return stockMovements != null ? productRepo.findStockById(productId) : null;
+    }
+
+    private void recordStockEdit(Product product, ProductVariant variant, Integer before, Integer after) {
+        if (stockMovements != null) stockMovements.recordEdit(product, variant, before, after);
+    }
+
     public ProductService(ProductRepository productRepo, CategoryRepository catRepo,
                           ProductImageRepository productImageRepo, DiscountRepository discountRepo,
                           ProductVariantRepository variantRepo,
@@ -670,6 +681,7 @@ public class ProductService {
 
     public Product updateProduct(Long productId, Product product) {
         Product existing = getProductById(productId);
+        Integer stockBefore = liveStock(productId);
         boolean wasVisible = ProductComplianceService.visibleToShoppers(existing);
         if (authorizationService.hasRole("SELLER")) {
             Long sellerId = currentSellerId();
@@ -766,6 +778,7 @@ public class ProductService {
           withdrawFromSaleIfUntaxable(existing);
           Optional<ProductComplianceService.Result> held = applyPublishGate(existing, wasVisible);
           Product saved = productRepo.save(existing);
+          recordStockEdit(saved, null, stockBefore, saved.getStock());
           hsnClassificationService.rememberAssignment(saved, authorizationService.getCurrentUserEmail());
           recordPublishGate(saved, held, wasVisible);
           return saved;
@@ -893,8 +906,11 @@ public class ProductService {
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product updateStock(Long productId, Integer stock) {
         Product p = getProductById(productId);
+        Integer before = liveStock(productId);
         p.setStock(stock);
-        return productRepo.save(p);
+        Product saved = productRepo.save(p);
+        recordStockEdit(saved, null, before, stock);
+        return saved;
     }
 
     public List<ProductVariant> getVariants(Long productId) {
@@ -916,9 +932,12 @@ public class ProductService {
         if (variant.getVariantType() != null) existing.setVariantType(variant.getVariantType());
         if (variant.getVariantValue() != null) existing.setVariantValue(variant.getVariantValue());
         if (variant.getPrice() != null) existing.setPrice(variant.getPrice());
+        Integer stockBefore = existing.getStock();
         if (variant.getStock() != null) existing.setStock(variant.getStock());
         if (variant.getSku() != null) existing.setSku(variant.getSku());
-        return variantRepo.save(existing);
+        ProductVariant saved = variantRepo.save(existing);
+        recordStockEdit(saved.getProduct(), saved, stockBefore, saved.getStock());
+        return saved;
     }
 
     @Transactional
@@ -1210,11 +1229,13 @@ public class ProductService {
             try {
                 if (sellerId != null) verifySellerOwnership(id, sellerId);
                 Product p = getProductById(id);
+                Integer stockBefore = liveStock(id);
                 if (body.containsKey("price")) p.setPrice(Double.valueOf(body.get("price").toString()));
                 if (body.containsKey("stock")) p.setStock(Integer.valueOf(body.get("stock").toString()));
                 if (body.containsKey("active")) p.setActive(Boolean.valueOf(body.get("active").toString()));
                 if (body.containsKey("brand")) p.setBrand((String) body.get("brand"));
-                productRepo.save(p);
+                Product savedRow = productRepo.save(p);
+                recordStockEdit(savedRow, null, stockBefore, savedRow.getStock());
                 updated++;
             } catch (Exception ignored) {
             }

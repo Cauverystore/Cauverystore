@@ -29,6 +29,9 @@ public class OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private StockMovementService stockMovements;
+
     /** Gift wrap price, GST inside. Checkout shows the same figure. */
     public static final double GIFT_WRAP_CHARGE = 49.0;
 
@@ -316,6 +319,7 @@ public class OrderService {
 
         double subTotal = 0;
         List<OrderItem> orderItems = new ArrayList<>();
+        List<Long> stockMovementIds = new ArrayList<>();
 
         for (CartItem cartItem : activeItems) {
             Product product = cartItem.getProduct();
@@ -338,7 +342,7 @@ public class OrderService {
             orderItems.add(orderItem);
             subTotal += price * qty;
 
-            inventoryService.deductStock(product, cartItem.getVariant(), qty);
+            stockMovementIds.add(inventoryService.deductStock(product, cartItem.getVariant(), qty));
         }
 
         // Never trust a client-computed discount for what actually gets charged - re-validate
@@ -380,6 +384,14 @@ public class OrderService {
         order.setTimeline(new ArrayList<>(List.of(timeline)));
 
         Order savedOrder = orderRepo.save(order);
+        // Only a label on the history: the order is placed, so a failure here must not undo it.
+        if (stockMovements != null) {
+            try {
+                stockMovements.linkToOrder(stockMovementIds, savedOrder.getId());
+            } catch (Exception e) {
+                log.warn("Could not label stock history for order {}: {}", savedOrder.getId(), e.getMessage());
+            }
+        }
 
         for (OrderItem item : orderItems) {
             item.setOrder(savedOrder);
@@ -635,7 +647,7 @@ public class OrderService {
                 for (OrderItem item : order.getItems()) {
                     Product product = item.getProduct();
                     if (product != null) {
-                        inventoryService.restoreStock(product, item.getVariant(), item.getQuantity());
+                        inventoryService.restoreForCancelledOrder(product, item.getVariant(), item.getQuantity(), orderId);
                     }
                 }
                 Refund cancelRefund = null;
@@ -671,7 +683,7 @@ public class OrderService {
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             if (product != null) {
-                inventoryService.restoreStock(product, item.getVariant(), item.getQuantity());
+                inventoryService.restoreForCancelledOrder(product, item.getVariant(), item.getQuantity(), orderId);
             }
         }
 
@@ -1240,7 +1252,7 @@ public class OrderService {
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             if (product != null) {
-                inventoryService.restoreStock(product, item.getVariant(), item.getQuantity());
+                inventoryService.restoreForCancelledOrder(product, item.getVariant(), item.getQuantity(), orderId);
             }
         }
 

@@ -23,7 +23,7 @@ public class PurchaseOrder extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String notes;
     private Long createdBy;
-    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseOrderItem> items = new ArrayList<>();
 
     public String getPoNumber() { return poNumber; }

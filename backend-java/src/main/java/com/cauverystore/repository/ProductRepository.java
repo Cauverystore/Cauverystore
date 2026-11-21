@@ -32,6 +32,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("UPDATE Product p SET p.stock = p.stock + :qty WHERE p.id = :productId")
     int incrementStock(@Param("productId") Long productId, @Param("qty") int qty);
 
+    // The real number in the database: a product from the cache can be behind it.
+    @Query("SELECT p.stock FROM Product p WHERE p.id = :productId")
+    Integer findStockById(@Param("productId") Long productId);
+
     List<Product> findByCategoryAndActiveTrue(Category category);
 
     // What a shopper types is matched against everything a seller fills in to describe the

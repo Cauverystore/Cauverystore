@@ -25,4 +25,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Modifying
     @Query("UPDATE Inventory i SET i.stock = i.stock + :qty WHERE i.product.id = :productId")
     int incrementStock(@Param("productId") Long productId, @Param("qty") int qty);
+
+    @Query("SELECT i.stock FROM Inventory i WHERE i.product.id = :productId")
+    Integer findStockByProductId(@Param("productId") Long productId);
 }

@@ -14,6 +14,8 @@ public class ProductVariantService {
 
     private final ProductVariantRepository variantRepo;
     private final ProductRepository productRepo;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private StockMovementService stockMovements;
 
     public ProductVariantService(ProductVariantRepository variantRepo, ProductRepository productRepo) {
         this.variantRepo = variantRepo;
@@ -30,6 +32,7 @@ public class ProductVariantService {
     public ProductVariant updateVariant(Long id, ProductVariant updated) {
         ProductVariant variant = variantRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Variant not found with id: " + id));
+        Integer stockBefore = variant.getStock();
         if (updated.getVariantType() != null) {
             variant.setVariantType(updated.getVariantType());
         }
@@ -45,7 +48,11 @@ public class ProductVariantService {
         if (updated.getSku() != null) {
             variant.setSku(updated.getSku());
         }
-        return variantRepo.save(variant);
+        ProductVariant saved = variantRepo.save(variant);
+        if (stockMovements != null) {
+            stockMovements.recordEdit(saved.getProduct(), saved, stockBefore, saved.getStock());
+        }
+        return saved;
     }
 
     public List<ProductVariant> getVariants(Long productId) {
