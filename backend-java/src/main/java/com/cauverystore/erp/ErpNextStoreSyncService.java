@@ -71,6 +71,8 @@ public class ErpNextStoreSyncService {
     @Value("${erpnext.item-tax-template:GST {rate}% - {abbr}}") private String itemTaxTemplate;
     @Value("${erpnext.nil-tax-template:Nil-Rated - {abbr}}") private String nilTaxTemplate;
     @Value("${erpnext.stock-align.enabled:true}") private boolean stockAlignEnabled;
+    /** Comma-separated user ids of SELLER accounts that are the store's own business. */
+    @Value("${erpnext.store-seller-ids:}") private String ownSellerIdsSetting;
 
     public ErpNextStoreSyncService(ErpNextClient erp, ErpNextSetupService setup, ErpSyncRecordRepository records,
                                    ProductRepository products, GstInvoiceRepository invoices,
@@ -852,9 +854,28 @@ public class ErpNextStoreSyncService {
         return "Stores - " + abbr;
     }
 
-    /** The store itself sells under the accounts of its admins; their user ids are its seller ids. */
-    Set<Long> storeSellerIds() {
+    /**
+     * Seller accounts named in erpnext.store-seller-ids: the store's own business, run from a normal
+     * seller login. Their role and access are unchanged; only the accounting treats them as the store.
+     */
+    Set<Long> ownSellerIds() {
         Set<Long> ids = new HashSet<>();
+        if (ownSellerIdsSetting == null || ownSellerIdsSetting.isBlank()) return ids;
+        for (String part : ownSellerIdsSetting.split(",")) {
+            String id = part.trim();
+            if (id.isEmpty()) continue;
+            try {
+                ids.add(Long.valueOf(id));
+            } catch (NumberFormatException e) {
+                log.warn("Ignoring invalid id in erpnext.store-seller-ids: {}", id);
+            }
+        }
+        return ids;
+    }
+
+    /** The store sells under its admins' accounts and any seller account named as its own. */
+    Set<Long> storeSellerIds() {
+        Set<Long> ids = ownSellerIds();
         for (User u : users.findByRole(Role.ADMIN)) ids.add(u.getId());
         for (User u : users.findByRole(Role.SUPER_ADMIN)) ids.add(u.getId());
         return ids;

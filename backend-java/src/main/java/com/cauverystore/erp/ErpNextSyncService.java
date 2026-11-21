@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Mirrors records this backend has already issued into ERPNext, for the books.
@@ -94,12 +95,16 @@ public class ErpNextSyncService {
         int ok = 0, failed = 0;
         List<String> errors = new ArrayList<>();
 
+        // The store's own seller accounts are already booked as store trading above. Commission or a
+        // payout between the store and itself would count the same money twice.
+        Set<Long> ownSellers = storeSync.ownSellerIds();
         for (CommissionInvoice inv : invoices.findAll()) {
+            if (ownSellers.contains(inv.getSellerId())) continue;
             Outcome o = runOne(ErpSyncRecord.COMMISSION_INVOICE, inv.getId(), force, () -> pushCommissionInvoice(inv));
             if (o == Outcome.OK) ok++; else if (o == Outcome.FAILED) { failed++; errors.add("invoice " + inv.getInvoiceNumber()); }
         }
         for (SellerPayout p : payouts.findAll()) {
-            if (Boolean.TRUE.equals(p.getVoided())) continue;
+            if (Boolean.TRUE.equals(p.getVoided()) || ownSellers.contains(p.getSellerId())) continue;
             Outcome o = runOne(ErpSyncRecord.SELLER_PAYOUT, p.getId(), force, () -> pushPayout(p));
             if (o == Outcome.OK) ok++; else if (o == Outcome.FAILED) { failed++; errors.add("payout " + p.getId()); }
         }
