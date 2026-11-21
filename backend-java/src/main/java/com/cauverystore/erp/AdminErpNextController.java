@@ -119,6 +119,18 @@ public class AdminErpNextController {
         return ResponseEntity.ok(m);
     }
 
+    /** Permanently deletes the ERP item of a product listed as a test product. */
+    @PostMapping("/excluded-products/{productId}/remove")
+    public ResponseEntity<?> removeExcludedItem(@PathVariable Long productId) {
+        try {
+            return ResponseEntity.ok(storeSync.removeExcludedItem(productId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (ErpNextClient.ErpException e) {
+            return ResponseEntity.status(409).body(Map.of("error", "ERPNext refused: " + e.getMessage()));
+        }
+    }
+
     /** Adds what the link needs to ERPNext (custom fields, item groups...). Safe to repeat. */
     @PostMapping("/setup")
     public List<Map<String, String>> runSetup() {

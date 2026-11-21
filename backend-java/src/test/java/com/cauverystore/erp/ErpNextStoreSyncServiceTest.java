@@ -214,6 +214,58 @@ class ErpNextStoreSyncServiceTest {
         verify(erp).create(eq("Sales Invoice"), anyMap());
     }
 
+    // ------------------------------------------------------------ excluded test products
+
+    @Test
+    void excludedProductIsNotSentAndItsFailureIsClosed() {
+        ReflectionTestUtils.setField(service, "excludedProductIdsSetting", "7");
+        record(ErpSyncRecord.ITEM, 7L, ErpSyncRecord.FAILED);
+        when(products.findAll()).thenReturn(List.of(shirt));
+
+        service.syncAll(true);
+
+        verify(erp, never()).create(eq("Item"), anyMap());
+        assertEquals(ErpSyncRecord.CANCELLED, store.get("ITEM:7").getStatus());
+    }
+
+    @Test
+    void removingAnExcludedItemDeletesOnlyThatItem() {
+        ReflectionTestUtils.setField(service, "excludedProductIdsSetting", "7");
+        itemAlreadySynced(shirt);
+        when(erp.exists("Item", "CS-P7")).thenReturn(true);
+
+        Map<String, Object> result = service.removeExcludedItem(7L);
+
+        verify(erp).delete("Item", "CS-P7");
+        assertEquals(true, result.get("deleted"));
+        assertEquals(ErpSyncRecord.CANCELLED, store.get("ITEM:7").getStatus());
+        assertNull(store.get("ITEM:7").getErpDocName());
+    }
+
+    @Test
+    void aProductNotListedCannotBeRemoved() {
+        ReflectionTestUtils.setField(service, "excludedProductIdsSetting", "60");
+        itemAlreadySynced(shirt);
+
+        assertThrows(IllegalArgumentException.class, () -> service.removeExcludedItem(7L));
+
+        verify(erp, never()).delete(anyString(), anyString());
+        assertEquals(ErpSyncRecord.SYNCED, store.get("ITEM:7").getStatus());
+    }
+
+    @Test
+    void ifTheErpRefusesTheRecordStaysAsItWas() {
+        ReflectionTestUtils.setField(service, "excludedProductIdsSetting", "7");
+        itemAlreadySynced(shirt);
+        when(erp.exists("Item", "CS-P7")).thenReturn(true);
+        doThrow(new ErpNextClient.ErpException("linked")).when(erp).delete("Item", "CS-P7");
+
+        assertThrows(ErpNextClient.ErpException.class, () -> service.removeExcludedItem(7L));
+
+        assertEquals(ErpSyncRecord.SYNCED, store.get("ITEM:7").getStatus());
+        assertEquals("CS-P7", store.get("ITEM:7").getErpDocName());
+    }
+
     // ------------------------------------------------------------ helpers
 
     private static ObjectNode doc(String name, int docstatus, double grandTotal) {
