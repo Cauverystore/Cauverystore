@@ -81,6 +81,8 @@ def main(argv: list[str]) -> int:
             log.error("The run stopped with an unexpected problem: %s", e)
             return 1
         log.info("Listing Agent finished: %s", summary)
+        if summary.get("drafted"):
+            watch_failed = _sweep(store, log) or watch_failed
         return 0 if summary["errors"] == 0 and not watch_failed else 1
 
     log.error("Unknown command %r. Use: run | check", cmd)
@@ -94,7 +96,17 @@ def _watch(store: StoreClient, log) -> int:
         log.error("The stock and price watcher could not finish: %s", e)
         return 1
     log.info("Stock and price watcher finished: %s", summary)
-    return 0 if summary["errors"] == 0 else 1
+    failed = _sweep(store, log)
+    return 0 if summary["errors"] == 0 and not failed else 1
+
+
+def _sweep(store: StoreClient, log) -> int:
+    try:
+        log.info("Auto-publish check finished: %s", store.publish_sweep())
+        return 0
+    except Exception as e:
+        log.error("The auto-publish check could not finish: %s", e)
+        return 1
 
 
 if __name__ == "__main__":

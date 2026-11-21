@@ -24,13 +24,16 @@ public class AgentApiController {
 
     private final AgentJobService jobs;
     private final com.cauverystore.service.AgentWatchService watch;
+    private final com.cauverystore.service.AgentAutoPublishService publisher;
 
     @Value("${agents.token:}")
     private String token;
 
-    public AgentApiController(AgentJobService jobs, com.cauverystore.service.AgentWatchService watch) {
+    public AgentApiController(AgentJobService jobs, com.cauverystore.service.AgentWatchService watch,
+                              com.cauverystore.service.AgentAutoPublishService publisher) {
         this.jobs = jobs;
         this.watch = watch;
+        this.publisher = publisher;
     }
 
     private ResponseEntity<?> refuse(String header) {
@@ -66,6 +69,14 @@ public class AgentApiController {
         ResponseEntity<?> no = refuse(t);
         if (no != null) return no;
         return ResponseEntity.ok(jobs.categoryList());
+    }
+
+    /** Re-checks waiting drafts. The agent cannot choose what is published: the store's rules do. */
+    @PostMapping("/publish/sweep")
+    public ResponseEntity<?> publishSweep(@RequestHeader(value = "X-Agent-Token", required = false) String t) {
+        ResponseEntity<?> no = refuse(t);
+        if (no != null) return no;
+        return ResponseEntity.ok(publisher.sweep());
     }
 
     @GetMapping("/watch/products")

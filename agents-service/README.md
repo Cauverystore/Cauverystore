@@ -75,3 +75,9 @@ Runs on every schedule and uses no AI (`python -m agents watch`). It reads the s
 - If most products look out of stock at once, nothing is changed.
 
 It only records what it would do until `AGENTS_WATCH_LIVE=true` is set on the **store backend** service. See Admin → Audit Logs for `WATCH_PREVIEW_*` entries.
+
+## Auto-publish
+
+After each watcher and listing run, the store re-checks waiting drafts. A draft goes on sale only when Admin → Supplier Labels has its confirmed label and written photo permission, and the compliance score is 100. Otherwise it stays in Agent Drafts with what is still needed.
+
+It only reports until `AGENTS_PUBLISH_LIVE=true` and `AGENTS_PUBLISH_SELLER_ID` are set on the **store backend** service.

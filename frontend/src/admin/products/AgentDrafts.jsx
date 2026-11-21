@@ -4,8 +4,8 @@ import api from "../../api/axios";
 
 /**
  * Agent Drafts: queue supplier product links for the separate Listing Agent, then review what it
- * drafted. A draft never goes on sale by itself: "Open in Add Product" fills the normal form, and
- * the product is only created when an admin presses Create there.
+ * drafted. "Open in Add Product" fills the normal form. A draft goes on sale by itself only when
+ * its label is confirmed in Supplier Labels and it passes every compliance check.
  */
 const TABS = [
   { key: "ready", label: "Ready to review" },

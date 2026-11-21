@@ -4,7 +4,7 @@ const all = () => true;
 
 test("every admin page appears exactly once", () => {
   const paths = ADMIN_NAV_SECTIONS.flatMap((s) => s.links.map((l) => l.to));
-  expect(paths).toHaveLength(44);
+  expect(paths).toHaveLength(45);
   expect(new Set(paths).size).toBe(paths.length);
 });
 

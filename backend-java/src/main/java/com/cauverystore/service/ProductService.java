@@ -1251,6 +1251,24 @@ public class ProductService {
         return result;
     }
 
+    /** How many photos a product really has, read from the database rather than the cache. */
+    public long countImages(Long productId) {
+        return productImageRepo.findByProduct_Id(productId).size();
+    }
+
+    /** Puts a fully checked product on sale. The compliance gate still has the final say. */
+    @CacheEvict(value = {"products", "categories"}, allEntries = true)
+    public Product publishChecked(Long productId) {
+        Product p = productRepo.findById(productId).orElseThrow(() -> new IllegalArgumentException("No such product."));
+        if (compliance != null) compliance.assertPublishable(p);
+        p.setActive(true);
+        p.setApprovalStatus("approved");
+        p.setProductStatus("published");
+        Product saved = productRepo.save(p);
+        if (complianceWorkflow != null) complianceWorkflow.markPublished(saved, "auto_publish");
+        return saved;
+    }
+
     /** The stock and price watcher's only write: show/hide and price. Null leaves a value alone. */
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product applyWatcherChange(Long productId, Boolean active, Double price) {
