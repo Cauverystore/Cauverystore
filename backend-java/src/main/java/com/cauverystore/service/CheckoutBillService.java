@@ -95,6 +95,7 @@ public class CheckoutBillService {
         List<Map<String, Object>> blocked = new ArrayList<>();
         double taxable = 0, cgst = 0, sgst = 0, igst = 0, cess = 0;
         boolean anyInterState = false;
+        int unavailable = 0;
 
         // With no destination there is no place of supply, and every line's tax heads are
         // unknowable. Pricing them anyway would mean picking intra-state and quoting a split
@@ -103,6 +104,11 @@ public class CheckoutBillService {
             if (item.isSavedForLater()) continue;
             Product product = item.getProduct();
             if (product == null) continue;
+            if (!ProductService.isAvailableToShoppers(product)) {
+                unavailable++;
+                blocked.add(problem(product, "This item is no longer available. Please remove it from your cart."));
+                continue;
+            }
 
             int qty = item.getQuantity() > 0 ? item.getQuantity() : 1;
             double unitPrice = unitPriceOf(item);
@@ -183,6 +189,9 @@ public class CheckoutBillService {
         if (deliveryStateCode == null) {
             bill.put("message", placeOfSupplyNote != null ? placeOfSupplyNote
                     : "A delivery address is needed before the tax can be worked out.");
+        } else if (unavailable > 0) {
+            bill.put("message", unavailable + " item(s) in this order are no longer available. "
+                    + "Remove them to continue.");
         } else if (!blocked.isEmpty()) {
             bill.put("message", blocked.size() + " item(s) in this order cannot be taxed, so the "
                     + "order cannot be placed. Remove them or contact the seller.");

@@ -87,6 +87,22 @@ class CheckoutBillServiceTest {
     }
 
     @Test
+    void switchedOffProductStopsCheckoutBeforePayment() {
+        Product hidden = new Product();
+        hidden.setId(9L);
+        hidden.setName("Withdrawn Item");
+        hidden.setPrice(100.0);
+        hidden.setActive(false);
+        addToCart(hidden, 1);
+
+        Map<String, Object> bill = service.billFor(user, new Address());
+
+        assertEquals(false, bill.get("canProceed"));
+        assertEquals(1, ((List<?>) bill.get("blocked")).size());
+        assertTrue(bill.get("message").toString().contains("no longer available"));
+    }
+
+    @Test
     void shouldItemiseEachLineWithItsOwnCodeRateAndTax() {
         // A basket carrying two rates is the whole reason a single "Tax" figure is not enough.
         Product lungi = seller(1L, 100L, "Cotton Lungi", 450.0, "33");

@@ -120,11 +120,16 @@ public class ProductService {
         return p.getApprovalStatus() == null || "approved".equalsIgnoreCase(p.getApprovalStatus());
     }
 
-    // The public product page: a listing still waiting for review (or rejected) does not exist
-    // as far as shoppers and search engines are concerned.
+    /** Can a shopper see and buy this now? It must be switched on as well as approved. */
+    public static boolean isAvailableToShoppers(Product p) {
+        return p.isActive() && isApprovedForShoppers(p);
+    }
+
+    // The public product page: a listing that is switched off, waiting for review or rejected
+    // does not exist as far as shoppers and search engines are concerned.
     public Product getProductForShoppers(Long id) {
         Product p = getProductById(id);
-        if (!isApprovedForShoppers(p)) {
+        if (!isAvailableToShoppers(p)) {
             throw new ProductNotFoundException("Product not found with id: " + id);
         }
         return p;

@@ -12,7 +12,7 @@ const ManageVariants = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await api.get(`/api/products/${id}`);
+        const res = await api.get(`/api/admin/products/${id}`);
         setVariants(res.data.variants || []);
       } catch (err) { console.error(err); }
       setLoading(false);
@@ -28,7 +28,7 @@ const ManageVariants = () => {
         price: parseFloat(form.price), stock: parseInt(form.stock),
       });
       setForm({ type: form.type, name: "", price: "", stock: "" });
-      const res = await api.get(`/api/products/${id}`);
+      const res = await api.get(`/api/admin/products/${id}`);
       setVariants(res.data.variants || []);
     } catch (err) { showMessage("Failed to add variant"); }
   };

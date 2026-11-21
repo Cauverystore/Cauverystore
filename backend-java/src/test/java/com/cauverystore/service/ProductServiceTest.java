@@ -305,6 +305,23 @@ class ProductServiceTest {
     }
 
     @Test
+    void shopperCannotOpenASwitchedOffProduct() {
+        product.setActive(false);
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+
+        assertThrows(ProductNotFoundException.class, () -> productService.getProductForShoppers(1L));
+        assertSame(product, productService.getProductForAdmin(1L), "admins can still manage it");
+    }
+
+    @Test
+    void shopperCanOpenAnActiveApprovedProduct() {
+        product.setApprovalStatus("approved");
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+
+        assertSame(product, productService.getProductForShoppers(1L));
+    }
+
+    @Test
     void deleteProductCascade_shouldReactivate_whenSuspendedButOnlyCancelledOrdersExist() {
         product.setActive(false);
         Order cancelledOrder = new Order();

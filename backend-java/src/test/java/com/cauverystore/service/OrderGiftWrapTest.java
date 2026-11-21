@@ -101,6 +101,19 @@ class OrderGiftWrapTest {
     }
 
     @Test
+    void switchedOffProductInTheCartCannotBeOrdered() {
+        User user = userRepo.findByUsername("testuser");
+        cartService.getCart(user).getItems().get(0).getProduct().setActive(false);
+
+        RuntimeException e = assertThrows(RuntimeException.class,
+                () -> orderService.placeOrder("testuser", address(), "COD", null, false));
+
+        assertTrue(e.getMessage().contains("no longer available"));
+        verifyNoInteractions(inventoryService);
+        verify(orderRepo, never()).save(any(Order.class));
+    }
+
+    @Test
     void noGiftWrap_shouldChargeNothingForIt() {
         Order order = orderService.placeOrder("testuser", address(), "RAZORPAY", null, false);
 
