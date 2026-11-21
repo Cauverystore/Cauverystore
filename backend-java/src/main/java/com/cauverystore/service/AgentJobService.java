@@ -218,7 +218,14 @@ public class AgentJobService {
             warnings.add("No supplier cost found, so no price was suggested.");
         }
         Double mrp = asDouble(body.get("supplierMrp"));
-        if (mrp != null && mrp > 0) d.put("supplierMrp", mrp);
+        if (mrp != null && mrp > 0) {
+            d.put("supplierMrp", mrp);
+            Object price = d.get("suggestedPrice");
+            if (price instanceof Number n && n.doubleValue() > mrp) {
+                warnings.add("The suggested price ₹" + n.longValue() + " is above the supplier's MRP ₹" + mrp
+                        + ". A product cannot be sold above its MRP; lower the price or check the MRP on the pack.");
+            }
+        }
 
         // The supplier's own item code, so the product can be matched to the supplier's stock later.
         d.put("sku", clip(str(body.get("supplierSku")).replaceAll("[^A-Za-z0-9_./-]", ""), 60));

@@ -92,7 +92,9 @@ def draft_one(job: dict, ai: AiClient, categories: list[dict]) -> dict:
     draft["imageUrls"] = sp.image_urls
     draft["supplierSku"] = sp.sku
     draft["model"] = ai.model
-    if any(t.strip().lower() == "china" for t in sp.tags):
+    if sp.country_of_origin:                       # stated on the supplier's own product page
+        draft["countryOfOrigin"] = sp.country_of_origin
+    elif any(t.strip().lower() == "china" for t in sp.tags):
         draft["countryOfOrigin"] = "China"
     return draft
 

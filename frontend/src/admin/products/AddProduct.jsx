@@ -56,6 +56,8 @@ const AddProduct = () => {
       brand: text(d.brand),
       category: d.categoryId != null ? String(d.categoryId) : "",
       price: d.suggestedPrice != null ? String(d.suggestedPrice) : "",
+      // The supplier's MRP is the one printed on the pack; only used if our price is not above it.
+      mrp: d.supplierMrp != null && (d.suggestedPrice == null || d.suggestedPrice <= d.supplierMrp) ? String(d.supplierMrp) : "",
       stock: "10",
       description: text(d.description),
       shortDescription: text(d.shortDescription).slice(0, 150),
@@ -288,7 +290,9 @@ const AddProduct = () => {
           {agentJob.draft.hsnCode && agentJob.draft.hsnReason && (
             <div>HSN {agentJob.draft.hsnCode}: {agentJob.draft.hsnReason}</div>
           )}
-          <div>Stock is set to 10 and the badge to New Arrival. Add the MRP.</div>
+          <div>Stock is set to 10 and the badge to New Arrival. {agentJob.draft.supplierMrp != null && (agentJob.draft.suggestedPrice == null || agentJob.draft.suggestedPrice <= agentJob.draft.supplierMrp)
+            ? `MRP ₹${agentJob.draft.supplierMrp} is the supplier's; check it matches the pack.`
+            : "Add the MRP printed on the pack."}</div>
           {agentJob.draft.imageUrls?.length > 0 && (
             <div>The supplier's photos ({Math.min(agentJob.draft.imageUrls.length, 5)}) are copied to our own image server when you press Create; remove any with the supplier's logo afterwards on the product's Images page. Publish them only once the supplier has given permission.</div>
           )}
