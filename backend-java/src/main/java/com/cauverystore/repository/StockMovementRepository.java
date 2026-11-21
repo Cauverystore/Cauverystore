@@ -21,4 +21,12 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     @Modifying
     @Query("UPDATE StockMovement m SET m.referenceId = :referenceId WHERE m.id IN :ids")
     int setReference(@Param("ids") Collection<Long> ids, @Param("referenceId") Long referenceId);
+
+    @Modifying
+    @Query("UPDATE StockMovement m SET m.product = null, m.variant = null, m.deletedProductName = :name WHERE m.product.id = :productId")
+    int detachProduct(@Param("productId") Long productId, @Param("name") String name);
+
+    @Modifying
+    @Query("UPDATE StockMovement m SET m.variant = null WHERE m.variant.id = :variantId")
+    int detachVariant(@Param("variantId") Long variantId);
 }

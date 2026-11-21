@@ -81,6 +81,18 @@ public class StockMovementService {
         repo.setReference(movementIds, orderId);
     }
 
+    /** History outlives the product: the rows stay, holding its name instead of a link. */
+    @Transactional
+    public void forgetProduct(Long productId, String name) {
+        String kept = name != null && name.length() > 255 ? name.substring(0, 255) : name;
+        repo.detachProduct(productId, kept);
+    }
+
+    @Transactional
+    public void forgetVariant(Long variantId) {
+        repo.detachVariant(variantId);
+    }
+
     private List<Map<String, Object>> views(List<StockMovement> rows) {
         return rows.stream().map(this::view).toList();
     }
@@ -90,7 +102,8 @@ public class StockMovementService {
         v.put("id", m.getId());
         Product p = m.getProduct();
         v.put("productId", p != null ? p.getId() : null);
-        v.put("productName", p != null ? p.getName() : null);
+        v.put("productName", p != null ? p.getName() : m.getDeletedProductName());
+        v.put("productDeleted", p == null && m.getDeletedProductName() != null);
         ProductVariant size = m.getVariant();
         v.put("variantId", size != null ? size.getId() : null);
         v.put("variantLabel", size != null ? size.getVariantValue() : null);

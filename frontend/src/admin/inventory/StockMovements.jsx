@@ -44,7 +44,7 @@ const StockMovements = () => {
             {movements.map(m => (
               <tr key={m.id} style={{ borderBottom:"1px solid #f3f4f6" }}>
                 <td style={{ padding:"10px 12px", fontWeight:500 }}>#{m.id}</td>
-                <td style={{ padding:"10px 12px" }}>{m.productName || `#${m.productId || "N/A"}`}{m.variantLabel ? ` (${m.variantLabel})` : ""}</td>
+                <td style={{ padding:"10px 12px" }}>{m.productName || `#${m.productId || "N/A"}`}{m.variantLabel ? ` (${m.variantLabel})` : ""}{m.productDeleted ? " (deleted)" : ""}</td>
                 <td style={{ padding:"10px 12px" }}><span style={{ padding:"2px 8px", borderRadius:"4px", fontSize:"0.75rem", fontWeight:600, background:m.type==="IN"?"#f0fdf4":m.type==="OUT"?"#fef2f2":"#fefce8", color:m.type==="IN"?"#16a34a":m.type==="OUT"?"#dc2626":"#f59e0b" }}>{m.type}</span></td>
                 <td style={{ padding:"10px 12px", fontWeight:600 }}>{signedQty(m)}</td>
                 <td style={{ padding:"10px 12px" }}>{m.balanceAfter}</td>

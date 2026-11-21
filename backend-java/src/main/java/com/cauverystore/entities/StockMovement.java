@@ -24,6 +24,8 @@ public class StockMovement {
     private String referenceType;
     private Long referenceId;
     private String notes;
+    /** Keeps the history readable after the product itself has been deleted. */
+    private String deletedProductName;
     private Long performedBy;
     private LocalDateTime createdAt;
 
@@ -50,6 +52,8 @@ public class StockMovement {
     public void setReferenceId(Long referenceId) { this.referenceId = referenceId; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public String getDeletedProductName() { return deletedProductName; }
+    public void setDeletedProductName(String deletedProductName) { this.deletedProductName = deletedProductName; }
     public Long getPerformedBy() { return performedBy; }
     public void setPerformedBy(Long performedBy) { this.performedBy = performedBy; }
     public LocalDateTime getCreatedAt() { return createdAt; }
