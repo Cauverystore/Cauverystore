@@ -214,7 +214,7 @@ class ReturnLifecycleTest {
 
         service.updateStatus(1L, ReturnRequestService.COMPLETED);
 
-        verify(inventoryService).restoreStock(p, 2);
+        verify(inventoryService).restoreForReturn(p, null, 2, null);
     }
 
     @Test
@@ -228,7 +228,7 @@ class ReturnLifecycleTest {
 
         service.updateStatus(1L, ReturnRequestService.REJECTED);
 
-        verify(inventoryService, never()).restoreStock(any(), anyInt());
+        verify(inventoryService, never()).restoreForReturn(any(), any(), anyInt(), any());
         assertEquals("UNSELLABLE", rr.getCondition());
     }
 
@@ -243,7 +243,7 @@ class ReturnLifecycleTest {
         service.updateStatus(1L, ReturnRequestService.COMPLETED);
         service.updateStatus(1L, ReturnRequestService.REFUNDED);
 
-        verify(inventoryService, times(1)).restoreStock(any(), anyInt());
+        verify(inventoryService, times(1)).restoreForReturn(any(), any(), anyInt(), any());
     }
 
     @Test
@@ -259,7 +259,7 @@ class ReturnLifecycleTest {
         service.updateStatus(1L, ReturnRequestService.COMPLETED);
         service.updateStatus(1L, ReturnRequestService.COMPLETED);
 
-        verify(inventoryService, times(1)).restoreStock(p, 3);
+        verify(inventoryService, times(1)).restoreForReturn(p, null, 3, null);
         verify(creditNoteService, times(1)).generateReturnCreditNote(eq(1L), any());
     }
 
@@ -282,8 +282,8 @@ class ReturnLifecycleTest {
 
         service.updateStatus(1L, ReturnRequestService.COMPLETED);
 
-        verify(inventoryService).restoreStock(a, null, 1);
-        verify(inventoryService).restoreStock(b, null, 4);
+        verify(inventoryService).restoreForReturn(a, null, 1, null);
+        verify(inventoryService).restoreForReturn(b, null, 4, null);
     }
 
     @Test
@@ -295,7 +295,7 @@ class ReturnLifecycleTest {
         rr.setProduct(p);
         rr.setStatus(ReturnRequestService.RECEIVED);
         doThrow(new RuntimeException("inventory locked"))
-                .when(inventoryService).restoreStock(any(), anyInt());
+                .when(inventoryService).restoreForReturn(any(), any(), anyInt(), any());
 
         assertDoesNotThrow(() -> service.updateStatus(1L, ReturnRequestService.COMPLETED));
         assertEquals(ReturnRequestService.COMPLETED, rr.getStatus());

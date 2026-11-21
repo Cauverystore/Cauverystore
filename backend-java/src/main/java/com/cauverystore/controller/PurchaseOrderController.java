@@ -1,6 +1,5 @@
 package com.cauverystore.controller;
 
-import com.cauverystore.entities.PurchaseOrder;
 import com.cauverystore.service.PurchaseOrderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,10 +14,11 @@ public class PurchaseOrderController {
     private final PurchaseOrderService poService;
     public PurchaseOrderController(PurchaseOrderService poService) { this.poService = poService; }
 
-    @GetMapping public List<PurchaseOrder> getAll() { return poService.getAll(); }
-    @GetMapping("/{id}") public PurchaseOrder getById(@PathVariable Long id) { return poService.getById(id); }
-    @PostMapping public PurchaseOrder create(@RequestBody PurchaseOrder po) { return poService.create(po); }
-    @PutMapping("/{id}") public PurchaseOrder update(@PathVariable Long id, @RequestBody PurchaseOrder po) { return poService.update(id, po); }
+    @GetMapping public List<Map<String, Object>> getAll() { return poService.getAll(); }
+    @GetMapping("/{id}") public Map<String, Object> getById(@PathVariable Long id) { return poService.getById(id); }
+    @PostMapping public Map<String, Object> create(@RequestBody PurchaseOrderService.OrderRequest po) { return poService.create(po); }
+    @PutMapping("/{id}") public Map<String, Object> update(@PathVariable Long id, @RequestBody PurchaseOrderService.OrderRequest po) { return poService.update(id, po); }
+    @PostMapping("/{id}/status") public Map<String, Object> changeStatus(@PathVariable Long id, @RequestBody Map<String, String> body) { return poService.changeStatus(id, body.get("status")); }
     @DeleteMapping("/{id}") public ResponseEntity<?> delete(@PathVariable Long id) { poService.delete(id); return ResponseEntity.ok(Map.of("message", "Deleted")); }
-    @GetMapping("/status/{status}") public List<PurchaseOrder> getByStatus(@PathVariable String status) { return poService.getByStatus(status); }
+    @GetMapping("/status/{status}") public List<Map<String, Object>> getByStatus(@PathVariable String status) { return poService.getByStatus(status); }
 }

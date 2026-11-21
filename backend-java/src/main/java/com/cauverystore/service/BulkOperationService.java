@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 public class BulkOperationService {
     private final ProductRepository productRepo;
     private final ProductService productService;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private StockMovementService stockMovements;
     public BulkOperationService(ProductRepository productRepo, ProductService productService) {
         this.productRepo = productRepo;
         this.productService = productService;
@@ -29,8 +31,12 @@ public class BulkOperationService {
 
     public Map<String, Object> bulkStockUpdate(List<Long> ids, Integer stock) {
         List<Product> products = productRepo.findAllById(ids);
-        for (Product p : products) { p.setStock(stock); }
+        Map<Long, Integer> before = new java.util.HashMap<>();
+        for (Product p : products) { before.put(p.getId(), p.getStock()); p.setStock(stock); }
         productRepo.saveAll(products);
+        if (stockMovements != null) {
+            for (Product p : products) stockMovements.recordEdit(p, null, before.get(p.getId()), stock);
+        }
         productService.evictProductCache();
         return Map.of("message", products.size() + " product(s) updated", "count", products.size());
     }

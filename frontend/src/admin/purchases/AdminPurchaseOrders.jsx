@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
+import { useConfirm } from "../../components/ConfirmDialog";
 
 const statuses = ["PENDING", "CONFIRMED", "SHIPPED", "RECEIVED", "CANCELLED"];
 
@@ -38,13 +39,14 @@ const styles = {
 };
 
 export default function AdminPurchaseOrders() {
+  const confirm = useConfirm();
   const [orders, setOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
     poNumber: "", supplierId: "", warehouseId: "", status: "PENDING",
-    orderDate: "", expectedDelivery: "", notes: "", items: [{ productId: "", quantity: "", unitPrice: "" }],
+    orderDate: "", expectedDelivery: "", notes: "", items: [{ productId: "", variantId: "", quantity: "", unitPrice: "" }],
   });
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,7 @@ export default function AdminPurchaseOrders() {
       setProducts(productsRes.data.products || productsRes.data || []);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to fetch data");
+      setError(err.response?.data?.error || err.response?.data?.message || "Failed to fetch data");
     } finally {
       setLoading(false);
     }
@@ -83,11 +85,12 @@ export default function AdminPurchaseOrders() {
   const handleItemChange = (index, field, value) => {
     const items = [...form.items];
     items[index] = { ...items[index], [field]: value };
+    if (field === "productId") items[index].variantId = "";
     setForm({ ...form, items });
   };
 
   const addItem = () => {
-    setForm({ ...form, items: [...form.items, { productId: "", quantity: "", unitPrice: "" }] });
+    setForm({ ...form, items: [...form.items, { productId: "", variantId: "", quantity: "", unitPrice: "" }] });
   };
 
   const removeItem = (index) => {
@@ -95,8 +98,16 @@ export default function AdminPurchaseOrders() {
     setForm({ ...form, items });
   };
 
+  // Receiving adds the goods to stock and cannot be undone, so it is always confirmed.
+  const confirmReceive = () => confirm({
+    title: "Mark as received?",
+    message: "The quantities on this order will be added to stock. This cannot be undone or changed later.",
+    confirmLabel: "Yes, add to stock",
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.status === "RECEIVED" && !(await confirmReceive())) return;
     try {
       setError(null);
       setMessage(null);
@@ -104,6 +115,7 @@ export default function AdminPurchaseOrders() {
         ...form,
         items: form.items.map((item) => ({
           productId: item.productId,
+          variantId: item.variantId || null,
           quantity: Number(item.quantity),
           unitPrice: Number(item.unitPrice),
         })),
@@ -117,12 +129,12 @@ export default function AdminPurchaseOrders() {
       }
       setForm({
         poNumber: "", supplierId: "", warehouseId: "", status: "PENDING",
-        orderDate: "", expectedDelivery: "", notes: "", items: [{ productId: "", quantity: "", unitPrice: "" }],
+        orderDate: "", expectedDelivery: "", notes: "", items: [{ productId: "", variantId: "", quantity: "", unitPrice: "" }],
       });
       setEditId(null);
       fetchAll();
     } catch (err) {
-      setError(err.response?.data?.message || "Operation failed");
+      setError(err.response?.data?.error || err.response?.data?.message || "Operation failed");
     }
   };
 
@@ -139,10 +151,11 @@ export default function AdminPurchaseOrders() {
       items: po.items && po.items.length > 0
         ? po.items.map((item) => ({
             productId: item.productId?._id || item.productId?.id || item.productId || "",
+            variantId: item.variantId || "",
             quantity: item.quantity || "",
             unitPrice: item.unitPrice || "",
           }))
-        : [{ productId: "", quantity: "", unitPrice: "" }],
+        : [{ productId: "", variantId: "", quantity: "", unitPrice: "" }],
     });
   };
 
@@ -150,21 +163,23 @@ export default function AdminPurchaseOrders() {
     setEditId(null);
     setForm({
       poNumber: "", supplierId: "", warehouseId: "", status: "PENDING",
-      orderDate: "", expectedDelivery: "", notes: "", items: [{ productId: "", quantity: "", unitPrice: "" }],
+      orderDate: "", expectedDelivery: "", notes: "", items: [{ productId: "", variantId: "", quantity: "", unitPrice: "" }],
     });
   };
 
   const cycleStatus = async (po) => {
+    if (po.status === "RECEIVED") return;
     const id = po._id || po.id;
     const currentIdx = statuses.indexOf(po.status);
     const nextStatus = statuses[(currentIdx + 1) % statuses.length];
+    if (nextStatus === "RECEIVED" && !(await confirmReceive())) return;
     try {
       setError(null);
-      await api.put(`/api/admin/purchase-orders/${id}`, { ...po, status: nextStatus });
-      setMessage(`Status changed to ${nextStatus}`);
+      await api.post(`/api/admin/purchase-orders/${id}/status`, { status: nextStatus });
+      setMessage(nextStatus === "RECEIVED" ? "Received. The goods have been added to stock." : `Status changed to ${nextStatus}`);
       fetchAll();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update status");
+      setError(err.response?.data?.error || err.response?.data?.message || "Failed to update status");
     }
   };
 
@@ -228,7 +243,18 @@ export default function AdminPurchaseOrders() {
                   <option key={p._id || p.id} value={p._id || p.id}>{p.name}</option>
                 ))}
               </select>
-              <input style={{ ...styles.input, flex: "0 1 100px" }} type="number" placeholder="Qty" value={item.quantity} onChange={(e) => handleItemChange(idx, "quantity", e.target.value)} />
+              {(() => {
+                const chosen = productList.find((p) => String(p._id || p.id) === String(item.productId));
+                const sizes = chosen?.variants || [];
+                if (sizes.length === 0) return null;
+                return (
+                  <select style={{ ...styles.select, flex: "0 1 160px" }} value={item.variantId} onChange={(e) => handleItemChange(idx, "variantId", e.target.value)}>
+                    <option value="">Select Size</option>
+                    {sizes.map((v) => <option key={v.id} value={v.id}>{v.variantValue}</option>)}
+                  </select>
+                );
+              })()}
+              <input style={{ ...styles.input, flex: "0 1 100px" }} type="number" min="1" placeholder="Qty" value={item.quantity} onChange={(e) => handleItemChange(idx, "quantity", e.target.value)} />
               <input style={{ ...styles.input, flex: "0 1 120px" }} type="number" step="0.01" placeholder="Unit Price" value={item.unitPrice} onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)} />
               {form.items.length > 1 && (
                 <button type="button" style={styles.btnRemoveItem} onClick={() => removeItem(idx)}>X</button>
@@ -269,15 +295,17 @@ export default function AdminPurchaseOrders() {
                   <td style={styles.td}>{po.supplierId?.name || (typeof po.supplierId === "string" ? po.supplierId : "-")}</td>
                   <td style={styles.td}>{po.warehouseId?.name || (typeof po.warehouseId === "string" ? po.warehouseId : "-")}</td>
                   <td style={styles.td}>
-                    <span style={styles.statusBadge(po.status)} onClick={() => cycleStatus(po)} title="Click to change status">
+                    <span style={{ ...styles.statusBadge(po.status), cursor: po.status === "RECEIVED" ? "default" : "pointer" }} onClick={() => cycleStatus(po)} title={po.status === "RECEIVED" ? "Received and added to stock" : "Click to change status"}>
                       {po.status || "PENDING"}
                     </span>
                   </td>
                   <td style={styles.td}>{po.orderDate ? po.orderDate.slice(0, 10) : "-"}</td>
                   <td style={styles.td}>{po.expectedDelivery ? po.expectedDelivery.slice(0, 10) : "-"}</td>
-                  <td style={styles.td}>${total.toFixed(2)}</td>
+                  <td style={styles.td}>₹{total.toFixed(2)}</td>
                   <td style={styles.td}>
-                    <button style={{ background: "#00788C", color: "#fff", border: "none", padding: "6px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }} onClick={() => handleEdit(po)}>Edit</button>
+                    {po.status === "RECEIVED" ? "-" : (
+                      <button style={{ background: "#00788C", color: "#fff", border: "none", padding: "6px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }} onClick={() => handleEdit(po)}>Edit</button>
+                    )}
                   </td>
                 </tr>
               );

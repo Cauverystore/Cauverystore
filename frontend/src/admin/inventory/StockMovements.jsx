@@ -4,8 +4,23 @@ import api from "../../api/axios";
 const StockMovements = () => {
   const [movements, setMovements] = useState([]);
   const [filter, setFilter] = useState("ALL");
+  const [error, setError] = useState("");
   const fetch = async () => {
-    try { const url = filter === "ALL" ? "/api/stock-movements" : `/api/stock-movements/type/${filter}`; setMovements((await api.get(url)).data); } catch {}
+    try {
+      const url = filter === "ALL" ? "/api/stock-movements" : `/api/stock-movements/type/${filter}`;
+      setMovements((await api.get(url)).data);
+      setError("");
+    } catch (err) {
+      setMovements([]);
+      setError(err.response?.data?.error || "Could not load stock movements.");
+    }
+  };
+  const signedQty = (m) => (m.type === "OUT" ? `-${m.quantity}` : m.quantity < 0 ? `${m.quantity}` : `+${m.quantity}`);
+  const reference = (m) => {
+    const label = { ORDER: "Order", RETURN: "Return", PURCHASE_ORDER: "Purchase", MANUAL: "Edited" }[m.referenceType] || m.referenceType;
+    if (!label) return "-";
+    const base = m.referenceId ? `${label} #${m.referenceId}` : label;
+    return m.notes && m.referenceType !== "MANUAL" ? `${base} (${m.notes})` : base;
   };
   useEffect(() => { fetch(); }, [filter]);
   return (
@@ -18,6 +33,7 @@ const StockMovements = () => {
           ))}
         </div>
       </div>
+      {error && <div role="alert" style={{ background:"#fef2f2", color:"#dc2626", padding:"0.75rem 1rem", borderRadius:6, marginBottom:"1rem", fontSize:"0.85rem" }}>{error}</div>}
       <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"hidden" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"0.85rem" }}>
           <thead><tr style={{ background:"#f9fafb" }}>
@@ -28,11 +44,11 @@ const StockMovements = () => {
             {movements.map(m => (
               <tr key={m.id} style={{ borderBottom:"1px solid #f3f4f6" }}>
                 <td style={{ padding:"10px 12px", fontWeight:500 }}>#{m.id}</td>
-                <td style={{ padding:"10px 12px" }}>{m.product?.name || `#${m.product?.id || "N/A"}`}</td>
+                <td style={{ padding:"10px 12px" }}>{m.productName || `#${m.productId || "N/A"}`}{m.variantLabel ? ` (${m.variantLabel})` : ""}</td>
                 <td style={{ padding:"10px 12px" }}><span style={{ padding:"2px 8px", borderRadius:"4px", fontSize:"0.75rem", fontWeight:600, background:m.type==="IN"?"#f0fdf4":m.type==="OUT"?"#fef2f2":"#fefce8", color:m.type==="IN"?"#16a34a":m.type==="OUT"?"#dc2626":"#f59e0b" }}>{m.type}</span></td>
-                <td style={{ padding:"10px 12px", fontWeight:600 }}>{m.type === "OUT" ? "-" : "+"}{m.quantity}</td>
+                <td style={{ padding:"10px 12px", fontWeight:600 }}>{signedQty(m)}</td>
                 <td style={{ padding:"10px 12px" }}>{m.balanceAfter}</td>
-                <td style={{ padding:"10px 12px", color:"#6b7280", fontSize:"0.8rem" }}>{m.referenceType ? `${m.referenceType}#${m.referenceId}` : "-"}</td>
+                <td style={{ padding:"10px 12px", color:"#6b7280", fontSize:"0.8rem" }}>{reference(m)}</td>
                 <td style={{ padding:"10px 12px", color:"#6b7280", fontSize:"0.8rem" }}>{m.createdAt ? new Date(m.createdAt).toLocaleString() : "-"}</td>
               </tr>
             ))}

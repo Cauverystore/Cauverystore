@@ -17,19 +17,23 @@ public class InventoryService {
     private final ProductRepository productRepo;
     private final ProductService productService;
     private final com.cauverystore.repository.ProductVariantRepository variantRepo;
+    private final StockMovementService movements;
 
     public InventoryService(InventoryRepository inventoryRepo, ProductRepository productRepo, ProductService productService,
-                            com.cauverystore.repository.ProductVariantRepository variantRepo) {
+                            com.cauverystore.repository.ProductVariantRepository variantRepo,
+                            StockMovementService movements) {
         this.inventoryRepo = inventoryRepo;
         this.productRepo = productRepo;
         this.productService = productService;
         this.variantRepo = variantRepo;
+        this.movements = movements;
     }
 
     // An order line for a chosen size takes stock from that size AND from the product's total,
     // which is what the storefront shows as "in stock" / "only N left".
+    // Returns the history row, so the caller can label it once the order has a number.
     @Transactional
-    public void deductStock(Product product, com.cauverystore.entities.ProductVariant variant, int qty) {
+    public Long deductStock(Product product, com.cauverystore.entities.ProductVariant variant, int qty) {
         if (variant != null) {
             int updated = variantRepo.decrementStockIfAvailable(variant.getId(), qty);
             if (updated == 0) {
@@ -37,15 +41,47 @@ public class InventoryService {
                         + " (" + variant.getVariantValue() + ")");
             }
         }
-        deductStock(product, qty);
+        takeFromProduct(product, qty);
+        return movements.record(product, variant, StockMovementService.OUT, qty, balance(product, variant),
+                "ORDER", null, "Sold").getId();
     }
 
     @Transactional
-    public void restoreStock(Product product, com.cauverystore.entities.ProductVariant variant, int qty) {
+    public void restoreForCancelledOrder(Product product, com.cauverystore.entities.ProductVariant variant,
+                                         int qty, Long orderId) {
+        addBack(product, variant, qty);
+        movements.record(product, variant, StockMovementService.IN, qty, balance(product, variant),
+                "ORDER", orderId, "Order cancelled");
+    }
+
+    @Transactional
+    public void restoreForReturn(Product product, com.cauverystore.entities.ProductVariant variant,
+                                 int qty, Long returnId) {
+        addBack(product, variant, qty);
+        movements.record(product, variant, StockMovementService.RETURN, qty, balance(product, variant),
+                "RETURN", returnId, "Customer return");
+    }
+
+    @Transactional
+    public void receivePurchase(Product product, com.cauverystore.entities.ProductVariant variant,
+                                int qty, Long purchaseOrderId) {
+        addBack(product, variant, qty);
+        movements.record(product, variant, StockMovementService.IN, qty, balance(product, variant),
+                "PURCHASE_ORDER", purchaseOrderId, "Purchase received");
+    }
+
+    private void addBack(Product product, com.cauverystore.entities.ProductVariant variant, int qty) {
         if (variant != null) {
             variantRepo.incrementStock(variant.getId(), qty);
         }
-        restoreStock(product, qty);
+        addToProduct(product, qty);
+    }
+
+    // For a size, its own count; otherwise whichever table this product's stock lives in.
+    private Integer balance(Product product, com.cauverystore.entities.ProductVariant variant) {
+        if (variant != null) return variantRepo.findStockById(variant.getId());
+        Integer held = inventoryRepo.findStockByProductId(product.getId());
+        return held != null ? held : productRepo.findStockById(product.getId());
     }
 
     public Inventory addStock(Inventory inventory) {
@@ -59,8 +95,7 @@ public class InventoryService {
         return inventoryRepo.findByProduct_Id(productId);
     }
 
-    @Transactional
-    public void deductStock(Product product, int qty) {
+    private void takeFromProduct(Product product, int qty) {
         Inventory inventory = inventoryRepo.findByProduct_Id(product.getId());
         if (inventory != null) {
             int updated = inventoryRepo.decrementStockIfAvailable(product.getId(), qty);
@@ -82,8 +117,7 @@ public class InventoryService {
     // Mirrors deductStock's choice of table exactly, so a cancellation always credits back
     // whichever table the original order actually deducted from instead of drifting the two
     // out of sync.
-    @Transactional
-    public void restoreStock(Product product, int qty) {
+    private void addToProduct(Product product, int qty) {
         Inventory inventory = inventoryRepo.findByProduct_Id(product.getId());
         if (inventory != null) {
             inventoryRepo.incrementStock(product.getId(), qty);

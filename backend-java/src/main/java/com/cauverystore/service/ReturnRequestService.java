@@ -328,14 +328,14 @@ public class ReturnRequestService {
     private void restock(ReturnRequest rr) {
         try {
             if (rr.getProduct() != null) {
-                inventoryService.restoreStock(rr.getProduct(),
-                        rr.getQuantity() != null ? rr.getQuantity() : 1);
+                inventoryService.restoreForReturn(rr.getProduct(), null,
+                        rr.getQuantity() != null ? rr.getQuantity() : 1, rr.getId());
                 return;
             }
             if (rr.getOrder() != null && rr.getOrder().getItems() != null) {
                 for (OrderItem item : rr.getOrder().getItems()) {
                     if (item.getProduct() != null) {
-                        inventoryService.restoreStock(item.getProduct(), item.getVariant(), item.getQuantity());
+                        inventoryService.restoreForReturn(item.getProduct(), item.getVariant(), item.getQuantity(), rr.getId());
                     }
                 }
             }
