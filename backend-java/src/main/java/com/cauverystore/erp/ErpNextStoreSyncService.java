@@ -73,6 +73,8 @@ public class ErpNextStoreSyncService {
     @Value("${erpnext.stock-align.enabled:true}") private boolean stockAlignEnabled;
     /** Comma-separated user ids of SELLER accounts that are the store's own business. */
     @Value("${erpnext.store-seller-ids:}") private String ownSellerIdsSetting;
+    /** The books start at this order. Earlier orders were tests and never go to ERPNext. */
+    @Value("${erpnext.first-order-id:0}") private long firstOrderId;
 
     public ErpNextStoreSyncService(ErpNextClient erp, ErpNextSetupService setup, ErpSyncRecordRepository records,
                                    ProductRepository products, GstInvoiceRepository invoices,
@@ -125,6 +127,11 @@ public class ErpNextStoreSyncService {
         List<GstInvoice> storeInvoices = new ArrayList<>();
         for (GstInvoice inv : invoices.findAll()) {
             if (!isStore(inv.getSellerId(), store)) continue;
+            if (isBeforeBooks(inv.getOrderId())) {
+                keepOut(ErpSyncRecord.SALES_INVOICE, inv.getId());
+                keepOut(ErpSyncRecord.CUSTOMER_PAYMENT, inv.getOrderId());
+                continue;
+            }
             storeInvoices.add(inv);
             if (isCancelled(inv.getStatus()) || "DRAFT".equalsIgnoreCase(inv.getStatus())) continue;
             t.add(runOne(ErpSyncRecord.SALES_INVOICE, inv.getId(), force, null, () -> pushSalesInvoice(inv)),
@@ -132,6 +139,10 @@ public class ErpNextStoreSyncService {
         }
         for (CreditNote cn : creditNotes.findAll()) {
             if (!"CREDIT".equalsIgnoreCase(cn.getNoteType()) || !isStore(cn.getSellerId(), store)) continue;
+            if (isBeforeBooks(orderIdOf(cn))) {
+                keepOut(ErpSyncRecord.SALES_RETURN, cn.getId());
+                continue;
+            }
             if (isCancelled(cn.getStatus())) continue;
             t.add(runOne(ErpSyncRecord.SALES_RETURN, cn.getId(), force, null, () -> pushReturn(cn)),
                     "credit note " + cn.getCreditNoteNumber());
@@ -147,6 +158,10 @@ public class ErpNextStoreSyncService {
             if (!"COMPLETED".equalsIgnoreCase(r.getStatus()) || r.getOrderId() == null) continue;
             GstInvoice inv = invoices.findByOrderId(r.getOrderId()).orElse(null);
             if (inv == null || !isStore(inv.getSellerId(), store)) continue;
+            if (isBeforeBooks(r.getOrderId())) {
+                keepOut(ErpSyncRecord.CUSTOMER_REFUND, r.getId());
+                continue;
+            }
             t.add(runOne(ErpSyncRecord.CUSTOMER_REFUND, r.getId(), force, null, () -> pushRefund(r, inv)),
                     "refund " + r.getId());
         }
@@ -176,6 +191,31 @@ public class ErpNextStoreSyncService {
     }
 
     enum Outcome { OK, FAILED, WAITING, SKIPPED }
+
+    private boolean isBeforeBooks(Long orderId) {
+        return orderId != null && orderId < firstOrderId;
+    }
+
+    private Long orderIdOf(CreditNote cn) {
+        if (cn.getOrderId() != null || cn.getInvoiceId() == null) return cn.getOrderId();
+        return invoices.findById(cn.getInvoiceId()).map(GstInvoice::getOrderId).orElse(null);
+    }
+
+    /** Closes a record left failed or waiting by a test order. Anything already sent is left alone. */
+    private void keepOut(String type, Long id) {
+        records.findByEntityTypeAndEntityId(type, id).ifPresent(r -> {
+            if (!ErpSyncRecord.FAILED.equals(r.getStatus()) && !ErpSyncRecord.WAITING.equals(r.getStatus())) return;
+            r.setStatus(ErpSyncRecord.CANCELLED);
+            r.setErrorMessage("Test order, kept out of the ERP");
+            records.save(r);
+        });
+    }
+
+    /** "URP" means the buyer has no GSTIN. It is a marker for e-invoices, not a number ERPNext accepts. */
+    static String realGstin(String gstin) {
+        if (gstin == null || gstin.isBlank() || "URP".equalsIgnoreCase(gstin.trim())) return null;
+        return gstin;
+    }
 
     /**
      * Runs one record. A synced record is skipped unless its fingerprint changed (products); a
@@ -703,7 +743,8 @@ public class ErpNextStoreSyncService {
 
     private String ensureCustomer(Long customerId, String buyerName, String email, String gstin,
                                   String address, String stateCode) {
-        boolean registered = gstin != null && !gstin.isBlank();
+        gstin = realGstin(gstin);
+        boolean registered = gstin != null;
         String ref = customerId != null ? "C" + customerId : "E-" + firstNonBlank(email, buyerName, "unknown");
         if (registered) ref = ref + "-" + gstin.trim().toUpperCase();   // a business buyer is its own account
         String found = erp.findNameByField("Customer", REF_FIELD, ref);
@@ -729,7 +770,8 @@ public class ErpNextStoreSyncService {
         String title = customer + " - " + stateCode;
         String existing = erp.findNameByField("Address", "address_title", title);
         if (existing != null) return existing;
-        boolean registered = gstin != null && !gstin.isBlank();
+        gstin = realGstin(gstin);
+        boolean registered = gstin != null;
         Map<String, Object> a = new LinkedHashMap<>();
         a.put("address_title", title);
         a.put("address_type", "Billing");
