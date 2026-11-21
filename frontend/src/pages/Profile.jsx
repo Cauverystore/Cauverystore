@@ -321,7 +321,7 @@ const Profile = () => {
   };
 
   const handleDisable2fa = async () => {
-    if (!mfaOtp.trim()) { secNotify(i18n.t("msgs.enterCodeDisable2fa"), "error"); return; }
+    if (mfaOtp.trim().length < 6) { secNotify(i18n.t("msgs.enterCodeDisable2fa"), "error"); return; }
     setMfaBusy(true); setSecurityErr("");
     try {
       await securityService.disable2fa(mfaOtp.trim());
@@ -902,7 +902,7 @@ const Profile = () => {
         {mfaEnabled && (
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
             <input className="pf-input" value={mfaOtp} onChange={(e) => setMfaOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder={t("profile.current6DigitCode")} inputMode="numeric" style={{ width: "160px" }} />
-            <button className="pf-btn pf-btn-secondary" onClick={handleDisable2fa} disabled={mfaBusy || mfaOtp.length < 6}>
+            <button className="pf-btn pf-btn-secondary" onClick={handleDisable2fa} disabled={mfaBusy}>
               {mfaBusy ? t("profile.disabling") : t("profile.disable2fa")}
             </button>
           </div>
