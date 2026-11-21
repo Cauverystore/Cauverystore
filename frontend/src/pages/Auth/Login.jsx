@@ -150,6 +150,7 @@ const Login = () => {
     setError('');
     try {
       const data = await loginWithGoogle(response.credential, rememberMe);
+      if (data.mfaRequired) { setMfaStep({ email: data.email }); return; }
       if (data.profileIncomplete) navigate('/complete-profile');
       else goAfterLogin((data.role || 'customer').toLowerCase());
     } catch (err) {
@@ -162,6 +163,7 @@ const Login = () => {
     try {
       const result = await GoogleAuthNative.signIn();
       const data = await loginWithGoogle(result.idToken, rememberMe);
+      if (data.mfaRequired) { setMfaStep({ email: data.email }); return; }
       if (data.profileIncomplete) navigate('/complete-profile');
       else goAfterLogin((data.role || 'customer').toLowerCase());
     } catch (err) {
@@ -247,6 +249,11 @@ const Login = () => {
     setLoading(true);
     try {
       const data = await completeForcedPasswordReset(forcedReset.email, forcedReset.oldPassword, newPassword, rememberMe);
+      if (data.mfaRequired) {
+        setMfaStep({ email: forcedReset.email });
+        setForcedReset(null);
+        return;
+      }
       goAfterLogin((data.role || role).toLowerCase());
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || t("login.failedToSetNewPassword"));

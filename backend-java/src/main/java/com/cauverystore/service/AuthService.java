@@ -377,13 +377,14 @@ public class AuthService {
         passwordPolicyService.checkHistory(user, newPassword);
         passwordPolicyService.recordNewPassword(user, newPassword);
         user.setMustResetPassword(false);
-        user.setFailedLoginAttempts(0);
+        boolean codeStillToCome = Boolean.TRUE.equals(user.getMfaEnabled());
+        if (!codeStillToCome) user.setFailedLoginAttempts(0);
         user.invalidateSessions();
         sessionService.revokeAllForUser(user.getId());
         userRepo.save(user);
         auditService.logAccountAction("PASSWORD_RESET_COMPLETED", email, user.getId());
         emailService.sendPasswordResetConfirmation(user.getEmail());
-        return issueTokens(user);
+        return codeStillToCome ? mfaRequiredResponse(user, null) : issueTokens(user);
     }
 
     @Transactional
@@ -435,6 +436,10 @@ public class AuthService {
             throw new AuthenticationFailedException("Account is not active");
         }
 
+        // Google proves the password step only. An account with an authenticator still needs its code.
+        if (Boolean.TRUE.equals(user.getMfaEnabled())) {
+            return mfaRequiredResponse(user, null);
+        }
         user.setFailedLoginAttempts(0);
         return issueTokens(user);
     }
