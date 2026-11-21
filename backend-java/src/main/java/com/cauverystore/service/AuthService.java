@@ -251,7 +251,8 @@ public class AuthService {
     }
 
     private AuthResponse mfaRequiredResponse(User user, String preferredRole) {
-        List<String> roles = computeRoles(user);
+        // A copy: computeRoles can return a fixed list, and the preferred role is moved to the front.
+        List<String> roles = new java.util.ArrayList<>(computeRoles(user));
         if (preferredRole != null) {
             String match = roles.stream().filter(r -> r.equalsIgnoreCase(preferredRole)).findFirst().orElse(null);
             if (match != null) {
