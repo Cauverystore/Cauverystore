@@ -4,11 +4,16 @@ import com.cauverystore.entities.AgentJob;
 import com.cauverystore.entities.Product;
 import com.cauverystore.repository.AgentJobRepository;
 import com.cauverystore.repository.ProductRepository;
+import com.cauverystore.service.HsnClassificationService;
+import com.cauverystore.service.ProductComplianceService;
 import com.cauverystore.service.ProductService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,6 +22,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "agents.token=watch-test-token", "agents.watch.live=true", "agents.watch.alert-email="})
@@ -28,6 +37,13 @@ class AgentWatchIntegrationTest {
     @Autowired ProductRepository products;
     @Autowired AgentJobRepository jobs;
     @Autowired ProductService productService;
+    @MockBean HsnClassificationService hsn;
+    @SpyBean ProductComplianceService compliance;
+
+    @BeforeEach
+    void legalDetailsComplete() {
+        doNothing().when(compliance).assertPublishable(any());
+    }
 
     private Long listed(double price, double mrp) {
         Product p = new Product();
@@ -78,6 +94,19 @@ class AgentWatchIntegrationTest {
         assertEquals(229.0, productService.getProductById(id).getPrice());
 
         assertEquals("NONE", read(id, true, 110.0).get("action"), "a review hold never lifts itself");
+        assertFalse(productService.getProductById(id).isActive());
+    }
+
+    @Test
+    void backInStockButIncompleteStaysHiddenForReview() {
+        Long id = listed(209, 299);
+        assertEquals("BASELINE", read(id, true, 100.0).get("action"));
+        assertEquals("HIDE", read(id, false, null).get("action"));
+        doThrow(new IllegalArgumentException("blocked")).when(compliance)
+                .assertPublishable(argThat(p -> p != null && id.equals(p.getId())));
+
+        assertEquals("REVIEW", read(id, true, 100.0).get("action"));
+
         assertFalse(productService.getProductById(id).isActive());
     }
 

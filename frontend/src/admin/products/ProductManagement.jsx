@@ -177,7 +177,10 @@ const ProductManagement = () => {
       window.URL.revokeObjectURL(url);
     } catch (e) { setMsg({ type: "error", text: "Failed to export products" }); }
   };
-  const toggleStatus = async (id, active) => { try{await api.put("/api/admin/products/"+id+"/status",{active}); loadProducts(); }catch{}; };
+  const toggleStatus = async (id, active) => {
+    try { await api.put("/api/admin/products/"+id+"/status",{active}); loadProducts(); }
+    catch (e) { setMsg({ type: "error", text: e.response?.data?.error || "Could not change this product's status" }); }
+  };
   const delProduct = async (id) => {
     if (!await confirmAction(isSuperAdmin ? "Permanently delete this product? This cannot be undone." : "Delete this product?")) return;
     try {
