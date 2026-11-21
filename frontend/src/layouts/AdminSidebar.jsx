@@ -39,7 +39,7 @@ const AdminSidebar = ({ open, onNavigate }) => {
   const [openIds, setOpenIds] = useState(readOpenSections);
 
   const canAccess = (module) => canAccessModule(role, module);
-  const sections = useMemo(() => visibleSections(canAccess, query), [role, query]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sections = useMemo(() => visibleSections(canAccess, query), [role, query]);
   const showHome = !query.trim() || HOME_LINK.label.toLowerCase().includes(query.trim().toLowerCase());
   const searching = query.trim().length > 0;
   const labelText = role === "EXECUTIVE" ? "Executive Panel" : role === "SUPER_ADMIN" ? "Super Admin" : "Admin Panel";
@@ -52,7 +52,7 @@ const AdminSidebar = ({ open, onNavigate }) => {
       setOpenIds(next);
       saveOpenSections(next);
     }
-  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const toggle = (id) => {
     const next = openIds.includes(id) ? openIds.filter((x) => x !== id) : [...openIds, id];
