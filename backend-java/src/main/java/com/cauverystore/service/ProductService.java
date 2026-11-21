@@ -745,6 +745,16 @@ public class ProductService {
           if (product.getMetaKeywords() != null) {
               existing.setMetaKeywords(product.getMetaKeywords());
           }
+          if (product.getMetaDescription() != null) {
+              existing.setMetaDescription(product.getMetaDescription());
+          }
+          // The short summary and specification table on the product page.
+          if (product.getShortDescription() != null) {
+              existing.setShortDescription(product.getShortDescription());
+          }
+          if (product.getTechnicalSpecs() != null) {
+              existing.setTechnicalSpecs(product.getTechnicalSpecs());
+          }
           // Compliance details the shop shows that live on Product. Null means "unchanged".
           if (product.getMrp() != null) existing.setMrp(product.getMrp());
           if (product.getCountryOfOrigin() != null) existing.setCountryOfOrigin(product.getCountryOfOrigin());

@@ -168,6 +168,39 @@ class ProductServiceTest {
     }
 
     @Test
+    void updateProduct_shouldSaveTheListingDetailsShoppersRead() {
+        Product update = new Product();
+        update.setShortDescription("Steel inner, plastic outer");
+        update.setTechnicalSpecs("Outer material: Plastic");
+        update.setMetaDescription("Insulated mug with steel inner");
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Product result = productService.updateProduct(1L, update);
+
+        assertEquals("Steel inner, plastic outer", result.getShortDescription());
+        assertEquals("Outer material: Plastic", result.getTechnicalSpecs());
+        assertEquals("Insulated mug with steel inner", result.getMetaDescription());
+    }
+
+    @Test
+    void updateProduct_shouldKeepListingDetailsWhenAnEditLeavesThemOut() {
+        product.setShortDescription("Keep me");
+        product.setTechnicalSpecs("Keep these");
+        product.setMetaDescription("Keep this");
+        Product update = new Product();
+        update.setName("New name");
+        when(productRepo.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Product result = productService.updateProduct(1L, update);
+
+        assertEquals("Keep me", result.getShortDescription());
+        assertEquals("Keep these", result.getTechnicalSpecs());
+        assertEquals("Keep this", result.getMetaDescription());
+    }
+
+    @Test
     void updateProduct_shouldAllowCorrectingTheFieldsThatDecideGst() {
         // Neither of these used to be copied, so a mistyped HSN was permanent and the product
         // kept being taxed at the wrong rate for its whole life.
