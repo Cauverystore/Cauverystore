@@ -549,6 +549,17 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    /** A product the stock and price watcher hid because it needs a person's decision. */
+    public void sendWatcherAlert(String to, String title, String message) {
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>" + escape(title) + "</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>" + escape(message) + "</p>"
+                + "<p style='color:#4b5563;font-size:14px;'>Check the product, then switch it back on when it is right.</p>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='https://cauverystore.in/admin/products' style='background:" + TEAL
+                + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Open products</a></div>";
+        send(to, title, wrapBranded(body));
+    }
+
     /** One email per check listing the GST rule notifications and circulars found that day. */
     public void sendGstRuleUpdatesDigest(String to, java.util.List<com.cauverystore.entities.GstRuleUpdate> found) {
         if (found == null || found.isEmpty()) return;

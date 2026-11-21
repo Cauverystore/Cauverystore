@@ -1,15 +1,17 @@
 """Command line:
 
     python -m agents run       one run of every agent (what the Railway schedule calls)
+    python -m agents watch     checks supplier stock and cost for listed products (no AI needed)
     python -m agents check     checks the settings and that the store and AI can be reached
     python -m agents pending   asks the store if any work is waiting (no AI needed):
                                exit 0 = work waiting, 3 = nothing to do, 1 = store not reachable
 """
 
 import logging
+import os
 import sys
 
-from . import config, listing_agent
+from . import config, listing_agent, watcher
 from .ai import AiClient, AiError
 from .http import HttpError
 from .store import StoreClient
@@ -32,6 +34,12 @@ def main(argv: list[str]) -> int:
             return 1
         log.info("%d supplier link(s) waiting for the Listing Agent.", n)
         return 0 if n > 0 else 3
+
+    if cmd == "watch":
+        if not s.store_api_url or not s.agents_token:
+            log.error("Not set up yet. Missing settings: STORE_API_URL and/or AGENTS_TOKEN")
+            return 1
+        return _watch(StoreClient(s.store_api_url, s.agents_token), log)
 
     missing = s.missing()
     if missing:
@@ -61,6 +69,9 @@ def main(argv: list[str]) -> int:
         return 0 if ok else 1
 
     if cmd == "run":
+        watch_failed = 0
+        if not os.environ.get("AGENTS_WATCH_DONE"):  # own_brain.sh has already run it
+            watch_failed = _watch(store, log)
         try:
             summary = listing_agent.run(store, ai, s.batch_size, s.max_minutes)
         except HttpError as e:
@@ -70,10 +81,20 @@ def main(argv: list[str]) -> int:
             log.error("The run stopped with an unexpected problem: %s", e)
             return 1
         log.info("Listing Agent finished: %s", summary)
-        return 0 if summary["errors"] == 0 else 1
+        return 0 if summary["errors"] == 0 and not watch_failed else 1
 
     log.error("Unknown command %r. Use: run | check", cmd)
     return 2
+
+
+def _watch(store: StoreClient, log) -> int:
+    try:
+        summary = watcher.run(store)
+    except Exception as e:
+        log.error("The stock and price watcher could not finish: %s", e)
+        return 1
+    log.info("Stock and price watcher finished: %s", summary)
+    return 0 if summary["errors"] == 0 else 1
 
 
 if __name__ == "__main__":

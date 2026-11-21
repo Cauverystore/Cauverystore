@@ -50,6 +50,17 @@ public class AgentJob extends BaseEntity {
     @Column(nullable = false)
     private int attempts = 0;
 
+    /** The supplier cost the stock and price watcher last accepted. */
+    @Column(name = "watch_cost")
+    private Double watchCost;
+
+    /** Set when the watcher hid the product: OUT_OF_STOCK or NEEDS_REVIEW. */
+    @Column(name = "watch_hold", length = 20)
+    private String watchHold;
+
+    @Column(name = "watch_checked_at")
+    private java.time.LocalDateTime watchCheckedAt;
+
     public String getAgentName() { return agentName; }
     public void setAgentName(String agentName) { this.agentName = agentName; }
     public String getSourceUrl() { return sourceUrl; }
@@ -68,4 +79,10 @@ public class AgentJob extends BaseEntity {
     public void setQueuedBy(String queuedBy) { this.queuedBy = queuedBy; }
     public int getAttempts() { return attempts; }
     public void setAttempts(int attempts) { this.attempts = attempts; }
+    public Double getWatchCost() { return watchCost; }
+    public void setWatchCost(Double watchCost) { this.watchCost = watchCost; }
+    public String getWatchHold() { return watchHold; }
+    public void setWatchHold(String watchHold) { this.watchHold = watchHold; }
+    public java.time.LocalDateTime getWatchCheckedAt() { return watchCheckedAt; }
+    public void setWatchCheckedAt(java.time.LocalDateTime watchCheckedAt) { this.watchCheckedAt = watchCheckedAt; }
 }

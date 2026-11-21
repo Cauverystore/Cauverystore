@@ -1,5 +1,5 @@
-"""The store's agent door (/api/agent/**). Agents can only take jobs, read categories and hand
-back drafts; they cannot create or change products."""
+"""The store's agent door (/api/agent/**). Agents can take jobs, read categories, hand back drafts
+and report supplier readings; they cannot create or edit products."""
 
 from .http import request_json
 
@@ -23,6 +23,12 @@ class StoreClient:
 
     def send_draft(self, job_id: int, draft: dict) -> dict:
         return request_json("POST", f"{self.base_url}/api/agent/jobs/{job_id}/result", draft, headers=self.headers)
+
+    def watch_targets(self) -> dict:
+        return request_json("GET", f"{self.base_url}/api/agent/watch/products", headers=self.headers) or {}
+
+    def send_reading(self, product_id: int, reading: dict) -> dict:
+        return request_json("POST", f"{self.base_url}/api/agent/watch/products/{product_id}", reading, headers=self.headers)
 
     def send_failure(self, job_id: int, reason: str) -> dict:
         return request_json("POST", f"{self.base_url}/api/agent/jobs/{job_id}/result", {"failed": reason[:1000]}, headers=self.headers)

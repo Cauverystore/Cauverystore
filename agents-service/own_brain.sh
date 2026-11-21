@@ -2,6 +2,11 @@
 # Starts the built-in model, runs the agents once, then stops. Used by Dockerfile.ownbrain.
 set -u
 
+# The stock and price watcher needs no AI, so it runs on every schedule, even on a quiet day.
+# If it fails, the listing work below still goes ahead.
+python3 -m agents watch || echo "The stock and price watcher had a problem; carrying on."
+export AGENTS_WATCH_DONE=1
+
 # First ask the store whether anything is queued. Starting the model costs a minute or two of
 # server time, so on a quiet day the run ends here and costs almost nothing.
 python3 -m agents pending

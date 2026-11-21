@@ -1251,6 +1251,15 @@ public class ProductService {
         return result;
     }
 
+    /** The stock and price watcher's only write: show/hide and price. Null leaves a value alone. */
+    @CacheEvict(value = {"products", "categories"}, allEntries = true)
+    public Product applyWatcherChange(Long productId, Boolean active, Double price) {
+        Product p = productRepo.findById(productId).orElseThrow(() -> new IllegalArgumentException("No such product."));
+        if (active != null) p.setActive(active);
+        if (price != null) p.setPrice(price);
+        return productRepo.save(p);
+    }
+
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product updateActiveStatus(Long productId, Boolean active) {
         Product p = getProductById(productId);
