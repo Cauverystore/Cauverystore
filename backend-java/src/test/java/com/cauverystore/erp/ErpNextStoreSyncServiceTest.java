@@ -135,6 +135,85 @@ class ErpNextStoreSyncServiceTest {
         assertTrue(service.ownSellerIds().isEmpty());
     }
 
+    // ------------------------------------------------------------ buyers without a GSTIN
+
+    @Test
+    void buyerMarkedUrpIsSentAsUnregistered() {
+        itemAlreadySynced(shirt);
+        GstInvoice inv = invoice(ADMIN, false);
+        inv.setBuyerGstin("URP");
+        when(invoices.findAll()).thenReturn(List.of(inv));
+        when(erp.create(eq("Customer"), anyMap())).thenReturn(doc("Priya [C9]", 0, 0));
+        when(erp.create(eq("Address"), anyMap())).thenReturn(doc("Priya-Billing", 0, 0));
+        when(erp.create(eq("Sales Invoice"), anyMap())).thenReturn(doc("SINV-1", 0, 1092));
+
+        service.syncAll(false);
+
+        Map<String, Object> customer = created("Customer");
+        assertEquals("Unregistered", customer.get("gst_category"));
+        assertFalse(customer.containsKey("gstin"));
+        assertEquals("C9", customer.get(ErpNextSetupService.REF_FIELD));
+        assertFalse(created("Address").containsKey("gstin"));
+    }
+
+    @Test
+    void realGstinIsKept() {
+        assertEquals("33ABCDE1234F1Z5", ErpNextStoreSyncService.realGstin("33ABCDE1234F1Z5"));
+        assertNull(ErpNextStoreSyncService.realGstin(" urp "));
+        assertNull(ErpNextStoreSyncService.realGstin(""));
+    }
+
+    // ------------------------------------------------------------ test orders before the books start
+
+    private void record(String type, long id, String status) {
+        ErpSyncRecord r = new ErpSyncRecord();
+        r.setEntityType(type);
+        r.setEntityId(id);
+        r.setStatus(status);
+        store.put(type + ":" + id, r);
+    }
+
+    @Test
+    void testOrderIsKeptOutAndItsOldErrorsAreClosed() {
+        ReflectionTestUtils.setField(service, "firstOrderId", 101L);
+        order.setPaid(true);
+        record(ErpSyncRecord.SALES_INVOICE, 500L, ErpSyncRecord.FAILED);
+        record(ErpSyncRecord.CUSTOMER_PAYMENT, 100L, ErpSyncRecord.WAITING);
+        when(invoices.findAll()).thenReturn(List.of(invoice(ADMIN, false)));
+
+        service.syncAll(true);
+
+        verify(erp, never()).create(eq("Customer"), anyMap());
+        verify(erp, never()).create(eq("Sales Invoice"), anyMap());
+        assertEquals(ErpSyncRecord.CANCELLED, store.get("SALES_INVOICE:500").getStatus());
+        assertEquals(ErpSyncRecord.CANCELLED, store.get("CUSTOMER_PAYMENT:100").getStatus());
+    }
+
+    @Test
+    void testOrderAlreadySentIsLeftAlone() {
+        ReflectionTestUtils.setField(service, "firstOrderId", 101L);
+        record(ErpSyncRecord.SALES_INVOICE, 500L, ErpSyncRecord.SYNCED);
+        when(invoices.findAll()).thenReturn(List.of(invoice(ADMIN, false)));
+
+        service.syncAll(false);
+
+        assertEquals(ErpSyncRecord.SYNCED, store.get("SALES_INVOICE:500").getStatus());
+    }
+
+    @Test
+    void firstRealOrderIsSent() {
+        ReflectionTestUtils.setField(service, "firstOrderId", 100L);
+        itemAlreadySynced(shirt);
+        when(invoices.findAll()).thenReturn(List.of(invoice(ADMIN, false)));
+        when(erp.create(eq("Customer"), anyMap())).thenReturn(doc("Priya [C9]", 0, 0));
+        when(erp.create(eq("Address"), anyMap())).thenReturn(doc("Priya-Billing", 0, 0));
+        when(erp.create(eq("Sales Invoice"), anyMap())).thenReturn(doc("SINV-1", 0, 1092));
+
+        service.syncAll(false);
+
+        verify(erp).create(eq("Sales Invoice"), anyMap());
+    }
+
     // ------------------------------------------------------------ helpers
 
     private static ObjectNode doc(String name, int docstatus, double grandTotal) {
