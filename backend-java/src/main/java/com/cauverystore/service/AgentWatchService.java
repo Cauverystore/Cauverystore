@@ -131,6 +131,11 @@ public class AgentWatchService {
         boolean special = p.getOfferPrice() != null || !p.getVariants().isEmpty() || !p.getDiscounts().isEmpty();
         double price = p.getPrice() == null ? 0 : p.getPrice();
         Decision d = decide(new Facts(p.isActive(), job.getWatchHold(), job.getWatchCost(), price, mrp, special, available, cost));
+        // Back in stock is not enough to go back on sale: its legal details must still be complete.
+        if (Boolean.TRUE.equals(d.active()) && !p.isActive() && !productService.canSwitchOn(p)) {
+            d = new Decision("REVIEW", false, null, HOLD_REVIEW, d.baseline(),
+                    "The supplier has it in stock again, but its legal details are incomplete.");
+        }
 
         job.setWatchCheckedAt(LocalDateTime.now());
         boolean noteworthy = !Set.of("NONE", "BASELINE").contains(d.action());

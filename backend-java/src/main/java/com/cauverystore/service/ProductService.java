@@ -851,7 +851,7 @@ public class ProductService {
         }
         if (!orderItems.isEmpty()) {
             Product p = productRepo.findById(productId).orElse(null);
-            if (p != null && !p.isActive()) {
+            if (p != null && !p.isActive() && canSwitchOn(p)) {
                 p.setActive(true);
                 productRepo.save(p);
             }
@@ -1239,34 +1239,52 @@ public class ProductService {
         clone.setCategory(original.getCategory());
         clone.setSellerId(original.getSellerId());
         clone.setProductStatus("draft");
+        clone.setApprovalStatus("pending");
         return productRepo.save(clone);
     }
 
+    // No surrounding transaction: each product stands alone, so one refusal cannot undo the others.
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
-    @Transactional
     public Map<String, Object> bulkEdit(Map<String, Object> body, Long sellerId) {
         @SuppressWarnings("unchecked")
         List<Integer> idsRaw = (List<Integer>) body.get("productIds");
         List<Long> ids = idsRaw.stream().map(Long::valueOf).toList();
         int updated = 0;
+        List<String> problems = new ArrayList<>();
         for (Long id : ids) {
             try {
                 if (sellerId != null) verifySellerOwnership(id, sellerId);
-                Product p = getProductById(id);
-                Integer stockBefore = liveStock(id);
-                if (body.containsKey("price")) p.setPrice(Double.valueOf(body.get("price").toString()));
-                if (body.containsKey("stock")) p.setStock(Integer.valueOf(body.get("stock").toString()));
-                if (body.containsKey("active")) p.setActive(Boolean.valueOf(body.get("active").toString()));
-                if (body.containsKey("brand")) p.setBrand((String) body.get("brand"));
-                Product savedRow = productRepo.save(p);
-                recordStockEdit(savedRow, null, stockBefore, savedRow.getStock());
+                Product p = productRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("not found"));
+                Boolean active = body.containsKey("active") ? Boolean.valueOf(body.get("active").toString()) : null;
+                Integer stock = body.containsKey("stock") ? Integer.valueOf(body.get("stock").toString()) : null;
+                // Everything that can refuse is checked first, so a product is never half changed.
+                if (stock != null && stock < 0) throw new IllegalArgumentException("stock must be 0 or more");
+                if (stock != null && !variantRepo.findByProduct_Id(id).isEmpty()) {
+                    throw new IllegalArgumentException("it has sizes, so update each size on its product page");
+                }
+                if (Boolean.TRUE.equals(active) && !p.isActive()) assertCanSwitchOn(p);
+                if (body.containsKey("price")) updatePriceChecked(id, Double.valueOf(body.get("price").toString()), null);
+                if (active != null) setActiveChecked(id, active);
+                if (stock != null || body.containsKey("brand")) {
+                    Product row = productRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("not found"));
+                    Integer stockBefore = row.getStock();
+                    if (stock != null) row.setStock(stock);
+                    if (body.containsKey("brand")) row.setBrand((String) body.get("brand"));
+                    Product savedRow = productRepo.save(row);
+                    recordStockEdit(savedRow, null, stockBefore, savedRow.getStock());
+                }
                 updated++;
-            } catch (Exception ignored) {
+            } catch (ProductComplianceService.ComplianceBlockedException e) {
+                problems.add("Product " + id + ": required legal details are missing");
+            } catch (Exception e) {
+                String why = e.getMessage();
+                problems.add("Product " + id + ": " + (why == null || why.contains("Exception") || why.length() > 200 ? "could not be changed" : why));
             }
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("updated", updated);
         result.put("total", ids.size());
+        result.put("problems", problems);
         return result;
     }
 
@@ -1343,22 +1361,35 @@ public class ProductService {
     }
 
     /**
-     * A bulk on/off. Switching off is always allowed. Switching on must pass the same tax and
-     * legal checks as publishing, and never approves a product that is waiting for review.
+     * The on/off switch. Switching off is always allowed. Switching on must pass the same tax and
+     * legal checks as publishing when it would put the product in front of shoppers. A product
+     * waiting for approval stays hidden either way, and is checked when it is approved.
      */
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product setActiveChecked(Long productId, boolean active) {
         Product p = productRepo.findById(productId).orElseThrow(() -> new IllegalArgumentException("not found"));
-        boolean turningOn = active && !p.isActive();
-        if (turningOn) {
-            if (!isApprovedForShoppers(p)) throw new IllegalArgumentException("it is waiting for approval");
-            hsnClassificationService.assertSellable(p);
-            if (compliance != null) compliance.assertPublishable(p);
-        }
+        boolean goesLive = active && !p.isActive() && isApprovedForShoppers(p);
+        if (goesLive) assertCanSwitchOn(p);
         p.setActive(active);
         Product saved = productRepo.save(p);
-        if (turningOn && complianceWorkflow != null) complianceWorkflow.markPublished(saved, "saved_live");
+        if (goesLive && complianceWorkflow != null) complianceWorkflow.markPublished(saved, "saved_live");
         return saved;
+    }
+
+    private void assertCanSwitchOn(Product p) {
+        if (!isApprovedForShoppers(p)) return;
+        hsnClassificationService.assertSellable(p);
+        if (compliance != null) compliance.assertPublishable(p);
+    }
+
+    /** Would switching this product on be allowed? For callers that must not throw. */
+    public boolean canSwitchOn(Product p) {
+        try {
+            assertCanSwitchOn(p);
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     /** The stock and price watcher's only write: show/hide and price. Null leaves a value alone. */
@@ -1372,9 +1403,8 @@ public class ProductService {
 
     @CacheEvict(value = {"products", "categories"}, allEntries = true)
     public Product updateActiveStatus(Long productId, Boolean active) {
-        Product p = getProductById(productId);
-        p.setActive(active);
-        return productRepo.save(p);
+        if (active == null) throw new IllegalArgumentException("Choose on or off.");
+        return setActiveChecked(productId, active);
     }
 
 }
