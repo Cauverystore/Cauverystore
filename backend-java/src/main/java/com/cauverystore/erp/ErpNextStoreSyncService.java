@@ -73,6 +73,8 @@ public class ErpNextStoreSyncService {
     @Value("${erpnext.stock-align.enabled:true}") private boolean stockAlignEnabled;
     /** Comma-separated user ids of SELLER accounts that are the store's own business. */
     @Value("${erpnext.store-seller-ids:}") private String ownSellerIdsSetting;
+    /** Comma-separated ids of test products that must never be in the accounts. */
+    @Value("${erpnext.excluded-product-ids:}") private String excludedProductIdsSetting;
     /** The books start at this order. Earlier orders were tests and never go to ERPNext. */
     @Value("${erpnext.first-order-id:0}") private long firstOrderId;
 
@@ -113,9 +115,14 @@ public class ErpNextStoreSyncService {
         setup.ensure();
         Tally t = new Tally();
         Set<Long> store = storeSellerIds();
+        Set<Long> excluded = excludedProductIds();
 
         for (Product p : products.findAll()) {
             if (!isStore(p.getSellerId(), store)) continue;
+            if (excluded.contains(p.getId())) {
+                keepOut(ErpSyncRecord.ITEM, p.getId(), "Test product, kept out of the ERP");
+                continue;
+            }
             String fp = fingerprint(p);
             t.add(runOne(ErpSyncRecord.ITEM, p.getId(), force, fp, () -> pushItem(p)), "product " + p.getId());
         }
@@ -128,8 +135,8 @@ public class ErpNextStoreSyncService {
         for (GstInvoice inv : invoices.findAll()) {
             if (!isStore(inv.getSellerId(), store)) continue;
             if (isBeforeBooks(inv.getOrderId())) {
-                keepOut(ErpSyncRecord.SALES_INVOICE, inv.getId());
-                keepOut(ErpSyncRecord.CUSTOMER_PAYMENT, inv.getOrderId());
+                keepOut(ErpSyncRecord.SALES_INVOICE, inv.getId(), TEST_ORDER);
+                keepOut(ErpSyncRecord.CUSTOMER_PAYMENT, inv.getOrderId(), TEST_ORDER);
                 continue;
             }
             storeInvoices.add(inv);
@@ -140,7 +147,7 @@ public class ErpNextStoreSyncService {
         for (CreditNote cn : creditNotes.findAll()) {
             if (!"CREDIT".equalsIgnoreCase(cn.getNoteType()) || !isStore(cn.getSellerId(), store)) continue;
             if (isBeforeBooks(orderIdOf(cn))) {
-                keepOut(ErpSyncRecord.SALES_RETURN, cn.getId());
+                keepOut(ErpSyncRecord.SALES_RETURN, cn.getId(), TEST_ORDER);
                 continue;
             }
             if (isCancelled(cn.getStatus())) continue;
@@ -159,7 +166,7 @@ public class ErpNextStoreSyncService {
             GstInvoice inv = invoices.findByOrderId(r.getOrderId()).orElse(null);
             if (inv == null || !isStore(inv.getSellerId(), store)) continue;
             if (isBeforeBooks(r.getOrderId())) {
-                keepOut(ErpSyncRecord.CUSTOMER_REFUND, r.getId());
+                keepOut(ErpSyncRecord.CUSTOMER_REFUND, r.getId(), TEST_ORDER);
                 continue;
             }
             t.add(runOne(ErpSyncRecord.CUSTOMER_REFUND, r.getId(), force, null, () -> pushRefund(r, inv)),
@@ -201,14 +208,47 @@ public class ErpNextStoreSyncService {
         return invoices.findById(cn.getInvoiceId()).map(GstInvoice::getOrderId).orElse(null);
     }
 
-    /** Closes a record left failed or waiting by a test order. Anything already sent is left alone. */
-    private void keepOut(String type, Long id) {
+    private static final String TEST_ORDER = "Test order, kept out of the ERP";
+
+    /** Closes a record left failed or waiting by test data. Anything already sent is left alone. */
+    private void keepOut(String type, Long id, String reason) {
         records.findByEntityTypeAndEntityId(type, id).ifPresent(r -> {
             if (!ErpSyncRecord.FAILED.equals(r.getStatus()) && !ErpSyncRecord.WAITING.equals(r.getStatus())) return;
             r.setStatus(ErpSyncRecord.CANCELLED);
-            r.setErrorMessage("Test order, kept out of the ERP");
+            r.setErrorMessage(reason);
             records.save(r);
         });
+    }
+
+    /**
+     * Deletes the ERP item of a product listed in erpnext.excluded-product-ids. Nothing else can
+     * be removed this way. If ERPNext refuses because the item is linked, the record is unchanged.
+     */
+    public Map<String, Object> removeExcludedItem(Long productId) {
+        if (!excludedProductIds().contains(productId)) {
+            throw new IllegalArgumentException("Only a product listed as a test product can be removed");
+        }
+        ErpSyncRecord r = records.findByEntityTypeAndEntityId(ErpSyncRecord.ITEM, productId)
+                .orElseThrow(() -> new IllegalArgumentException("This product was never sent to the ERP"));
+        if (!ErpSyncRecord.SYNCED.equals(r.getStatus()) || !itemCode(productId).equals(r.getErpDocName())) {
+            throw new IllegalArgumentException("This product has no ERP item to remove");
+        }
+        boolean existed = erp.exists("Item", r.getErpDocName());
+        if (existed) erp.delete("Item", r.getErpDocName());
+        String removed = r.getErpDocName();
+        r.setErpDocName(null);
+        r.setFingerprint(null);
+        r.setStatus(ErpSyncRecord.CANCELLED);
+        r.setErrorMessage("Test product, removed from the ERP");
+        records.save(r);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("item", removed);
+        result.put("deleted", existed);
+        return result;
+    }
+
+    Set<Long> excludedProductIds() {
+        return parseIds(excludedProductIdsSetting, "erpnext.excluded-product-ids");
     }
 
     /** "URP" means the buyer has no GSTIN. It is a marker for e-invoices, not a number ERPNext accepts. */
@@ -680,8 +720,9 @@ public class ErpNextStoreSyncService {
         String wh = warehouse();
         List<Map<String, Object>> rows = new ArrayList<>();
         Set<Long> store = storeSellerIds();
+        Set<Long> excluded = excludedProductIds();
         for (Product p : products.findAll()) {
-            if (!isStore(p.getSellerId(), store)) continue;
+            if (!isStore(p.getSellerId(), store) || excluded.contains(p.getId())) continue;
             ErpSyncRecord r = records.findByEntityTypeAndEntityId(ErpSyncRecord.ITEM, p.getId()).orElse(null);
             if (r == null || !ErpSyncRecord.SYNCED.equals(r.getStatus())) continue;
             int site = Math.max(0, p.getStock() == null ? 0 : p.getStock());
@@ -901,15 +942,19 @@ public class ErpNextStoreSyncService {
      * seller login. Their role and access are unchanged; only the accounting treats them as the store.
      */
     Set<Long> ownSellerIds() {
+        return parseIds(ownSellerIdsSetting, "erpnext.store-seller-ids");
+    }
+
+    private static Set<Long> parseIds(String setting, String settingName) {
         Set<Long> ids = new HashSet<>();
-        if (ownSellerIdsSetting == null || ownSellerIdsSetting.isBlank()) return ids;
-        for (String part : ownSellerIdsSetting.split(",")) {
+        if (setting == null || setting.isBlank()) return ids;
+        for (String part : setting.split(",")) {
             String id = part.trim();
             if (id.isEmpty()) continue;
             try {
                 ids.add(Long.valueOf(id));
             } catch (NumberFormatException e) {
-                log.warn("Ignoring invalid id in erpnext.store-seller-ids: {}", id);
+                log.warn("Ignoring invalid id in {}: {}", settingName, id);
             }
         }
         return ids;
