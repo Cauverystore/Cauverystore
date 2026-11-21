@@ -74,6 +74,10 @@ public class SupportReplyService {
     @Value("${SUPPORT_AUTOREPLY_LIVE:false}")
     boolean live = false;
 
+    /** When Postmaster is on it handles all new mail, so an email can never get two replies. */
+    @Value("${postmaster.enabled:false}")
+    boolean postmasterEnabled = false;
+
     public SupportReplyService(InboundEmailRepository inbox, UserRepository users, OrderRepository orders, FaqRepository faqs,
                                EmailService email, AuditService audit, PlatformTransactionManager transactions) {
         this.inbox = inbox;
@@ -96,6 +100,7 @@ public class SupportReplyService {
 
     /** Handles new mail once each. The claim stops a second server or run from replying again. */
     public int sweep() {
+        if (postmasterEnabled) return 0;
         if (!running.compareAndSet(false, true)) return 0;
         int done = 0;
         try {
@@ -207,7 +212,7 @@ public class SupportReplyService {
         return new Plan(NEEDS_PERSON, reason, draft(all));
     }
 
-    private static String wrap(String answer) {
+    static String wrap(String answer) {
         return "Hello,\n\nThank you for writing to Cauvery Store.\n\n" + answer
                 + "\n\nThis is an automatic reply. If you need more help, reply to this email and a person from our team will read it.\n\nCauvery Store";
     }
@@ -223,7 +228,7 @@ public class SupportReplyService {
     }
 
     /** Mail that must never get any reply, which is what stops mail loops. */
-    private static String automatedReason(InboundEmail e, String from) {
+    static String automatedReason(InboundEmail e, String from) {
         if (Boolean.TRUE.equals(e.getAutomated())) return "Sent by an automatic system.";
         if (!from.contains("@")) return "It has no usable sender address.";
         String lower = from.toLowerCase(Locale.ROOT);

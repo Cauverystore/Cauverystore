@@ -22,15 +22,21 @@ const AdminInbox = () => {
   const [page, setPage] = useState(0);
   const [open, setOpen] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [stats, setStats] = useState(null);
 
   const fetchList = useCallback(async () => {
     try { setData((await api.get(`/api/admin/inbox?page=${page}`)).data); } catch { showMessage("Could not load the inbox"); }
   }, [page]);
-  useEffect(() => { fetchList(); }, [fetchList]);
+  const fetchStats = useCallback(async () => {
+    try { setStats((await api.get("/api/admin/postmaster/stats")).data); } catch { setStats(null); }
+  }, []);
+  useEffect(() => { fetchList(); fetchStats(); }, [fetchList, fetchStats]);
 
   const openEmail = async (id) => {
     setLoading(true);
-    try { setOpen((await api.get(`/api/admin/inbox/${id}`)).data); fetchList(); }
+    try { const mail = (await api.get(`/api/admin/inbox/${id}`)).data; setOpen(mail); setDraft(mail.autoReplyText || ""); fetchList(); }
     catch { showMessage("Could not open this email"); }
     finally { setLoading(false); }
   };
@@ -42,6 +48,17 @@ const AdminInbox = () => {
   const remove = async () => {
     if (!window.confirm("Delete this email from the inbox? This cannot be undone.")) return;
     try { await api.delete(`/api/admin/inbox/${open.id}`); setOpen(null); fetchList(); } catch { showMessage("Failed"); }
+  };
+
+  const sendDraft = async () => {
+    if (!window.confirm(`Send this reply to ${open.fromAddress}?`)) return;
+    setSending(true);
+    try {
+      await api.post(`/api/admin/postmaster/${open.id}/send`, { text: draft });
+      showMessage("Reply sent");
+      setOpen(null); fetchList(); fetchStats();
+    } catch (err) { showMessage(err.response?.data?.error || "Could not send this reply"); }
+    finally { setSending(false); }
   };
 
   const replyHref = (e) => {
@@ -76,7 +93,12 @@ const AdminInbox = () => {
             <div style={{ border: `1px solid ${REPLY_LABEL[open.autoReplyStatus].color}`, borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", fontSize: "0.85rem" }}>
               <div style={{ fontWeight: 700, color: REPLY_LABEL[open.autoReplyStatus].color }}>{REPLY_LABEL[open.autoReplyStatus].head}</div>
               {open.autoReplyReason && <div style={{ color: "#6b7280", margin: "2px 0 6px" }}>{open.autoReplyReason}</div>}
-              {open.autoReplyText && <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "inherit", margin: 0 }}>{open.autoReplyText}</pre>}
+              {["NEEDS_PERSON", "PREVIEW"].includes(open.autoReplyStatus) ? (
+                <>
+                  <textarea aria-label="Reply to send" value={draft} onChange={(ev) => setDraft(ev.target.value)} rows={9} style={{ width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: "0.85rem", padding: "0.5rem", border: "1px solid #d1d5db", borderRadius: 4 }} />
+                  <button onClick={sendDraft} disabled={sending || !draft.trim()} style={{ ...btn(sending || !draft.trim() ? "#9ca3af" : TEAL), marginTop: 6 }}>{sending ? "Sending..." : "Approve and send"}</button>
+                </>
+              ) : open.autoReplyText && <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "inherit", margin: 0 }}>{open.autoReplyText}</pre>}
             </div>
           )}
           {open.htmlBody ? (
@@ -97,6 +119,14 @@ const AdminInbox = () => {
         <button onClick={fetchList} style={btn(TEAL)}>Refresh</button>
       </div>
       <p style={{ color: "#6b7280", fontSize: "0.85rem", marginTop: "-0.75rem" }}>Emails sent to support@cauverystore.in, including customers' replies to store emails.</p>
+      {stats && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem 1.25rem", background: "#f0fdfa", border: "1px solid #ccfbf1", borderRadius: 8, padding: "0.6rem 1rem", marginBottom: "0.75rem", fontSize: "0.85rem" }}>
+          <strong style={{ color: TEAL }}>Postmaster: {!stats.enabled ? "Off" : stats.live ? "Replying" : "Preview only"}</strong>
+          <span>Waiting for you: {stats.waitingForYou}</span>
+          <span>Previews: {stats.previews}</span>
+          <span>Sent today: {stats.sentToday}</span>
+        </div>
+      )}
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
         {data.items.length === 0 && <div style={{ padding: "2rem", textAlign: "center", color: "#94a3b8" }}>No emails yet</div>}
         {data.items.map(e => (
