@@ -111,6 +111,30 @@ class ErpNextStoreSyncServiceTest {
         when(purchaseOrders.findAll()).thenReturn(List.of());
     }
 
+    // ------------------------------------------------------------ store-owned seller accounts
+
+    @Test
+    void sellerAccountNamedAsTheStoresOwnIsSynced() {
+        ReflectionTestUtils.setField(service, "ownSellerIdsSetting", " 46, 47 ");
+        assertEquals(Set.of(46L, 47L), service.ownSellerIds());
+        assertEquals(Set.of(ADMIN, 46L, 47L), service.storeSellerIds());
+        assertTrue(ErpNextStoreSyncService.isStore(46L, service.storeSellerIds()));
+    }
+
+    @Test
+    void otherSellersStayOutOfTheStoresBooks() {
+        ReflectionTestUtils.setField(service, "ownSellerIdsSetting", "46");
+        assertFalse(ErpNextStoreSyncService.isStore(SELLER, service.storeSellerIds()));
+    }
+
+    @Test
+    void badOrEmptyOwnSellerSettingIsIgnored() {
+        ReflectionTestUtils.setField(service, "ownSellerIdsSetting", "46,abc,");
+        assertEquals(Set.of(46L), service.ownSellerIds());
+        ReflectionTestUtils.setField(service, "ownSellerIdsSetting", "");
+        assertTrue(service.ownSellerIds().isEmpty());
+    }
+
     // ------------------------------------------------------------ helpers
 
     private static ObjectNode doc(String name, int docstatus, double grandTotal) {
