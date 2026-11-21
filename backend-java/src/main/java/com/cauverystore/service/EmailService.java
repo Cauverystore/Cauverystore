@@ -644,6 +644,26 @@ public class EmailService {
         }
     }
 
+    /** An automatic answer to a customer. Sent now so the caller can record whether it went. */
+    public boolean sendSupportReply(String to, String subject, String text) {
+        if (!configured || to == null || to.isBlank()) return false;
+        try {
+            String body = "<div style='color:#374151;font-size:14px;line-height:1.6;'>"
+                    + escape(text).replace("\n", "<br/>") + "</div>";
+            CreateEmailOptions.Builder b = CreateEmailOptions.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject(subject)
+                    .html(wrapBranded(body));
+            if (defaultReplyTo != null && !defaultReplyTo.isBlank()) b.replyTo(defaultReplyTo.trim());
+            resend.emails().send(b.build());
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to send an automatic support reply: {}", e.getMessage());
+            return false;
+        }
+    }
+
     public boolean isConfigured() {
         return configured;
     }

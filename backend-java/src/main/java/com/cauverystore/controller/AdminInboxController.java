@@ -79,6 +79,7 @@ public class AdminInboxController {
         m.put("receivedAt", e.getReceivedAt());
         m.put("read", e.isRead());
         m.put("forwardedTo", e.getForwardedTo());
+        m.put("autoReplyStatus", e.getAutoReplyStatus());
         m.put("hasAttachments", e.getAttachmentNames() != null && !e.getAttachmentNames().isBlank());
         String text = e.getTextBody();
         m.put("preview", text == null ? "" : text.replaceAll("\\s+", " ").trim().substring(0, Math.min(140, text.replaceAll("\\s+", " ").trim().length())));

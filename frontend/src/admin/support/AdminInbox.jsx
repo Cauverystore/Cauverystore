@@ -10,6 +10,12 @@ const fmt = (iso) => {
   return isNaN(d) ? iso : d.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 };
 
+const REPLY_LABEL = {
+  SENT: { text: "Answered automatically", color: "#0E5C5C", head: "Reply sent" },
+  PREVIEW: { text: "Preview", color: "#6b7280", head: "Reply the store would send (not sent, preview mode)" },
+  NEEDS_PERSON: { text: "Needs you", color: "#b45309", head: "Draft for you to check (not sent)" },
+};
+
 /** Admin -> Inbox: emails people sent to support@cauverystore.in and the store's other addresses. */
 const AdminInbox = () => {
   const [data, setData] = useState({ items: [], unread: 0, total: 0, page: 0, totalPages: 0 });
@@ -40,7 +46,8 @@ const AdminInbox = () => {
 
   const replyHref = (e) => {
     const subj = e.subject && /^re:/i.test(e.subject) ? e.subject : `Re: ${e.subject || ""}`;
-    return `mailto:${encodeURIComponent(e.fromAddress || "")}?subject=${encodeURIComponent(subj)}`;
+    const draft = e.autoReplyStatus === "NEEDS_PERSON" && e.autoReplyText ? `&body=${encodeURIComponent(e.autoReplyText)}` : "";
+    return `mailto:${encodeURIComponent(e.fromAddress || "")}?subject=${encodeURIComponent(subj)}${draft}`;
   };
 
   const btn = (bg) => ({ padding: "0.35rem 0.9rem", background: bg, color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", textDecoration: "none", display: "inline-block" });
@@ -65,6 +72,13 @@ const AdminInbox = () => {
             <button onClick={markUnread} style={btn("#3b82f6")}>Mark unread</button>
             <button onClick={remove} style={btn("#dc2626")}>Delete</button>
           </div>
+          {REPLY_LABEL[open.autoReplyStatus] && (
+            <div style={{ border: `1px solid ${REPLY_LABEL[open.autoReplyStatus].color}`, borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", fontSize: "0.85rem" }}>
+              <div style={{ fontWeight: 700, color: REPLY_LABEL[open.autoReplyStatus].color }}>{REPLY_LABEL[open.autoReplyStatus].head}</div>
+              {open.autoReplyReason && <div style={{ color: "#6b7280", margin: "2px 0 6px" }}>{open.autoReplyReason}</div>}
+              {open.autoReplyText && <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "inherit", margin: 0 }}>{open.autoReplyText}</pre>}
+            </div>
+          )}
           {open.htmlBody ? (
             // sandbox with no permissions: no scripts, no forms, links can't act on this page.
             <iframe title="Email" sandbox="" srcDoc={open.htmlBody} style={{ width: "100%", minHeight: 480, border: "1px solid #e5e7eb", borderRadius: 6, background: "#fff" }} />
@@ -91,7 +105,10 @@ const AdminInbox = () => {
               <span style={{ fontWeight: e.read ? 400 : 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.fromHeader || e.fromAddress}</span>
               <span style={{ color: "#6b7280", fontSize: "0.8rem", whiteSpace: "nowrap" }}>{e.hasAttachments ? "📎 " : ""}{fmt(e.receivedAt)}</span>
             </div>
-            <div style={{ fontWeight: e.read ? 400 : 600, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.subject || "(no subject)"}</div>
+            <div style={{ fontWeight: e.read ? 400 : 600, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {REPLY_LABEL[e.autoReplyStatus] && <span style={{ color: REPLY_LABEL[e.autoReplyStatus].color, fontSize: "0.75rem", fontWeight: 700, marginRight: 6 }}>{REPLY_LABEL[e.autoReplyStatus].text}</span>}
+              {e.subject || "(no subject)"}
+            </div>
             <div style={{ color: "#6b7280", fontSize: "0.8rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.preview}</div>
           </div>
         ))}
