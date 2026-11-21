@@ -81,6 +81,7 @@ const ProductManagement = lazy(() => import("./admin/products/ProductManagement"
 const AddProduct = lazy(() => import("./admin/products/AddProduct"));
 const AgentDrafts = lazy(() => import("./admin/products/AgentDrafts"));
 const SupplierLabels = lazy(() => import("./admin/products/SupplierLabels"));
+const SupplierOrders = lazy(() => import("./admin/purchases/SupplierOrders"));
 const EditProduct = lazy(() => import("./admin/products/EditProduct"));
 const BulkUpload = lazy(() => import("./admin/products/BulkUpload"));
 const ManageVariants = lazy(() => import("./admin/products/ManageVariants"));
@@ -295,6 +296,7 @@ function App() {
             <Route path="product-compliance" element={<ComplianceDashboard />} />
             <Route path="agent-drafts" element={<AgentDrafts />} />
             <Route path="supplier-labels" element={<SupplierLabels />} />
+            <Route path="supplier-orders" element={<SupplierOrders />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="refunds" element={<AdminRefunds />} />
             <Route path="seller-payouts" element={<AdminSellerPayouts />} />

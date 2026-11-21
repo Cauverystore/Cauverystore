@@ -549,6 +549,16 @@ public class EmailService {
         send(to, subject, wrapBranded(body));
     }
 
+    /** Something to do on the Supplier Orders page. Carries no customer details. */
+    public void sendSupplierOrderAlert(String to, String title, String message) {
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>" + escape(title) + "</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'>" + escape(message) + "</p>"
+                + "<div style='text-align:center;margin:20px 0;'>"
+                + "<a href='https://cauverystore.in/admin/supplier-orders' style='background:" + TEAL
+                + ";color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;'>Open Supplier Orders</a></div>";
+        send(to, title, wrapBranded(body));
+    }
+
     /** A product the stock and price watcher hid because it needs a person's decision. */
     public void sendWatcherAlert(String to, String title, String message) {
         String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>" + escape(title) + "</h2>"

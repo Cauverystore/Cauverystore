@@ -41,6 +41,7 @@ export const ADMIN_NAV_SECTIONS = [
   ] },
   { id: "orders", label: "Orders & money", links: [
     { to: "/admin/orders", label: "Orders", icon: ShoppingCart, module: "orders" },
+    { to: "/admin/supplier-orders", label: "Supplier Orders", icon: Truck, module: "orders" },
     { to: "/admin/returns", label: "Returns", icon: Undo2, module: "returns" },
     { to: "/admin/refunds", label: "Refunds", icon: CreditCard, module: "refunds" },
     { to: "/admin/shipping", label: "Shipping", icon: Ship, module: "shipping" },
