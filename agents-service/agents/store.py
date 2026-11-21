@@ -30,5 +30,9 @@ class StoreClient:
     def send_reading(self, product_id: int, reading: dict) -> dict:
         return request_json("POST", f"{self.base_url}/api/agent/watch/products/{product_id}", reading, headers=self.headers)
 
+    def publish_sweep(self) -> dict:
+        """Asks the store to re-check waiting drafts. The store's own rules decide what goes on sale."""
+        return request_json("POST", f"{self.base_url}/api/agent/publish/sweep", {}, headers=self.headers, timeout=300) or {}
+
     def send_failure(self, job_id: int, reason: str) -> dict:
         return request_json("POST", f"{self.base_url}/api/agent/jobs/{job_id}/result", {"failed": reason[:1000]}, headers=self.headers)

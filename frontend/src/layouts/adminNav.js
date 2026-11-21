@@ -24,6 +24,7 @@ export const ADMIN_NAV_SECTIONS = [
     { to: "/admin/products", label: "Products", icon: Package, module: "products" },
     { to: "/admin/products/bulk-upload", label: "Bulk Upload", icon: Upload, module: "products" },
     { to: "/admin/agent-drafts", label: "Agent Drafts", icon: Bot, module: "products" },
+    { to: "/admin/supplier-labels", label: "Supplier Labels", icon: Tags, module: "products" },
     { to: "/admin/categories", label: "Categories", icon: Tags, module: "categories" },
     { to: "/admin/brands", label: "Brands", icon: Building2, module: "brands" },
     { to: "/admin/product-dashboard", label: "Product Dashboard", icon: LayoutList, module: "productDashboard" },
