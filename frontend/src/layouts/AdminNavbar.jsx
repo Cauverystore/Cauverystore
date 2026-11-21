@@ -32,6 +32,7 @@ const PAGE_TITLES = {
   "/admin/product-compliance": "Product Compliance",
   "/admin/agent-drafts": "Agent Drafts",
   "/admin/supplier-labels": "Supplier Labels",
+  "/admin/supplier-orders": "Supplier Orders",
   "/admin/seller-approvals": "Seller Approvals",
 };
 
