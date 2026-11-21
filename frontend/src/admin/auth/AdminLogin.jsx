@@ -32,7 +32,7 @@ const AdminLogin = () => {
     if (searchParams.get('reason') === 'session-expired' && !error) {
       setError("Your session expired. Please sign in again to continue.");
     }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Signed in, but with an account that is not allowed in the admin panel.
   const finish = async (data) => {
