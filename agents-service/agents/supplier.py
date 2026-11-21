@@ -107,6 +107,23 @@ def fetch(link: str) -> SupplierProduct:
     )
 
 
+def read_stock(link: str) -> dict:
+    """What the supplier shows right now: {"available", "cost", "mrp"}. A product the supplier has
+    removed counts as unavailable. Any other trouble raises SupplierError, so nothing is changed."""
+    url = product_js_url(link)
+    try:
+        p = request_json("GET", url, timeout=30)
+    except HttpError as e:
+        if e.status == 404:
+            return {"available": False, "cost": None, "mrp": None}
+        raise SupplierError(f"The supplier's site did not answer ({e.status}).") from None
+    except Exception as e:
+        raise SupplierError(f"Could not read the supplier's site ({type(e).__name__}).") from None
+    if not isinstance(p, dict) or not isinstance(p.get("available"), bool):
+        raise SupplierError("The supplier's page could not be read.")
+    return {"available": p["available"], "cost": _rupees(p.get("price")), "mrp": _rupees(p.get("compare_at_price"))}
+
+
 def _page_origin(page_url: str) -> str:
     """The product page shows details the data feed leaves out (country of origin). Optional:
     if the page cannot be read, the draft simply has no origin and the admin fills it in."""

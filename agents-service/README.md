@@ -64,3 +64,14 @@ Add a new service from this GitHub repo with **Root Directory** `agents-service`
 `railway.json`, which builds the own-brain image and sets the schedule. Then set the variables
 above. Give the service at least 8 GB of memory. On the store's backend service, set
 `AGENTS_TOKEN` to the same secret.
+
+## Stock and Price Watcher
+
+Runs on every schedule and uses no AI (`python -m agents watch`). It reads the supplier's stock and cost for products created from agent drafts, and the store applies these rules:
+
+- Out of stock: hide. Back in stock: show again.
+- Cost change up to 15%: reprice at cost x2 ending in 9, never above MRP.
+- Bigger change, price above MRP, or a product with an offer, discount or variants: hide and alert an admin. Switching it back on accepts the new cost.
+- If most products look out of stock at once, nothing is changed.
+
+It only records what it would do until `AGENTS_WATCH_LIVE=true` is set on the **store backend** service. See Admin → Audit Logs for `WATCH_PREVIEW_*` entries.

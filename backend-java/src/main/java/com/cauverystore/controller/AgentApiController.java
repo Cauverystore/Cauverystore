@@ -14,20 +14,23 @@ import java.util.Map;
  * carry the shared secret AGENTS_TOKEN in the X-Agent-Token header. With no token set on the
  * server the door stays shut.
  *
- * An agent can only read its queue and the category list, and hand back drafts. It cannot
- * create, change or publish products.
+ * An agent can read its queue and the category list, hand back drafts, and report what a supplier
+ * shows for a product. It cannot create or edit products: the store's own rules decide what a
+ * supplier reading changes (see AgentWatchService).
  */
 @RestController
 @RequestMapping("/api/agent")
 public class AgentApiController {
 
     private final AgentJobService jobs;
+    private final com.cauverystore.service.AgentWatchService watch;
 
     @Value("${agents.token:}")
     private String token;
 
-    public AgentApiController(AgentJobService jobs) {
+    public AgentApiController(AgentJobService jobs, com.cauverystore.service.AgentWatchService watch) {
         this.jobs = jobs;
+        this.watch = watch;
     }
 
     private ResponseEntity<?> refuse(String header) {
@@ -63,6 +66,25 @@ public class AgentApiController {
         ResponseEntity<?> no = refuse(t);
         if (no != null) return no;
         return ResponseEntity.ok(jobs.categoryList());
+    }
+
+    @GetMapping("/watch/products")
+    public ResponseEntity<?> watchTargets(@RequestHeader(value = "X-Agent-Token", required = false) String t) {
+        ResponseEntity<?> no = refuse(t);
+        if (no != null) return no;
+        return ResponseEntity.ok(watch.targets());
+    }
+
+    @PostMapping("/watch/products/{productId}")
+    public ResponseEntity<?> watchReport(@RequestHeader(value = "X-Agent-Token", required = false) String t,
+                                         @PathVariable Long productId, @RequestBody Map<String, Object> body) {
+        ResponseEntity<?> no = refuse(t);
+        if (no != null) return no;
+        try {
+            return ResponseEntity.ok(watch.report(productId, body));
+        } catch (AgentJobService.BadRequest e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/jobs/{id}/result")
