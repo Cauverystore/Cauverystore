@@ -55,6 +55,16 @@ export default function BulkOperations() {
   const [statusForm, setStatusForm] = useState({ ids: "", active: true });
   const [deleteForm, setDeleteForm] = useState({ ids: "" });
 
+  // Some products can be refused while the rest go through, so the page says which and why.
+  const showResult = (res) => {
+    const { message: summary, count = 0, problems = [] } = res.data || {};
+    const detail = problems.length ? `${summary}. ${problems.join("; ")}` : summary;
+    if (count === 0 && problems.length) { setError(detail); setMessage(null); }
+    else if (problems.length) { setMessage(detail); }
+    else setMessage(summary);
+  };
+  const failure = (err, fallback) => err.response?.data?.error || err.response?.data?.message || fallback;
+
   const parseIds = (text) => {
     return text
       .split(",")
@@ -70,15 +80,15 @@ export default function BulkOperations() {
       setLoading(true);
       setError(null);
       setMessage(null);
-      await api.put("/api/admin/products/bulk/price", {
+      const res = await api.put("/api/admin/products/bulk/price", {
         ids,
         price: Number(priceForm.price),
         offerPrice: priceForm.offerPrice ? Number(priceForm.offerPrice) : undefined,
       });
-      setMessage("Bulk price update completed successfully");
+      showResult(res);
       setPriceForm({ ids: "", price: "", offerPrice: "" });
     } catch (err) {
-      setError(err.response?.data?.message || "Bulk price update failed");
+      setError(failure(err, "Bulk price update failed"));
     } finally {
       setLoading(false);
     }
@@ -87,19 +97,19 @@ export default function BulkOperations() {
   const handleBulkStock = async () => {
     const ids = parseIds(stockForm.ids);
     if (ids.length === 0) { setError("Enter at least one product ID"); return; }
-    if (!stockForm.stock) { setError("Enter stock quantity"); return; }
+    if (stockForm.stock === "") { setError("Enter stock quantity"); return; }
     try {
       setLoading(true);
       setError(null);
       setMessage(null);
-      await api.put("/api/admin/products/bulk/stock", {
+      const res = await api.put("/api/admin/products/bulk/stock", {
         ids,
         stock: Number(stockForm.stock),
       });
-      setMessage("Bulk stock update completed successfully");
+      showResult(res);
       setStockForm({ ids: "", stock: "" });
     } catch (err) {
-      setError(err.response?.data?.message || "Bulk stock update failed");
+      setError(failure(err, "Bulk stock update failed"));
     } finally {
       setLoading(false);
     }
@@ -112,14 +122,14 @@ export default function BulkOperations() {
       setLoading(true);
       setError(null);
       setMessage(null);
-      await api.put("/api/admin/products/bulk/status", {
+      const res = await api.put("/api/admin/products/bulk/status", {
         ids,
         active: statusForm.active,
       });
-      setMessage(`Bulk status update completed (${statusForm.active ? "Active" : "Inactive"})`);
+      showResult(res);
       setStatusForm({ ids: "", active: true });
     } catch (err) {
-      setError(err.response?.data?.message || "Bulk status update failed");
+      setError(failure(err, "Bulk status update failed"));
     } finally {
       setLoading(false);
     }
@@ -133,11 +143,11 @@ export default function BulkOperations() {
       setLoading(true);
       setError(null);
       setMessage(null);
-      await api.post("/api/admin/products/bulk/delete", { ids });
-      setMessage(`${ids.length} product(s) deleted successfully`);
+      const res = await api.post("/api/admin/products/bulk/delete", { ids });
+      showResult(res);
       setDeleteForm({ ids: "" });
     } catch (err) {
-      setError(err.response?.data?.message || "Bulk delete failed");
+      setError(failure(err, "Bulk delete failed"));
     } finally {
       setLoading(false);
     }
@@ -164,7 +174,7 @@ export default function BulkOperations() {
             <label style={styles.label}>Product IDs (comma-separated)</label>
             <textarea
               style={styles.textarea}
-              placeholder="e.g. 64a1b2c3d4e5f6a7b8c9d0e1, 64a1b2c3d4e5f6a7b8c9d0e2"
+              placeholder="e.g. 12, 45, 84"
               value={priceForm.ids}
               onChange={(e) => setPriceForm({ ...priceForm, ids: e.target.value })}
             />
@@ -181,7 +191,7 @@ export default function BulkOperations() {
             <label style={styles.label}>Product IDs (comma-separated)</label>
             <textarea
               style={styles.textarea}
-              placeholder="e.g. 64a1b2c3d4e5f6a7b8c9d0e1, 64a1b2c3d4e5f6a7b8c9d0e2"
+              placeholder="e.g. 12, 45, 84"
               value={stockForm.ids}
               onChange={(e) => setStockForm({ ...stockForm, ids: e.target.value })}
             />
@@ -196,7 +206,7 @@ export default function BulkOperations() {
             <label style={styles.label}>Product IDs (comma-separated)</label>
             <textarea
               style={styles.textarea}
-              placeholder="e.g. 64a1b2c3d4e5f6a7b8c9d0e1, 64a1b2c3d4e5f6a7b8c9d0e2"
+              placeholder="e.g. 12, 45, 84"
               value={statusForm.ids}
               onChange={(e) => setStatusForm({ ...statusForm, ids: e.target.value })}
             />
@@ -214,7 +224,7 @@ export default function BulkOperations() {
             <label style={styles.label}>Product IDs (comma-separated)</label>
             <textarea
               style={styles.textarea}
-              placeholder="e.g. 64a1b2c3d4e5f6a7b8c9d0e1, 64a1b2c3d4e5f6a7b8c9d0e2"
+              placeholder="e.g. 12, 45, 84"
               value={deleteForm.ids}
               onChange={(e) => setDeleteForm({ ...deleteForm, ids: e.target.value })}
             />

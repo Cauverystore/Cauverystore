@@ -83,6 +83,23 @@ public class ProductService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private StockMovementService stockMovements;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.cauverystore.repository.PurchaseOrderItemRepository purchaseItems;
+
+    // Rows in the stock history and on purchase orders point at products and sizes, so they
+    // have to let go first or the database refuses the delete.
+    private void releaseProduct(Long productId) {
+        if (purchaseItems != null) purchaseItems.clearProduct(productId);
+        if (stockMovements != null) {
+            stockMovements.forgetProduct(productId, productRepo.findById(productId).map(Product::getName).orElse(null));
+        }
+    }
+
+    private void releaseVariant(Long variantId) {
+        if (purchaseItems != null) purchaseItems.clearVariant(variantId);
+        if (stockMovements != null) stockMovements.forgetVariant(variantId);
+    }
+
     private Integer liveStock(Long productId) {
         return stockMovements != null ? productRepo.findStockById(productId) : null;
     }
@@ -840,6 +857,11 @@ public class ProductService {
             }
             return false;
         }
+        // Goods bought from a supplier are a business record too, so the product is kept.
+        if (purchaseItems != null && purchaseItems.existsByProductId(productId)) {
+            return false;
+        }
+        releaseProduct(productId);
 
         var inv = inventoryRepo.findByProduct_Id(productId);
         if (inv != null) inventoryRepo.delete(inv);
@@ -877,6 +899,7 @@ public class ProductService {
             oi.setProduct(null);
         }
         orderItemRepo.saveAll(orderItems);
+        releaseProduct(productId);
 
         var inv = inventoryRepo.findByProduct_Id(productId);
         if (inv != null) inventoryRepo.delete(inv);
@@ -944,6 +967,7 @@ public class ProductService {
     public void deleteVariant(Long productId, Long variantId) {
         ProductVariant variant = variantRepo.findById(variantId)
                 .orElseThrow(() -> new RuntimeException("Variant not found"));
+        releaseVariant(variantId);
         variantRepo.delete(variant);
     }
 
@@ -1287,6 +1311,53 @@ public class ProductService {
         p.setProductStatus("published");
         Product saved = productRepo.save(p);
         if (complianceWorkflow != null) complianceWorkflow.markPublished(saved, "auto_publish");
+        return saved;
+    }
+
+    /**
+     * A bulk price change, held to the same rules as a single edit: never above the printed MRP,
+     * no offer above the price, and the GST band check. Reads the database, not the cache.
+     */
+    @CacheEvict(value = {"products", "categories"}, allEntries = true)
+    public Product updatePriceChecked(Long productId, Double price, Double offerPrice) {
+        Product p = productRepo.findById(productId).orElseThrow(() -> new IllegalArgumentException("not found"));
+        boolean wasVisible = ProductComplianceService.visibleToShoppers(p);
+        double newPrice = price != null ? price : (p.getPrice() != null ? p.getPrice() : 0);
+        Double newOffer = offerPrice != null ? offerPrice : p.getOfferPrice();
+        if (newPrice <= 0) throw new IllegalArgumentException("price must be more than 0");
+        if (p.getMrp() != null && newPrice > p.getMrp()) {
+            throw new IllegalArgumentException("price is above the MRP of " + p.getMrp());
+        }
+        if (newOffer != null && (newOffer <= 0 || newOffer > newPrice)) {
+            throw new IllegalArgumentException("offer price must be more than 0 and not above the price");
+        }
+        p.setPrice(newPrice);
+        p.setOfferPrice(newOffer);
+        hsnClassificationService.validate(p);
+        hsnClassificationService.checkPriceGap(p);
+        withdrawFromSaleIfUntaxable(p);
+        Optional<ProductComplianceService.Result> held = applyPublishGate(p, wasVisible);
+        Product saved = productRepo.save(p);
+        recordPublishGate(saved, held, wasVisible);
+        return saved;
+    }
+
+    /**
+     * A bulk on/off. Switching off is always allowed. Switching on must pass the same tax and
+     * legal checks as publishing, and never approves a product that is waiting for review.
+     */
+    @CacheEvict(value = {"products", "categories"}, allEntries = true)
+    public Product setActiveChecked(Long productId, boolean active) {
+        Product p = productRepo.findById(productId).orElseThrow(() -> new IllegalArgumentException("not found"));
+        boolean turningOn = active && !p.isActive();
+        if (turningOn) {
+            if (!isApprovedForShoppers(p)) throw new IllegalArgumentException("it is waiting for approval");
+            hsnClassificationService.assertSellable(p);
+            if (compliance != null) compliance.assertPublishable(p);
+        }
+        p.setActive(active);
+        Product saved = productRepo.save(p);
+        if (turningOn && complianceWorkflow != null) complianceWorkflow.markPublished(saved, "saved_live");
         return saved;
     }
 

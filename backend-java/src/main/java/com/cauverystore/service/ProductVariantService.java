@@ -16,6 +16,8 @@ public class ProductVariantService {
     private final ProductRepository productRepo;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private StockMovementService stockMovements;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.cauverystore.repository.PurchaseOrderItemRepository purchaseItems;
 
     public ProductVariantService(ProductVariantRepository variantRepo, ProductRepository productRepo) {
         this.variantRepo = variantRepo;
@@ -59,7 +61,10 @@ public class ProductVariantService {
         return variantRepo.findByProduct_Id(productId);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void deleteVariant(Long id) {
+        if (purchaseItems != null) purchaseItems.clearVariant(id);
+        if (stockMovements != null) stockMovements.forgetVariant(id);
         variantRepo.deleteById(id);
     }
 }
