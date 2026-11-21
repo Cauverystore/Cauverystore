@@ -475,6 +475,24 @@ class AuthServiceTest {
     }
 
     @Test
+    void authenticate_withAuthenticatorAndAChosenRole_asksForTheCode() {
+        for (Role accountRole : java.util.List.of(Role.CUSTOMER, Role.ADMIN, Role.SUPER_ADMIN, Role.EXECUTIVE, Role.SELLER)) {
+            giveUserAuthenticator();
+            user.setRole(accountRole);
+            loginReq.setRole(accountRole.name().toLowerCase());
+            when(userRepo.findByEmail("customer@test.com")).thenReturn(user);
+            when(passwordEncoder.matches("admin123", user.getPassword())).thenReturn(true);
+            when(jwtUtil.generateMfaToken(eq(1L), any(), anyString())).thenReturn("mfa-ticket");
+
+            AuthResponse response = authService.authenticate(loginReq);
+
+            assertTrue(response.getMfaRequired(), accountRole.name());
+            assertEquals(accountRole.name(), response.getRole());
+            assertNull(response.getAccessToken());
+        }
+    }
+
+    @Test
     void forcedPasswordChange_stillNeedsTheAuthenticatorCode() {
         giveUserAuthenticator();
         user.setMustResetPassword(true);
