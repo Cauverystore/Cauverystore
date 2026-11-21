@@ -94,6 +94,9 @@ public class CartServiceImpl implements CartService {
     @Override
     public Cart addItem(User user, Product product, ProductVariant variant, int quantity) {
         if (product == null) throw new RuntimeException("Product not found");
+        if (!ProductService.isAvailableToShoppers(product)) {
+            throw new RuntimeException(product.getName() + " is no longer available");
+        }
         if (quantity <= 0) throw new RuntimeException("Quantity must be positive");
         boolean hasVariants = product.getVariants() != null && !product.getVariants().isEmpty();
         if (hasVariants && variant == null)

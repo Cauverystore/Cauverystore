@@ -87,6 +87,20 @@ class CartTaxResilienceTest {
     }
 
     @Test
+    void switchedOffProductCannotBeAddedToTheCart() {
+        Product hidden = new Product();
+        hidden.setId(9L);
+        hidden.setName("Withdrawn Item");
+        hidden.setStock(10);
+        hidden.setActive(false);
+
+        RuntimeException e = assertThrows(RuntimeException.class, () -> service.addItem(user, hidden, 1));
+
+        assertTrue(e.getMessage().contains("no longer available"));
+        assertTrue(cart.getItems().isEmpty());
+    }
+
+    @Test
     void shouldStillLoadTheCartWhenAnItemCannotBeTaxed() {
         // The regression that took the shop down: an unclassified product threw out of here, so
         // the basket would not load and adding anything appeared to fail.

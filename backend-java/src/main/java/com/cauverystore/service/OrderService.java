@@ -278,6 +278,12 @@ public class OrderService {
             Product product = cartItem.getProduct();
             int qty = cartItem.getQuantity();
 
+            // It may have been withdrawn after it went into the cart.
+            if (!ProductService.isAvailableToShoppers(product)) {
+                throw new RuntimeException(product.getName()
+                        + " is no longer available. Please remove it from your cart.");
+            }
+
             // A product sold in sizes cannot be ordered without one, and the chosen size must
             // itself have enough stock - the product total alone would let the last M be sold twice.
             com.cauverystore.entities.ProductVariant chosen = cartItem.getVariant();
