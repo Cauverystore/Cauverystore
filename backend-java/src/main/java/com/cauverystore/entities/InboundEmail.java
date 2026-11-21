@@ -60,6 +60,38 @@ public class InboundEmail extends BaseEntity {
     @Column(name = "auth_summary", length = 200)
     private String authSummary;
 
+    /** Sent by a machine (auto-reply, mailing list). Such mail never gets an automatic reply. */
+    @Column(name = "automated")
+    private Boolean automated;
+
+    /**
+     * Null until checked; then WORKING, SENT, PREVIEW, NEEDS_PERSON or SKIPPED. These reply fields
+     * change only through the repository's update queries, so saving an email for another reason
+     * (marking it read, recording a forward) can never clear them and cause a second reply.
+     */
+    @Column(name = "auto_reply_status", length = 20, updatable = false)
+    private String autoReplyStatus;
+
+    @Column(name = "auto_reply_reason", length = 200, updatable = false)
+    private String autoReplyReason;
+
+    /** The reply that was sent or would be sent, or a draft for a person. */
+    @Column(name = "auto_reply_text", columnDefinition = "TEXT", updatable = false)
+    private String autoReplyText;
+
+    @Column(name = "auto_replied_at", updatable = false)
+    private LocalDateTime autoRepliedAt;
+
+    public Boolean getAutomated() { return automated; }
+    public void setAutomated(Boolean automated) { this.automated = automated; }
+    public String getAutoReplyStatus() { return autoReplyStatus; }
+    public void setAutoReplyStatus(String autoReplyStatus) { this.autoReplyStatus = autoReplyStatus; }
+    public String getAutoReplyReason() { return autoReplyReason; }
+    public void setAutoReplyReason(String autoReplyReason) { this.autoReplyReason = autoReplyReason; }
+    public String getAutoReplyText() { return autoReplyText; }
+    public void setAutoReplyText(String autoReplyText) { this.autoReplyText = autoReplyText; }
+    public LocalDateTime getAutoRepliedAt() { return autoRepliedAt; }
+    public void setAutoRepliedAt(LocalDateTime autoRepliedAt) { this.autoRepliedAt = autoRepliedAt; }
     public String getResendEmailId() { return resendEmailId; }
     public void setResendEmailId(String resendEmailId) { this.resendEmailId = resendEmailId; }
     public String getFromHeader() { return fromHeader; }

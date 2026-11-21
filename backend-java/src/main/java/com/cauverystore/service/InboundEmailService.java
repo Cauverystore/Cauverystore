@@ -150,6 +150,7 @@ public class InboundEmailService {
         saved.setTextBody(nullIfBlank(email.path("text").asText(null)));
         saved.setHtmlBody(nullIfBlank(email.path("html").asText(null)));
         saved.setReceivedAt(parseTime(email.path("created_at").asText(null)));
+        saved.setAutomated(looksAutomated(email.path("headers")));
         JsonNode auth = email.path("authentication");
         if (auth.isObject()) {
             saved.setAuthSummary(clip("SPF " + authResult(auth.path("spf")) + ", DKIM " + authResult(auth.path("dkim"))
@@ -186,6 +187,21 @@ public class InboundEmailService {
             repo.save(saved);
         }
         return "saved " + saved.getId() + (sent ? ", forwarded" : ", forward FAILED");
+    }
+
+    /** Standard headers that mark auto-replies, bounces and mailing lists. */
+    static boolean looksAutomated(JsonNode headers) {
+        if (headers == null || !headers.isObject()) return false;
+        var fields = headers.fields();
+        while (fields.hasNext()) {
+            var f = fields.next();
+            String name = f.getKey().toLowerCase(Locale.ROOT);
+            String value = f.getValue().asText("").trim().toLowerCase(Locale.ROOT);
+            if (name.equals("auto-submitted") && !value.equals("no")) return true;
+            if (name.equals("precedence") && (value.equals("bulk") || value.equals("list") || value.equals("junk") || value.equals("auto_reply"))) return true;
+            if (name.equals("list-id") || name.equals("list-unsubscribe") || name.equals("x-autoreply") || name.equals("x-autorespond")) return true;
+        }
+        return false;
     }
 
     /** inbound.forward-to minus any address the email was sent to, so a mis-set value cannot loop. */
