@@ -16,7 +16,7 @@ const MyTickets = () => {
   useEffect(() => { fetchTickets(); }, []);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try { await api.post("/api/support-tickets", form); setShowForm(false); setForm({ subject:"", description:"", category:"general", priority:"NORMAL" }); fetchTickets(); } catch { showMessage("Failed"); }
+    try { await api.post("/api/support-tickets", form); setShowForm(false); setForm({ subject:"", description:"", category:"general", priority:"NORMAL" }); fetchTickets(); } catch { showMessage(i18n.t("errors.generic")); }
   };
   const statusColors = { OPEN:"#f59e0b", IN_PROGRESS:"#3b82f6", RESOLVED:"#00788C", CLOSED:"#6b7280" };
   const inp = { padding:"0.5rem 0.6rem", border:"1px solid #d1d5db", borderRadius:6, fontSize:"0.85rem", width:"100%", boxSizing:"border-box" };

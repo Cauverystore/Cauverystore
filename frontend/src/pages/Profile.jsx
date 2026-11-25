@@ -182,7 +182,7 @@ const Profile = () => {
       await logout();
       navigate("/");
     } catch (err) {
-      setDeleteError(err?.response?.data?.error || "We couldn't delete your account. Please try again.");
+      setDeleteError(err?.response?.data?.error || i18n.t("profile.deleteAccountFailed"));
     } finally {
       setDeleting(false);
     }
@@ -996,21 +996,19 @@ const Profile = () => {
           </label>
         </div>
         <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: "0.75rem", padding: "0.75rem", background: "var(--color-bg-secondary)", borderRadius: "var(--radius-sm)" }}>{t("profile.yourDataIsHandledIn")}</div>
-        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.5rem 0 0.75rem", color: "var(--color-danger, #b42318)" }}>Delete account</h4>
+        <h4 style={{ fontSize: "0.95rem", fontWeight: 600, margin: "1.5rem 0 0.75rem", color: "var(--color-danger, #b42318)" }}>{t("profile.deleteAccount")}</h4>
         <div style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
-          This removes your personal details, saved payment methods and wishlist, and signs you out everywhere.
-          Records of past orders and invoices are kept as tax law requires. It cannot be undone. You can't delete
-          your account while an order is in progress, or within 30 days of your last order.
+          {t("profile.deleteAccountInfo")}
         </div>
-        <input type="password" placeholder="Your password" value={deletePassword} autoComplete="current-password"
+        <input type="password" placeholder={t("profile.yourPassword")} value={deletePassword} autoComplete="current-password"
           onChange={(e) => setDeletePassword(e.target.value)} style={{ display: "block", marginBottom: "0.5rem", width: "100%", maxWidth: 320 }} />
-        <input type="text" placeholder="Type DELETE to confirm" value={deleteConfirm}
+        <input type="text" placeholder={t("profile.typeDeleteToConfirm")} value={deleteConfirm}
           onChange={(e) => setDeleteConfirm(e.target.value)} style={{ display: "block", marginBottom: "0.5rem", width: "100%", maxWidth: 320 }} />
         {deleteError && <div role="alert" style={{ color: "var(--color-danger, #b42318)", fontSize: "0.85rem", marginBottom: "0.5rem" }}>{deleteError}</div>}
         <button type="button" disabled={deleting || deleteConfirm.trim().toUpperCase() !== "DELETE"}
           onClick={handleDeleteAccount}
           style={{ background: "#b42318", color: "#fff", border: "none", padding: "0.6rem 1rem", borderRadius: "var(--radius-sm)", cursor: "pointer", opacity: deleting || deleteConfirm.trim().toUpperCase() !== "DELETE" ? 0.5 : 1 }}>
-          {deleting ? "Deleting..." : "Delete my account"}
+          {deleting ? t("profile.deleting") : t("profile.deleteMyAccount")}
         </button>
       </div>
     );

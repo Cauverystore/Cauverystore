@@ -331,7 +331,7 @@ const ReturnsandRefundPolicy = () => {
               ))}
             </div>
             <div className="rrp-nav-help" style={{ background: "#fefce8", borderRadius: "12px", border: "1px solid #fde68a", padding: "14px", fontSize: "0.8rem", color: "#92400e", lineHeight: 1.6 }}>
-              <strong style={{ display: "block", marginBottom: "4px" }}>{t("returnsandRefundPolicy.needHelp")}</strong>{t("contactUs.email")}{" "}<strong>{t("contactUs.supportCauverystoreIn")}</strong>. Our team is available Mon-Sat, 9 AM - 6 PM.
+              <strong style={{ display: "block", marginBottom: "4px" }}>{t("returnsandRefundPolicy.needHelp")}</strong>{t("contactUs.email")}{" "}<strong>{t("contactUs.supportCauverystoreIn")}</strong>{t("returnsandRefundPolicy.teamHours")}
                           </div>
           </nav>
 
@@ -423,7 +423,7 @@ const ReturnsandRefundPolicy = () => {
             <Section id="cancellations" title={t("returnsandRefundPolicy.cancellations")} icon={XCircle}>
               <h3>{t("returnsandRefundPolicy.cancellingYourOrder")}</h3>
               <ul>
-                <li>{t("returnsandRefundPolicy.youCanCancelAnOrder")}{" "}<Link to="/orders">{t("nav.orders")}</Link>{" "}{t("returnsandRefundPolicy.atAnyTime")}{" "}<strong>{t("returnsandRefundPolicy.beforeItIsShipped")}</strong>. There is no cancellation fee.</li>
+                <li>{t("returnsandRefundPolicy.youCanCancelAnOrder")}{" "}<Link to="/orders">{t("nav.orders")}</Link>{" "}{t("returnsandRefundPolicy.atAnyTime")}{" "}<strong>{t("returnsandRefundPolicy.beforeItIsShipped")}</strong>{t("returnsandRefundPolicy.noCancellationFee")}</li>
                 <li>{t("returnsandRefundPolicy.ifYouHadAlreadyPaid")}{" "}<strong>{t("returnsandRefundPolicy.fullAmount")}</strong>{" "}{t("returnsandRefundPolicy.isRefundedAutomaticallyToYour")}</li>
                 <li>{t("returnsandRefundPolicy.onceAnOrderHasShipped")}</li>
               </ul>
