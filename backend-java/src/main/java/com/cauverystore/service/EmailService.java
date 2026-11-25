@@ -617,6 +617,37 @@ public class EmailService {
         sender.execute(() -> deliver(supportInbox, subject, html, replyTo));
     }
 
+    /** Tells support that someone used the Feedback tab. The photo stays in Admin -> Feedback. */
+    public void sendFeedbackNotice(com.cauverystore.entities.CustomerFeedback f) {
+        String kind = switch (f.getType()) {
+            case "COMPLAINT" -> "Complaint";
+            case "SUGGESTION" -> "Suggestion";
+            default -> "Feedback";
+        };
+        String who = f.getName() != null ? f.getName() : "A visitor";
+        String subject = kind + " from the website - " + who;
+        String body = "<h2 style='color:" + TEAL + ";margin-top:0;'>New " + kind.toLowerCase() + " from the Feedback tab</h2>"
+                + "<p style='color:#4b5563;font-size:14px;'><strong>From:</strong> " + escape(who)
+                + (f.getEmail() != null ? " &lt;" + escape(f.getEmail()) + "&gt;" : " (no email given)") + "<br/>"
+                + "<strong>Page:</strong> " + escape(f.getPageUrl() != null ? f.getPageUrl() : "-") + "<br/>"
+                + "<strong>Photo attached:</strong> " + (f.isHasPhoto() ? "Yes, see Admin &rarr; Feedback" : "No") + "<br/>"
+                + "<strong>Feedback no.:</strong> " + f.getId() + "</p>"
+                + "<div style='background:" + BEIGE + ";padding:16px;border-radius:6px;white-space:pre-wrap;color:#111827;font-size:14px;'>"
+                + escape(f.getMessage()) + "</div>"
+                + (f.getEmail() != null ? "<p style='color:#9ca3af;font-size:12px;'>Reply to this email to answer the customer directly.</p>" : "");
+        if (!configured) {
+            log.warn("Email not configured. Feedback {} saved but not emailed.", f.getId());
+            return;
+        }
+        String html = wrapBranded(body);
+        if (f.getEmail() != null) {
+            String replyTo = f.getEmail();
+            sender.execute(() -> deliver(supportInbox, subject, html, replyTo));
+        } else {
+            sender.execute(() -> deliver(supportInbox, subject, html));
+        }
+    }
+
     /**
      * Passes on an email the store received at its own address (see InboundEmailService).
      *
