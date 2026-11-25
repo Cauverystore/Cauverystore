@@ -100,6 +100,8 @@ const FeedbackTab = () => {
   const submit = async (e) => {
     e.preventDefault();
     if (!message.trim()) { setError(t("feedbackTab.writeMessage")); return; }
+    if (!name.trim()) { setError(t("feedbackTab.enterName")); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError(t("feedbackTab.enterEmail")); return; }
     setBusy(true);
     setError("");
     const form = new FormData();
@@ -139,7 +141,6 @@ const FeedbackTab = () => {
               <div className="fb-done">
                 <div className="fb-done-tick" aria-hidden="true">✓</div>
                 <p>{t("feedbackTab.thanks")}</p>
-                {!email.trim() && <p className="fb-hint">{t("feedbackTab.thanksNoEmail")}</p>}
                 <button type="button" className="fb-send" onClick={close}>{t("feedbackTab.close")}</button>
               </div>
             ) : (
@@ -187,12 +188,12 @@ const FeedbackTab = () => {
 
                 <div className="fb-row">
                   <div>
-                    <label className="fb-label" htmlFor="fb-name">{t("feedbackTab.nameLabel")}</label>
-                    <input id="fb-name" className="fb-input" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+                    <label className="fb-label" htmlFor="fb-name">{t("feedbackTab.nameLabel")} <span aria-hidden="true">*</span></label>
+                    <input id="fb-name" className="fb-input" required aria-required="true" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
                   </div>
                   <div>
-                    <label className="fb-label" htmlFor="fb-email">{t("feedbackTab.emailLabel")}</label>
-                    <input id="fb-email" className="fb-input" type="email" maxLength={200} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+                    <label className="fb-label" htmlFor="fb-email">{t("feedbackTab.emailLabel")} <span aria-hidden="true">*</span></label>
+                    <input id="fb-email" className="fb-input" type="email" required aria-required="true" maxLength={200} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
                   </div>
                 </div>
                 <p className="fb-hint">{t("feedbackTab.emailHint")}</p>

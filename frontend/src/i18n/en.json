@@ -1510,15 +1510,16 @@
     "photoAlt": "Your attached photo",
     "photoNotImage": "Please choose a photo (JPG, PNG or WebP).",
     "photoTooBig": "That photo is too large. Please choose a smaller one.",
-    "nameLabel": "Name (optional)",
-    "emailLabel": "Email (optional)",
-    "emailHint": "Leave your email if you would like a reply.",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "emailHint": "We will use your email only to reply to this message.",
     "writeMessage": "Please write your message.",
     "sendFailed": "Could not send. Please try again.",
     "send": "Send",
     "sending": "Sending...",
     "close": "Close",
     "thanks": "Thank you! We have received your message.",
-    "thanksNoEmail": "You did not leave an email, so we cannot reply, but we will read it."
+    "enterName": "Please enter your name.",
+    "enterEmail": "Please enter a valid email address."
   }
 }

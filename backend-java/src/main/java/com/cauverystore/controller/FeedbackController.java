@@ -22,9 +22,9 @@ import java.util.regex.Pattern;
 
 /**
  * Quick feedback from the "Feedback" tab on every shop page: a type (feedback, complaint or
- * suggestion), a message, an optional photo, and optional name and email. No sign-in needed, so
- * it is size-checked and rate-limited per address like the Contact Us form. Staff read it in
- * Admin -> Feedback (the /api/admin/** rule protects those endpoints).
+ * suggestion), a message, an optional photo, and the sender's name and email (both required).
+ * No sign-in needed, so it is size-checked and rate-limited per address like the Contact Us form.
+ * Staff read it in Admin -> Feedback (the /api/admin/** rule protects those endpoints).
  */
 @RestController
 public class FeedbackController {
@@ -59,14 +59,23 @@ public class FeedbackController {
         page = trim(page);
 
         if (!TYPES.contains(type)) type = "FEEDBACK";
+        if (name.isEmpty()) {
+            return bad("Please enter your name.");
+        }
+        if (email.isEmpty()) {
+            return bad("Please enter your email address.");
+        }
         if (message.isEmpty()) {
             return bad("Please write your message.");
         }
-        if (message.length() > 2000 || name.length() > 100) {
+        if (name.length() > 100) {
+            return bad("Your name is too long. Please shorten it.");
+        }
+        if (message.length() > 2000) {
             return bad("Your message is too long. Please shorten it.");
         }
-        if (!email.isEmpty() && (email.length() > 200 || !EMAIL.matcher(email).matches())) {
-            return bad("Please enter a valid email address, or leave it empty.");
+        if (email.length() > 200 || !EMAIL.matcher(email).matches()) {
+            return bad("Please enter a valid email address.");
         }
         // Only a path on this site (e.g. /product/12); staff open it as a link, so nothing else.
         if (!page.matches("/[A-Za-z0-9/_\\-.%]*") || page.startsWith("//")) page = "";
@@ -93,8 +102,8 @@ public class FeedbackController {
         CustomerFeedback f = new CustomerFeedback();
         f.setType(type);
         f.setMessage(message);
-        f.setName(name.isEmpty() ? null : name);
-        f.setEmail(email.isEmpty() ? null : email);
+        f.setName(name);
+        f.setEmail(email);
         f.setPageUrl(page.isEmpty() ? null : page);
         f.setUserId(signedInUserId());
         f.setPhoto(bytes);
