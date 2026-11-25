@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /**
  * Quick feedback from the "Feedback" tab shown on every shop page. Anyone can send it (no
- * sign-in); name and email are optional. An optional photo is kept in the row itself (shrunk in
+ * sign-in); name and email are required. An optional photo is kept in the row itself (shrunk in
  * the browser first, capped at 1 MB here) so a stranger's upload is never served publicly: only
  * staff can fetch it, through /api/admin/feedback/{id}/photo.
  */
