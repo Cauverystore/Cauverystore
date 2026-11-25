@@ -4,7 +4,7 @@ import {
   ShoppingCart, CreditCard, Users, ClipboardList, Ticket, Ship, Percent,
   Star, HelpCircle, FileEdit, Bell, FileSpreadsheet, FolderArchive,
   Image, Mail, Trophy, ArrowUpDown, ShieldCheck, Settings, Shield,
-  BookOpen, MapPin, Wallet, Inbox, Receipt, RefreshCw, Upload, Bot,
+  BookOpen, MapPin, Wallet, Inbox, Receipt, RefreshCw, Upload, Bot, MessageSquare,
 } from "lucide-react";
 
 /** Always shown at the top, outside any section. */
@@ -53,6 +53,7 @@ export const ADMIN_NAV_SECTIONS = [
     { to: "/admin/customers", label: "Customers", icon: Users, module: "customers" },
     { to: "/admin/addresses", label: "Addresses", icon: MapPin, module: "addresses" },
     { to: "/admin/inbox", label: "Inbox", icon: Inbox, module: "support" },
+    { to: "/admin/feedback", label: "Feedback", icon: MessageSquare, module: "support" },
     { to: "/admin/support-tickets", label: "Support Tickets", icon: Ticket, module: "support" },
     { to: "/admin/reviews", label: "Reviews", icon: Star, module: "reviews" },
     { to: "/admin/qna", label: "Q&A", icon: HelpCircle, module: "qna" },

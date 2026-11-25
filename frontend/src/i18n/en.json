@@ -1493,5 +1493,32 @@
     "invoiceQr": "QR code for this invoice",
     "uploadPreview": "Preview of selected image {{n}}",
     "sellerSignature": "Your uploaded signature"
+  },
+  "feedbackTab": {
+    "tabLabel": "Feedback",
+    "open": "Open the feedback form",
+    "title": "Share your feedback",
+    "intro": "Tell us what you liked, what went wrong, or what we could do better.",
+    "typeLabel": "What is this about?",
+    "type_FEEDBACK": "Feedback",
+    "type_COMPLAINT": "Complaint",
+    "type_SUGGESTION": "Suggestion",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Write your message here...",
+    "addPhoto": "+ Add a photo (optional)",
+    "removePhoto": "Remove photo",
+    "photoAlt": "Your attached photo",
+    "photoNotImage": "Please choose a photo (JPG, PNG or WebP).",
+    "photoTooBig": "That photo is too large. Please choose a smaller one.",
+    "nameLabel": "Name (optional)",
+    "emailLabel": "Email (optional)",
+    "emailHint": "Leave your email if you would like a reply.",
+    "writeMessage": "Please write your message.",
+    "sendFailed": "Could not send. Please try again.",
+    "send": "Send",
+    "sending": "Sending...",
+    "close": "Close",
+    "thanks": "Thank you! We have received your message.",
+    "thanksNoEmail": "You did not leave an email, so we cannot reply, but we will read it."
   }
 }

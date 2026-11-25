@@ -10,6 +10,7 @@ import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import ImpersonationBanner from "./components/ImpersonationBanner";
 import PasswordExpiryBanner from "./components/PasswordExpiryBanner";
 import ChatWidget from "./components/ChatWidget";
+import FeedbackTab from "./components/FeedbackTab";
 import CookieBanner from "./components/CookieBanner";
 import { ConfirmProvider } from "./components/ConfirmDialog";
 import { trackPageView } from "./utils/analytics";
@@ -139,6 +140,7 @@ const AdminBanners = lazy(() => import("./admin/banners/AdminBanners"));
 const AdminFaq = lazy(() => import("./admin/faq/AdminFaq"));
 const AdminSupportTickets = lazy(() => import("./admin/support/AdminSupportTickets"));
 const AdminInbox = lazy(() => import("./admin/support/AdminInbox"));
+const AdminFeedback = lazy(() => import("./admin/support/AdminFeedback"));
 const AdminNewsletter = lazy(() => import("./admin/newsletter/AdminNewsletter"));
 const AdminLoyalty = lazy(() => import("./admin/loyalty/AdminLoyalty"));
 const StockMovements = lazy(() => import("./admin/inventory/StockMovements"));
@@ -205,6 +207,7 @@ function App() {
         <ImpersonationBanner />
         <PasswordExpiryBanner />
         <ChatWidget />
+        <FeedbackTab />
         <CookieBanner />
         <Suspense fallback={<div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", color: "#94a3b8", fontSize: "0.95rem" }}>{i18n.t("msgs.loadingPage")}</div>}>
         <LangRoutes>
@@ -335,6 +338,7 @@ function App() {
             <Route path="faq" element={<AdminFaq />} />
             <Route path="support-tickets" element={<AdminSupportTickets />} />
             <Route path="inbox" element={<AdminInbox />} />
+            <Route path="feedback" element={<AdminFeedback />} />
             <Route path="newsletter" element={<AdminNewsletter />} />
             <Route path="loyalty" element={<AdminLoyalty />} />
             <Route path="stock-movements" element={<StockMovements />} />

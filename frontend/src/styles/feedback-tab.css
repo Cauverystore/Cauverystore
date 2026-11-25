@@ -1,0 +1,136 @@
+/* "Feedback" tab on the right edge of shop pages, and its form. */
+.fb-tab {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  writing-mode: vertical-rl;
+  rotate: 180deg;
+  z-index: 980;
+  padding: 0.85rem 0.45rem;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  background: var(--color-primary, #00788C);
+  color: #fff;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.15);
+}
+.fb-tab:hover { background: var(--color-primary-hover, #006475); }
+.fb-tab:focus-visible { outline: 3px solid var(--color-primary-light, #CCEDF1); outline-offset: 2px; }
+
+.fb-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(17, 24, 39, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1rem;
+}
+.fb-panel {
+  width: min(400px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  padding: 1.1rem 1.25rem 1.25rem;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  color: var(--color-text-primary, #111827);
+}
+.fb-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+.fb-head h2 { font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--color-primary, #00788C); }
+.fb-close {
+  border: none; background: none; font-size: 1.6rem; line-height: 1; cursor: pointer;
+  color: #6b7280; padding: 0.15rem 0.4rem; border-radius: 6px;
+}
+.fb-close:hover { background: #f3f4f6; }
+.fb-intro { font-size: 0.85rem; color: #4b5563; margin: 0 0 0.75rem; }
+
+.fb-types { display: flex; gap: 0.4rem; margin-bottom: 0.85rem; flex-wrap: wrap; }
+.fb-type {
+  flex: 1 1 auto;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: #374151;
+}
+.fb-type-on {
+  background: var(--color-primary, #00788C);
+  border-color: var(--color-primary, #00788C);
+  color: #fff;
+  font-weight: 600;
+}
+
+.fb-label { display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem; }
+.fb-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  background: #fff;
+  color: inherit;
+}
+textarea.fb-input { resize: vertical; min-height: 90px; }
+.fb-input:focus { outline: none; border-color: var(--color-primary, #00788C); box-shadow: 0 0 0 3px rgba(0, 120, 140, 0.18); }
+
+.fb-photo { margin: 0.6rem 0 0.85rem; }
+.fb-attach {
+  border: 1px dashed var(--color-primary, #00788C);
+  background: var(--color-bg-primary, #EFFBF7);
+  color: var(--color-primary, #00788C);
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.fb-photo-preview { display: flex; align-items: center; gap: 0.75rem; }
+.fb-photo-preview img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; }
+.fb-link { border: none; background: none; color: #dc2626; font: inherit; font-size: 0.85rem; cursor: pointer; padding: 0; text-decoration: underline; }
+
+.fb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+@media (max-width: 420px) { .fb-row { grid-template-columns: 1fr; } }
+.fb-hint { font-size: 0.75rem; color: #6b7280; margin: 0.35rem 0 0.75rem; }
+.fb-error { font-size: 0.82rem; color: #b91c1c; margin: 0 0 0.6rem; }
+
+.fb-send {
+  width: 100%;
+  padding: 0.65rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-primary, #00788C);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fb-send:hover:not(:disabled) { background: var(--color-primary-hover, #006475); }
+.fb-send:disabled { opacity: 0.6; cursor: wait; }
+
+.fb-done { text-align: center; padding: 1rem 0 0.25rem; }
+.fb-done-tick {
+  width: 48px; height: 48px; margin: 0 auto 0.6rem; border-radius: 50%;
+  background: var(--color-primary-light, #CCEDF1); color: var(--color-primary, #00788C);
+  display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700;
+}
+.fb-done p { margin: 0 0 0.5rem; }
+.fb-done .fb-send { margin-top: 0.75rem; }
+
+@media (max-width: 600px) {
+  .fb-backdrop { align-items: flex-end; padding: 0; }
+  .fb-panel { width: 100%; border-radius: 14px 14px 0 0; max-height: 90vh; }
+  .fb-tab { font-size: 0.78rem; padding: 0.7rem 0.35rem; }
+}
