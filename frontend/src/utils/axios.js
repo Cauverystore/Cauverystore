@@ -1,4 +1,6 @@
 import axios from 'axios';
+import i18n from '../i18n';
+import { translateResponseData } from '../i18n/serverMessages';
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:9091',
@@ -140,6 +142,19 @@ api.interceptors.response.use(
       }
     }
 
+    return Promise.reject(error);
+  }
+);
+
+// Runs after the handler above (sign-in refresh and so on), so it sees the final answer: puts
+// the server's English messages into the customer's language. See i18n/serverMessages.js.
+api.interceptors.response.use(
+  (response) => {
+    translateResponseData(response?.data, i18n);
+    return response;
+  },
+  (error) => {
+    translateResponseData(error?.response?.data, i18n);
     return Promise.reject(error);
   }
 );

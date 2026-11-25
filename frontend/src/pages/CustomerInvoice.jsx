@@ -4,6 +4,7 @@ import { ArrowLeft, Printer, Download, Loader } from "lucide-react";
 import api from "../api/axios";
 import useAltText from "../hooks/useAltText";
 import { invoiceDocumentTitle } from "../utils/invoiceDocumentType";
+import { useTranslation } from "react-i18next";
 
 const GST_INVOICE_STYLES = `
   .giv-page { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
@@ -122,6 +123,7 @@ const CustomerInvoice = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notGenerated, setNotGenerated] = useState(false);
@@ -142,8 +144,8 @@ const CustomerInvoice = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      if (err.response?.status === 403) setError("Access denied: You do not have permission to download this invoice.");
-      else setError("Failed to download PDF.");
+      if (err.response?.status === 403) setError(t("customerInvoice.noAccessDownload"));
+      else setError(t("customerInvoice.downloadFailed"));
     }
     setPdfLoading(false);
   };
@@ -160,9 +162,9 @@ const CustomerInvoice = () => {
         if (data?.notGenerated) {
           setNotGenerated(true);
         } else if (status === 403) {
-          setError("Access denied: You do not have permission to view this invoice.");
+          setError(t("customerInvoice.noAccessView"));
         } else {
-          setError(data?.error || "Failed to load invoice");
+          setError(data?.error || t("customerInvoice.loadFailed"));
         }
       }
       setLoading(false);
@@ -170,25 +172,25 @@ const CustomerInvoice = () => {
     fetchInvoice();
   }, [orderId]);
 
-  if (loading) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>Loading invoice...</div>;
+  if (loading) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>{t("customerInvoice.loading")}</div>;
 
   if (notGenerated) {
     return (
       <div className="giv-page" style={{ textAlign: "center", padding: "3rem" }}>
         <div style={{ fontSize: "3rem", marginBottom: "1rem", opacity: 0.3 }}>&#128196;</div>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: 600, color: "#0f172a", marginBottom: "0.5rem" }}>Invoice Not Yet Available</h2>
+        <h2 style={{ fontSize: "1.25rem", fontWeight: 600, color: "#0f172a", marginBottom: "0.5rem" }}>{t("customerInvoice.notYetTitle")}</h2>
         <p style={{ color: "#64748b", maxWidth: 400, margin: "0 auto 1.5rem", lineHeight: 1.5 }}>
-          The GST invoice for this order hasn't been generated yet. The seller will generate it once the order is processed.
+          {t("customerInvoice.notYetBody")}
         </p>
         <button className="giv-back" onClick={() => navigate(`/orders/${orderId}`)} style={{ display: "inline-flex" }}>
-          <ArrowLeft size={16} /> Back to Order
+          <ArrowLeft size={16} /> {t("customerInvoice.backToOrder")}
         </button>
       </div>
     );
   }
 
   if (error) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#dc2626" }}>{error}</div>;
-  if (!invoice) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>Invoice not found.</div>;
+  if (!invoice) return <div className="giv-page" style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>{t("customerInvoice.notFound")}</div>;
 
   const shippedStatuses = ["SHIPPED", "DELIVERED", "DISPATCHED"];
   const isAwaitingDispatch = !shippedStatuses.includes(orderStatus) && !shippedStatuses.includes(invoice.status);
@@ -201,17 +203,17 @@ const CustomerInvoice = () => {
       <style>{GST_INVOICE_STYLES}</style>
       <div className="giv-page">
         <div className="giv-toolbar">
-          <button className="giv-back" onClick={() => navigate(`/orders/${orderId}`)}><ArrowLeft size={16} /> Back to Order</button>
-          <button className="giv-btn giv-btn-primary" onClick={() => window.print()}><Printer size={16} /> Print</button>
+          <button className="giv-back" onClick={() => navigate(`/orders/${orderId}`)}><ArrowLeft size={16} /> {t("customerInvoice.backToOrder")}</button>
+          <button className="giv-btn giv-btn-primary" onClick={() => window.print()}><Printer size={16} /> {t("customerInvoice.print")}</button>
           <button className="giv-btn giv-btn-outline" onClick={handleDownloadPdf} disabled={pdfLoading}>
-            {pdfLoading ? <Loader size={16} /> : <Download size={16} />} {pdfLoading ? "Downloading..." : "Download PDF"}
+            {pdfLoading ? <Loader size={16} /> : <Download size={16} />} {pdfLoading ? t("customerInvoice.downloading") : t("customerInvoice.downloadPdf")}
           </button>
         </div>
 
         {isAwaitingDispatch && (
           <div style={{ padding: "0.75rem 1rem", marginBottom: "1rem", borderRadius: 8, background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span style={{ fontSize: "1.1rem" }}>&#128666;</span>
-            <span><strong>Order in progress</strong> — invoice generated, awaiting dispatch</span>
+            <span><strong>{t("customerInvoice.inProgress")}</strong> — {t("customerInvoice.awaitingDispatch")}</span>
           </div>
         )}
 

@@ -212,7 +212,8 @@ const Login = () => {
       }
       const msg = err.response?.data?.error || err.response?.data?.message || i18n.t("msgs.loginFailed");
       setError(msg);
-      const match = msg.match(/(\d+) attempt\(s\) remaining/);
+      // Read the count from the server's English wording; `msg` may be translated.
+      const match = (err.response?.data?.errorEn || msg).match(/(\d+) attempt\(s\) remaining/);
       if (match) setRemainingAttempts(parseInt(match[1]));
     } finally {
       setLoading(false);
