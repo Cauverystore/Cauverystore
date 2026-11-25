@@ -69,12 +69,6 @@ const FeedbackTab = () => {
 
   useEffect(() => () => { if (photo) URL.revokeObjectURL(photo.preview); }, [photo]);
 
-  // Other page widgets (the TellX button) sit at the very top layer; hide them while this is open.
-  useEffect(() => {
-    document.body.classList.toggle("fb-open", open);
-    return () => document.body.classList.remove("fb-open");
-  }, [open]);
-
   if (STAFF_PAGES.test(pathname)) return null;
 
   const close = () => {

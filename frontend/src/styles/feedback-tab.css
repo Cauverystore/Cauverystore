@@ -22,9 +22,6 @@
 .fb-tab:hover { background: var(--color-primary-hover, #006475); }
 .fb-tab:focus-visible { outline: 3px solid var(--color-primary-light, #CCEDF1); outline-offset: 2px; }
 
-/* The TellX widget uses the highest possible layer, so step it aside while our form is open. */
-body.fb-open iframe[src*="tellx.net"] { visibility: hidden !important; }
-
 .fb-backdrop {
   position: fixed;
   inset: 0;
