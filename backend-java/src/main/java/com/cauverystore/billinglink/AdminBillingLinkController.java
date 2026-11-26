@@ -36,6 +36,8 @@ public class AdminBillingLinkController {
         m.put("billingUrl", url);
         m.put("sent", link.count(BillingLinkRecord.SENT));
         m.put("failed", link.count(BillingLinkRecord.FAILED));
+        m.put("purchasesSent", link.countPurchases(BillingLinkRecord.SENT));
+        m.put("purchasesFailed", link.countPurchases(BillingLinkRecord.FAILED));
         List<Map<String, Object>> failures = new ArrayList<>();
         for (BillingLinkRecord r : link.recentFailures()) {
             Map<String, Object> f = new LinkedHashMap<>();
