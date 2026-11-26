@@ -3,6 +3,8 @@ package com.cauverystore.billinglink;
 import com.cauverystore.entities.*;
 import com.cauverystore.repository.GstInvoiceRepository;
 import com.cauverystore.repository.OrderRepository;
+import com.cauverystore.repository.ProductRepository;
+import com.cauverystore.repository.PurchaseOrderRepository;
 import com.cauverystore.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +37,11 @@ import java.util.*;
  * it waits for "Send now" on the admin screen.
  *
  * Sellers' orders are left out on purpose: those are the sellers' own sales.
+ *
+ * The website is the shop, so it also keeps the shop's products and stock. Each run first sends
+ * the store's own products (each size/colour as its own item) with their current stock, so the
+ * billing counter sells the same items with the same figures, then sends purchase orders marked
+ * RECEIVED as purchase bills (once each, remembered in billing_link_purchases).
  */
 @Service
 public class BillingLinkService {
@@ -46,6 +53,9 @@ public class BillingLinkService {
     private final GstInvoiceRepository invoices;
     private final OrderRepository orders;
     private final UserRepository users;
+    private final ProductRepository products;
+    private final PurchaseOrderRepository purchaseOrders;
+    private final BillingLinkPurchaseRepository sentPurchases;
     private final TransactionTemplate tx;
     private final ObjectMapper json;
     private final HttpClient http = HttpClient.newBuilder()
@@ -59,10 +69,16 @@ public class BillingLinkService {
     @Value("${billing-link.store-seller-ids:}") private String ownSellerIdsSetting;
     /** Orders before this one were tests and are never sent. */
     @Value("${billing-link.first-order-id:0}") private long firstOrderId;
+    /** Purchase orders before this one were tests and are never sent. */
+    @Value("${billing-link.first-purchase-order-id:0}") private long firstPurchaseOrderId;
 
     public BillingLinkService(BillingLinkRecordRepository records, GstInvoiceRepository invoices,
-                              OrderRepository orders, UserRepository users, PlatformTransactionManager txm,
-                              ObjectMapper json) {
+                              OrderRepository orders, UserRepository users, ProductRepository products,
+                              PurchaseOrderRepository purchaseOrders, BillingLinkPurchaseRepository sentPurchases,
+                              PlatformTransactionManager txm, ObjectMapper json) {
+        this.products = products;
+        this.purchaseOrders = purchaseOrders;
+        this.sentPurchases = sentPurchases;
         this.records = records;
         this.invoices = invoices;
         this.orders = orders;
@@ -84,6 +100,20 @@ public class BillingLinkService {
             return result;
         }
         Set<Long> store = storeSellerIds();
+        try {
+            Map<String, Object> body = tx.execute(s -> productList(store));
+            JsonNode reply = post("/api/connect/products", body);
+            result.put("products", Map.of(
+                    "count", ((List<?>) body.get("products")).size(),
+                    "created", reply.path("created").asInt(),
+                    "updated", reply.path("updated").asInt(),
+                    "stockChanged", reply.path("stockChanged").asInt(),
+                    "switchedOff", reply.path("switchedOff").asInt()));
+        } catch (RuntimeException e) {
+            result.put("productsError", e.getMessage());
+            log.warn("Cauvery Billing: products not sent: {}", e.getMessage());
+        }
+        result.put("purchases", sendPurchases(force));
         int sent = 0, failed = 0;
         List<String> errors = new ArrayList<>();
         for (GstInvoice inv : invoices.findAll()) {
@@ -96,7 +126,7 @@ public class BillingLinkService {
             rec.setInvoiceNumber(inv.getInvoiceNumber());
             try {
                 Map<String, Object> body = tx.execute(s -> request(inv.getId()));
-                JsonNode reply = post(body);
+                JsonNode reply = post("/api/connect/orders", body);
                 rec.setStatus(BillingLinkRecord.SENT);
                 rec.setBillId(reply.path("billId").isNumber() ? reply.get("billId").asLong() : null);
                 rec.setErrorMessage(null);
@@ -170,6 +200,7 @@ public class BillingLinkService {
             String sku = v != null && v.getSku() != null && !v.getSku().isBlank() ? v.getSku()
                     : p != null ? p.getSku() : null;
             m.put("sku", sku);
+            m.put("productRef", v != null ? ref(v) : p != null ? ref(p) : null);
             m.put("barcode", p != null ? p.getBarcode() : null);
             m.put("name", l.getBillDescription() != null && !l.getBillDescription().isBlank() ? l.getBillDescription() : name);
             m.put("hsnCode", l.getHsnCode() != null ? l.getHsnCode() : l.getSacCode());
@@ -209,8 +240,158 @@ public class BillingLinkService {
         return body;
     }
 
-    private JsonNode post(Map<String, Object> body) {
-        String url = baseUrl.replaceAll("/+$", "") + "/api/connect/orders";
+    // ------------------------------------------------------------------ products
+
+    static String ref(Product p) { return "P" + p.getId(); }
+
+    static String ref(ProductVariant v) { return "V" + v.getId(); }
+
+    /** The store's own products, a product with sizes/colours as one item per variant. Runs inside a transaction. */
+    Map<String, Object> productList(Set<Long> store) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Product p : products.findAll()) {
+            if (p.getSellerId() != null && !store.contains(p.getSellerId())) continue;
+            boolean active = p.isActive() && !"deleted".equalsIgnoreCase(String.valueOf(p.getProductStatus()));
+            double price = sellingPrice(p);
+            List<ProductVariant> variants = p.getVariants() == null ? List.of() : p.getVariants();
+            if (variants.isEmpty()) {
+                list.add(item(ref(p), p.getSku(), p.getBarcode(), p.getName(), p, price, active,
+                        p.getStock() == null ? 0 : p.getStock()));
+            } else {
+                for (ProductVariant v : variants) {
+                    String label = (v.getVariantValue() == null ? "" : v.getVariantValue()).trim();
+                    String name = label.isEmpty() ? p.getName() : p.getName() + " - " + label;
+                    String sku = v.getSku() != null && !v.getSku().isBlank() ? v.getSku() : null;
+                    list.add(item(ref(v), sku, null, name, p, v.getPrice() != null ? v.getPrice() : price, active,
+                            v.getStock() == null ? 0 : v.getStock()));
+                }
+            }
+        }
+        return Map.of("products", list);
+    }
+
+    private static Map<String, Object> item(String ref, String sku, String barcode, String name, Product p,
+                                            double price, boolean active, int stock) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ref", ref);
+        m.put("sku", blankToNull(sku));
+        m.put("barcode", blankToNull(barcode));
+        m.put("name", name);
+        m.put("hsnCode", blankToNull(p.getHsnCode()));
+        m.put("unit", unit(p.getUom()));
+        m.put("price", price);
+        m.put("active", active);
+        m.put("stock", Math.max(0, stock));
+        return m;
+    }
+
+    /** The price the customer pays on the website (GST included). */
+    static double sellingPrice(Product p) {
+        Double offer = p.getOfferPrice();
+        if (offer != null && offer > 0 && (p.getPrice() == null || offer < p.getPrice())) return offer;
+        return p.getPrice() == null ? 0 : p.getPrice();
+    }
+
+    /** Store unit codes to Cauvery Billing's (NOS is pieces). Unknown ones become pieces there. */
+    static String unit(String uom) {
+        if (uom == null || uom.isBlank()) return "PCS";
+        String u = uom.trim().toUpperCase(Locale.ROOT);
+        return switch (u) {
+            case "NOS", "NO", "PC", "PIECE", "PIECES", "UNIT", "UNITS" -> "PCS";
+            case "KGS" -> "KG";
+            case "GMS", "G", "GRAM", "GRAMS" -> "GM";
+            case "LTRS", "L", "LITRE", "LITRES" -> "LTR";
+            case "MTRS", "M", "METRE", "METRES" -> "MTR";
+            case "PAC", "PACK" -> "PKT";
+            case "PRS" -> "PAIR";
+            default -> u;
+        };
+    }
+
+    // ------------------------------------------------------------------ purchases
+
+    /** Sends each RECEIVED purchase order once as a purchase bill. */
+    Map<String, Object> sendPurchases(boolean force) {
+        int sent = 0, failed = 0;
+        List<String> errors = new ArrayList<>();
+        for (PurchaseOrder po : purchaseOrders.findByStatus("RECEIVED")) {
+            if (po.getId() == null || po.getId() < firstPurchaseOrderId) continue;
+            Optional<BillingLinkPurchase> old = sentPurchases.findByPurchaseOrderId(po.getId());
+            if (old.isPresent() && (BillingLinkRecord.SENT.equals(old.get().getStatus())
+                    || (!force && old.get().getAttempts() >= MAX_AUTO_ATTEMPTS))) continue;
+            BillingLinkPurchase rec = old.orElseGet(() -> {
+                BillingLinkPurchase n = new BillingLinkPurchase();
+                n.setPurchaseOrderId(po.getId());
+                return n;
+            });
+            rec.setPoNumber(po.getPoNumber());
+            try {
+                Map<String, Object> body = tx.execute(s -> purchaseRequest(po.getId()));
+                JsonNode reply = post("/api/connect/purchases", body);
+                rec.setStatus(BillingLinkRecord.SENT);
+                rec.setPurchaseId(reply.path("purchaseId").isNumber() ? reply.get("purchaseId").asLong() : null);
+                rec.setErrorMessage(null);
+                sent++;
+            } catch (RuntimeException e) {
+                rec.setStatus(BillingLinkRecord.FAILED);
+                rec.setErrorMessage(e.getMessage());
+                failed++;
+                errors.add(po.getPoNumber() + ": " + e.getMessage());
+                log.warn("Cauvery Billing: purchase order {} not sent: {}", po.getPoNumber(), e.getMessage());
+            }
+            rec.setAttempts(rec.getAttempts() + 1);
+            sentPurchases.save(rec);
+        }
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("sent", sent);
+        r.put("failed", failed);
+        r.put("errors", errors);
+        return r;
+    }
+
+    /** A received purchase order as Cauvery Billing's /api/connect/purchases expects it. Runs inside a transaction. */
+    Map<String, Object> purchaseRequest(Long poId) {
+        PurchaseOrder po = purchaseOrders.findById(poId)
+                .orElseThrow(() -> new IllegalStateException("Purchase order " + poId + " no longer exists"));
+        Supplier s = po.getSupplier();
+        if (s == null) throw new IllegalStateException("Purchase order " + po.getPoNumber() + " has no supplier");
+        List<Map<String, Object>> lines = new ArrayList<>();
+        for (PurchaseOrderItem i : po.getItems()) {
+            Product p = i.getProduct();
+            if (p == null) continue;
+            int qty = i.getReceivedQuantity() != null && i.getReceivedQuantity() > 0 ? i.getReceivedQuantity()
+                    : i.getQuantity() == null ? 0 : i.getQuantity();
+            if (qty <= 0) continue;
+            ProductVariant v = i.getVariant();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("productRef", v != null ? ref(v) : ref(p));
+            m.put("sku", v != null && v.getSku() != null && !v.getSku().isBlank() ? v.getSku() : p.getSku());
+            m.put("quantity", qty);
+            m.put("unitCost", nz(i.getUnitPrice()));      // before GST, as the store keeps it
+            m.put("gstRate", p.getGstPercentage());
+            lines.add(m);
+        }
+        if (lines.isEmpty()) throw new IllegalStateException("Purchase order " + po.getPoNumber() + " has no received items");
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("ref", po.getPoNumber() != null ? po.getPoNumber() : "PO-" + po.getId());
+        java.time.LocalDate date = po.getActualDelivery() != null ? po.getActualDelivery() : po.getOrderDate();
+        body.put("billDate", date == null ? null : date.toString());
+        body.put("supplierName", s.getName());
+        body.put("supplierGstin", blankToNull(s.getGstin()));
+        body.put("supplierStateCode", blankToNull(s.getState()));
+        body.put("supplierPhone", blankToNull(s.getPhone()));
+        body.put("supplierEmail", blankToNull(s.getEmail()));
+        body.put("supplierAddress", blankToNull(s.getAddress()));
+        body.put("supplierPincode", blankToNull(s.getPincode()));
+        body.put("notes", "Website purchase order " + po.getPoNumber());
+        body.put("lines", lines);
+        return body;
+    }
+
+    public long countPurchases(String status) { return sentPurchases.countByStatus(status); }
+
+    private JsonNode post(String path, Map<String, Object> body) {
+        String url = baseUrl.replaceAll("/+$", "") + path;
         HttpResponse<String> res;
         try {
             HttpRequest req = HttpRequest.newBuilder(URI.create(url))

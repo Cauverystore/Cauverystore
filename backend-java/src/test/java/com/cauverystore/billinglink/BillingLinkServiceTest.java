@@ -3,6 +3,8 @@ package com.cauverystore.billinglink;
 import com.cauverystore.entities.*;
 import com.cauverystore.repository.GstInvoiceRepository;
 import com.cauverystore.repository.OrderRepository;
+import com.cauverystore.repository.ProductRepository;
+import com.cauverystore.repository.PurchaseOrderRepository;
 import com.cauverystore.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +37,13 @@ class BillingLinkServiceTest {
     private final GstInvoiceRepository invoices = mock(GstInvoiceRepository.class);
     private final OrderRepository orders = mock(OrderRepository.class);
     private final UserRepository users = mock(UserRepository.class);
+    private final ProductRepository products = mock(ProductRepository.class);
+    private final PurchaseOrderRepository purchaseOrders = mock(PurchaseOrderRepository.class);
+    private final BillingLinkPurchaseRepository sentPurchases = mock(BillingLinkPurchaseRepository.class);
     private final Map<Long, BillingLinkRecord> saved = new HashMap<>();
+    private final Map<Long, BillingLinkPurchase> savedPurchases = new HashMap<>();
+    private final List<String> productsReceived = new CopyOnWriteArrayList<>();
+    private final List<String> purchasesReceived = new CopyOnWriteArrayList<>();
 
     private HttpServer server;
     /** Bodies and keys the stand-in server received. */
@@ -58,9 +66,29 @@ class BillingLinkServiceTest {
             ex.sendResponseHeaders(reply, out.length);
             try (OutputStream o = ex.getResponseBody()) { o.write(out); }
         });
+        server.createContext("/api/connect/products", ex -> {
+            productsReceived.add(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            byte[] out = "{\"created\":2,\"updated\":0,\"stockChanged\":2,\"switchedOff\":0}".getBytes(StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(200, out.length);
+            try (OutputStream o = ex.getResponseBody()) { o.write(out); }
+        });
+        server.createContext("/api/connect/purchases", ex -> {
+            purchasesReceived.add(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            byte[] out = "{\"created\":true,\"purchaseId\":9}".getBytes(StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(201, out.length);
+            try (OutputStream o = ex.getResponseBody()) { o.write(out); }
+        });
         server.start();
 
-        service = new BillingLinkService(records, invoices, orders, users, mock(PlatformTransactionManager.class), JSON);
+        service = new BillingLinkService(records, invoices, orders, users, products, purchaseOrders, sentPurchases,
+                mock(PlatformTransactionManager.class), JSON);
+        when(sentPurchases.findByPurchaseOrderId(anyLong()))
+                .thenAnswer(a -> Optional.ofNullable(savedPurchases.get((Long) a.getArgument(0))));
+        when(sentPurchases.save(any())).thenAnswer(a -> {
+            BillingLinkPurchase r = a.getArgument(0);
+            savedPurchases.put(r.getPurchaseOrderId(), r);
+            return r;
+        });
         ReflectionTestUtils.setField(service, "baseUrl", "http://127.0.0.1:" + server.getAddress().getPort() + "/");
         ReflectionTestUtils.setField(service, "key", "cbk_test");
         ReflectionTestUtils.setField(service, "ownSellerIdsSetting", "46");
@@ -160,6 +188,7 @@ class BillingLinkServiceTest {
         assertEquals(531.0, body.get("grandTotal").asDouble());
         JsonNode mug = body.get("lines").get(0);
         assertEquals("MUG-01", mug.get("sku").asText());
+        assertEquals("P7", mug.get("productRef").asText());
         assertEquals("8901234567890", mug.get("barcode").asText());
         assertEquals(18.0, mug.get("gstRate").asDouble());
         assertEquals(2, mug.get("quantity").asInt());
@@ -235,6 +264,94 @@ class BillingLinkServiceTest {
         when(invoices.findAll()).thenReturn(List.of(inv));
         assertTrue(service.sendAll(false).containsKey("skipped"));
         assertTrue(received.isEmpty());
+    }
+
+    private Product product(long id, String name, String sku, Long seller, int stock) {
+        Product p = new Product();
+        p.setId(id);
+        p.setName(name);
+        p.setSku(sku);
+        p.setSellerId(seller);
+        p.setStock(stock);
+        p.setPrice(299.0);
+        p.setHsnCode("7323");
+        p.setUom("NOS");
+        return p;
+    }
+
+    @Test
+    void storeProductsAndEachSizeAreSentWithStock() throws Exception {
+        Product mug = product(7L, "Steel Mug", "MUG-01", 46L, 5);
+        mug.setOfferPrice(249.0);
+        Product shirt = product(8L, "Cotton T-shirt", "TS", ADMIN, 0);
+        ProductVariant m = new ProductVariant();
+        m.setId(31L);
+        m.setVariantValue("M");
+        m.setSku("TS-M");
+        m.setStock(4);
+        ProductVariant l = new ProductVariant();
+        l.setId(32L);
+        l.setVariantValue("L");
+        l.setStock(-1);
+        l.setPrice(329.0);
+        shirt.setVariants(new ArrayList<>(List.of(m, l)));
+        Product sellers = product(9L, "Seller's lamp", "LAMP", SELLER, 3);
+        when(products.findAll()).thenReturn(List.of(mug, shirt, sellers));
+
+        Map<String, Object> r = service.sendAll(false);
+        assertEquals(1, productsReceived.size(), String.valueOf(r));
+        JsonNode list = JSON.readTree(productsReceived.get(0)).get("products");
+        assertEquals(3, list.size());                         // mug + two sizes; the seller's lamp stays out
+        assertEquals("P7", list.get(0).get("ref").asText());
+        assertEquals(249.0, list.get(0).get("price").asDouble(), 1e-9);   // the price the customer pays
+        assertEquals(5, list.get(0).get("stock").asInt());
+        assertEquals("PCS", list.get(0).get("unit").asText());
+        assertEquals("V31", list.get(1).get("ref").asText());
+        assertEquals("Cotton T-shirt - M", list.get(1).get("name").asText());
+        assertEquals("TS-M", list.get(1).get("sku").asText());
+        assertEquals(4, list.get(1).get("stock").asInt());
+        assertTrue(list.get(2).get("sku").isNull());
+        assertEquals(329.0, list.get(2).get("price").asDouble(), 1e-9);
+        assertEquals(0, list.get(2).get("stock").asInt());   // never below zero
+    }
+
+    @Test
+    void receivedPurchaseOrderIsSentOnce() throws Exception {
+        Product mug = product(7L, "Steel Mug", "MUG-01", 46L, 25);
+        mug.setGstPercentage(18.0);
+        Supplier s = new Supplier();
+        s.setName("Steel Works");
+        s.setGstin("33AABCS1429B1ZB");
+        s.setState("Tamil Nadu");
+        PurchaseOrder po = new PurchaseOrder();
+        po.setId(3L);
+        po.setPoNumber("PO-2026-0003");
+        po.setStatus("RECEIVED");
+        po.setSupplier(s);
+        po.setOrderDate(LocalDate.of(2026, 11, 20));
+        po.setActualDelivery(LocalDate.of(2026, 11, 24));
+        PurchaseOrderItem i = new PurchaseOrderItem();
+        i.setProduct(mug);
+        i.setQuantity(24);
+        i.setReceivedQuantity(20);
+        i.setUnitPrice(120.0);
+        po.setItems(List.of(i));
+        when(purchaseOrders.findByStatus("RECEIVED")).thenReturn(List.of(po));
+        when(purchaseOrders.findById(3L)).thenReturn(Optional.of(po));
+
+        service.sendAll(false);
+        service.sendAll(false);
+        assertEquals(1, purchasesReceived.size());
+        JsonNode body = JSON.readTree(purchasesReceived.get(0));
+        assertEquals("PO-2026-0003", body.get("ref").asText());
+        assertEquals("2026-11-24", body.get("billDate").asText());
+        assertEquals("33AABCS1429B1ZB", body.get("supplierGstin").asText());
+        JsonNode line = body.get("lines").get(0);
+        assertEquals("P7", line.get("productRef").asText());
+        assertEquals(20, line.get("quantity").asInt());      // what actually arrived
+        assertEquals(120.0, line.get("unitCost").asDouble(), 1e-9);
+        assertEquals(18.0, line.get("gstRate").asDouble(), 1e-9);
+        assertEquals(9L, savedPurchases.get(3L).getPurchaseId());
     }
 
     @Test
