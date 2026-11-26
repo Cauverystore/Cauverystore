@@ -1497,6 +1497,7 @@
     "productImage": "{{name}} – {{total}} ൽ {{n}}-ാമത്തെ ചിത്രം",
     "productFallback": "ഉൽപ്പന്നത്തിന്റെ ചിത്രം",
     "profilePhoto": "പ്രൊഫൈൽ ഫോട്ടോ",
+    "customerPhoto": "ഉപഭോക്താവ് ചേർത്ത ഫോട്ടോ",
     "signature": "{{name}} ന്റെ ഒപ്പ്",
     "signatureUnknown": "അംഗീകൃത ഒപ്പുവെക്കുന്നയാളുടെ ഒപ്പ്",
     "invoiceQr": "ഈ ഇൻവോയ്സിന്റെ QR കോഡ്",

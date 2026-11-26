@@ -1497,6 +1497,7 @@
     "productImage": "{{name}} – {{total}} లో {{n}}వ చిత్రం",
     "productFallback": "ఉత్పత్తి చిత్రం",
     "profilePhoto": "ప్రొఫైల్ ఫోటో",
+    "customerPhoto": "కస్టమర్ జత చేసిన ఫోటో",
     "signature": "{{name}} సంతకం",
     "signatureUnknown": "అధీకృత సంతకందారు సంతకం",
     "invoiceQr": "ఈ ఇన్‌వాయిస్ QR కోడ్",

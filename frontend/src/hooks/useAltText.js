@@ -20,6 +20,8 @@ export function makeAltText(t) {
     product: (name, n, total) =>
       total > 1 ? t("alt.productImage", { name: product(name), n, total }) : product(name),
     profilePhoto: () => t("alt.profilePhoto"),
+    /** A photo a customer attached to a feedback message. */
+    customerPhoto: () => t("alt.customerPhoto"),
     signature: (name) => (name ? t("alt.signature", { name }) : t("alt.signatureUnknown")),
     invoiceQr: () => t("alt.invoiceQr"),
     uploadPreview: (n) => t("alt.uploadPreview", { n }),

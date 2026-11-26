@@ -1497,6 +1497,7 @@
     "productImage": "{{name}} – {{total}} ರಲ್ಲಿ {{n}}ನೇ ಚಿತ್ರ",
     "productFallback": "ಉತ್ಪನ್ನದ ಚಿತ್ರ",
     "profilePhoto": "ಪ್ರೊಫೈಲ್ ಫೋಟೋ",
+    "customerPhoto": "ಗ್ರಾಹಕರು ಲಗತ್ತಿಸಿದ ಫೋಟೋ",
     "signature": "{{name}} ಅವರ ಸಹಿ",
     "signatureUnknown": "ಅಧಿಕೃತ ಸಹಿದಾರರ ಸಹಿ",
     "invoiceQr": "ಈ ಇನ್‌ವಾಯ್ಸ್‌ನ QR ಕೋಡ್",
