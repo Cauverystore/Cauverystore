@@ -1497,6 +1497,7 @@
     "productImage": "{{name}} – image {{n}} of {{total}}",
     "productFallback": "Product photo",
     "profilePhoto": "Profile photo",
+    "customerPhoto": "Photo attached by the customer",
     "signature": "Signature of {{name}}",
     "signatureUnknown": "Signature of the authorised signatory",
     "invoiceQr": "QR code for this invoice",

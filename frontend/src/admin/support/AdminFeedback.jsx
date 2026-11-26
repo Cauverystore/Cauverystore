@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../../api/axios";
 import { showMessage } from "../../components/ConfirmDialog";
+import useAltText from "../../hooks/useAltText";
 
 const TEAL = "#0E5C5C";
 const TYPE_STYLE = {
@@ -20,6 +21,7 @@ const chip = (on) => ({ padding: "0.3rem 0.8rem", borderRadius: 999, border: `1p
 
 /** Photo is fetched with the staff sign-in, then shown from a local blob link. */
 const Photo = ({ id }) => {
+  const altText = useAltText();
   const [src, setSrc] = useState(null);
   useEffect(() => {
     let url;
@@ -32,7 +34,7 @@ const Photo = ({ id }) => {
   if (!src) return <div style={{ color: "#b91c1c", fontSize: "0.85rem" }}>Could not load the photo.</div>;
   return (
     <a href={src} target="_blank" rel="noreferrer">
-      <img src={src} alt="Attached by the customer" style={{ maxWidth: "100%", maxHeight: 320, borderRadius: 8, border: "1px solid #e5e7eb" }} />
+      <img src={src} alt={altText.customerPhoto()} style={{ maxWidth: "100%", maxHeight: 320, borderRadius: 8, border: "1px solid #e5e7eb" }} />
     </a>
   );
 };

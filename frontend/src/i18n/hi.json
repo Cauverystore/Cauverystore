@@ -1497,6 +1497,7 @@
     "productImage": "{{name}} – {{total}} में से छवि {{n}}",
     "productFallback": "उत्पाद की तस्वीर",
     "profilePhoto": "प्रोफ़ाइल फ़ोटो",
+    "customerPhoto": "ग्राहक द्वारा लगाई गई फ़ोटो",
     "signature": "{{name}} के हस्ताक्षर",
     "signatureUnknown": "अधिकृत हस्ताक्षरकर्ता के हस्ताक्षर",
     "invoiceQr": "इस इनवॉइस का QR कोड",

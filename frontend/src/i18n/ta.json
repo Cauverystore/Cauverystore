@@ -1497,6 +1497,7 @@
     "productImage": "{{name}} – படம் {{n}} / {{total}}",
     "productFallback": "பொருளின் படம்",
     "profilePhoto": "சுயவிவரப் படம்",
+    "customerPhoto": "வாடிக்கையாளர் இணைத்த புகைப்படம்",
     "signature": "{{name}} அவர்களின் கையொப்பம்",
     "signatureUnknown": "அங்கீகரிக்கப்பட்ட கையொப்பமிடுபவரின் கையொப்பம்",
     "invoiceQr": "இந்த விலைப்பட்டியலுக்கான QR குறியீடு",
