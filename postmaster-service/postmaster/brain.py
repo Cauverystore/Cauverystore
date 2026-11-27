@@ -1,7 +1,9 @@
-"""Postmaster's brain. Works with any OpenAI-compatible AI service, chosen by settings."""
+"""Postmaster's brain. Works with Claude (AI_BASE_URL https://api.anthropic.com) or any
+OpenAI-compatible AI service, chosen by settings."""
 
 import json
 import re
+import urllib.parse
 
 from .net import HttpError, request_json
 
@@ -26,13 +28,23 @@ Answer with one JSON object only:
 {"intent": "ORDER_STATUS|DELIVERY|PRODUCT|POLICY|REFUND|COMPLAINT|PAYMENT|OTHER", "confidence": 0.0 to 1.0, "action": "reply|person", "reply": "text", "reason": "short reason for staff"}"""
 
 
+CLAUDE_HOST = "api.anthropic.com"
+CLAUDE_API_VERSION = "2026-10-21"
+CLAUDE_THINKING_ROOM = 3000  # Claude thinks before answering, and that counts toward max_tokens.
+
+
 class BrainError(Exception):
     pass
 
 
 class Brain:
     def __init__(self, base_url: str, api_key: str, model: str, timeout: int = 90):
-        self.url = base_url.rstrip("/") + "/chat/completions"
+        address = base_url.strip().rstrip("/")
+        u = urllib.parse.urlparse(address)
+        if u.scheme != "https" and u.hostname not in ("localhost", "127.0.0.1", "::1"):
+            raise BrainError("The AI address must start with https://")
+        self.claude = u.hostname == CLAUDE_HOST
+        self.url = f"https://{CLAUDE_HOST}/v1/messages" if self.claude else address + "/chat/completions"
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
@@ -44,7 +56,13 @@ class Brain:
         try:
             text = self._ask(user, True)
         except HttpError as e:
-            if e.status == 400 and "response_format" in e.body:
+            if e.status in (401, 403):
+                raise BrainError("The AI service refused the key.") from None
+            if e.status in (429, 529):
+                raise BrainError("The AI service is busy or its limit is used up.") from None
+            if self.claude and e.status == 400 and "credit balance" in e.body.lower():
+                raise BrainError("The Claude account has no credit left.") from None
+            if not self.claude and e.status == 400 and "response_format" in e.body:
                 try:
                     text = self._ask(user, False)
                 except HttpError as again:
@@ -56,6 +74,18 @@ class Brain:
         return parse(text)
 
     def _ask(self, user: str, json_mode: bool) -> str:
+        if self.claude:
+            headers = {"x-api-key": self.api_key, "anthropic-version": CLAUDE_API_VERSION}
+            body = {"model": self.model, "max_tokens": 900 + CLAUDE_THINKING_ROOM, "system": SYSTEM,
+                    "messages": [{"role": "user", "content": user}]}
+            res = request_json("POST", self.url, body, headers, timeout=self.timeout)
+            try:
+                # A refused or cut-off answer must never be treated as a finished reply.
+                if res.get("stop_reason") not in ("end_turn", "stop_sequence"):
+                    raise BrainError("The AI did not finish its answer.")
+                return "".join(b["text"] for b in res["content"] if b.get("type") == "text")
+            except (KeyError, TypeError, AttributeError):
+                raise BrainError("The AI service sent an answer in an unexpected form.") from None
         body = {
             "model": self.model,
             "temperature": 0.2,

@@ -54,3 +54,39 @@ class PostmasterTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ClaudeTest(unittest.TestCase):
+    def setUp(self):
+        import postmaster.brain as b
+        self.b = b
+        self.sent = []
+        self.answer = {"stop_reason": "end_turn", "content": [
+            {"type": "thinking", "thinking": "..."},
+            {"type": "text", "text": '{"action": "reply", "intent": "DELIVERY", "confidence": 0.9, "reply": "Soon."}'}]}
+        self.real = b.request_json
+        b.request_json = lambda method, url, body, headers, timeout=60: (self.sent.append((url, body, headers)), self.answer)[1]
+
+    def tearDown(self):
+        self.b.request_json = self.real
+
+    def test_claude_is_asked_in_its_own_way(self):
+        brain = self.b.Brain("https://api.anthropic.com", "k", "claude-haiku-5-5")
+        out = brain.think({"subject": "Where is my order", "message": "?"})
+        self.assertEqual("reply", out["action"])
+        url, body, headers = self.sent[0]
+        self.assertEqual("https://api.anthropic.com/v1/messages", url)
+        self.assertEqual("k", headers["x-api-key"])
+        self.assertNotIn("Authorization", headers)
+        self.assertIn("system", body)
+        self.assertNotIn("response_format", body)
+
+    def test_an_unfinished_claude_answer_goes_to_a_person(self):
+        self.answer = {"stop_reason": "max_tokens", "content": [{"type": "text", "text": '{"action": "reply"'}]}
+        brain = self.b.Brain("https://api.anthropic.com/", "k", "claude-haiku-5-5")
+        with self.assertRaises(self.b.BrainError):
+            brain.think({"subject": "s", "message": "m"})
+
+    def test_a_plain_http_address_is_refused(self):
+        with self.assertRaises(self.b.BrainError):
+            self.b.Brain("http://example.com/v1", "k", "m")
