@@ -30,8 +30,17 @@ def request_json(method: str, url: str, body=None, headers=None, timeout: int = 
         h["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, headers=h, method=method)
     try:
+        raw = _send(req, timeout)
+    except ValueError:
+        # http.client puts a bad header's value (a secret) in its message: never pass it on.
+        raise OSError("a request header was not valid (check settings for stray spaces)") from None
+    return json.loads(raw) if raw.strip() else None
+
+
+def _send(req, timeout):
+    try:
         with _opener.open(req, timeout=timeout) as res:
             raw = res.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
         raise HttpError(e.code, e.read().decode("utf-8", errors="replace")) from None
-    return json.loads(raw) if raw.strip() else None
+    return raw

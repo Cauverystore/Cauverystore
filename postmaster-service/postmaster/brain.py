@@ -71,6 +71,9 @@ class Brain:
                 raise BrainError(f"The AI service returned an error ({e.status}).") from None
         except OSError as e:
             raise BrainError(f"Could not reach the AI service: {e}") from None
+        except ValueError:
+            # Never pass the message on: it can contain a header value, i.e. the key.
+            raise BrainError("The AI request could not be sent (check the AI settings for stray spaces).") from None
         return parse(text)
 
     def _ask(self, user: str, json_mode: bool) -> str:

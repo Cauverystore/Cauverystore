@@ -46,7 +46,9 @@ def run(store, brain, limit: int = 10) -> dict:
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     need = ["STORE_API_URL", "POSTMASTER_TOKEN", "AI_BASE_URL", "AI_API_KEY", "AI_MODEL"]
-    missing = [n for n in need if not os.environ.get(n)]
+    # Values pasted into a dashboard often carry a stray space or line break.
+    env = {n: (os.environ.get(n) or "").strip() for n in need}
+    missing = [n for n in need if not env[n]]
     if missing:
         # Stops before taking any mail, so nothing gets stuck.
         log.error("Missing settings: %s", ", ".join(missing))
@@ -55,8 +57,16 @@ def main() -> int:
         limit = max(1, min(int(os.environ.get("POSTMASTER_BATCH", "10")), 25))
     except ValueError:
         limit = 10
-    store = Store(os.environ["STORE_API_URL"], os.environ["POSTMASTER_TOKEN"])
-    brain = Brain(os.environ["AI_BASE_URL"], os.environ["AI_API_KEY"], os.environ["AI_MODEL"])
+    for n in ("POSTMASTER_TOKEN", "AI_API_KEY"):
+        if any(c.isspace() or ord(c) < 32 for c in env[n]):
+            log.error("%s has a space or line break inside it; paste it again", n)   # never the value
+            return 2
+    store = Store(env["STORE_API_URL"], env["POSTMASTER_TOKEN"])
+    try:
+        brain = Brain(env["AI_BASE_URL"], env["AI_API_KEY"], env["AI_MODEL"])
+    except BrainError as e:
+        log.error("AI settings: %s", e)
+        return 2
     try:
         log.info("Postmaster finished: %s", run(store, brain, limit))
     except (HttpError, OSError) as e:
