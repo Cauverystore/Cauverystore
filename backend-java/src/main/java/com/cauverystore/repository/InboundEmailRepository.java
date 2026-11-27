@@ -22,6 +22,21 @@ public interface InboundEmailRepository extends JpaRepository<InboundEmail, Long
 
     long countByFromAddressIgnoreCaseAndAutoReplyStatusAndAutoRepliedAtAfter(String fromAddress, String status, LocalDateTime after);
 
+    List<InboundEmail> findTop3ByFromAddressIgnoreCaseAndIdLessThanOrderByIdDesc(String fromAddress, Long id);
+    List<InboundEmail> findByAutoReplyStatusAndAutoRepliedAtBefore(String status, LocalDateTime before);
+    long countByAutoReplyStatus(String status);
+    long countByAutoReplyStatusAndAutoRepliedAtAfter(String status, LocalDateTime after);
+
+    /** Like claimForAutoReply, and stamps the time so unfinished work can be recovered. */
+    @Modifying
+    @Query("update InboundEmail e set e.autoReplyStatus = :status, e.autoRepliedAt = :at where e.id = :id and e.autoReplyStatus is null")
+    int claimForPostmaster(@Param("id") Long id, @Param("status") String status, @Param("at") LocalDateTime at);
+
+    /** Moves an email between states only if it is still in the expected one, so it cannot be sent twice. */
+    @Modifying
+    @Query("update InboundEmail e set e.autoReplyStatus = :to where e.id = :id and e.autoReplyStatus = :from")
+    int moveAutoReply(@Param("id") Long id, @Param("from") String from, @Param("to") String to);
+
     /** Returns 1 only for the one caller that gets to handle this email. */
     @Modifying
     @Query("update InboundEmail e set e.autoReplyStatus = :status where e.id = :id and e.autoReplyStatus is null")
