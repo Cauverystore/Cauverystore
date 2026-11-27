@@ -20,9 +20,9 @@ On this service:
 |---|---|
 | `STORE_API_URL` | the store backend address |
 | `POSTMASTER_TOKEN` | a long random secret, same value as on the backend |
-| `AI_BASE_URL` | any OpenAI-compatible AI service |
+| `AI_BASE_URL` | `https://api.anthropic.com` for Claude, or any OpenAI-compatible AI service |
 | `AI_API_KEY` | the key from that AI service |
-| `AI_MODEL` | the model name |
+| `AI_MODEL` | the model name, e.g. `claude-haiku-5-5` |
 
 On the store backend:
 
