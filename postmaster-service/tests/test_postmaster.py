@@ -90,3 +90,32 @@ class ClaudeTest(unittest.TestCase):
     def test_a_plain_http_address_is_refused(self):
         with self.assertRaises(self.b.BrainError):
             self.b.Brain("http://example.com/v1", "k", "m")
+
+
+class SecretSafetyTest(unittest.TestCase):
+    ENV = {"STORE_API_URL": "https://example.com", "POSTMASTER_TOKEN": "t" * 64,
+           "AI_BASE_URL": "https://api.anthropic.com", "AI_MODEL": "claude-haiku-5-5"}
+
+    def test_a_key_with_a_line_break_is_never_logged(self):
+        import os
+        from unittest import mock
+        from postmaster import __main__ as m
+        env = dict(self.ENV, AI_API_KEY="sk-ant-SECRETVALUE\nmore")
+        with mock.patch.dict(os.environ, env), self.assertLogs("postmaster", level="ERROR") as logs:
+            self.assertEqual(2, m.main())
+        self.assertNotIn("SECRETVALUE", " ".join(logs.output))
+
+    def test_a_trailing_space_is_trimmed(self):
+        import os
+        from unittest import mock
+        from postmaster import __main__ as m
+        env = dict(self.ENV, AI_API_KEY="sk-ant-x \n", POSTMASTER_TOKEN="t" * 64 + "\n")
+        with mock.patch.dict(os.environ, env), mock.patch.object(m, "run", return_value={}) as run:
+            self.assertEqual(0, m.main())
+        self.assertEqual("sk-ant-x", run.call_args[0][1].api_key)
+
+    def test_a_bad_header_error_hides_its_value(self):
+        from postmaster.net import request_json
+        with self.assertRaises(OSError) as caught:
+            request_json("GET", "https://example.invalid/", headers={"x-api-key": "sk-ant-SECRET\nX"})
+        self.assertNotIn("SECRET", str(caught.exception))
