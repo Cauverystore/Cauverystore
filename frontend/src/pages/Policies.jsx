@@ -527,7 +527,8 @@ const Policies = ({ tab }) => {
     <StaticLayout
       hero={{
         title: policy.title,
-        subtitle: tr("policies.understandHowWeHandleYour"),
+        // The privacy line fits only the privacy page; the others use their own summary.
+        subtitle: activeTab === "privacy" ? tr("policies.understandHowWeHandleYour") : descriptions[activeTab],
       }}
       tabs={tabsConfig}
       activeTab={activeTab}
