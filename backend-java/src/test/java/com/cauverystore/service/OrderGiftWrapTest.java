@@ -70,6 +70,7 @@ class OrderGiftWrapTest {
         kurta.setId(1L);
         kurta.setName("Cotton Kurta");
         kurta.setStock(10);
+        kurta.setPackageWeight(1.2);
         CartItem ci = new CartItem();
         ci.setProduct(kurta);
         ci.setQuantity(1);
@@ -95,9 +96,10 @@ class OrderGiftWrapTest {
         Order order = orderService.placeOrder("testuser", address(), "RAZORPAY", null, true);
 
         assertEquals(49.0, order.getGiftWrapCharge(), 0.001);
-        assertEquals(1099.0, order.getTotalAmount(), 0.001, "1,050 goods + 49 wrap, free delivery");
+        assertEquals(135.0, order.getDeliveryCharge(), 0.001, "1.2 kg parcel");
+        assertEquals(1234.0, order.getTotalAmount(), 0.001, "1,050 goods + 49 wrap + 135 delivery on top");
         // 50.00 inside the 1,050 plus 2.34 inside the 49, both at the goods' 5%.
-        assertEquals(52.34, order.getTax(), 0.001);
+        assertEquals(58.76, order.getTax(), 0.001, "52.34 on goods and wrap + 6.42 GST inside the 135 delivery");
     }
 
     @Test
@@ -118,7 +120,7 @@ class OrderGiftWrapTest {
         Order order = orderService.placeOrder("testuser", address(), "RAZORPAY", null, false);
 
         assertNull(order.getGiftWrapCharge());
-        assertEquals(1050.0, order.getTotalAmount(), 0.001);
-        assertEquals(50.0, order.getTax(), 0.001);
+        assertEquals(1185.0, order.getTotalAmount(), 0.001, "1,050 goods + 135 delivery, even above Rs 500");
+        assertEquals(56.42, order.getTax(), 0.001, "50 on goods + 6.42 GST inside the 135 delivery");
     }
 }

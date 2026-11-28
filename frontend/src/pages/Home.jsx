@@ -19,7 +19,7 @@ const PROMISES = [
     Icon: Truck,
 
     get title() {
-      return i18n.t("productTray.freeDelivery");
+      return i18n.t("policies.deliveryCharges");
     },
 
     get text() { return i18n.t("msgs.homeTrustDelivery"); }

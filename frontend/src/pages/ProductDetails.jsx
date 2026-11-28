@@ -17,6 +17,7 @@ import ProductLabelInfo from "../components/ProductLabelInfo";
 import "../styles/productDetails.css";
 import i18n from "../i18n";
 import useAltText from "../hooks/useAltText";
+import { deliveryChargeForWeight, unitWeightKg } from "../utils/delivery";
 
 const ProductDetails = () => {
   const altText = useAltText();
@@ -206,12 +207,11 @@ const ProductDetails = () => {
   const schemaImages = [...(product.images || []), product.image].map(fullUrl).filter((u, i, all) => u && all.indexOf(u) === i);
 
   // Delivery terms for Google, matching the Shipping Policy and the checkout charge
-  // (CartServiceImpl / OrderService): free from ₹500, otherwise a flat ₹40.
+  // (DeliveryChargeService): by parcel weight, for one unit of this product.
   // Dispatch 1-2 business days, then 2-7 business days in transit.
-  const schemaPrice = Number(product.dealPrice || product.price) || 0;
   const shippingDetails = {
     "@type": "OfferShippingDetails",
-    "shippingRate": { "@type": "MonetaryAmount", "value": schemaPrice >= 500 ? 0 : 40, "currency": "INR" },
+    "shippingRate": { "@type": "MonetaryAmount", "value": deliveryChargeForWeight(unitWeightKg(product)), "currency": "INR" },
     "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "IN" },
     "deliveryTime": {
       "@type": "ShippingDeliveryTime",
@@ -359,7 +359,7 @@ const ProductDetails = () => {
           <li>
             <Truck size={18} />
             <span>
-              <strong>{(product.dealPrice || product.price) >= 500 ? tr("productTray.freeDelivery") : tr("productDetails.freeDeliveryOnOrdersOf")}</strong>
+              <strong>{tr("productDetails.freeDeliveryOnOrdersOf")}</strong>
               {(product.dealPrice || product.price) < 500 && <> ({"₹"}{tr("productDetails.40BelowThat")}</>}
             </span>
           </li>

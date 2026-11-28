@@ -35,6 +35,13 @@ public class OrderService {
     /** Gift wrap price, GST inside. Checkout shows the same figure. */
     public static final double GIFT_WRAP_CHARGE = 49.0;
 
+    private DeliveryChargeService deliveryCharges = DeliveryChargeService.defaults();
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setDeliveryCharges(DeliveryChargeService deliveryCharges) {
+        if (deliveryCharges != null) this.deliveryCharges = deliveryCharges;
+    }
+
     private final OrderRepository orderRepo;
     private final OrderItemRepository orderItemRepo;
     private final CartRepository cartRepo;
@@ -354,7 +361,9 @@ public class OrderService {
             discount = couponService.computeDiscount(appliedCoupon, subTotal);
         }
 
-        double deliveryCharge = (appliedCoupon != null && appliedCoupon.isFreeShipping()) || subTotal >= 500 ? 0 : 40;
+        // By parcel weight, on top of the prices - the same rule the cart showed.
+        double deliveryCharge = (appliedCoupon != null && appliedCoupon.isFreeShipping())
+                ? 0 : deliveryCharges.chargeFor(activeItems, subTotal);
         double goodsAmount = Math.max(subTotal - discount, 0);
         // Prices include GST, so the customer pays the goods and delivery as shown; the tax is
         // the part of that which is GST, recorded for the invoice and returns.
