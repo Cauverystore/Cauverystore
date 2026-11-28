@@ -16,7 +16,7 @@ const facts = [
     }
   },
   {
-    value: "₹500",
+    value: "₹65",
 
     get label() {
       return i18n.t("aboutUs.ordersFromThisAmountShip");
