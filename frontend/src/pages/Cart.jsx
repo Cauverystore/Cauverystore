@@ -9,7 +9,7 @@ import { useWishlist } from "../context/WishlistContext";
 import { trackEvent } from "../utils/analytics";
 import { variantLabel } from "../utils/variant";
 import "../styles/cart.css";
-import { useTranslation, Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 const Cart = () => {
@@ -212,7 +212,8 @@ const Cart = () => {
     }
   }
 
-  const delivery = subtotal >= 500 ? 0 : 40;
+  // The server works the charge out from the parcel weight; a free-delivery coupon removes it.
+  const delivery = appliedCoupon?.freeShipping ? 0 : (Number(cart?.deliveryCharge) || 0);
   const taxableAmount = subtotal - discount;
   // Prices include GST, so the tax is part of the subtotal, not added to it. The figure comes
   // from the server, which works out each item's rate from its HSN; it covers the undiscounted
@@ -222,7 +223,6 @@ const Cart = () => {
   const retained = subtotal > 0 ? Math.max(taxableAmount, 0) / subtotal : 0;
   const tax = serverTax !== null ? Math.round(serverTax * retained * 100) / 100 : null;
   const finalTotal = Math.max(subtotal - discount + delivery, 0);
-  const shippingProgress = Math.min((subtotal / 500) * 100, 100);
 
   const safeId = (item) => item.id || item._id;
   const safeProduct = (item) => item.product || {};
@@ -287,23 +287,9 @@ const Cart = () => {
       )}
       {/* ─── LEFT COLUMN: Cart items → Checkout → Continue → Freq Bought ─── */}
       <div className="cart-left-col">
-        {subtotal < 500 && (
-          <div className="cart-shipping-progress">
-            <div className="cart-shipping-progress-text">
-              {subtotal === 0 ? t("cart.addItemsForFree") : <Trans i18nKey="cart.addMoreForFree" values={{ amount: (500 - subtotal).toFixed(2) }} components={{ b: <strong /> }} />}</div>
-            <div className="cart-shipping-progress-bar">
-              <div className={`cart-shipping-progress-fill ${shippingProgress >= 100 ? "complete" : ""}`} style={{ width: `${shippingProgress}%` }} />
-            </div>
-          </div>
-        )}
-        {subtotal >= 500 && (
-          <div className="cart-shipping-progress">
-            <div className="cart-shipping-progress-free">{t("cart.youGetFreeDeliveryOn")}</div>
-            <div className="cart-shipping-progress-bar">
-              <div className="cart-shipping-progress-fill complete" style={{ width: "100%" }} />
-            </div>
-          </div>
-        )}
+        <div className="cart-shipping-progress">
+          <div className="cart-shipping-progress-text">{t("cart.deliveryIsFreeOnOrders")}</div>
+        </div>
 
         <div className="cart-items-section">
           {items.map((item) => {

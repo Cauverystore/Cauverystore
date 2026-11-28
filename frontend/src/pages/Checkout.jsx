@@ -32,6 +32,7 @@ const Checkout = () => {
   const [step, setStep] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [serverTax, setServerTax] = useState(null);
+  const [serverDelivery, setServerDelivery] = useState(0);
   const [bill, setBill] = useState(null);
   const [billLoading, setBillLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,6 +72,7 @@ const Checkout = () => {
         ]);
         setCartItems(cartRes.data?.items || []);
         setServerTax(typeof cartRes.data?.tax === "number" ? cartRes.data.tax : null);
+        setServerDelivery(Number(cartRes.data?.deliveryCharge) || 0);
         const addrs = Array.isArray(addrRes.data) ? addrRes.data : [];
         setSavedAddresses(addrs);
         if (addrs.length > 0) {
@@ -127,7 +129,8 @@ const Checkout = () => {
       ? subtotal * (promoApplied.value / 100)
       : promoApplied.value)
     : 0;
-  const delivery = subtotal >= 500 ? 0 : 40;
+  // By parcel weight, worked out by the server; a free-delivery coupon removes it, as the order does.
+  const delivery = promoApplied?.freeShipping ? 0 : serverDelivery;
   const giftCharge = giftWrap ? 49 : 0;
   const taxableAmount = subtotal - discount;
   // GST comes from the server, worked out per item from its HSN code. There is deliberately no

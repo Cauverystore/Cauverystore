@@ -335,10 +335,8 @@ const ProductTray = ({ product, onAddToCart, onBuyNow, onMoveToCart, onRemove, q
         <PriceBlock price={price} originalPrice={originalPrice} />
 
         <div className="pt-meta">
-          {/* Matches the cart rule: delivery is free on orders of 500 or more. */}
           {/* Low stock leads: the line is cut with "..." on a narrow card, and this must not be lost. */}
           {isLowStock && <span className="pt-meta-low">{tr("productTray.only")}{" "}{stock}{" "}{tr("productTray.left")}</span>}
-          {inStock && price >= 500 && <span className="pt-meta-item">{tr("productTray.freeDelivery")}</span>}
           {inStock && returnDays > 0 && <span className="pt-meta-item">{returnDays}{tr("productTray.dayReturns")}</span>}
         </div>
 

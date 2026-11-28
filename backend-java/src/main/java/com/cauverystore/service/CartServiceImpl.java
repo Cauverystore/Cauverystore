@@ -32,6 +32,12 @@ public class CartServiceImpl implements CartService {
     private final ProductService productService;
 
     private final GstRateResolver gstRateResolver;
+    private DeliveryChargeService deliveryCharges = DeliveryChargeService.defaults();
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setDeliveryCharges(DeliveryChargeService deliveryCharges) {
+        if (deliveryCharges != null) this.deliveryCharges = deliveryCharges;
+    }
 
     public CartServiceImpl(CartRepository cartRepo, CartItemRepository cartItemRepo,
                            ProductRepository productRepo, JwtUtil jwtUtil, UserRepository userRepo,
@@ -220,7 +226,11 @@ public class CartServiceImpl implements CartService {
         result.put("savedForLater", savedItems);
         result.put("totalItems", activeItems.stream().mapToInt(i -> (int) i.get("quantity")).sum());
         result.put("totalPrice", activeItems.stream().mapToDouble(i -> (double) i.get("subtotal")).sum());
-        result.put("deliveryCharge", activeItems.isEmpty() || (double) result.get("totalPrice") >= 500 ? 0.0 : 40.0);
+        // Charged on top of the prices, by parcel weight, the same way the order will charge it.
+        double deliveryCharge = activeItems.isEmpty() ? 0.0
+                : deliveryCharges.chargeFor(cart.getItems(), (double) result.get("totalPrice"));
+        result.put("deliveryCharge", deliveryCharge);
+        result.put("parcelWeightKg", Math.round(deliveryCharges.weightKg(cart.getItems()) * 1000.0) / 1000.0);
         // Tax shown in the cart must be the tax checkout will actually charge, so it is
         // resolved per item from its HSN via the same rate master OrderService uses rather
         // than applying a flat percentage to the basket.
@@ -264,7 +274,8 @@ public class CartServiceImpl implements CartService {
         // The tax is inside the prices already, so it is not added again.
         result.put("pricesIncludeTax", true);
         result.put("finalAmount", Math.round(((double) result.get("totalPrice") + (double) result.get("deliveryCharge")) * 100.0) / 100.0);
-        result.put("freeDeliveryEligible", (double) result.get("totalPrice") >= 500);
+        result.put("freeDeliveryEligible", deliveryCharge == 0.0 && !activeItems.isEmpty());
+        result.put("freeDeliveryAbove", deliveryCharges.freeAbove());
         result.put("deliveryDate", LocalDate.now().plusDays(4).toString());
         result.put("itemCount", activeItems.size());
         return result;

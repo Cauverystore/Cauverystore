@@ -6,7 +6,7 @@
 - Based in Coimbatore, Tamil Nadu, India. Orders are delivered across India.
 - Prices shown on the site include GST. Gift wrap can be added to any order at checkout.
 - Payment is online only, through Razorpay: UPI, credit and debit cards, net banking and wallets. Cash on delivery is not offered at present.
-- Delivery is free on orders of ₹500 or more. Orders normally ship within 1-2 business days and then take 2-7 business days to arrive in most of India.
+- Delivery is charged on top of the product price, by parcel weight: ₹65 up to 0.5 kg, ₹100 up to 1 kg, ₹135 up to 1.5 kg, then ₹35 for each extra 0.5 kg. Orders normally ship within 1-2 business days and then take 2-7 business days to arrive in most of India.
 - Each product page shows the seller that supplies the item. Every seller is checked before they can list, and products appear on the site only after Cauvery Store has approved them.
 - Sellers based in India can apply to sell on Cauvery Store; listings go live once approved.
 - The site is available in English, Tamil, Telugu, Hindi, Kannada and Malayalam. Non-English pages use a language prefix, for example https://cauverystore.in/ta/about.
